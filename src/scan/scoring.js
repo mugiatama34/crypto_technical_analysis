@@ -9,7 +9,7 @@ export const SCORING_DEFAULTS = {
   maxZoneAtr: 4, // bundan geniş bölgeli sinyaller (ör. dealing range özeti) kümeye katılmaz
   statusWeight: { active: 1, triggered: 1, forming: 0.6, mitigated: 0.5, done: 0.3, invalid: 0 },
   repeatDecay: [1, 0.5, 0.25, 0.1], // aynı detektörün 1., 2., 3., 4.+ sinyalinin katkısı
-  scale: 3.0, // doygunluk eğrisi: score = 100 × (1 − e^(−raw/scale))
+  scale: 4.5, // doygunluk eğrisi: score = 100 × (1 − e^(−raw/scale))
   minScore: 0,
 };
 
@@ -67,7 +67,7 @@ function scoreCluster(members, dir, zone, { price, atr, weights, o, width }) {
     types.add(s.detector); groups.add(s.group);
   }
   // Çeşitlilik bonusu: farklı gruplar aynı bölgede → daha sağlam
-  const diversity = 1 + 0.15 * Math.min(4, groups.size - 1);
+  const diversity = 1 + 0.12 * Math.min(4, groups.size - 1);
   // Fiyat yakınlığı: fiyat bölgede ya da yakınsa tam, uzaksa azalır
   const mid = zoneMid(zone);
   const dist = atr ? Math.max(0, Math.abs(price - mid) - (zone[1] - zone[0]) / 2) / atr : 0;

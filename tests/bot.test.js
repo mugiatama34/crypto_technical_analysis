@@ -120,3 +120,19 @@ test('telegram biçimleri', () => {
   assert.ok(formatSummary({ sent: 3, active: 1, tp1: 0, done: 1, stopped: 1, expired: 0, missed: 0 }, [{ coin: 'ETH', tf: '4H', direction: 'short', status: 'waiting', entry: 1, stop: 2 }], Date.now()).includes('ETH'));
   assert.equal(esc('a<b>&'), 'a&lt;b&gt;&amp;');
 });
+
+test('entryZone: geniş küme bölgesi çekirdek sinyale / 1,5 ATR dilime daralır, risk % sınırı', async () => {
+  const { entryZone } = await import('../bot/plan.js');
+  const wide = { zone: [90, 100], signals: [sig('OB ↑', { zone: [97, 100], strength: 0.9 }), sig('FVG ↑', { zone: [98, 99.5], strength: 0.6 }), sig('Fib', { zone: [90, 92], strength: 0.4 })] };
+  const z = entryZone(wide, 1, 1, 1.5);
+  assert.ok(z[1] - z[0] <= 1.5 + 1e-9 && z[0] >= 97, `zone ${z}`);
+  // Çekirdek bölge 4 ATR genişse yakın kenardan 1,5 ATR
+  const z2 = entryZone({ zone: [90, 100], signals: [sig('X', { zone: [94, 100], strength: 0.9 })] }, 1, 1, 1.5);
+  assert.deepEqual(z2, [98.5, 100]);
+  const z3 = entryZone({ zone: [90, 100], signals: [sig('X', { direction: 'short', zone: [90, 96], strength: 0.9 })] }, -1, 1, 1.5);
+  assert.deepEqual(z3, [90, 91.5]);
+  // Risk % sınırı: ATR fiyata göre büyükse plan elenir
+  const r = row({ price: 10.1, atr: 1, best: { direction: 'long', score: 70, zone: [9, 10], groups: new Set(['smc']), signals: [sig('OB', { zone: [9, 10] })] } });
+  assert.equal(buildPlan(r, { maxRiskPct: 5 }).ok, false);
+  assert.equal(buildPlan(r, { maxRiskPct: 20 }).ok, true);
+});

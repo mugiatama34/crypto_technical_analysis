@@ -9,7 +9,9 @@ export const PLAN_DEFAULTS = {
   riskPct: 1, // hesap yüzdesi
   stopPadAtr: 0.3, // stop: bölge kenarının bu × ATR ötesi
   minRiskAtr: 0.6, // giriş–stop en az bu × ATR
-  maxRiskAtr: 4, // giriş–stop en fazla bu × ATR (daha uzak geçersizlik seviyeleri yok sayılır)
+  maxRiskAtr: 3, // giriş–stop en fazla bu × ATR (daha uzak geçersizlik seviyeleri yok sayılır)
+  maxRiskPct: 5, // giriş–stop fiyatın bu %'sinden fazlaysa plan üretilmez
+  maxZoneAtr: 1.5, // giriş bölgesi bundan genişse fiyata yakın kenardan bu kadar dilim alınır
   maxDistAtr: 3, // fiyat bölgeye bundan uzaksa plan üretilmez
   requireMtf: false,
   expireHours: 24, // bekleyen plan bu kadar saatte dolmazsa düşer
@@ -29,7 +31,7 @@ export function buildPlan(row, opts = {}) {
   if (score < o.minScore) return { ok: false, reason: `puan ${score} < ${o.minScore}` };
   if (o.requireMtf && !mtfOk) return { ok: false, reason: 'MTF uyumu yok' };
   const d = dirSign(row.direction), atr = row.atr, price = row.price;
-  const [lo, hi] = b.zone;
+  const [lo, hi] = entryZone(b, d, atr, o.maxZoneAtr);
   // Giriş: bölgenin fiyata yakın kenarı (long: üst kenar, short: alt kenar); fiyat bölgedeyse fiyat
   const inZone = price >= lo && price <= hi;
   const entry = inZone ? price : d === 1 ? hi : lo;
@@ -48,6 +50,7 @@ export function buildPlan(row, opts = {}) {
   let risk = d * (entry - stop);
   if (risk < o.minRiskAtr * atr) { stop = entry - d * o.minRiskAtr * atr; risk = o.minRiskAtr * atr; }
   if (risk > o.maxRiskAtr * atr) return { ok: false, reason: `stop ${(risk / atr).toFixed(1)}×ATR uzakta` };
+  if ((risk / entry) * 100 > o.maxRiskPct) return { ok: false, reason: `risk %${((risk / entry) * 100).toFixed(1)} > %${o.maxRiskPct}` };
   // Hedefler: kümedeki hedefler + 2R/3R; TP1 ≥ minRR1, TP2 ≥ minRR
   const tgts = [...new Set(b.signals.map((s) => s.target).filter((x) => Number.isFinite(x) && d * (x - entry) > 0))].sort((a, c) => d * (a - c));
   const R = (p) => (d * (p - entry)) / risk;
@@ -69,6 +72,24 @@ export function buildPlan(row, opts = {}) {
     groups: [...b.groups],
     status: inZone ? 'active' : 'waiting',
   };
+}
+
+/**
+ * Giriş bölgesi: kümenin çekirdek (en güçlü yönlü) sinyalinin bölgesi, onu kesen dar sinyallerle kesişim;
+ * yine de maxZoneAtr'den genişse fiyata yakın kenardan o kadarlık dilim.
+ */
+export function entryZone(cluster, d, atr, maxZoneAtr) {
+  const dirName = d === 1 ? 'long' : 'short';
+  const core = cluster.signals.find((s) => s.direction === dirName && s.zone) || cluster.signals.find((s) => s.zone);
+  let lo = core ? core.zone[0] : cluster.zone[0], hi = core ? core.zone[1] : cluster.zone[1];
+  // Kesişim: çekirdekle çakışan ve ondan dar olan yönlü sinyaller bölgeyi daraltır (en az 0,4 ATR kalır)
+  for (const s of cluster.signals) {
+    if (!s.zone || s === core || s.direction !== dirName) continue;
+    const ilo = Math.max(lo, s.zone[0]), ihi = Math.min(hi, s.zone[1]);
+    if (ihi - ilo >= 0.4 * atr && ihi - ilo < hi - lo) { lo = ilo; hi = ihi; }
+  }
+  if (hi - lo > maxZoneAtr * atr) { if (d === 1) lo = hi - maxZoneAtr * atr; else hi = lo + maxZoneAtr * atr; }
+  return [lo, hi];
 }
 
 /** Hesap büyüklüğüne göre pozisyon: risk$ / (giriş − stop). */

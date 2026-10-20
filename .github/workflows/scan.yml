@@ -45,6 +45,7 @@ jobs:
           MIN_SCORE: ${{ vars.MIN_SCORE }}
           MIN_RR: ${{ vars.MIN_RR }}
           RISK_PCT: ${{ vars.RISK_PCT }}
+          MAX_RISK_PCT: ${{ vars.MAX_RISK_PCT }}
           MAX_ALERTS: ${{ vars.MAX_ALERTS }}
           COOLDOWN_H: ${{ vars.COOLDOWN_H }}
           SUMMARY_HOUR_UTC: ${{ vars.SUMMARY_HOUR_UTC }}

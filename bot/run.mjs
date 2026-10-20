@@ -5,7 +5,7 @@
 //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID   bildirim (yoksa yalnızca log)
 //   ANTHROPIC_API_KEY                       beyin (yoksa Claude atlanır, yalnızca kural motoru planı gönderilir)
 //   ACCOUNT_USDT                            isteğe bağlı: pozisyon büyüklüğü hesabı
-//   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=50  MIN_RR=2  RISK_PCT=1  MAX_ALERTS=5  COOLDOWN_H=6
+//   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=50  MIN_RR=2  RISK_PCT=1  MAX_RISK_PCT=5  MAX_ALERTS=5  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,6 +21,7 @@ const CFG = {
   minScore: +env('MIN_SCORE', 50),
   minRR: +env('MIN_RR', 2),
   riskPct: +env('RISK_PCT', 1),
+  maxRiskPct: +env('MAX_RISK_PCT', 5),
   maxAlerts: +env('MAX_ALERTS', 5),
   cooldownHours: +env('COOLDOWN_H', 6),
   summaryHour: +env('SUMMARY_HOUR_UTC', 6),
@@ -62,8 +63,9 @@ async function main() {
     onProgress: ({ done, total }) => { if (done % 50 === 0 || done === total) log(`  ${done}/${total}`); },
     onRetry: ({ path: p, attempt, wait }) => log(`  retry ${p} #${attempt} ${wait}ms`),
   });
-  const errs = res.rows.filter((r) => r.error);
-  log(`Tamam: ${res.rows.length} satır, ${errs.length} hata, ${res.errors.length} detektör hatası`);
+  const errs = res.rows.filter((r) => r.error && r.error !== 'Yetersiz mum');
+  const young = res.rows.filter((r) => r.error === 'Yetersiz mum');
+  log(`Tamam: ${res.rows.length} satır, ${errs.length} hata, ${young.length} yetersiz mum (yeni listelenen), ${res.errors.length} detektör hatası`);
   if (errs.length) log('  ilk hata:', errs[0].coin, errs[0].tf, errs[0].error);
   const byKey = new Map(res.rows.map((r) => [`${r.coin}|${r.tf}`, r]));
 
@@ -85,13 +87,13 @@ async function main() {
   const cands = [];
   for (const r of res.rows) {
     if (r.error) continue;
-    const plan = buildPlan(r, { minScore: CFG.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: CFG.cooldownHours });
+    const plan = buildPlan(r, { minScore: CFG.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: CFG.cooldownHours, maxRiskPct: CFG.maxRiskPct });
     if (!plan.ok) continue;
     if (onCooldown(plan, state.sent, now, CFG.cooldownHours)) continue;
     cands.push(plan);
   }
   cands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
-  log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score}`).join(' | ') : ''));
+  log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score} r%${p.riskPct}`).join(' | ') : ''));
 
   // 3) Beyin + gönderim
   let sentNow = 0;

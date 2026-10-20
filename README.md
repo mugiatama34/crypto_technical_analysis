@@ -63,11 +63,24 @@ Claude'un önerdiği seviyeler bu kurallara uymazsa kural motorunun seviyeleri k
    - `ANTHROPIC_API_KEY` (yoksa bot Claude'suz çalışır: yalnızca kural motoru planı, güven "düşük/orta")
    - `ACCOUNT_USDT` (isteğe bağlı; pozisyon büyüklüğü hesabı için hesap tutarı)
 2. İsteğe bağlı **Variables**: `SCAN_TFS` (vars. `15m,1H,4H`), `TOP_N` (100), `MIN_SCORE` (50), `MIN_RR` (2),
-   `RISK_PCT` (1), `MAX_ALERTS` (5), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
+   `RISK_PCT` (1), `MAX_RISK_PCT` (5; giriş–stop fiyatın bu %'sini aşarsa plan elenir), `MAX_ALERTS` (5), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
 3. **Actions** sekmesinde `scan-and-alert` workflow'unu bir kez **Run workflow** ile elle başlat (önce `dry` işaretli
    deneyip logda mesajları görebilirsin). Sonra her 15 dakikada kendi koşar (GitHub cron'u birkaç dakika geciktirebilir).
 
 Durum dosyası (`bot/state.json`) çalıştırmalar arasında Actions cache ile taşınır; repo'ya commit edilmez.
+
+### GitHub cron güvenilirliği
+GitHub'ın zamanlayıcısı "elinden geleni yapar": yoğun saatlerde dakikalarca gecikebilir, bazı tetiklemeler hiç
+düşmeyebilir ve yeni eklenen bir workflow'un ilk zamanlanmış koşusu saatler sürebilir. Bildirim botu için genelde
+yeterlidir; daha düzenli istiyorsan ücretsiz bir dış zamanlayıcı (ör. **cron-job.org**) her 15 dakikada workflow'u
+elle tetikleyebilir:
+
+- URL: `https://api.github.com/repos/mugiatama34/crypto_technical_analysis/actions/workflows/scan.yml/dispatches`
+- Yöntem: `POST`, gövde: `{"ref":"claude/awesome-heisenberg-mmuyod"}`
+- Başlıklar: `Authorization: Bearer <GitHub fine-grained PAT, bu repo için Actions: Read and write>`,
+  `Accept: application/vnd.github+json`, `Content-Type: application/json`
+
+İki tetikleme çakışırsa `concurrency` grubu sayesinde ikincisi birincinin bitmesini bekler; durum dosyası bozulmaz.
 
 ### Yerel deneme
 ```bash
