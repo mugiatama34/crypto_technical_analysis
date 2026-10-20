@@ -19,7 +19,7 @@ export const DECIDE_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['assessment', 'actions'],
   properties: {
     assessment: { type: 'string', description: 'Piyasa ve hesap durumuna 1–3 cümle bakış' },
-    actions: { type: 'array', maxItems: 8, items: {
+    actions: { type: 'array', description: 'En fazla 8 eylem', items: {
       type: 'object', additionalProperties: false,
       required: ['type', 'coin', 'direction', 'margin_usdt', 'leverage', 'order', 'limit_price', 'stop', 'tp1', 'tp2', 'position_id', 'rationale'],
       properties: {
@@ -33,14 +33,14 @@ export const DECIDE_SCHEMA = {
       } } },
   },
 };
-export const REFLECT_SCHEMA = { type: 'object', additionalProperties: false, required: ['lesson', 'tags'], properties: { lesson: { type: 'string', description: '2–3 cümle: ne oldu, neden, bir dahaki sefere ne farklı' }, tags: { type: 'array', items: { type: 'string' }, maxItems: 4 } } };
+export const REFLECT_SCHEMA = { type: 'object', additionalProperties: false, required: ['lesson', 'tags'], properties: { lesson: { type: 'string', description: '2–3 cümle: ne oldu, neden, bir dahaki sefere ne farklı' }, tags: { type: 'array', items: { type: 'string' }, description: 'en fazla 4 etiket' } } };
 export const REVIEW_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['lessons', 'params', 'summary'],
   properties: {
     summary: { type: 'string', description: 'Dönemin 2–4 cümlelik değerlendirmesi' },
-    lessons: { type: 'array', maxItems: 10, items: { type: 'string' } },
+    lessons: { type: 'array', description: 'en fazla 10 madde', items: { type: 'string' } },
     params: { type: 'object', additionalProperties: false, required: ['riskAppetite', 'preferredLeverage', 'maxMarginPctPerTrade', 'avoidTfs', 'avoidDetectors', 'notes'],
-      properties: { riskAppetite: { type: 'string', enum: ['low', 'medium', 'high'] }, preferredLeverage: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 }, maxMarginPctPerTrade: { type: 'number' }, avoidTfs: { type: 'array', items: { type: 'string' } }, avoidDetectors: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } } },
+      properties: { riskAppetite: { type: 'string', enum: ['low', 'medium', 'high'] }, preferredLeverage: { type: 'array', items: { type: 'number' }, description: 'tam iki sayı: [min, max]' }, maxMarginPctPerTrade: { type: 'number' }, avoidTfs: { type: 'array', items: { type: 'string' } }, avoidDetectors: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } } },
   },
 };
 
