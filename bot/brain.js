@@ -85,7 +85,7 @@ export async function askBrain(plan, context, { apiKey, fetchImpl = fetch, model
  * Karar doğrulama: yön, stop tarafı, R:R, giriş bölgesinin plana yakınlığı. Kural bozulursa
  * seviyeler kural motorununkine döner ve `adjusted` listesine yazılır.
  */
-export function validateDecision(dec, plan, { minRR = 2 } = {}) {
+export function validateDecision(dec, plan, { minRR = 2, sendWait = 'high' } = {}) {
   const adjusted = [];
   const d = plan.d;
   const out = { ...dec };
@@ -103,6 +103,8 @@ export function validateDecision(dec, plan, { minRR = 2 } = {}) {
   let rr = (d * (tp2 - entry)) / risk;
   if (rr < minRR) { stop = plan.stop; tp1 = plan.tp1; tp2 = plan.tp2; adjusted.push('R:R'); rr = (d * (tp2 - entry)) / (d * (entry - stop)); }
   const rr1 = (d * (tp1 - entry)) / (d * (entry - stop));
-  const sendable = out.trade === 'take' || (out.trade === 'wait' && out.confidence !== 'düşük');
+  // sendWait: 'none' (yalnız take) | 'high' (wait yalnız yüksek güvenle) | 'medium' (orta ve yüksek)
+  const waitOk = out.trade === 'wait' && (sendWait === 'medium' ? out.confidence !== 'düşük' : sendWait === 'high' ? out.confidence === 'yüksek' : false);
+  const sendable = out.trade === 'take' || waitOk;
   return { ...out, entry_low: lo, entry_high: hi, entry, stop, tp1, tp2, rr: +rr.toFixed(2), rr1: +rr1.toFixed(2), adjusted, sendable, evidence: (dec.evidence || []).slice(0, 5) };
 }

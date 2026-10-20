@@ -47,6 +47,9 @@ jobs:
           SCAN_TFS: ${{ vars.SCAN_TFS }}
           TOP_N: ${{ vars.TOP_N }}
           MIN_SCORE: ${{ vars.MIN_SCORE }}
+          REQUIRE_MTF: ${{ vars.REQUIRE_MTF }}
+          MAX_EVAL: ${{ vars.MAX_EVAL }}
+          SEND_WAIT: ${{ vars.SEND_WAIT }}
           MIN_RR: ${{ vars.MIN_RR }}
           RISK_PCT: ${{ vars.RISK_PCT }}
           MAX_RISK_PCT: ${{ vars.MAX_RISK_PCT }}

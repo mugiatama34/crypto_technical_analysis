@@ -90,6 +90,10 @@ test('validateDecision: kural ihlalleri kural motoruna döner', () => {
   assert.equal(validateDecision({ ...good, trade: 'skip' }, p).sendable, false);
   assert.equal(validateDecision({ ...good, trade: 'wait', confidence: 'düşük' }, p).sendable, false);
   assert.equal(validateDecision({ ...good, trade: 'wait', confidence: 'yüksek' }, p).sendable, true);
+  assert.equal(validateDecision({ ...good, trade: 'wait', confidence: 'orta' }, p).sendable, false); // varsayılan 'high'
+  assert.equal(validateDecision({ ...good, trade: 'wait', confidence: 'orta' }, p, { sendWait: 'medium' }).sendable, true);
+  assert.equal(validateDecision({ ...good, trade: 'wait', confidence: 'yüksek' }, p, { sendWait: 'none' }).sendable, false);
+  assert.equal(validateDecision({ ...good, trade: 'take', confidence: 'düşük' }, p, { sendWait: 'none' }).sendable, true);
 });
 
 test('askBrain: sahte fetch ile istek gövdesi ve yanıt ayrıştırma', async () => {

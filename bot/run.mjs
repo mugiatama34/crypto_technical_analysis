@@ -5,7 +5,8 @@
 //   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID   bildirim (yoksa yalnızca log)
 //   ANTHROPIC_API_KEY                       beyin (yoksa Claude atlanır, yalnızca kural motoru planı gönderilir)
 //   ACCOUNT_USDT                            isteğe bağlı: pozisyon büyüklüğü hesabı
-//   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=50  MIN_RR=2  RISK_PCT=1  MAX_RISK_PCT=5  MAX_ALERTS=5  COOLDOWN_H=6
+//   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=70  REQUIRE_MTF=1  MIN_RR=2  RISK_PCT=1  MAX_RISK_PCT=5
+//   MAX_EVAL=8 (tur başına Claude'a giden aday)  MAX_ALERTS=3 (tur başına mesaj)  SEND_WAIT=high|medium|none  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
 import fs from 'node:fs';
@@ -19,11 +20,14 @@ const env = (k, d) => (process.env[k] != null && process.env[k] !== '' ? process
 const CFG = {
   tfs: env('SCAN_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
   topN: +env('TOP_N', 100),
-  minScore: +env('MIN_SCORE', 50),
+  minScore: +env('MIN_SCORE', 70),
+  requireMtf: env('REQUIRE_MTF', '1') === '1',
+  maxEval: +env('MAX_EVAL', 8),
+  sendWait: env('SEND_WAIT', 'high'),
   minRR: +env('MIN_RR', 2),
   riskPct: +env('RISK_PCT', 1),
   maxRiskPct: +env('MAX_RISK_PCT', 5),
-  maxAlerts: +env('MAX_ALERTS', 5),
+  maxAlerts: +env('MAX_ALERTS', 3),
   cooldownHours: +env('COOLDOWN_H', 6),
   summaryHour: +env('SUMMARY_HOUR_UTC', 6),
   stateFile: env('STATE_FILE', 'bot/state.json'),
@@ -58,7 +62,7 @@ async function main() {
   const now = Date.now();
   if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
-  log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minScore ${CFG.minScore}, minRR ${CFG.minRR}${CFG.dry ? ' [DRY]' : ''}`);
+  log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minScore ${CFG.minScore}, MTF ${CFG.requireMtf ? 'zorunlu' : 'serbest'}, minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
   const res = await runScan({ timeframes: CFG.tfs, topN: CFG.topN }, {
     provider,
@@ -89,7 +93,7 @@ async function main() {
   const cands = [];
   for (const r of res.rows) {
     if (r.error) continue;
-    const plan = buildPlan(r, { minScore: CFG.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: CFG.cooldownHours, maxRiskPct: CFG.maxRiskPct });
+    const plan = buildPlan(r, { minScore: CFG.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: CFG.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: CFG.requireMtf });
     if (!plan.ok) continue;
     if (onCooldown(plan, state.sent, now, CFG.cooldownHours)) continue;
     cands.push(plan);
@@ -98,11 +102,12 @@ async function main() {
   log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score} r%${p.riskPct}`).join(' | ') : ''));
 
   // 3) Beyin + gönderim
-  let sentNow = 0;
+  let sentNow = 0, evaluated = 0;
   const usedCoins = new Set();
   for (const plan of cands) {
-    if (sentNow >= CFG.maxAlerts) break;
+    if (sentNow >= CFG.maxAlerts || evaluated >= CFG.maxEval) break;
     if (usedCoins.has(plan.coin)) continue; // aynı turda aynı coin için tek plan
+    usedCoins.add(plan.coin); evaluated++;
     const htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((r) => r && !r.error && r.best)
       .map((r) => ({ tf: r.tf, direction: r.direction, score: r.score, top: r.best.signals.slice(0, 5).map((s) => s.name) }));
     const row = byKey.get(`${plan.coin}|${plan.tf}`);
@@ -115,15 +120,15 @@ async function main() {
     } else {
       dec = { trade: 'take', direction: plan.direction, entry_low: plan.zone[0], entry_high: plan.zone[1], stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, confidence: plan.mtf ? 'orta' : 'düşük', reason: 'Claude değerlendirmesi yok (ANTHROPIC_API_KEY tanımlı değil ya da DRY); seviyeler kural motorundan.', invalidation: `${plan.direction === 'long' ? 'Stop altı' : 'Stop üstü'} kapanış planı iptal eder.`, evidence: [] };
     }
-    const v = validateDecision(dec, plan, { minRR: CFG.minRR });
+    const v = validateDecision(dec, plan, { minRR: CFG.minRR, sendWait: CFG.sendWait });
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     await notify(formatSetup(plan, v, size), state);
     state.sent.push({ key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, score: plan.score, trade: v.trade, confidence: v.confidence, sentAt: now, status: plan.inZone ? 'active' : 'waiting' });
     state.stats.sent = (state.stats.sent || 0) + 1;
-    usedCoins.add(plan.coin); sentNow++;
+    sentNow++;
   }
-  log(`Gönderilen: ${sentNow}`);
+  log(`Değerlendirilen: ${evaluated}, gönderilen: ${sentNow}`);
 
   // 4) Günlük özet
   const h = new Date(now).getUTCHours();

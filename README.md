@@ -52,10 +52,12 @@ yapıştırmak da olur.
 planı **Claude**'a değerlendirtir (take / wait / skip, güven, gerekçe, kanıt, geçersizlik) ve Telegram'a gönderir.
 Gönderilen planlar takip edilir: giriş bölgesine geldi → TP1 → TP2 / stop / süresi doldu güncellemeleri ve günlük özet.
 
-Kurallar: en iyi küme puanı ≥ `MIN_SCORE` (50), stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye
-en fazla 3 ATR uzakta, aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez, tur başına en fazla `MAX_ALERTS` (5).
-Claude'un önerdiği seviyeler bu kurallara uymazsa kural motorunun seviyeleri kullanılır ve mesajda belirtilir.
-`trade: skip` ve düşük güvenli `wait` kararları gönderilmez. **Otomatik emir yoktur; sadece bildirim.**
+Kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
+stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
+aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday Claude'a gider,
+en fazla `MAX_ALERTS` (3) mesaj gönderilir. `SEND_WAIT` (vars. `high`): `take` her zaman, `wait` yalnız yüksek güvenle
+gönderilir (`medium`: orta+yüksek, `none`: yalnız take). Claude'un önerdiği seviyeler kurallara uymazsa kural motorunun
+seviyeleri kullanılır ve mesajda belirtilir. **Otomatik emir yoktur; sadece bildirim.**
 
 ### Kurulum (bir kez)
 1. Repo → **Settings → Secrets and variables → Actions → Secrets**:
@@ -63,7 +65,7 @@ Claude'un önerdiği seviyeler bu kurallara uymazsa kural motorunun seviyeleri k
    - `ANTHROPIC_API_KEY` (yoksa bot Claude'suz çalışır: yalnızca kural motoru planı, güven "düşük/orta")
    - `ACCOUNT_USDT` (isteğe bağlı; pozisyon büyüklüğü hesabı için hesap tutarı)
 2. İsteğe bağlı **Variables**: `SCAN_TFS` (vars. `15m,1H,4H`), `TOP_N` (100), `MIN_SCORE` (50), `MIN_RR` (2),
-   `RISK_PCT` (1), `MAX_RISK_PCT` (5; giriş–stop fiyatın bu %'sini aşarsa plan elenir), `MAX_ALERTS` (5), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
+   `REQUIRE_MTF` (1), `RISK_PCT` (1), `MAX_RISK_PCT` (5), `MAX_EVAL` (8), `MAX_ALERTS` (3), `SEND_WAIT` (high), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
 3. **Actions** sekmesinde `scan-and-alert` workflow'unu bir kez **Run workflow** ile elle başlat (önce `dry` işaretli
    deneyip logda mesajları görebilirsin). Sonra her 15 dakikada kendi koşar (GitHub cron'u birkaç dakika geciktirebilir).
 
