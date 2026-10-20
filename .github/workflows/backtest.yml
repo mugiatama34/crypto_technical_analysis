@@ -31,9 +31,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: backtest/cache
-          key: candles-${{ inputs.tfs }}-${{ github.run_id }}
+          key: candles-${{ github.run_id }}
           restore-keys: |
-            candles-${{ inputs.tfs }}-
             candles-
       - name: Run backtest
         run: node backtest/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
