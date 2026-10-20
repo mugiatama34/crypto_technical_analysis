@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0d0d">
+<title>Kripto TA Tarayıcı</title>
+<meta name="description" content="OKX USDT perp piyasalarını birden çok zaman diliminde tarar: ICT/SMC (BOS, CHoCH, FVG, order block, likidite), Elliott Wave, Fibonacci, harmonik, klasik formasyonlar, uyumsuzluk, Wyckoff ve indikatör sinyalleri; confluence puanı ile sıralar.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M2 24 L9 12 L13 18 L22 4 L30 14' fill='none' stroke='%233987e5' stroke-width='3' stroke-linejoin='round'/></svg>">
+<!--
+  Statik sayfa: framework yok, build adımı yok, CDN yok — GitHub Pages dosyaları olduğu gibi sunar.
+  Veri: tarayıcı doğrudan OKX public API'sine gider (API anahtarı gerekmez). Motor: src/scan, src/detectors.
+  Ekran görüntüsü yorumu: kullanıcının kendi Anthropic API anahtarı (yalnızca bu tarayıcının localStorage'ında).
+  ?fixture=1 → OKX yerine sentetik veri (geliştirme/test).
+-->
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Kripto TA Tarayıcı</h1>
+      <p class="sub">ICT/SMC · Elliott Wave · Fibonacci · Harmonik · Formasyonlar · Uyumsuzluk · Wyckoff · İndikatörler — OKX USDT perp, çoklu zaman dilimi, confluence puanı</p>
+    </div>
+    <nav class="nav">
+      <a href="#screenshot">Ekran görüntüsü yorumu</a>
+      <a href="https://github.com/mugiatama34/crypto_technical_analysis" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <section class="toolbar" aria-label="Tarama ayarları">
+    <div class="field"><span>Zaman dilimleri</span><div class="chips" id="tfChips" role="group" aria-label="Zaman dilimleri"></div></div>
+    <label class="field"><span>Evren</span>
+      <select id="universe">
+        <option value="50">Hacim ilk 50</option>
+        <option value="100">Hacim ilk 100</option>
+        <option value="200">Hacim ilk 200</option>
+        <option value="manual">Elle liste</option>
+      </select>
+    </label>
+    <label class="field" id="manualField" hidden><span>Semboller (virgül)</span><input type="text" id="manualCoins" placeholder="BTC, ETH, SOL" size="22"></label>
+    <label class="field"><span>Preset</span><select id="preset"></select></label>
+    <label class="field"><span>Yön</span>
+      <select id="dirFilter"><option value="all">Hepsi</option><option value="long">Long</option><option value="short">Short</option></select>
+    </label>
+    <label class="field"><span>Min puan</span><input type="number" id="minScore" min="0" max="100" step="5" value="30" style="width:84px"></label>
+    <button type="button" class="btn primary" id="scanBtn">Tara</button>
+    <button type="button" class="btn danger" id="cancelBtn" hidden>İptal</button>
+    <div class="progress" id="progress" hidden><div class="bar"><span id="progressBar"></span></div><small id="progressText"></small></div>
+  </section>
+
+  <details class="panel" id="detPanel">
+    <summary>Detektörler ve ağırlıklar <span class="note" style="margin:0 0 0 6px;display:inline">(preset seçince sıfırlanır; elle değiştirince "Özel")</span></summary>
+    <div class="panel-body"><div class="det-grid" id="detGrid"></div></div>
+  </details>
+
+  <div id="banner" hidden></div>
+  <div class="summary" id="summary"><span class="note">"Tara"ya basınca seçili evren, seçili zaman dilimlerinde taranır; her sembol × zaman dilimi için bulunan yapılar aynı fiyat bölgesinde kümelenip puanlanır. Aynı sembolde birden çok zaman dilimi aynı yönü gösteriyorsa <b>MTF</b> rozeti çıkar.</span></div>
+
+  <main class="layout">
+    <section class="list" aria-label="Sonuçlar">
+      <div class="list-head">
+        <h2 id="listTitle">Sonuçlar</h2>
+        <div class="filters">
+          <label class="field"><span>Sırala</span><select id="sortBy"><option value="score">Puan</option><option value="mtf">MTF uyumu</option><option value="signals">Sinyal sayısı</option><option value="symbol">Sembol</option></select></label>
+          <input type="text" id="search" placeholder="Sembol / yapı ara" size="16" aria-label="Ara">
+        </div>
+      </div>
+      <div id="rows" class="rows"><p class="empty">Henüz tarama yok.</p></div>
+      <div class="pager" id="pager" hidden><button type="button" class="btn" id="prevPage">‹</button><span class="count" id="pageInfo"></span><button type="button" class="btn" id="nextPage">›</button></div>
+    </section>
+
+    <section class="detail" id="detail" aria-label="Ayrıntı">
+      <p class="empty">Bir satır seçince grafik, bölgeler ve sinyal açıklamaları burada görünür.</p>
+    </section>
+  </main>
+
+  <section id="screenshot" class="panel" style="margin-top:20px" aria-label="Ekran görüntüsü yorumu">
+    <details class="panel" open style="border:0;margin:0">
+      <summary>Ekran görüntüsü yorumu (Claude ile)</summary>
+      <div class="panel-body">
+        <p class="note">Bir grafik ekran görüntüsünü bırak ya da yapıştır (Ctrl+V). Yorum için kendi <b>Anthropic API anahtarın</b> gerekir; anahtar yalnızca bu tarayıcının yerel deposunda tutulur, istek doğrudan Anthropic'e gider. Anahtar yoksa görseli Claude sohbetine yapıştırabilirsin.</p>
+        <div class="drop" id="drop" tabindex="0"><span>Görseli buraya bırak / tıkla / yapıştır</span><input type="file" id="file" accept="image/*" hidden></div>
+        <div class="ss-row">
+          <label class="field"><span>Odak</span>
+            <select id="ssFocus">
+              <option value="all">Genel teknik analiz</option>
+              <option value="ict">ICT / SMC</option>
+              <option value="ew">Elliott Wave</option>
+              <option value="fib">Fibonacci + harmonik</option>
+              <option value="pattern">Klasik formasyonlar</option>
+            </select>
+          </label>
+          <label class="field" style="flex:1;min-width:220px"><span>Anthropic API anahtarı</span><input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off"></label>
+          <label class="field" style="flex:1;min-width:220px"><span>Ek soru (isteğe bağlı)</span><input type="text" id="ssQuestion" placeholder="Örn. 4H'de long için giriş/stop nerede?"></label>
+          <button type="button" class="btn primary" id="ssBtn" disabled>Yorumla</button>
+        </div>
+        <div class="ss-out" id="ssOut" hidden></div>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    Veri: OKX Public API (USDT perp). Grafik: <a href="https://www.tradingview.com/lightweight-charts/" target="_blank" rel="noopener">TradingView Lightweight Charts™</a> (Apache-2.0).
+    Elliott Wave kural motoru ve OKX istemcisi <a href="https://github.com/klonnist/ew-setup-scanner" target="_blank" rel="noopener">klonnist/ew-setup-scanner</a> (MIT) kaynaklıdır.
+    <strong>Yatırım tavsiyesi değildir</strong>; otomatik yapı tespiti hatalı olabilir, grafiği kendin kontrol et.
+  </footer>
+</div>
+<script src="lib/lightweight-charts.standalone.production.js"></script>
+<script type="module" src="src/ui/app.js?v=1"></script>
+</body>
+</html>
