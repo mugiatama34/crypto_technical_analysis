@@ -46,6 +46,39 @@ formasyon) ve **kendi Anthropic API anahtarınla** yorum al. Anahtar yalnızca t
 tutulur; istek doğrudan `api.anthropic.com`'a gider (sunucu yok). Anahtar yoksa görseli Claude sohbetine
 yapıştırmak da olur.
 
+## Telegram sinyal botu (15 dakikada bir, GitHub Actions)
+
+`bot/run.mjs` aynı tarama motorunu Node ile koşturur, kural motorundan plan çıkarır (giriş bölgesi, stop, TP1, TP2, R:R),
+planı **Claude**'a değerlendirtir (take / wait / skip, güven, gerekçe, kanıt, geçersizlik) ve Telegram'a gönderir.
+Gönderilen planlar takip edilir: giriş bölgesine geldi → TP1 → TP2 / stop / süresi doldu güncellemeleri ve günlük özet.
+
+Kurallar: en iyi küme puanı ≥ `MIN_SCORE` (50), stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye
+en fazla 3 ATR uzakta, aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez, tur başına en fazla `MAX_ALERTS` (5).
+Claude'un önerdiği seviyeler bu kurallara uymazsa kural motorunun seviyeleri kullanılır ve mesajda belirtilir.
+`trade: skip` ve düşük güvenli `wait` kararları gönderilmez. **Otomatik emir yoktur; sadece bildirim.**
+
+### Kurulum (bir kez)
+1. Repo → **Settings → Secrets and variables → Actions → Secrets**:
+   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (crypto-scanner'daki bot kullanılabilir)
+   - `ANTHROPIC_API_KEY` (yoksa bot Claude'suz çalışır: yalnızca kural motoru planı, güven "düşük/orta")
+   - `ACCOUNT_USDT` (isteğe bağlı; pozisyon büyüklüğü hesabı için hesap tutarı)
+2. İsteğe bağlı **Variables**: `SCAN_TFS` (vars. `15m,1H,4H`), `TOP_N` (100), `MIN_SCORE` (50), `MIN_RR` (2),
+   `RISK_PCT` (1), `MAX_ALERTS` (5), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
+3. **Actions** sekmesinde `scan-and-alert` workflow'unu bir kez **Run workflow** ile elle başlat (önce `dry` işaretli
+   deneyip logda mesajları görebilirsin). Sonra her 15 dakikada kendi koşar (GitHub cron'u birkaç dakika geciktirebilir).
+
+Durum dosyası (`bot/state.json`) çalıştırmalar arasında Actions cache ile taşınır; repo'ya commit edilmez.
+
+### Yerel deneme
+```bash
+DRY=1 node bot/run.mjs                 # OKX'ten çeker, Telegram/Claude'a gitmez, mesajları konsola yazar
+FIXTURE=1 DRY=1 node bot/run.mjs       # sentetik veriyle
+```
+
+### Maliyet
+Claude yalnızca kural filtresini geçen adaylar için çağrılır (tur başına en fazla `MAX_ALERTS`); çağrı başına
+birkaç bin token. Sessiz piyasada çoğu tur sıfır çağrı yapar.
+
 ## GitHub Pages'i açma (bir kez)
 1. Repo → **Settings → Pages**.
 2. **Source:** "Deploy from a branch"; **Branch:** `main`, klasör `/ (root)` → Save.
@@ -79,6 +112,7 @@ src/scan/                  context.js (ortak ön hesap), registry.js, scoring.js
                            wave3.js / triangle.js / zone.js (Elliott dalga-3 ve üçgen tarayıcıları)
 src/ew/                    Elliott Wave kural motoru (kalıplar, kurallar, F&P / Neely / Kurs setleri)
 lib/                       lightweight-charts 5.2.1 (Apache-2.0)
+bot/                       run.mjs (cron akışı), plan.js (plan/takip), brain.js (Claude), telegram.js
 tests/                     node --test
 ```
 
@@ -86,5 +120,3 @@ tests/                     node --test
 MIT. Elliott Wave kural motoru, dalga-3 / üçgen tarayıcıları ve OKX istemcisi
 [klonnist/ew-setup-scanner](https://github.com/klonnist/ew-setup-scanner) (MIT) kopyasından alınmıştır
 (`LICENSE-ew-scanner`). Grafik: [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/).
-
-<!-- Pages derlemesini tetiklemek için eklendi -->

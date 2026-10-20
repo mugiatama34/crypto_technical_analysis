@@ -1,0 +1,59 @@
+name: scan-and-alert
+
+# 15 dakikada bir: OKX taraması → aday planlar → Claude değerlendirmesi → Telegram.
+# GitHub cron gecikebilir (dakikalarca); bu normaldir. Durum (gönderilen planlar, takip) actions/cache ile taşınır.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "DRY=1: Telegram/Claude'a gitmeden konsola yaz"
+        type: boolean
+        default: false
+
+concurrency:
+  group: scan-and-alert
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Restore state
+        uses: actions/cache/restore@v4
+        with:
+          path: bot/state.json
+          key: bot-state-${{ github.run_id }}
+          restore-keys: |
+            bot-state-
+
+      - name: Scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ACCOUNT_USDT: ${{ secrets.ACCOUNT_USDT }}
+          SCAN_TFS: ${{ vars.SCAN_TFS }}
+          TOP_N: ${{ vars.TOP_N }}
+          MIN_SCORE: ${{ vars.MIN_SCORE }}
+          MIN_RR: ${{ vars.MIN_RR }}
+          RISK_PCT: ${{ vars.RISK_PCT }}
+          MAX_ALERTS: ${{ vars.MAX_ALERTS }}
+          COOLDOWN_H: ${{ vars.COOLDOWN_H }}
+          SUMMARY_HOUR_UTC: ${{ vars.SUMMARY_HOUR_UTC }}
+          DRY: ${{ inputs.dry && '1' || '' }}
+        run: node bot/run.mjs
+
+      - name: Save state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bot/state.json
+          key: bot-state-${{ github.run_id }}
