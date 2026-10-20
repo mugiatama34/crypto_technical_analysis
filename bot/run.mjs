@@ -9,12 +9,14 @@
 //   MAX_EVAL=8 (tur başına Claude'a giden aday)  MAX_ALERTS=3 (tur başına mesaj)  SEND_WAIT=high|medium|none  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
+//   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
 import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
+import { runAgents } from './agent/run.js';
 
 const env = (k, d) => (process.env[k] != null && process.env[k] !== '' ? process.env[k] : d);
 const CFG = {
@@ -35,6 +37,12 @@ const CFG = {
   account: +env('ACCOUNT_USDT', 0),
   tg: { token: env('TELEGRAM_BOT_TOKEN', ''), chatId: env('TELEGRAM_CHAT_ID', '') },
   apiKey: env('ANTHROPIC_API_KEY', ''),
+  agent: env('AGENT', '1') === '1',
+  agentModel: env('AGENT_MODEL', 'claude-opus-5-5'),
+  agentEveryMin: +env('AGENT_EVERY_MIN', 15),
+  agentMinScore: +env('AGENT_MIN_SCORE', 60),
+  agentStateFile: env('AGENT_STATE_FILE', 'bot/agent-state.json'),
+  agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
 };
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
@@ -132,7 +140,28 @@ async function main() {
 
   // 4) Günlük özet
   const h = new Date(now).getUTCHours();
-  if (h === CFG.summaryHour && now - (state.lastSummary || 0) > 20 * 3600e3) {
+  const summaryDue = h === CFG.summaryHour && now - (state.lastSummary || 0) > 20 * 3600e3;
+  // 5) Kâğıt-işlem ajanları (kendi, daha gevşek aday eşiği; MTF zorunlu değil)
+  if (CFG.agent) {
+    try {
+      const agentCands = [];
+      for (const r of res.rows) {
+        if (r.error) continue;
+        const plan = buildPlan(r, { minScore: CFG.agentMinScore, minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false });
+        if (!plan.ok) continue;
+        plan.htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((x) => x && !x.error && x.best).map((x) => ({ tf: x.tf, direction: x.direction, score: x.score }));
+        agentCands.push(plan);
+      }
+      agentCands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
+      const seenCoin = new Set();
+      const uniq = agentCands.filter((p) => !seenCoin.has(p.coin) && seenCoin.add(p.coin)).slice(0, 10);
+      const prices = {};
+      for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
+      const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
+      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+    } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
+  }
+  if (summaryDue) {
     const since = now - 24 * 3600e3;
     const recent = state.sent.filter((p) => p.sentAt >= since || (p.updatedAt || 0) >= since);
     const stats = { sent: recent.filter((p) => p.sentAt >= since).length, active: 0, tp1: 0, done: 0, stopped: 0, expired: 0, missed: 0 };

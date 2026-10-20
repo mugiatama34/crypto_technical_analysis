@@ -94,6 +94,24 @@ FIXTURE=1 DRY=1 node bot/run.mjs       # sentetik veriyle
 Claude yalnızca kural filtresini geçen adaylar için çağrılır (tur başına en fazla `MAX_ALERTS`); çağrı başına
 birkaç bin token. Sessiz piyasada çoğu tur sıfır çağrı yapar.
 
+## Kâğıt-işlem ajanı (`bot/agent/`, `agent.html`)
+Her 15 dakikalık koşuda, sinyal botunun yanında iki sanal hesap işlem yapar (**temkinli**: maks 10x, marjin ≤ %40
+özsermaye, ≤ 3 pozisyon · **agresif**: maks 20x, ≤ %60, ≤ 5 pozisyon; ikisi de 300 USDT ile başlar). Claude portföy
+yöneticisi olarak hesabı, açık pozisyonları (gerçekleşmemiş K/Z, likidasyon uzaklığı), kural motorunun adaylarını, son
+işlemlerini ve derslerini görür; **giriş büyüklüğü, kaldıraç, piyasa/limit, stop ve hedefleri kendisi seçer**; kod yalnızca
+sert sınırları uygular (aşan istek kırpılır, günlük kayıp %15'i geçince o gün yeni pozisyon açılmaz).
+- Simülasyon: izole marjin, likidasyon fiyatı = giriş × (1 ∓ (1/kaldıraç − %0,5)), komisyon %0,05/taraf, kayma %0,05,
+  TP1'de yarı kapanış + başabaş stop, aynı mumda kötü olan önce, 24 saatte dolmayan limit düşer. Funding yok.
+- Öğrenme: her kapanan işlemde kısa **yansıma** (ders) yazılır; her 20 kapanan işlemde ya da 7 günde bir **gözden geçirme**
+  dersleri süzer (≤ 10) ve parametreleri (risk iştahı, kaldıraç aralığı, marjin/işlem, kaçınılan TF/detektör) sınır içinde
+  günceller. Hafıza sonraki her karara girer; sayfada parametre geçmişi görünür.
+- Telegram: `🤖 Ajan [profil]` başlığıyla açılış, dolum, kapanış/likidasyon, gözden geçirme ve günlük özet.
+- Sayfa: **`agent.html`** (`docs/agent/<profil>.json`, her koşuda değişince commit edilir).
+- Ayarlar (Variables): `AGENT` (1/0), `AGENT_MODEL` (vars. `claude-opus-5-5`; `claude-sonnet-5-5` yarı maliyet),
+  `AGENT_EVERY_MIN` (15; karar sıklığı — pozisyon takibi her koşuda), `AGENT_MIN_SCORE` (60; ajanın aday eşiği, MTF zorunlu değil).
+- Maliyet: profil başına koşuda 1 karar çağrısı (yalnız aday ya da pozisyon varsa) ≈ 5–8k token; Opus ile günde ≈ 5–8 $,
+  Sonnet ile yarısı; `AGENT_EVERY_MIN=60` ile dörtte biri.
+
 ## Backtest
 `backtest/` walk-forward simülasyon: her adımda yalnızca o ana kadarki mumlarla detektörler + plan çıkarma koşar
 (`bot/plan.js` ile aynı kurallar), plan ileriye simüle edilir. Dolum kuralları: limit giriş bölge kenarından, piyasa giriş
@@ -150,7 +168,10 @@ src/scan/                  context.js (ortak ön hesap), registry.js, scoring.js
 src/ew/                    Elliott Wave kural motoru (kalıplar, kurallar, F&P / Neely / Kurs setleri)
 lib/                       lightweight-charts 5.2.1 (Apache-2.0)
 bot/                       run.mjs (cron akışı), plan.js (plan/takip), brain.js (Claude), telegram.js
-backtest/                  data.js (OKX geçmiş + önbellek), engine.js (walk-forward), report.js, run.mjs, brain-sample.mjs
+bot/agent/                 profiles.js (sert sınırlar), account.js (kâğıt hesap), manager.js (Claude), run.js (akış)
+agent.html                 ajan sayfası (docs/agent/*.json)
+backtest/                  data.js (OKX geçmiş + önbellek), engine.js (walk-forward), report.js, run.mjs, brain-sample.mjs, sweep.mjs
+sweep.html                 parametre taraması sayfası (docs/backtest/sweep.json)
 backtest.html              rapor sayfası (docs/backtest/results.json)
 tests/                     node --test
 ```

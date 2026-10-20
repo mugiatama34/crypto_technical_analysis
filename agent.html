@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Kâğıt-işlem ajanı</title>
+<meta name="description" content="Sanal 300 USDT ile işlem yapan, kaldıraç ve büyüklüğü kendisi seçen, işlemlerinden ders çıkaran Claude ajanının canlı durumu.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  .tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .stat .v.pos { color: #4cc24c; } .stat .v.neg { color: #ef7d7d; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); vertical-align: top; }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; }
+  td.wrap, th.wrap { white-space: normal; text-align: left; min-width: 220px; }
+  .tablewrap { overflow-x: auto; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  svg.curve { width: 100%; height: 200px; display: block; background: var(--surface-2); border-radius: 8px; }
+  section { margin-top: 20px; }
+  .lessons li { margin: 4px 0; }
+  .assess { color: var(--ink-2); font-size: 13px; border-left: 3px solid var(--long); padding: 4px 10px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Kâğıt-işlem ajanı</h1><p class="sub">Sanal 300 USDT, OKX fiyatları, komisyon ve likidasyon dahil. Giriş büyüklüğü ve kaldıraç tamamen ajanın; kod yalnızca sert sınırları uygular.</p></div>
+    <nav class="nav"><a href="index.html">Tarayıcı</a><a href="backtest.html">Backtest</a><a href="sweep.html">Tarama</a></nav>
+  </header>
+  <div class="chips" id="tabs" style="margin-top:10px"></div>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer>Funding ödemeleri simüle edilmez; dolumlar gerçek borsadan farklı olabilir. <strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const PROFILES = ['temkinli', 'agresif'];
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
+const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
+const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const OUT = { stop: 'stop', tp1_stop: 'TP1 sonrası stop', tp2: 'TP2', liq: 'likidasyon', manual: 'elle' };
+function curveSvg(curve, start) {
+  if (!curve?.length) return '';
+  const W = 800, H = 200, P = 28;
+  const xs = curve.map((c) => c[0]), ys = curve.map((c) => c[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(start, ...ys) * 0.98, y1 = Math.max(start, ...ys) * 1.02;
+  const X = (x) => P + ((x - x0) / ((x1 - x0) || 1)) * (W - 2 * P), Y = (y) => H - P - ((y - y0) / ((y1 - y0) || 1)) * (H - 2 * P);
+  const d = curve.map((c, i) => `${i ? 'L' : 'M'}${X(c[0]).toFixed(1)},${Y(c[1]).toFixed(1)}`).join(' ');
+  return `<svg class="curve" viewBox="0 0 ${W} ${H}" role="img" aria-label="Özsermaye"><line x1="${P}" x2="${W - P}" y1="${Y(start)}" y2="${Y(start)}" stroke="#383835" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="#3987e5" stroke-width="2"/><text x="${P}" y="${P - 6}" fill="#a5a39a" font-size="10">${fmt(y1, 0)}</text><text x="${P}" y="${H - P + 12}" fill="#a5a39a" font-size="10">${fmt(y0, 0)}</text></svg>`;
+}
+function render(a) {
+  const s = a.stats;
+  const tiles = [['Özsermaye', `${fmt(a.equity)} USDT`, cls(a.equity - a.startEquity)], ['Getiri', `${s.returnPct >= 0 ? '+' : ''}${fmt(s.returnPct, 1)}%`, cls(s.returnPct)], ['Nakit', fmt(a.cash)], ['İşlem', `${s.trades} (${s.wins}K / ${s.losses}Z)`], ['Kazanma', `%${fmt(s.winRate * 100, 0)}`], ['Ort. R', fmt(s.avgR), cls(s.avgR)], ['Kâr faktörü', fmt(s.profitFactor)], ['Maks düşüş', `${fmt(s.maxDD)} USDT`], ['Likidasyon', s.liquidations, s.liquidations ? 'neg' : ''], ['Güncelleme', dt(a.lastRun)]];
+  const posRows = a.positions.map((p) => `<tr><td>${esc(p.coin)} ${esc(p.tf)}</td><td>${p.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'}</td><td>${p.leverage}x</td><td>${fmt(p.margin)}</td><td>${fp(p.entry)}</td><td>${fp(p.lastPrice)}</td><td class="${cls(p.unrealized)}">${fmt(p.unrealized)} (${fmt(p.margin ? (p.unrealized / p.margin) * 100 : 0, 1)}%)</td><td>${fp(p.stop)}${p.tp1Done ? ' (BE)' : ''}</td><td>${fp(p.tp1)} / ${fp(p.tp2)}</td><td>${fp(p.liq)}</td><td>${dt(p.openedAt)}</td><td class="wrap">${esc(p.rationale)}</td></tr>`).join('');
+  const ordRows = a.orders.map((o) => `<tr><td>${esc(o.coin)} ${esc(o.tf)}</td><td>${o.direction.toUpperCase()}</td><td>${o.leverage}x</td><td>${fmt(o.margin)}</td><td>${fp(o.price)}</td><td>${fp(o.stop)}</td><td>${fp(o.tp1)} / ${fp(o.tp2)}</td><td>${dt(o.expiresAt)}</td><td class="wrap">${esc(o.rationale)}</td></tr>`).join('');
+  const trRows = [...a.trades].reverse().map((t) => `<tr><td>${dt(t.closedAt)}</td><td>${esc(t.coin)} ${esc(t.tf)}</td><td>${t.direction.toUpperCase()} ${t.leverage}x</td><td>${fmt(t.margin)}</td><td>${fp(t.entry)}</td><td>${esc(OUT[t.outcome] || t.outcome)}</td><td class="${cls(t.pnl)}">${t.pnl >= 0 ? '+' : ''}${fmt(t.pnl)} (${fmt(t.pnlPct, 1)}%)</td><td class="${cls(t.R)}">${fmt(t.R)}R</td><td class="wrap">${esc(t.rationale)}${t.reflection ? `<br><i>Ders: ${esc(t.reflection)}</i>` : ''}</td></tr>`).join('');
+  const ph = [...(a.paramsHistory || [])].reverse().map((h) => `<tr><td>${dt(h.at)}</td><td>${esc(h.params.riskAppetite)}</td><td>${h.params.preferredLeverage?.join('–')}x</td><td>%${h.params.maxMarginPctPerTrade}</td><td class="wrap">${esc((h.params.avoidDetectors || []).join(', ') || '–')}</td><td class="wrap">${esc(h.reason)}</td></tr>`).join('');
+  return `
+    <section><div class="tiles">${tiles.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div>
+    ${a.lastAssessment ? `<div class="assess"><b>Son değerlendirme:</b> ${esc(a.lastAssessment)}</div>` : ''}</section>
+    <section><h2>Özsermaye</h2>${curveSvg(a.curve, a.startEquity)}</section>
+    <section><h2>Açık pozisyonlar (${a.positions.length})</h2>${posRows ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Coin</th><th>Yön</th><th>Kald.</th><th>Marjin</th><th>Giriş</th><th>Son</th><th>K/Z</th><th>Stop</th><th>TP1 / TP2</th><th>Lik.</th><th>Açılış</th><th class="wrap">Gerekçe</th></tr></thead><tbody>${posRows}</tbody></table></div>` : '<p class="empty">Açık pozisyon yok.</p>'}</section>
+    ${ordRows ? `<section><h2>Bekleyen limit emirler</h2><div class="tablewrap"><table class="grid"><thead><tr><th>Coin</th><th>Yön</th><th>Kald.</th><th>Marjin</th><th>Limit</th><th>Stop</th><th>TP1 / TP2</th><th>Son geçerlilik</th><th class="wrap">Gerekçe</th></tr></thead><tbody>${ordRows}</tbody></table></div></section>` : ''}
+    <section><h2>Dersler (${a.lessons.length})</h2>${a.lessons.length ? `<ul class="lessons">${a.lessons.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '<p class="empty">Henüz gözden geçirme yapılmadı (20 kapanan işlem ya da 7 gün sonra).</p>'}</section>
+    <section><h2>Parametreler</h2><div class="tablewrap"><table class="grid"><thead><tr><th>Tarih</th><th>Risk iştahı</th><th>Kaldıraç</th><th>Marjin/işlem</th><th class="wrap">Kaçınılan</th><th class="wrap">Gerekçe</th></tr></thead><tbody>${ph}</tbody></table></div></section>
+    <section><h2>İşlem günlüğü (son ${a.trades.length})</h2>${trRows ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Kapanış</th><th>Coin</th><th>Yön</th><th>Marjin</th><th>Giriş</th><th>Sonuç</th><th>K/Z</th><th>R</th><th class="wrap">Gerekçe / ders</th></tr></thead><tbody>${trRows}</tbody></table></div>` : '<p class="empty">Henüz kapanan işlem yok.</p>'}</section>`;
+}
+async function main() {
+  const data = {};
+  for (const p of PROFILES) { try { const r = await fetch(`docs/agent/${p}.json`, { cache: 'no-store' }); if (r.ok) data[p] = await r.json(); } catch { /* yok */ } }
+  const tabs = document.querySelector('#tabs'), root = document.querySelector('#root');
+  const ids = Object.keys(data);
+  if (!ids.length) { root.innerHTML = '<p class="empty">Henüz ajan verisi yok. İlk gerçek (dry olmayan) <code>scan-and-alert</code> koşusundan sonra <code>docs/agent/*.json</code> oluşur.</p>'; return; }
+  let cur = (() => { try { return localStorage.getItem('agent-tab'); } catch { return null; } })();
+  if (!ids.includes(cur)) cur = ids[0];
+  const draw = () => { tabs.innerHTML = ids.map((id) => `<button type="button" class="chip" data-id="${id}" aria-pressed="${id === cur}">${esc(data[id].label || id)} · ${fmt(data[id].equity, 0)} USDT</button>`).join(''); root.innerHTML = render(data[cur]); };
+  tabs.addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (!b) return; cur = b.dataset.id; try { localStorage.setItem('agent-tab', cur); } catch { /* yok */ } draw(); });
+  draw();
+}
+main();
+</script>
+</body>
+</html>
