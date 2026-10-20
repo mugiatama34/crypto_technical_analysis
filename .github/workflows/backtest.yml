@@ -1,0 +1,58 @@
+name: backtest
+
+# Elle: OKX geçmişinden walk-forward backtest; rapor docs/backtest/results.json'a commit edilir (backtest.html okur).
+on:
+  workflow_dispatch:
+    inputs:
+      months: { description: "Kaç ay geriye", default: "6" }
+      top: { description: "Hacme göre ilk N coin", default: "50" }
+      tfs: { description: "Zaman dilimleri", default: "15m,1H,4H" }
+      fee: { description: "Komisyon % / taraf", default: "0.05" }
+      slip: { description: "Kayma %", default: "0.05" }
+      claude_sample: { description: "Claude örneklemi (0 = yok)", default: "0" }
+
+concurrency:
+  group: backtest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Restore candle cache
+        uses: actions/cache@v4
+        with:
+          path: backtest/cache
+          key: candles-${{ inputs.tfs }}-${{ github.run_id }}
+          restore-keys: |
+            candles-${{ inputs.tfs }}-
+            candles-
+      - name: Run backtest
+        run: node backtest/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
+      - name: Claude sample
+        if: ${{ inputs.claude_sample != '0' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node backtest/brain-sample.mjs --n ${{ inputs.claude_sample }}
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for f in docs/backtest/results.json docs/backtest/plans.json.gz docs/backtest/claude-sample.json; do [ -f "$f" ] && git add "$f"; done
+          git diff --cached --quiet || git commit -m "backtest: ${{ inputs.months }} ay, ilk ${{ inputs.top }}, ${{ inputs.tfs }} (run ${{ github.run_id }})"
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push origin HEAD:${{ github.ref_name }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backtest-${{ github.run_id }}
+          path: docs/backtest/
+          retention-days: 30

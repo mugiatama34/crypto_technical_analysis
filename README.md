@@ -92,6 +92,22 @@ FIXTURE=1 DRY=1 node bot/run.mjs       # sentetik veriyle
 Claude yalnızca kural filtresini geçen adaylar için çağrılır (tur başına en fazla `MAX_ALERTS`); çağrı başına
 birkaç bin token. Sessiz piyasada çoğu tur sıfır çağrı yapar.
 
+## Backtest
+`backtest/` walk-forward simülasyon: her adımda yalnızca o ana kadarki mumlarla detektörler + plan çıkarma koşar
+(`bot/plan.js` ile aynı kurallar), plan ileriye simüle edilir. Dolum kuralları: limit giriş bölge kenarından, piyasa giriş
+(fiyat bölgedeyken) sonraki mumun açılışından + kayma; TP1'de yarısı kapanır ve stop başabaşa çekilir; aynı mumda stop ve
+hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer; dolumdan sonra en fazla 200 mum.
+
+- **Çalıştırma:** Actions → **backtest** → Run workflow (ay, coin sayısı, TF'ler, komisyon, kayma, Claude örneklem sayısı).
+  Veri OKX `history-candles` ile çekilir ve Actions cache'te saklanır; rapor `docs/backtest/results.json` olarak dala
+  commit edilir ve **`backtest.html`** sayfasında görüntülenir.
+- **Claude örneklemi:** `claude_sample` > 0 verilirse rastgele N plan Claude'a yorumlatılır (`ANTHROPIC_API_KEY` secret'ı),
+  take / wait / skip gruplarının gerçek sonucu kıyaslanır (≈ 4 sent / plan).
+- **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri.
+- **Sınırlar:** evren bugünkü hacim sıralamasıdır (sağ kalanlık yanlılığı); 15m geçmişi OKX'in verdiği kadardır (~3 ay);
+  bot'taki MTF uyumu backtest'te uygulanmaz (her TF bağımsız); dönemin son 1/3'ü doğrulama olarak ayrı raporlanır,
+  ağırlıklar yalnızca ilk 2/3'e bakılarak ayarlanmalıdır.
+
 ## GitHub Pages'i açma (bir kez)
 1. Repo → **Settings → Pages**.
 2. **Source:** "Deploy from a branch"; **Branch:** `main`, klasör `/ (root)` → Save.
@@ -126,6 +142,8 @@ src/scan/                  context.js (ortak ön hesap), registry.js, scoring.js
 src/ew/                    Elliott Wave kural motoru (kalıplar, kurallar, F&P / Neely / Kurs setleri)
 lib/                       lightweight-charts 5.2.1 (Apache-2.0)
 bot/                       run.mjs (cron akışı), plan.js (plan/takip), brain.js (Claude), telegram.js
+backtest/                  data.js (OKX geçmiş + önbellek), engine.js (walk-forward), report.js, run.mjs, brain-sample.mjs
+backtest.html              rapor sayfası (docs/backtest/results.json)
 tests/                     node --test
 ```
 

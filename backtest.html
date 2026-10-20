@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Backtest raporu</title>
+<meta name="description" content="Kural motorunun walk-forward backtest sonuçları: kazanma oranı, ortalama R, kırılımlar ve Claude örneklemi.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  .tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .stat .v.pos { color: #4cc24c; } .stat .v.neg { color: #ef7d7d; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; white-space: normal; }
+  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  svg.curve { width: 100%; height: 220px; display: block; background: var(--surface-2); border-radius: 8px; }
+  section { margin-top: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Backtest raporu</h1><p class="sub" id="sub">Kural motoru, walk-forward; her adımda yalnızca geçmiş mumlar görülür.</p></div>
+    <nav class="nav"><a href="index.html">← Tarayıcı</a><a href="docs/backtest/results.json">results.json</a></nav>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer>R = risk birimi (giriş–stop mesafesi). Dolum: limit girişler bölge kenarından, piyasa girişler sonraki açılıştan; TP1'de yarısı kapatılır, stop başabaşa çekilir; aynı mumda stop ve hedef varsa stop sayılır. <strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
+const pct = (x) => `%${fmt(x * 100, 0)}`;
+const dt = (ms) => (ms ? new Date(ms).toLocaleDateString('tr-TR') : '–');
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+function statTiles(s) {
+  const t = [['Sinyal', s.signals, 0], ['Dolum', `${s.n} (${pct(s.fillRate)})`], ['Kazanma', pct(s.winRate)], ['Ort. R', fmt(s.avgR, 3), cls(s.avgR)], ['Toplam R', fmt(s.totalR, 1), cls(s.totalR)], ['Kâr faktörü', fmt(s.profitFactor)], ['Maks. düşüş', `${fmt(s.maxDD, 1)}R`], ['Ort. MFE', `${fmt(s.avgMfe)}R`]];
+  return `<div class="tiles">${t.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div>`;
+}
+const row = (name, s) => `<tr><td>${esc(name)}</td><td>${s.signals}</td><td>${s.n}</td><td>${pct(s.winRate)}</td><td class="${cls(s.avgR)}">${fmt(s.avgR, 3)}</td><td class="${cls(s.totalR)}">${fmt(s.totalR, 1)}</td><td>${fmt(s.profitFactor)}</td><td>${fmt(s.maxDD, 1)}</td></tr>`;
+const head = '<thead><tr><th>Kırılım</th><th>Sinyal</th><th>Dolum</th><th>Kazanma</th><th>Ort. R</th><th>Toplam R</th><th>PF</th><th>Maks DD</th></tr></thead>';
+const table = (obj, sortBy = null) => {
+  let e = Object.entries(obj);
+  if (sortBy) e = e.sort((a, b) => b[1][sortBy] - a[1][sortBy]);
+  return `<div class="tablewrap"><table class="grid">${head}<tbody>${e.map(([k, s]) => row(k, s)).join('')}</tbody></table></div>`;
+};
+const presence = (obj) => `<div class="tablewrap"><table class="grid"><thead><tr><th>Yapı grubu</th><th>Varken n</th><th>Varken ort. R</th><th>Varken kazanma</th><th>Yokken n</th><th>Yokken ort. R</th><th>Fark</th></tr></thead><tbody>${Object.entries(obj).sort((a, b) => (b[1].with.avgR - b[1].without.avgR) - (a[1].with.avgR - a[1].without.avgR)).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.with.n}</td><td class="${cls(v.with.avgR)}">${fmt(v.with.avgR, 3)}</td><td>${pct(v.with.winRate)}</td><td>${v.without.n}</td><td class="${cls(v.without.avgR)}">${fmt(v.without.avgR, 3)}</td><td class="${cls(v.with.avgR - v.without.avgR)}">${fmt(v.with.avgR - v.without.avgR, 3)}</td></tr>`).join('')}</tbody></table></div>`;
+function curveSvg(curve, split) {
+  if (!curve?.length) return '';
+  const W = 800, H = 220, P = 28;
+  const xs = curve.map((c) => c[0]), ys = curve.map((c) => c[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys);
+  const X = (x) => P + ((x - x0) / ((x1 - x0) || 1)) * (W - 2 * P), Y = (y) => H - P - ((y - y0) / ((y1 - y0) || 1)) * (H - 2 * P);
+  const d = curve.map((c, i) => `${i ? 'L' : 'M'}${X(c[0]).toFixed(1)},${Y(c[1]).toFixed(1)}`).join(' ');
+  const sx = split ? X(split) : null;
+  return `<svg class="curve" viewBox="0 0 ${W} ${H}" role="img" aria-label="Özsermaye eğrisi (R)">
+    <line x1="${P}" x2="${W - P}" y1="${Y(0)}" y2="${Y(0)}" stroke="#383835"/>
+    ${sx ? `<line x1="${sx}" x2="${sx}" y1="${P}" y2="${H - P}" stroke="#898781" stroke-dasharray="4 4"/><text x="${sx + 4}" y="${P + 10}" fill="#a5a39a" font-size="10">doğrulama</text>` : ''}
+    <path d="${d}" fill="none" stroke="#3987e5" stroke-width="2"/>
+    <text x="${P}" y="${Y(y1) - 4}" fill="#a5a39a" font-size="10">${fmt(y1, 0)}R</text><text x="${P}" y="${Y(y0) + 12}" fill="#a5a39a" font-size="10">${fmt(y0, 0)}R</text>
+  </svg>`;
+}
+async function main() {
+  const src = new URLSearchParams(location.search).get('src') || 'docs/backtest/results.json';
+  let r;
+  try { const res = await fetch(src, { cache: 'no-store' }); if (!res.ok) throw new Error(`HTTP ${res.status}`); r = await res.json(); }
+  catch (err) { $('#root').innerHTML = `<p class="empty">Henüz rapor yok (${esc(err.message)}). Actions → <b>backtest</b> workflow'unu çalıştırınca <code>docs/backtest/results.json</code> oluşur.</p>`; return; }
+  const m = r.meta;
+  $('#sub').textContent = `${m.coins?.length || '?'} coin × ${m.tfs?.join(', ')} · ${dt(m.from)} – ${dt(m.to)} · komisyon %${m.fee}/taraf, kayma %${m.slip} · min puan ${m.minScore}, min R:R ${m.minRR} · ${dt(m.generatedAt)}`;
+  let claude = null;
+  try { const cs = await fetch('docs/backtest/claude-sample.json', { cache: 'no-store' }); if (cs.ok) claude = (await cs.json()).summary; } catch { /* yok */ }
+  $('#root').innerHTML = `
+    <section><h2>Genel</h2>${statTiles(r.overall)}</section>
+    <section><h2>Özsermaye (R, işlem sırasıyla)</h2>${curveSvg(r.curve, m.split)}</section>
+    <section><h2>Eğitim / doğrulama (zaman: ilk 2/3 – son 1/3)</h2>${table({ 'Eğitim (ilk 2/3)': r.inSample, 'Doğrulama (son 1/3)': r.outOfSample })}</section>
+    ${claude ? `<section><h2>Claude örneklemi (${claude.n} plan)</h2><p class="note">Kural motorunun ürettiği rastgele planlar Claude'a yorumlatıldı; karar gruplarının gerçek sonucu. "take" grubunun ort. R'si "skip"ten belirgin yüksekse beyin değer katıyor demektir.</p>${table({ ...Object.fromEntries(Object.entries(claude.byDecision).map(([k, v]) => [`karar: ${k}`, v])), ...Object.fromEntries(Object.entries(claude.byConf).map(([k, v]) => [`güven: ${k}`, v])) })}<p class="note">Token: ${fmt(claude.usage?.input, 0)} giriş + ${fmt(claude.usage?.output, 0)} çıkış.</p></section>` : ''}
+    <section><h2>Zaman dilimi</h2>${table(r.byTf)}</section>
+    <section><h2>Yön ve giriş tipi</h2>${table({ ...r.byDirection, ...r.byEntry })}</section>
+    <section><h2>Puan aralığı</h2>${table(r.byScore)}</section>
+    <section><h2>Yapı grubu kümede varken / yokken</h2><p class="note">Pozitif fark: o grup kümedeyken sonuçlar daha iyi. Ağırlık ayarı için ana tablo.</p>${presence(r.byGroup)}</section>
+    <section><h2>Detektör varken / yokken</h2>${presence(r.byDetector)}</section>
+    <section><h2>Grup çiftleri (n ≥ 15)</h2>${table(r.byGroupPair, 'avgR')}</section>
+    <section><h2>Sinyal adına göre (n ≥ 15, ort. R'ye göre)</h2>${table(r.byName)}</section>
+    <section><h2>Aylık</h2>${table(r.byMonth)}</section>
+    <details class="panel"><summary>Sembole göre</summary><div class="panel-body">${table(r.bySymbol, 'totalR')}</div></details>
+  `;
+}
+main();
+</script>
+</body>
+</html>
