@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -43,11 +45,20 @@ jobs:
           key: plans-${{ github.run_id }}
           restore-keys: |
             plans-
+      - name: Recover plans from git history (sweep mode)
+        if: ${{ inputs.mode == 'sweep' }}
+        run: |
+          if [ ! -f docs/backtest/plans.json.gz ]; then
+            sha=$(git log --all --diff-filter=A --format=%H -- docs/backtest/plans.json.gz | head -1)
+            if [ -n "$sha" ]; then git show "$sha:docs/backtest/plans.json.gz" > docs/backtest/plans.json.gz && echo "plans.json.gz $sha commit'inden alındı"; fi
+          fi
+          test -f docs/backtest/plans.json.gz || { echo "plans.json.gz yok: önce mode=full koş"; exit 1; }
+          ls -la docs/backtest/plans.json.gz
       - name: Run backtest
         if: ${{ inputs.mode != 'sweep' }}
         run: node backtest/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
       - name: Save plans
-        if: always()
+        if: ${{ hashFiles('docs/backtest/plans.json.gz') != '' }}
         uses: actions/cache/save@v4
         with:
           path: docs/backtest/plans.json.gz
