@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Parametre taraması</title>
+<meta name="description" content="Backtest planlarının farklı stop/hedef/filtre kurallarıyla yeniden simülasyonu; eğitim ve doğrulama dilimleri.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; white-space: normal; }
+  .tablewrap { overflow-x: auto; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  tr.base td { background: var(--surface-2); font-weight: 600; }
+  tr.combo td:first-child { color: var(--ink-2); }
+  section { margin-top: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Parametre taraması</h1><p class="sub" id="sub">Aynı planlar, farklı çıkış/giriş/filtre kuralları. Sıralama doğrulama dilimine (son 1/3) göre.</p></div>
+    <nav class="nav"><a href="backtest.html">← Backtest</a><a href="index.html">Tarayıcı</a></nav>
+  </header>
+  <p class="note">Eğitim dilimi (ilk 2/3) seçim için, <b>doğrulama dilimi</b> (son 1/3) karar için. Eğitimde iyi görünüp doğrulamada çöken ayarlar aşırı uyumdur. Birleşimler (koyu) eğitimdeki en iyi 4 tek değişikliğin kombinasyonlarıdır.</p>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer>Komisyon ve kayma backtest ayarlarıyla aynı. <strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
+const pct = (x) => `%${fmt(x * 100, 0)}`;
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+async function main() {
+  let r;
+  try { const res = await fetch('docs/backtest/sweep.json', { cache: 'no-store' }); if (!res.ok) throw new Error(`HTTP ${res.status}`); r = await res.json(); }
+  catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Henüz tarama yok (${esc(err.message)}). Actions → backtest → mode: sweep.</p>`; return; }
+  document.querySelector('#sub').textContent = `${r.meta.plans} plan · bölünme ${new Date(r.meta.split).toLocaleDateString('tr-TR')} · ${new Date(r.meta.sweepAt).toLocaleString('tr-TR')} · ${r.meta.elapsedSec} sn`;
+  const b = r.base;
+  const row = (v) => `<tr class="${v === b || v.name === b.name ? 'base' : ''} ${v.combo ? 'combo' : ''}"><td>${esc(v.name)}</td>
+    <td>${v.train.n}</td><td>${pct(v.train.winRate)}</td><td class="${cls(v.train.avgR)}">${fmt(v.train.avgR, 3)}</td><td>${fmt(v.train.profitFactor)}</td>
+    <td>${v.valid.n}</td><td>${pct(v.valid.winRate)}</td><td class="${cls(v.valid.avgR)}">${fmt(v.valid.avgR, 3)}</td><td class="${cls(v.valid.totalR)}">${fmt(v.valid.totalR, 1)}</td><td>${fmt(v.valid.profitFactor)}</td><td>${fmt(v.valid.maxDD, 1)}</td>
+    <td class="${cls(v.valid.avgR - b.valid.avgR)}">${fmt(v.valid.avgR - b.valid.avgR, 3)}</td></tr>`;
+  document.querySelector('#root').innerHTML = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Ayar</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th><th>Δ temel (doğr.)</th></tr></thead><tbody>${[b, ...r.results.filter((v) => v.name !== b.name)].map(row).join('')}</tbody></table></div></section>`;
+}
+main();
+</script>
+</body>
+</html>

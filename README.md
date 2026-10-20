@@ -105,7 +105,13 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   commit edilir ve **`backtest.html`** sayfasında görüntülenir.
 - **Claude örneklemi:** `claude_sample` > 0 verilirse rastgele N plan Claude'a yorumlatılır (`ANTHROPIC_API_KEY` secret'ı),
   take / wait / skip gruplarının gerçek sonucu kıyaslanır (≈ 4 sent / plan).
-- **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri.
+- **Parametre taraması:** `backtest/sweep.mjs` son koşunun planlarını farklı stop (+0,3/0,6/1,0 ATR), hedef şeması
+  (TP1 yarı + başabaş, başabaşsız, tek hedef 2R/3R, ATR izleyen stop), giriş tipi, trend filtresi (ADX, EMA200),
+  puan eşiği, TF alt kümesi, grup dışlama/zorunluluk ve MTF vekiliyle yeniden simüle eder; eğitim diliminde en iyi
+  4 tek değişikliğin birleşimlerini de dener. Rapor **`sweep.html`** (`docs/backtest/sweep.json`). Workflow'da
+  `mode: sweep` yalnız taramayı koşar (son planlar Actions cache'ten), `full` önce yeniden koşar.
+- **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
+  `node backtest/sweep.mjs --fixture --in <plans klasörü>`.
 - **Sınırlar:** evren bugünkü hacim sıralamasıdır (sağ kalanlık yanlılığı); 15m geçmişi OKX'in verdiği kadardır (~3 ay);
   bot'taki MTF uyumu backtest'te uygulanmaz (her TF bağımsız); dönemin son 1/3'ü doğrulama olarak ayrı raporlanır,
   ağırlıklar yalnızca ilk 2/3'e bakılarak ayarlanmalıdır.

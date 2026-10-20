@@ -47,3 +47,16 @@ test('simulateSeries + buildReport: fixture serisinde planlar ve rapor', () => {
   const s = stats([{ outcome: 'tp2', R: 2, time: 1 }, { outcome: 'stopped', R: -1, time: 2 }, { outcome: 'expired', R: 0, time: 3 }]);
   assert.equal(s.n, 2); assert.equal(s.winRate, 0.5); assert.equal(s.avgR, 0.5); assert.equal(s.profitFactor, 2); assert.equal(s.maxDD, 1);
 });
+
+test('simulateTrade: çıkış şemaları (half_nobe, single, trail)', () => {
+  const cs = [c(1, 101, 101, 99.5, 100.5), c(2, 100.5, 103.5, 100, 103), c(3, 103, 104, 101.9, 102), c(4, 102, 106.5, 101.5, 106)];
+  const nobe = simulateTrade(plan, cs, 0, '1H', { ...o, tpScheme: 'half_nobe' });
+  assert.equal(nobe.outcome, 'tp2'); // stop yerinde (98) kaldı, 101.9 dibi stop etmedi
+  const be = simulateTrade(plan, cs, 0, '1H', { ...o, tpScheme: 'half_be' });
+  assert.equal(be.outcome, 'tp2'); // başabaş 100; dip 101.9 > 100
+  const single = simulateTrade(plan, cs, 0, '1H', { ...o, tpScheme: 'single' });
+  assert.equal(single.outcome, 'tp2'); assert.ok(Math.abs(single.R - 3) < 1e-9);
+  const trail = simulateTrade({ ...plan, atr: 1 }, cs, 0, '1H', { ...o, tpScheme: 'trail', trailAtr: 1 });
+  // TP1 103'te yarı (1.5R); izleyen stop = 103 − 1 = 102 → 3. mumda dip 101.9 stop (1R)
+  assert.equal(trail.outcome, "tp1_be"); assert.ok(Math.abs(trail.R - 1.25) < 1e-9, `R ${trail.R}`); // yarı 1.5R + yarı 1R (stop 102)
+});

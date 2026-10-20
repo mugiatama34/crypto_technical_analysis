@@ -10,7 +10,7 @@ function walk(n, seed, tfMs, start = 100) {
   const r = rng(seed);
   const out = [];
   let p = start;
-  const t0 = Date.now() - n * tfMs;
+  const t0 = T_END - n * tfMs;
   for (let i = 0; i < n; i++) {
     const o = p;
     const drift = Math.sin(i / 40) * 0.2;
@@ -26,7 +26,7 @@ function path(points, tfMs, seed = 3) {
   const r = rng(seed);
   const out = [];
   const total = points[points.length - 1][0];
-  const t0 = Date.now() - total * tfMs;
+  const t0 = T_END - total * tfMs;
   for (let s = 0; s < points.length - 1; s++) {
     const [b0, p0] = points[s], [b1, p1] = points[s + 1];
     for (let b = b0; b < b1; b++) {
@@ -39,6 +39,8 @@ function path(points, tfMs, seed = 3) {
   return out;
 }
 
+// Deterministik zaman ekseni (backtest/sweep testleri aynı mumları tekrar üretebilsin)
+const T_END = Date.UTC(2026, 9, 1);
 const COINS = ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'AVAX', 'LINK', 'DOT', 'SUI', 'PEPE', 'ARB', 'OP', 'LTC', 'BCH', 'NEAR', 'APT', 'TON', 'TRX', 'ATOM'];
 const TF_MS = { '1m': 60e3, '5m': 300e3, '15m': 900e3, '1H': 3600e3, '4H': 14400e3, '1D': 86400e3 };
 
