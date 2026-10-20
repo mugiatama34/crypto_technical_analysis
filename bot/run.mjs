@@ -6,7 +6,8 @@
 //   ANTHROPIC_API_KEY                       beyin (yoksa Claude atlanır, yalnızca kural motoru planı gönderilir)
 //   ACCOUNT_USDT                            isteğe bağlı: pozisyon büyüklüğü hesabı
 //   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=50  MIN_RR=2  RISK_PCT=1  MAX_RISK_PCT=5  MAX_ALERTS=5  COOLDOWN_H=6
-//   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz)
+//   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
+//   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
@@ -55,6 +56,7 @@ async function notify(text, state) {
 
 async function main() {
   const now = Date.now();
+  if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
   log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minScore ${CFG.minScore}, minRR ${CFG.minRR}${CFG.dry ? ' [DRY]' : ''}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
@@ -133,7 +135,7 @@ async function main() {
     await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since), state);
     state.lastSummary = now;
   }
-  saveState(CFG.stateFile, state);
+  if (CFG.dry) log('DRY: durum kaydedilmedi'); else saveState(CFG.stateFile, state);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

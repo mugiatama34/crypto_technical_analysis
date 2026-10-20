@@ -11,6 +11,10 @@ on:
         description: "DRY=1: Telegram/Claude'a gitmeden konsola yaz"
         type: boolean
         default: false
+      reset_state:
+        description: "Durumu sıfırla (takip + cooldown): sahte/dry kayıtları temizler"
+        type: boolean
+        default: false
 
 concurrency:
   group: scan-and-alert
@@ -50,10 +54,11 @@ jobs:
           COOLDOWN_H: ${{ vars.COOLDOWN_H }}
           SUMMARY_HOUR_UTC: ${{ vars.SUMMARY_HOUR_UTC }}
           DRY: ${{ inputs.dry && '1' || '' }}
+          RESET_STATE: ${{ inputs.reset_state && '1' || '' }}
         run: node bot/run.mjs
 
       - name: Save state
-        if: always()
+        if: always() && !inputs.dry
         uses: actions/cache/save@v4
         with:
           path: bot/state.json
