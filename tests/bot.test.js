@@ -152,3 +152,25 @@ test('buildPlan: trend filtreleri (ADX ≥ eşik + DI yönü, EMA200 tarafı)', 
   assert.equal(buildPlan({ ...base, trend: { adx: 40, pdi: 30, mdi: 10, ema200: 110 } }, { trendEma: true }).ok, false); // fiyat EMA altında
   assert.ok(buildPlan({ ...base }, { trendEma: false }).ok); // trend alanı yoksa filtre yok
 });
+
+test('mergeRule: TF ← yön ← short kuralı; BTC rejimi şartı', async () => {
+  const { mergeRule } = await import('../bot/plan.js');
+  const rules = { '1H': { minScore: 70, requireMtf: true, trendAdxMin: 25 }, '15m': { minScore: 80, trendAdxMin: 35, maxPerRun: 1, long: { minScore: 85 } } };
+  const sr = { scoreAdd: 10, trendAdxMin: 30, btcRegime: 'with', cooldownHours: 12 };
+  const base = { minScore: 70, requireMtf: false, cooldownHours: 6 };
+  assert.deepEqual(mergeRule('1H', 'long', rules, sr, base), { minScore: 70, requireMtf: true, cooldownHours: 6, trendAdxMin: 25 });
+  const s1 = mergeRule('1H', 'short', rules, sr, base);
+  assert.equal(s1.minScore, 80); assert.equal(s1.trendAdxMin, 30); assert.equal(s1.btcRegime, 'with'); assert.equal(s1.cooldownHours, 12);
+  assert.equal(mergeRule('15m', 'short', rules, sr, base).trendAdxMin, 35); // TF daha sıkı: korunur
+  assert.equal(mergeRule('15m', 'short', rules, sr, base).maxPerRun, 1);
+  assert.equal(mergeRule('15m', 'long', rules, sr, base).minScore, 85); // yön alt kuralı
+});
+
+test('buildPlan: btcRegime with → long yalnız yükselişte, short yalnız düşüşte', () => {
+  const r = row();
+  assert.equal(buildPlan(r, { btcRegime: 'with', regime: 'down' }).reason, 'BTC rejimi ters');
+  assert.equal(buildPlan(r, { btcRegime: 'with', regime: null }).reason, 'BTC rejimi bilinmiyor');
+  const ok = buildPlan(r, { btcRegime: 'with', regime: 'up' });
+  assert.ok(ok.ok); assert.equal(ok.regime, 'up');
+  assert.ok(buildPlan(r, { regime: 'down' }).ok); // şart yoksa rejim engellemez
+});

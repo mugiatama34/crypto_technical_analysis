@@ -69,6 +69,7 @@ jobs:
           AGENT_EVERY_MIN: ${{ vars.AGENT_EVERY_MIN }}
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
           TF_RULES: ${{ vars.TF_RULES }}
+          SHORT_RULE: ${{ vars.SHORT_RULE }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 

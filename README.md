@@ -52,9 +52,17 @@ yapıştırmak da olur.
 planı **Claude**'a değerlendirtir (take / wait / skip, güven, gerekçe, kanıt, geçersizlik) ve Telegram'a gönderir.
 Gönderilen planlar takip edilir: giriş bölgesine geldi → TP1 → TP2 / stop / süresi doldu güncellemeleri ve günlük özet.
 
-**Zaman dilimine göre kurallar** (`TF_RULES`, JSON ile ezilebilir): 15m → puan ≥ 75, MTF zorunlu, ADX ≥ 35 ve ±DI yön
-uyumu, fiyat EMA200'ün doğru tarafında, 12 saat cooldown, tur başına en fazla 1 mesaj · 1H → puan ≥ 70, MTF, ADX ≥ 25
-· 4H → puan ≥ 65. Örnek: `{"15m":{"minScore":80},"4H":{"requireMtf":true}}`.
+**Zaman dilimine ve yöne göre kurallar** (laboratuvarda short her ailede negatif, 15m en kötü TF çıktı; kapatılmadı,
+girişler sıkılaştırıldı). **BTC rejimi**: BTC'nin son kapanmış günlük mumu günlük EMA50 üstündeyse yükseliş, altındaysa
+düşüş; "BTC rejimiyle aynı yön" şartı long'u yalnız yükselişte, short'u yalnız düşüşte geçirir.
+- **15m:** puan ≥ 80, MTF zorunlu, ADX ≥ 35 ve ±DI yön uyumu, EMA200'ün doğru tarafı, BTC rejimiyle aynı yön, 12 saat
+  cooldown, tur başına en fazla 1 mesaj.
+- **1H:** puan ≥ 70, MTF, ADX ≥ 25 yön uyumlu, EMA200 tarafı. **4H:** puan ≥ 65.
+- **Short (tüm TF'ler, `SHORT_RULE`):** TF eşiği + 10 puan, MTF zorunlu, ADX ≥ 30 (TF'ninki daha yüksekse o) yön uyumlu,
+  EMA200 tarafı, BTC rejimi düşüşte, 12 saat cooldown.
+- Ajan adayları aynı yön kurallarını kullanır (puan eşiği 10 düşük). Elenme nedenlerinde "BTC rejimi ters" görünür.
+- Ezme: `TF_RULES` (ör. `{"15m":{"minScore":85,"long":{"trendAdxMin":30}},"4H":{"requireMtf":true}}`; TF içinde
+  `long`/`short` alt kuralı), `SHORT_RULE` (ör. `{"scoreAdd":5,"btcRegime":null}`).
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,
@@ -166,7 +174,12 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   raporda "aday"; 5. turdan itibaren sıkı ölçüt: eğitimde de ort. R > 0 **ve** doğrulamadan en iyi ay çıkarılınca ort. R > 0
   ("sağlam"); yalnız doğrulama ölçütünü tutan aile "zayıf" (12 ay 4H koşusunda dört long ailesi doğrulamada pozitif ama
   eğitimde sıfır/eksiydi: kazanç Ağustos–Eylül yükselişinden geliyordu). Rejim filtreli aileler (`*_btc`): yalnız BTC
-  günlük kapanışı günlük EMA50 üstündeyken long (`withBtcRegime`, karar anında bilinir). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  günlük kapanışı günlük EMA50 üstündeyken long (`withBtcRegime`, karar anında bilinir; rejim `src/scan/regime.js`).
+  6. tur, **kesitsel momentum** (`backtest/lab/xsmom.js`, portföy düzeyi, 1D): her pazar kapanışında coinler son 28
+  (ya da 14) günlük getiriye göre sıralanır, en güçlü 5'i (getirisi > 0) ertesi açılışta long; listede kalan tutulur,
+  düşen çıkar; koruma 3 ATR izleyen stop. Varyantlar: `xsmom_l28_k5`, `xsmom_l14_k5`, `xsmom_l28_k5_btc` (BTC rejimi),
+  `xsmom_l28_k5_ls` (+ en zayıf 5 short). Raporda portföy getirisi BTC ve eşit ağırlık al-tut ile kıyaslanır.
+  Çalıştırma: `mode: lab, months: 24, tfs: 1D`. Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`; `--tfs 4H` yalnız o TF'leri çeker/koşar (workflow `tfs` girdisi; 4H

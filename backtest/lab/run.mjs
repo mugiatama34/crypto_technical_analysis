@@ -9,6 +9,7 @@ import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
 import { stats } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
+import { portfolioOf, benchmarks } from './xsmom.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null };
@@ -86,7 +87,7 @@ async function main() {
     for (const tf of tfs) {
       try {
         const candles = await fetchTf(c.instId, tf, 1500);
-        if (candles.length >= 350) series.push({ coin: c.coin, tf, candles, extra: { daily, btcDaily } });
+        if (candles.length >= (tf === '1D' ? 120 : 350)) series.push({ coin: c.coin, tf, candles, extra: { daily, btcDaily } });
       } catch (err) { log(`  ${c.coin} ${tf}: ${err.message}`); }
     }
   }
@@ -95,9 +96,13 @@ async function main() {
   const out = { meta: { ...CFG, tfs, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
   for (const st of strategies) {
     const ts = Date.now(); const trades = [];
-    for (const s of series) { if (!st.tfs.includes(s.tf)) continue; trades.push(...runStrategy(st, s, o)); }
+    if (st.kind === 'portfolio') {
+      const daily = series.filter((s) => s.tf === '1D').map((s) => ({ coin: s.coin, candles: s.candles }));
+      trades.push(...st.run(daily, o, { btcDaily, startMs: CFG.fixture ? null : startMs }));
+      if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily, startMs, split, endMs);
+    } else for (const s of series) { if (!st.tfs.includes(s.tf)) continue; trades.push(...runStrategy(st, s, o)); }
     const rep = report(trades, split);
-    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep) };
+    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, portfolio: portfolioOf(trades, st.params.k, split) } : {}) };
     log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);

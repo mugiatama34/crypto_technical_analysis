@@ -7,7 +7,9 @@ import { makeContext } from '../../src/scan/context.js';
 import { equalLevels } from '../../src/detectors/liquidity.js';
 import { analyzeRow, barsFor } from '../../src/scan/scanner.js';
 import { buildPlan } from '../../bot/plan.js';
+import { dailyTrendAt, regimeUp } from '../../src/scan/regime.js';
 import { endingDiagonal, endingDiagonalWide, leadingDiagonal } from './diagonal.js';
+import { XS_STRATEGIES } from './xsmom.js';
 export { endingDiagonal, endingDiagonalWide, leadingDiagonal };
 
 const r6 = (x) => +Number(x).toPrecision(8);
@@ -108,15 +110,7 @@ export const donchian4hLong = {
   },
 };
 
-/** Günlük mumlardan, verilen zamana kadar kapanmış son günün EMA50'si (geleceğe bakmaz). */
-export function dailyTrendAt(daily, time) {
-  if (!daily || !daily.length) return null;
-  if (!daily._e50) daily._e50 = I.ema(daily.map((c) => c.close), 50);
-  let k = -1;
-  for (let j = 0; j < daily.length; j++) { if (daily[j].time + 86400e3 <= time) k = j; else break; }
-  if (k < 0 || daily._e50[k] == null) return null;
-  return { close: daily[k].close, ema50: daily._e50[k], up: daily[k].close > daily._e50[k] };
-}
+export { dailyTrendAt };
 
 /** 6) 5 + günlük trend (günlük kapanış > günlük EMA50). */
 export const donchian4hLongHtf = {
@@ -149,7 +143,7 @@ export const engineWide4hLong = {
 export const meanrev4hLong = { ...meanrevLong, id: 'meanrev_4h_long', label: 'EMA20 sapması ≥ 2 ATR, yalnız 4H long, hedef EMA20', tfs: ['4H'] };
 
 /** BTC rejimi: BTC günlük kapanışı (o ana kadar kapanmış son gün) günlük EMA50 üstünde mi. Karar anında bilinir. */
-export const regimeUp = (btcDaily, time) => dailyTrendAt(btcDaily, time)?.up === true;
+export { regimeUp };
 
 /** Rejim sarmalayıcı: yalnız BTC yükseliş rejiminde sinyal; rejim verisi yoksa sinyal yok. */
 export function withBtcRegime(base, id, label) {
@@ -164,5 +158,5 @@ export function withBtcRegime(base, id, label) {
 export const engineWide4hLongBtc = withBtcRegime(engineWide4hLong, 'engine_wide_4h_long_btc', 'Mevcut motor 4H long, yalnız BTC günlük EMA50 üstündeyken');
 export const donchian4hLongBtc = withBtcRegime(donchian4hLong, 'donchian_4h_long_btc', 'Donchian 4H long, yalnız BTC günlük EMA50 üstündeyken');
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal];
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, ...XS_STRATEGIES];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

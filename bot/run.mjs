@@ -10,15 +10,18 @@
 //   SEND_WAIT=high|medium|none (yalnız SEND_CLAUDE=1)  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
+//   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
+import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
+import { regimeNow } from '../src/scan/regime.js';
 
 // Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). MODEL_MIN_PROB=0 kapatır,
 // >0 eşiği ezer; tanımsızsa modelin kendi eşiği.
@@ -64,13 +67,20 @@ function modelGate(plan, row, allRows) {
 }
 // Zaman dilimine göre kurallar (TF_RULES ile JSON olarak ezilebilir). 15m sıkı: yüksek puan, MTF, güçlü trend, EMA200
 // tarafı, 12 saat cooldown ve tur başına en fazla 1 mesaj.
+// Kurallar: genel ← TF ← yön (TF_RULES[tf].long / .short) ← SHORT_RULE (tüm TF'lerde short için, TF'nin short'u ezer).
+// Laboratuvar (5 tur): short her ailede negatif, 15m en kötü TF → kapatılmadı, ama girişler sıkı.
+// btcRegime 'with': long yalnız BTC günlük kapanışı > günlük EMA50, short yalnız altında.
 const TF_RULES_DEFAULT = {
-  '15m': { minScore: 75, requireMtf: true, trendAdxMin: 35, trendEma: true, cooldownHours: 12, maxPerRun: 1 },
-  '1H': { minScore: 70, requireMtf: true, trendAdxMin: 25 },
+  '15m': { minScore: 80, requireMtf: true, trendAdxMin: 35, trendEma: true, btcRegime: 'with', cooldownHours: 12, maxPerRun: 1 },
+  '1H': { minScore: 70, requireMtf: true, trendAdxMin: 25, trendEma: true },
   '4H': { minScore: 65, requireMtf: false },
 };
+const SHORT_RULE_DEFAULT = { scoreAdd: 10, requireMtf: true, trendAdxMin: 30, trendEma: true, btcRegime: 'with', cooldownHours: 12 };
 const TF_RULES = (() => { try { return { ...TF_RULES_DEFAULT, ...JSON.parse(env('TF_RULES', '{}')) }; } catch { return TF_RULES_DEFAULT; } })();
-const ruleFor = (tf) => ({ minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours, ...(TF_RULES[tf] || {}) });
+const SHORT_RULE = (() => { try { return { ...SHORT_RULE_DEFAULT, ...JSON.parse(env('SHORT_RULE', '{}')) }; } catch { return SHORT_RULE_DEFAULT; } })();
+const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours });
+const fmtRule = (r) => `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}`;
+const planOpts = (rule, regime) => ({ trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma, btcRegime: rule.btcRegime, regime });
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
@@ -107,8 +117,15 @@ async function main() {
   const history = loadHistory(CFG.historyFile);
   if (!history.items.length && state.sent.length) for (const p of state.sent) historyAdd(history, p); // ilk koşu: mevcut kayıtları aktar
   log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
-  for (const tf of CFG.tfs) { const r = ruleFor(tf); log(`  ${tf}: puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}`); }
+  for (const tf of CFG.tfs) log(`  ${tf} long: ${fmtRule(ruleFor(tf, 'long'))}\n  ${tf} short: ${fmtRule(ruleFor(tf, 'short'))}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
+  // BTC rejimi (günlük kapanış vs günlük EMA50)
+  let regime = null;
+  try {
+    const daily = provider ? (await provider.candles(instIdOf('BTC'), '1D', 120)).candles : (await getCandles(instIdOf('BTC'), TIMEFRAMES['1D'], 120)).candles;
+    regime = regimeNow(daily, now);
+  } catch (err) { log(`BTC rejimi alınamadı: ${err.message}`); }
+  log(`BTC rejimi: ${regime === 'up' ? 'yükseliş (günlük kapanış > EMA50)' : regime === 'down' ? 'düşüş (günlük kapanış < EMA50)' : 'bilinmiyor'}`);
   const res = await runScan({ timeframes: CFG.tfs, topN: CFG.topN }, {
     provider,
     onProgress: ({ done, total }) => { if (done % 50 === 0 || done === total) log(`  ${done}/${total}`); },
@@ -144,11 +161,12 @@ async function main() {
   const rejects = {};
   for (const r of res.rows) {
     if (r.error) continue;
-    const rule = ruleFor(r.tf);
-    const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma });
+    const rule = ruleFor(r.tf, r.direction);
+    const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, ...planOpts(rule, regime) });
     if (!plan.ok) { const k = plan.reason.replace(/[\d.,–-]+/g, '#'); rejects[k] = (rejects[k] || 0) + 1; continue; }
     if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
+    plan.rule = rule;
     cands.push(plan);
   }
   if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
@@ -162,7 +180,7 @@ async function main() {
   for (const plan of cands) {
     if (sentNow >= CFG.maxAlerts || evaluated >= CFG.maxEval) break;
     if (usedCoins.has(plan.coin)) continue; // aynı turda aynı coin için tek plan
-    const cap = ruleFor(plan.tf).maxPerRun;
+    const cap = plan.rule?.maxPerRun;
     if (cap && (sentPerTf[plan.tf] || 0) >= cap) continue;
     usedCoins.add(plan.coin); evaluated++;
     const htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((r) => r && !r.error && r.best)
@@ -182,7 +200,7 @@ async function main() {
       const htfTxt = htf.length ? ` Üst/alt TF: ${htf.map((h) => `${h.tf} ${h.direction || '–'} ${h.score}`).join(', ')}.` : '';
       dec = { source: 'rules', trade: 'take', direction: plan.direction, entry_low: plan.zone[0], entry_high: plan.zone[1], stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2,
         confidence: strong ? 'orta' : 'düşük',
-        reason: `Kural motoru planı: ${plan.signals.slice(0, 4).map((s) => s.name).join(', ')} aynı bölgede${plan.mtf ? `; ${plan.mtf.tfs.join('+')} aynı yön` : ''}${tr.adx != null ? `; ADX ${tr.adx}${tr.aligned ? ' yön uyumlu' : ''}` : ''}${tr.emaSide != null ? `; fiyat EMA200'ün ${tr.emaSide ? 'doğru' : 'ters'} tarafında` : ''}.${htfTxt}`,
+        reason: `Kural motoru planı: ${plan.signals.slice(0, 4).map((s) => s.name).join(', ')} aynı bölgede${plan.mtf ? `; ${plan.mtf.tfs.join('+')} aynı yön` : ''}${tr.adx != null ? `; ADX ${tr.adx}${tr.aligned ? ' yön uyumlu' : ''}` : ''}${tr.emaSide != null ? `; fiyat EMA200'ün ${tr.emaSide ? 'doğru' : 'ters'} tarafında` : ''}${regime ? `; BTC rejimi: ${regime === 'up' ? 'yükseliş' : 'düşüş'}` : ''}.${htfTxt}`,
         invalidation: `${plan.direction === 'long' ? 'Stop altı' : 'Stop üstü'} kapanış planı iptal eder.`, evidence: [] };
     }
     const v = validateDecision(dec, plan, { minRR: CFG.minRR, sendWait: CFG.sendWait });
@@ -206,8 +224,8 @@ async function main() {
       const agentCands = [];
       for (const r of res.rows) {
         if (r.error) continue;
-        const rule = ruleFor(r.tf);
-        const plan = buildPlan(r, { minScore: Math.min(CFG.agentMinScore, rule.minScore - 10), minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false, trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma });
+        const rule = ruleFor(r.tf, r.direction);
+        const plan = buildPlan(r, { minScore: Math.min(CFG.agentMinScore, rule.minScore - 10), minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false, ...planOpts(rule, regime) });
         if (!plan.ok) continue;
         plan.htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((x) => x && !x.error && x.best).map((x) => ({ tf: x.tf, direction: x.direction, score: x.score }));
         agentCands.push(plan);

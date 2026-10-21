@@ -19,6 +19,22 @@ export const PLAN_DEFAULTS = {
 };
 
 const dirSign = (d) => (d === 'long' ? 1 : -1);
+
+/**
+ * Kural birleştirme: genel (base) ← TF kuralı ← TF'nin yön alt kuralı (rules[tf].long / .short) ← shortRule (short için).
+ * shortRule.scoreAdd TF eşiğine eklenir; ADX ve cooldown'da sıkı olan (büyük) korunur.
+ */
+export function mergeRule(tf, direction, rules = {}, shortRule = null, base = {}) {
+  const { long: L, short: S, ...tfRule } = rules[tf] || {};
+  const r = { ...base, ...tfRule, ...(direction === 'long' ? L : direction === 'short' ? S : {}) };
+  if (direction !== 'short' || !shortRule) return r;
+  const { scoreAdd = 0, ...sr } = shortRule;
+  const out = { ...r, ...sr, minScore: (r.minScore || 0) + scoreAdd };
+  if (r.trendAdxMin && sr.trendAdxMin) out.trendAdxMin = Math.max(r.trendAdxMin, sr.trendAdxMin);
+  if (r.cooldownHours && sr.cooldownHours) out.cooldownHours = Math.max(r.cooldownHours, sr.cooldownHours);
+  if (r.maxPerRun) out.maxPerRun = r.maxPerRun;
+  return out;
+}
 const r4 = (x) => +x.toPrecision(6);
 
 /** Satırdan plan; uygun değilse { ok:false, reason }. */
@@ -40,6 +56,11 @@ export function buildPlan(row, opts = {}) {
     if (!aligned) return { ok: false, reason: 'DI yönü uyumsuz' };
   }
   if (o.trendEma && !emaSide) return { ok: false, reason: 'fiyat EMA200\'ün yanlış tarafında' };
+  // BTC rejimi: 'with' → long yalnız BTC yükseliş rejiminde, short yalnız düşüş rejiminde (o.regime: 'up'|'down'|null)
+  if (o.btcRegime === 'with') {
+    if (!o.regime) return { ok: false, reason: 'BTC rejimi bilinmiyor' };
+    if ((d === 1) !== (o.regime === 'up')) return { ok: false, reason: 'BTC rejimi ters' };
+  }
   const [lo, hi] = entryZone(b, d, atr, o.maxZoneAtr);
   // Giriş: bölgenin fiyata yakın kenarı (long: üst kenar, short: alt kenar); fiyat bölgedeyse fiyat
   const inZone = price >= lo && price <= hi;
@@ -80,6 +101,7 @@ export function buildPlan(row, opts = {}) {
     signals: b.signals.map((s) => ({ name: s.name, detector: s.detector, group: s.group, direction: s.direction, strength: +s.strength.toFixed(2), status: s.status, zone: s.zone?.map(r4), note: s.note || '', invalidation: s.invalidation, target: s.target })),
     groups: [...b.groups],
     trend: { adx: t.adx != null ? +t.adx.toFixed(1) : null, aligned, emaSide },
+    regime: o.regime ?? null,
     time: t.time ?? null,
     status: inZone ? 'active' : 'waiting',
   };

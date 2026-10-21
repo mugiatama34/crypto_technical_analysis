@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 15);
+  assert.equal(STRATEGIES.length, 19);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -144,4 +144,38 @@ test('sağlamlık: en iyi ay atılınca ort. R düşer; sıkı kabul eğitim + s
   const btcUp = Array.from({ length: 120 }, (_, i) => c(i * 86400e3, 0, 0, 0, 100 + i));
   assert.ok(runStrategy(donchian4hLongBtc, { coin: 'T', tf: '4H', candles: up, extra: { btcDaily: btcUp } }, o).length >= 1);
   assert.ok(engineWide4hLongBtc.needs.includes('BTC1D'));
+});
+
+test('kesitsel momentum: güçlü coinler long, zayıflar ls short; geleceğe bakmaz; kıyas hesaplanır', async () => {
+  const { runXsMom, portfolioOf, benchmarks, XS_STRATEGIES } = await import('../backtest/lab/xsmom.js');
+  const DAY = 86400e3, T0 = Date.UTC(2025, 0, 5); // pazar
+  const mkCoin = (coin, drift, n = 200) => {
+    const out = []; let p = 100;
+    for (let i = 0; i < n; i++) { const w = Math.sin(i * 0.7 + drift * 900) * 0.01; const open = p; p = p * (1 + drift + w); out.push(c(T0 + i * DAY, open, Math.max(open, p) * 1.005, Math.min(open, p) * 0.995, p)); }
+    return { coin, candles: out };
+  };
+  const coins = Array.from({ length: 12 }, (_, i) => mkCoin(i === 11 ? 'BTC' : `C${i}`, (i - 5) * 0.002));
+  const oo = { feePct: 0.05, slipPct: 0.05 };
+  const tr = runXsMom(coins, oo, {}, { lookback: 28, k: 3 });
+  assert.ok(tr.length > 0 && tr.every((t) => t.direction === 'long'));
+  const held = new Set(tr.map((t) => t.coin));
+  assert.ok(held.has('BTC') || held.has('C10'), 'en güçlü coinler tutulmalı');
+  assert.ok(!held.has('C0') && !held.has('C1'), 'düşen coinler long alınmaz (mutlak momentum)');
+  for (const t of tr) assert.ok(t.entryTime > t.time, 'giriş sinyalden sonraki gün açılışında');
+  const ls = runXsMom(coins, oo, {}, { lookback: 28, k: 3, side: 'ls' });
+  assert.ok(ls.some((t) => t.direction === 'short' && ['C0', 'C1', 'C2'].includes(t.coin)));
+  // Geleceğe bakmama: son 40 günü bozunca, kesimden 8+ gün önce açılan işlemlerin girişleri değişmez
+  const cut = T0 + 150 * DAY;
+  const broken = coins.map((s) => ({ coin: s.coin, candles: s.candles.map((x) => (x.time > cut ? { ...x, open: x.open * 3, high: x.high * 3, low: x.low * 3, close: x.close * 3 } : x)) }));
+  const tr2 = runXsMom(broken, oo, {}, { lookback: 28, k: 3 });
+  const key = (t) => `${t.coin}|${t.entryTime}|${t.entry}`;
+  const early = (arr) => arr.filter((t) => t.entryTime < cut - 8 * DAY).map(key).sort();
+  assert.deepEqual(early(tr2), early(tr));
+  // BTC rejimi kapalıysa (veri yok) long yok
+  assert.equal(runXsMom(coins, oo, { btcDaily: null }, { lookback: 28, k: 3, btcRegime: true }).length, 0);
+  const pf = portfolioOf(tr, 3, T0 + 120 * DAY);
+  assert.ok(Math.abs(pf.trainPct + pf.validPct - pf.totalPct) < 0.2);
+  const bm = benchmarks(coins, T0 + 30 * DAY, T0 + 120 * DAY, T0 + 199 * DAY);
+  assert.ok(bm.btc.total > 0 && bm.ew.total != null);
+  assert.equal(XS_STRATEGIES.length, 4);
 });
