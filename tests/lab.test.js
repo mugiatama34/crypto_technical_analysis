@@ -81,7 +81,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 8);
+  assert.equal(STRATEGIES.length, 10);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -96,4 +96,23 @@ test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; g�
   assert.equal(dailyTrendAt(daily, 10 * 86400e3), null); // EMA50 henüz yok
   assert.equal(dailyTrendAt(daily, 55 * 86400e3 + 7200e3).close, 200 - 54); // o güne kadar KAPANMIŞ son gün
   assert.equal(runStrategy(donchian4hLongHtf, { coin: 'T', tf: '4H', candles: up, extra: { daily: null } }, o).length, 0);
+});
+
+test('diyagonal: kural motoru geçerliliği, bitiş planı (throw-over → short, TP1 ≥ 2R), başlangıç planı (%61,8 limit)', async () => {
+  const { validDiagonal, endingPlan, leadingPlan, endingDiagonal, leadingDiagonal } = await import('../backtest/lab/diagonal.js');
+  const pts = [[0, 100], [10, 104], [14, 101.5], [24, 105], [28, 103.2], [36, 106]].map(([i, price]) => ({ i, price }));
+  assert.ok(validDiagonal(pts, 'ending') && validDiagonal(pts, 'leading'));
+  assert.equal(validDiagonal([[0, 100], [10, 104], [14, 101], [24, 105.6], [28, 103.2], [36, 106.6]].map(([i, price]) => ({ i, price })), 'ending'), null); // 3 > 1: kama değil
+  const cOver = { i: 36, open: 105.3, high: 106, low: 104.9, close: 105.0 }; // fitil 1-3 çizgisi üstünde, gövde içeride
+  const e = endingPlan(pts, cOver, 0.6, 15);
+  assert.equal(e.direction, 'short'); assert.equal(e.tp1, 100); assert.ok(e.stop > 106 && e.rr1 >= 2);
+  assert.equal(endingPlan(pts, { ...cOver, close: 105.9 }, 0.6, 15), null); // gövde dışarıda kapandı: gerçek kırılım, tuzak değil
+  assert.equal(endingPlan(pts, cOver, 0.6, 2), null); // önceki trend küçük: trend sonu değil
+  const l = leadingPlan(pts, 0.6, true);
+  assert.equal(l.direction, 'long'); assert.ok(Math.abs(l.entry - (106 - 0.618 * 6)) < 1e-6); assert.ok(l.stop < 100 && l.tp1 === 106 && l.tp2 > 110);
+  assert.equal(leadingPlan(pts, 0.6, false), null); // 0 noktası önceki trendin ucu değil
+  // Tam akış: rastgele seride hata vermez
+  const { randomWalk } = await import('./helpers.js');
+  const cs = randomWalk(500, 7);
+  for (const st of [endingDiagonal, leadingDiagonal]) for (const t of runStrategy(st, { coin: 'T', tf: '4H', candles: cs }, o)) assert.ok(t.kind && Math.abs(t.entry - t.stop) > 0);
 });

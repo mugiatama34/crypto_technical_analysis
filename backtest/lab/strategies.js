@@ -7,6 +7,8 @@ import { makeContext } from '../../src/scan/context.js';
 import { equalLevels } from '../../src/detectors/liquidity.js';
 import { analyzeRow, barsFor } from '../../src/scan/scanner.js';
 import { buildPlan } from '../../bot/plan.js';
+import { endingDiagonal, leadingDiagonal } from './diagonal.js';
+export { endingDiagonal, leadingDiagonal };
 
 const r6 = (x) => +Number(x).toPrecision(8);
 const mk = (d, entry, stop, tp1, tp2, atr) => ({ d, direction: d === 1 ? 'long' : 'short', entry: r6(entry), stop: r6(stop), tp1: tp1 && r6(tp1), tp2: tp2 && r6(tp2), inZone: true, atr: r6(atr), price: r6(entry) });
@@ -137,5 +139,5 @@ export const meanrevLong = {
   signal(i, candles, p) { const sig = meanrev.signal(i, candles, p); return sig && sig.d === 1 ? sig : null; },
 };
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, sweepReclaim, engineWide, engineWide4h];
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, sweepReclaim, engineWide, engineWide4h, endingDiagonal, leadingDiagonal];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

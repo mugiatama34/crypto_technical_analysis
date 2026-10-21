@@ -153,7 +153,12 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   (mevcut motor puan ≥ 60 + ADX ≥ 25, ama 2 ATR stop ve izleyen çıkış). 2. tur (1. turda 4H ve long kesitleri pozitif
   çıkınca): `donchian_4h_long` (yalnız 4H long, EMA200 üstü), `donchian_4h_long_htf` (+ günlük EMA50 üstü; 1D mumlar
   ayrıca çekilir), `meanrev_long`, `engine_wide_4h`; `sweep_reclaim` 15m'den çıkarıldı (PF 0,57). Kırılımlar (TF, yön,
-  TF × yön, ay) eğitim/doğrulama ayrı raporlanır. Girişler sinyal mumundan sonraki açılıştan
+  TF × yön, ay) eğitim/doğrulama ayrı raporlanır. **Elliott diyagonalleri** (`backtest/lab/diagonal.js`, ders
+  "Diyagonaller"): `ending_diagonal` (trend sonunda kural motorunun geçerli saydığı daralan kama; 5. dalga 1-3 çizgisinin
+  dışına fitil atıp gövde kamanın içine kapanınca ters yönde piyasa girişi; stop 5. dalga ucu + 0,2 ATR; TP1 diyagonal
+  başı, TP2 başın ötesi; TP1 ≥ 2R şartı) ve `leading_diagonal` (uzun trend ucunda başlayan diyagonal tamamlanınca
+  2. dalganın %61,8'ine 5 gün geçerli limit; stop diyagonal başının ötesi; TP1 1. dalga tepesi, TP2 giriş + 1,618 × (1);
+  TP2 ≥ 2R). Dersin 15m PO3 tetiği modellenmez; throw-over mumunun kapanışı tetiktir. Girişler sinyal mumundan sonraki açılıştan
   (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
   raporda "aday" (n 50–99: "zayıf aday"). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
