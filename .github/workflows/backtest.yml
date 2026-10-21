@@ -10,6 +10,7 @@ on:
       fee: { description: "Komisyon % / taraf", default: "0.05" }
       slip: { description: "Kayma %", default: "0.05" }
       claude_sample: { description: "Claude örneklemi (0 = yok)", default: "0" }
+      universe: { description: "Lab: dönem evreni havuzu (ör. 150; 0 = kapalı, bugünün ilk N'i)", default: "0" }
       mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı", default: "full" }
 
 concurrency:
@@ -47,7 +48,7 @@ jobs:
             plans-
       - name: Strategy lab
         if: ${{ inputs.mode == 'lab' }}
-        run: node backtest/lab/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
+        run: node backtest/lab/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --universe ${{ inputs.universe }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
       - name: Recover plans from git history (sweep mode)
         if: ${{ inputs.mode == 'sweep' }}
         run: |

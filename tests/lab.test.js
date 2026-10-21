@@ -179,3 +179,25 @@ test('kesitsel momentum: güçlü coinler long, zayıflar ls short; geleceğe ba
   assert.ok(bm.btc.total > 0 && bm.ew.total != null);
   assert.equal(XS_STRATEGIES.length, 4);
 });
+
+test('dönem evreni: o tarihte hacmi düşük coin sıralamaya girmez; eğitim sağlamlığı kabulü etkiler', async () => {
+  const { runXsMom } = await import('../backtest/lab/xsmom.js');
+  const DAY = 86400e3, T0 = Date.UTC(2025, 0, 5);
+  const mkCoin = (coin, drift, volFn) => {
+    const out = []; let p = 100;
+    for (let i = 0; i < 200; i++) { const open = p; p = p * (1 + drift + Math.sin(i * 0.7) * 0.004); out.push({ time: T0 + i * DAY, open, high: Math.max(open, p) * 1.003, low: Math.min(open, p) * 0.997, close: p, volume: 1, quoteVol: volFn(i) }); }
+    return { coin, candles: out };
+  };
+  // ROCKET en güçlü ama ilk 120 gün hacmi çok düşük (o dönemde küçük coin), sonra büyüyor
+  const coins = [mkCoin('ROCKET', 0.012, (i) => (i < 120 ? 1 : 1e9)), ...Array.from({ length: 9 }, (_, j) => mkCoin(`C${j}`, 0.001 * j, () => 1e6 + j))];
+  const oo = { feePct: 0, slipPct: 0 };
+  const today = runXsMom(coins, oo, {}, { lookback: 28, k: 2 });
+  const pitRun = runXsMom(coins, oo, { pitN: 5 }, { lookback: 28, k: 2 });
+  const early = (arr) => arr.filter((t) => t.coin === 'ROCKET' && t.time < T0 + 120 * DAY).length;
+  assert.ok(early(today) > 0, 'bugünün evreninde erken dönemde ROCKET alınır (yanlılık)');
+  assert.equal(early(pitRun), 0, 'dönem evreninde o tarihte küçük olan coin alınmaz');
+  assert.ok(pitRun.some((t) => t.coin === 'ROCKET' && t.time >= T0 + 120 * DAY), 'hacmi büyüyünce evrene girer');
+  const good = { n: 150, avgR: 0.2, profitFactor: 1.5 };
+  assert.equal(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: 0.05 }, robustTrain: { avgR: -0.1 } }).candidate, false);
+  assert.equal(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: 0.05 }, robustTrain: { avgR: 0.02 } }).candidate, true);
+});

@@ -179,7 +179,10 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   (ya da 14) günlük getiriye göre sıralanır, en güçlü 5'i (getirisi > 0) ertesi açılışta long; listede kalan tutulur,
   düşen çıkar; koruma 3 ATR izleyen stop. Varyantlar: `xsmom_l28_k5`, `xsmom_l14_k5`, `xsmom_l28_k5_btc` (BTC rejimi),
   `xsmom_l28_k5_ls` (+ en zayıf 5 short). Raporda portföy getirisi BTC ve eşit ağırlık al-tut ile kıyaslanır.
-  Çalıştırma: `mode: lab, months: 24, tfs: 1D`. Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  Çalıştırma: `mode: lab, months: 24, tfs: 1D`. **Dönem evreni** (`universe: 150`): bugünün ilk 150 coini havuz olur,
+  her yeniden dengelemede o tarihteki 30 günlük USDT hacmine göre ilk `top` (50) seçilir; "bugün ilk 50'de olan =
+  geçmişte yükselmiş" yanlılığını azaltır (listeden kalkmış coinler yine yoktur). 7. turdan itibaren sıkı aday,
+  eğitimden de en iyi ay çıkarılınca pozitif kalmalıdır. Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`; `--tfs 4H` yalnız o TF'leri çeker/koşar (workflow `tfs` girdisi; 4H

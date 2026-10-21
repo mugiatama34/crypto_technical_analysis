@@ -3,12 +3,14 @@
 // Giriş/çıkış ertesi günün açılışında (+ kayma); listede kalan coin tutulmaya devam eder (yeniden komisyon yok);
 // koruma: günlük kapanışlarla izleyen 3 ATR(14) stop (gün içi değerse stop fiyatından, boşlukta açılıştan çıkılır).
 // R birimi = 3 ATR / giriş (başlangıç riski); ret = net yüzde getiri (komisyon iki taraf dahil).
-// Sınır: evren bugünkü hacim sıralaması (sağ kalanlık yanlılığı); portföy getirisi basit toplamdır (bileşik değil).
+// Dönem evreni (extra.pitN): geniş havuzdan (bugünün ilk N×3'ü) her yeniden dengelemede o tarihteki 30 günlük USDT
+// hacmine göre ilk pitN seçilir → "bugünün kazananları" yanlılığı azalır (listeden kalkan coinler yine yok).
+// Portföy getirisi basit toplamdır (bileşik değil).
 import * as I from '../../src/data/indicators.js';
 import { regimeUp } from '../../src/scan/regime.js';
 
 const DAY = 86400e3;
-export const XS_DEFAULTS = { lookback: 28, k: 5, stopAtr: 3, rebalanceDow: 0, minHistory: 20, side: 'long', btcRegime: false };
+export const XS_DEFAULTS = { lookback: 28, k: 5, stopAtr: 3, rebalanceDow: 0, minHistory: 20, side: 'long', btcRegime: false, volDays: 30 };
 
 /** seriesByCoin: [{ coin, candles }] (1D). o: { feePct, slipPct }. extra: { btcDaily }. → trades[] */
 export function runXsMom(seriesByCoin, o, extra = {}, params = {}) {
@@ -17,8 +19,12 @@ export function runXsMom(seriesByCoin, o, extra = {}, params = {}) {
   const S = seriesByCoin.map((s) => {
     const c = s.candles;
     const atr = I.atr(c.map((x) => x.high), c.map((x) => x.low), c.map((x) => x.close), 14);
-    return { coin: s.coin, c, atr, idx: new Map(c.map((x, i) => [x.time, i])) };
+    // USDT hacim (OKX volCcyQuote); yoksa hacim × kapanış. Kümülatif toplam: son N günlük hacim O(1).
+    const qv = c.map((x) => (Number.isFinite(x.quoteVol) && x.quoteVol > 0 ? x.quoteVol : x.volume * x.close));
+    const cum = [0]; for (const v of qv) cum.push(cum[cum.length - 1] + (v || 0));
+    return { coin: s.coin, c, atr, cum, idx: new Map(c.map((x, i) => [x.time, i])) };
   });
+  const volAt = (s, i, n) => s.cum[i + 1] - s.cum[Math.max(0, i + 1 - n)];
   const days = [...new Set(S.flatMap((s) => s.c.map((x) => x.time)))].sort((a, b) => a - b);
   const pos = new Map(); // coin → { d, entry, entryTime, signalTime, stop, risk, bars }
   const trades = [];
@@ -59,12 +65,14 @@ export function runXsMom(seriesByCoin, o, extra = {}, params = {}) {
     }
     // 3) Yeniden dengeleme kararı: bu günün kapanışında (yalnız ≤ T kapanışlar)
     if (new Date(T).getUTCDay() !== p.rebalanceDow || (extra.startMs && T < extra.startMs)) continue; // ısınma döneminde işlem yok
-    const ranks = [];
+    let ranks = [];
     for (const s of S) {
       const i = s.idx.get(T);
       if (i == null || i < p.lookback + p.minHistory || !s.atr[i]) continue;
-      ranks.push({ coin: s.coin, r: s.c[i].close / s.c[i - p.lookback].close - 1 });
+      ranks.push({ coin: s.coin, r: s.c[i].close / s.c[i - p.lookback].close - 1, vol: volAt(s, i, p.volDays) });
     }
+    // Dönem evreni: o tarihteki son volDays günlük USDT hacmine göre ilk pitN coin (bugünün sıralaması değil)
+    if (extra.pitN) ranks = ranks.sort((a, b) => b.vol - a.vol).slice(0, extra.pitN);
     if (ranks.length < 2 * p.k) continue;
     ranks.sort((a, b) => b.r - a.r);
     let longs = ranks.slice(0, p.k).filter((x) => x.r > 0).map((x) => x.coin);
