@@ -139,5 +139,14 @@ export const meanrevLong = {
   signal(i, candles, p) { const sig = meanrev.signal(i, candles, p); return sig && sig.d === 1 ? sig : null; },
 };
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, sweepReclaim, engineWide, engineWide4h, endingDiagonal, leadingDiagonal];
+/** 9) Kontrol yalnız 4H, yalnız long (2. turda 4H long n86 +0,24R PF 1,57; short negatif). */
+export const engineWide4hLong = {
+  ...engineWide4h, id: 'engine_wide_4h_long', label: 'Mevcut motor yalnız 4H long + 2 ATR stop + izleyen',
+  signal(i, candles, p) { const sig = engineWide4h.signal(i, candles, p); return sig && sig.d === 1 ? sig : null; },
+};
+
+/** 10) Ortalamaya dönüş yalnız 4H long (2. turda n46 +0,12R PF 1,30). */
+export const meanrev4hLong = { ...meanrevLong, id: 'meanrev_4h_long', label: 'EMA20 sapması ≥ 2 ATR, yalnız 4H long, hedef EMA20', tfs: ['4H'] };
+
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, endingDiagonal, leadingDiagonal];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

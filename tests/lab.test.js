@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulateTrade, BT_DEFAULTS } from '../backtest/engine.js';
-import { donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
+import { engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
 import { runStrategy, report } from '../backtest/lab/run.mjs';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
@@ -81,7 +81,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 10);
+  assert.equal(STRATEGIES.length, 12);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -90,6 +90,8 @@ test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; g�
   const down = trendSeries(400, -1, 400).map((c_) => ({ ...c_, time: c_.time * 4 }));
   assert.equal(runStrategy(donchian4hLong, { coin: 'T', tf: '4H', candles: down }, o).length, 0);
   assert.equal(runStrategy(meanrevLong, { coin: 'T', tf: '4H', candles: down }, o).filter((t) => t.direction === 'short').length, 0);
+  assert.equal(runStrategy(meanrev4hLong, { coin: 'T', tf: '4H', candles: down }, o).filter((t) => t.direction === 'short').length, 0);
+  assert.equal(runStrategy(engineWide4hLong, { coin: 'T', tf: '4H', candles: trendSeries(450, -1, 400) }, o).filter((t) => t.direction === 'short').length, 0);
   // günlük: 60 gün, ilk 55 gün düşüş, sonra yükseliş → EMA50 altı; up=false
   const daily = Array.from({ length: 60 }, (_, i) => c(i * 86400e3, 0, 0, 0, i < 55 ? 200 - i : 150 + (i - 55) * 2));
   assert.equal(dailyTrendAt(daily, 59 * 86400e3 + 3600e3).up, false);

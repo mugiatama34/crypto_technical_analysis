@@ -153,7 +153,9 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   (mevcut motor puan ≥ 60 + ADX ≥ 25, ama 2 ATR stop ve izleyen çıkış). 2. tur (1. turda 4H ve long kesitleri pozitif
   çıkınca): `donchian_4h_long` (yalnız 4H long, EMA200 üstü), `donchian_4h_long_htf` (+ günlük EMA50 üstü; 1D mumlar
   ayrıca çekilir), `meanrev_long`, `engine_wide_4h`; `sweep_reclaim` 15m'den çıkarıldı (PF 0,57). Kırılımlar (TF, yön,
-  TF × yön, ay) eğitim/doğrulama ayrı raporlanır. **Elliott diyagonalleri** (`backtest/lab/diagonal.js`, ders
+  TF × yön, ay) eğitim/doğrulama ayrı raporlanır. 3. tur: `engine_wide_4h_long` ve `meanrev_4h_long` (2. turda
+  4H long kesitleri doğrulamada pozitif, short negatifti; `donchian_4h_long` ise eğitim +0,89R → doğrulama −0,02R ile
+  aşırı uyum çıktı). **Elliott diyagonalleri** (`backtest/lab/diagonal.js`, ders
   "Diyagonaller"): `ending_diagonal` (trend sonunda kural motorunun geçerli saydığı daralan kama; 5. dalga 1-3 çizgisinin
   dışına fitil atıp gövde kamanın içine kapanınca ters yönde piyasa girişi; stop 5. dalga ucu + 0,2 ATR; TP1 diyagonal
   başı, TP2 başın ötesi; TP1 ≥ 2R şartı) ve `leading_diagonal` (uzun trend ucunda başlayan diyagonal tamamlanınca
