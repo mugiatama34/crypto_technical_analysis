@@ -16,8 +16,8 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
 
 /** Bir seri üzerinde strateji: sinyal → simülasyon; işlem sürerken yeni sinyal yok. */
-export function runStrategy(strategy, { coin, tf, candles }, o) {
-  const pre = strategy.prepare(candles, tf);
+export function runStrategy(strategy, { coin, tf, candles, extra }, o) {
+  const pre = strategy.prepare(candles, tf, extra || {});
   const trades = [];
   let busyUntil = -1;
   for (let i = 50; i < candles.length - 1; i++) {
@@ -32,13 +32,13 @@ export function runStrategy(strategy, { coin, tf, candles }, o) {
   return trades;
 }
 
-const by = (trades, f) => { const m = new Map(); for (const t of trades) { const k = f(t); if (!m.has(k)) m.set(k, []); m.get(k).push(t); } return Object.fromEntries([...m.entries()].map(([k, v]) => [k, stats(v)])); };
+const by = (trades, f, split) => { const m = new Map(); for (const t of trades) { const k = f(t); if (!m.has(k)) m.set(k, []); m.get(k).push(t); } return Object.fromEntries([...m.entries()].map(([k, v]) => [k, { all: stats(v), train: stats(v.filter((t) => t.time < split)), valid: stats(v.filter((t) => t.time >= split)) }])); };
 
 export function report(trades, split) {
   const sorted = [...trades].sort((a, b) => a.time - b.time);
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(sorted.filter((t) => t.time >= split)), byTf: by(trades, (t) => t.tf), byDirection: by(trades, (t) => t.direction), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7)), curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(sorted.filter((t) => t.time >= split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), curve: thin };
 }
 
 async function main() {
@@ -52,12 +52,18 @@ async function main() {
   const tfs = [...new Set(strategies.flatMap((s) => s.tfs))];
   log(`Laboratuvar: ${strategies.map((s) => s.id).join(', ')} × ${coins.length} coin × ${tfs.join(',')}; ${CFG.months} ay`);
   const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip };
+  const needDaily = strategies.some((s) => s.needs?.includes('1D'));
+  const fetchTf = async (instId, tf, n) => (CFG.fixture ? (await fixtureProvider.candles(instId, tf, n)).candles : getHistoryCached(instId, tf, startMs - (tf === '1D' ? 120 * 86400e3 : 0), endMs, { cacheDir: CFG.cacheDir }));
   const series = [];
-  for (const c of coins) for (const tf of tfs) {
-    try {
-      const candles = CFG.fixture ? (await fixtureProvider.candles(c.instId, tf, 1500)).candles : await getHistoryCached(c.instId, tf, startMs, endMs, { cacheDir: CFG.cacheDir });
-      if (candles.length >= 350) series.push({ coin: c.coin, tf, candles });
-    } catch (err) { log(`  ${c.coin} ${tf}: ${err.message}`); }
+  for (const c of coins) {
+    let daily = null;
+    if (needDaily) { try { daily = await fetchTf(c.instId, '1D', 400); } catch (err) { log(`  ${c.coin} 1D: ${err.message}`); } }
+    for (const tf of tfs) {
+      try {
+        const candles = await fetchTf(c.instId, tf, 1500);
+        if (candles.length >= 350) series.push({ coin: c.coin, tf, candles, extra: { daily } });
+      } catch (err) { log(`  ${c.coin} ${tf}: ${err.message}`); }
+    }
   }
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
@@ -66,8 +72,8 @@ async function main() {
     const ts = Date.now(); const trades = [];
     for (const s of series) { if (!st.tfs.includes(s.tf)) continue; trades.push(...runStrategy(st, s, o)); }
     const rep = report(trades, split);
-    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), candidate: rep.valid.n >= 100 && rep.valid.avgR > 0 && rep.valid.profitFactor > 1.1 };
-    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} ${out.strategies[st.id].candidate ? '← ADAY' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
+    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), candidate: rep.valid.n >= 100 && rep.valid.avgR > 0 && rep.valid.profitFactor > 1.1, weak: rep.valid.n >= 50 && rep.valid.n < 100 && rep.valid.avgR > 0 && rep.valid.profitFactor > 1.1 };
+    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf aday' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });

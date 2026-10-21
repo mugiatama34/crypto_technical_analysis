@@ -1,5 +1,6 @@
 // Strateji laboratuvarı: farklı giriş-çıkış aileleri, aynı simülasyon ve rapor. Her strateji:
-//   { id, label, tfs, exit: { tpScheme, trailAtr, maxHoldBars }, prepare(candles, tf) → pre, signal(i, candles, pre) → plan|null }
+//   { id, label, tfs, needs?: ['1D'], exit: { tpScheme, trailAtr, maxHoldBars }, prepare(candles, tf, extra) → pre, signal(i, candles, pre) → plan|null }
+//   extra.daily: günlük mumlar (needs '1D' içeriyorsa run.mjs çeker)
 // Plan: { d, direction, entry (sinyal mumu kapanışı), stop, tp1, tp2, inZone:true, atr, price } — simulateTrade ile aynı.
 import * as I from '../../src/data/indicators.js';
 import { makeContext } from '../../src/scan/context.js';
@@ -46,7 +47,7 @@ export const meanrev = {
 
 /** 3) Likidite süpürmesi + geri alma (onaylı pivotlarla, geleceğe bakmaz). */
 export const sweepReclaim = {
-  id: 'sweep_reclaim', label: 'Eşit dip/tepe süpürmesi + kapanışla geri alma', tfs: ['15m', '1H', '4H'],
+  id: 'sweep_reclaim', label: 'Eşit dip/tepe süpürmesi + kapanışla geri alma', tfs: ['1H', '4H'], // 15m: 1. turda PF 0,57, çıkarıldı
   exit: { tpScheme: 'half_be', maxHoldBars: 60 },
   prepare(candles, tf) { return { ...basics(candles), tf, W: barsFor(tf) }; },
   signal(i, candles, p) {
@@ -92,5 +93,49 @@ export const engineWide = {
   },
 };
 
-export const STRATEGIES = [donchian, meanrev, sweepReclaim, engineWide];
+/** 5) Donchian yalnız 4H, yalnız long, kapanış > EMA200. */
+export const donchian4hLong = {
+  id: 'donchian_4h_long', label: 'Donchian 20 kırılımı, yalnız 4H long, EMA200 üstü, ADX ≥ 25', tfs: ['4H'],
+  exit: donchian.exit,
+  prepare(candles) { const b = basics(candles); return { ...b, dc: I.donchian(b.highs, b.lows, 20), e200: I.ema(b.closes, 200) }; },
+  signal(i, candles, p) {
+    const c = candles[i];
+    if (p.e200[i] == null || c.close <= p.e200[i]) return null;
+    const sig = donchian.signal(i, candles, p);
+    return sig && sig.d === 1 ? sig : null;
+  },
+};
+
+/** Günlük mumlardan, verilen zamana kadar kapanmış son günün EMA50'si (geleceğe bakmaz). */
+export function dailyTrendAt(daily, time) {
+  if (!daily || !daily.length) return null;
+  if (!daily._e50) daily._e50 = I.ema(daily.map((c) => c.close), 50);
+  let k = -1;
+  for (let j = 0; j < daily.length; j++) { if (daily[j].time + 86400e3 <= time) k = j; else break; }
+  if (k < 0 || daily._e50[k] == null) return null;
+  return { close: daily[k].close, ema50: daily._e50[k], up: daily[k].close > daily._e50[k] };
+}
+
+/** 6) 5 + günlük trend (günlük kapanış > günlük EMA50). */
+export const donchian4hLongHtf = {
+  id: 'donchian_4h_long_htf', label: 'Donchian 4H long + günlük EMA50 üstü', tfs: ['4H'], needs: ['1D'],
+  exit: donchian.exit,
+  prepare(candles, tf, extra) { return { ...donchian4hLong.prepare(candles), daily: extra?.daily || null }; },
+  signal(i, candles, p) {
+    const dt = dailyTrendAt(p.daily, candles[i].time);
+    if (!dt || !dt.up) return null;
+    return donchian4hLong.signal(i, candles, p);
+  },
+};
+
+/** 7) Kontrol: mevcut motor yalnız 4H. */
+export const engineWide4h = { ...engineWide, id: 'engine_wide_4h', label: 'Mevcut motor yalnız 4H + 2 ATR stop + izleyen', tfs: ['4H'] };
+
+/** 8) Ortalamaya dönüş yalnız long. */
+export const meanrevLong = {
+  ...meanrev, id: 'meanrev_long', label: 'EMA20 sapması ≥ 2 ATR, yalnız long (EMA200 üstü), hedef EMA20', tfs: ['1H', '4H'],
+  signal(i, candles, p) { const sig = meanrev.signal(i, candles, p); return sig && sig.d === 1 ? sig : null; },
+};
+
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, sweepReclaim, engineWide, engineWide4h];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

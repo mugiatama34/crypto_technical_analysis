@@ -30,7 +30,7 @@
     <div><h1>Strateji laboratuvarı</h1><p class="sub" id="sub">Dört giriş-çıkış ailesi, aynı dolum/komisyon/kayma simülasyonu.</p></div>
     <nav class="nav"><a href="backtest.html">← Backtest</a><a href="sweep.html">Tarama</a><a href="index.html">Tarayıcı</a></nav>
   </header>
-  <p class="note">Kabul ölçütü (<b>aday</b>): doğrulama diliminde (son 1/3) ort. R &gt; 0, kâr faktörü &gt; 1,1 ve n ≥ 100. Eğitimde iyi görünüp doğrulamada çöken aile aşırı uyumdur. Aday çıkan aile bota/ajana ancak birlikte karar verilerek bağlanır.</p>
+  <p class="note">Kabul ölçütü (<b>aday</b>): doğrulama diliminde (son 1/3) ort. R &gt; 0, kâr faktörü &gt; 1,1 ve n ≥ 100; n 50–99 ise <b>zayıf aday</b>. Kırılım tablolarında doğrulamada aynı ölçütü tutan satırlar koyu. Eğitimde iyi görünüp doğrulamada çöken aile aşırı uyumdur. Aday çıkan aile bota/ajana ancak birlikte karar verilerek bağlanır.</p>
   <div id="root"><p class="empty">Yükleniyor…</p></div>
   <footer>Girişler sinyal mumundan sonraki açılışta (piyasa + kayma). <strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
@@ -49,15 +49,17 @@ function curveSvg(pts) {
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
   return `<svg class="curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Özsermaye eğrisi (R)"><line x1="5" x2="${W - 5}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="var(--axis)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="${ys[ys.length - 1] >= 0 ? '#5ea3f0' : '#ef7d7d'}" stroke-width="1.5"/></svg>`;
 }
-const breakdown = (title, obj) => `<div><h2>${title}</h2><div class="tablewrap"><table class="grid"><thead><tr><th></th>${HEAD}</tr></thead><tbody>${Object.entries(obj).sort().map(([k, s]) => `<tr><td>${esc(k)}</td>${cells(s)}</tr>`).join('')}</tbody></table></div></div>`;
+const HEAD2 = '<th>Eğit. n</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th>';
+const sub = (x) => (x && x.all ? x : { all: x, train: x, valid: { n: 0, winRate: 0, avgR: 0, totalR: 0, profitFactor: 0, maxDD: 0 } }); // eski lab.json uyumu
+const breakdown = (title, obj) => `<div><h2>${title}</h2><div class="tablewrap"><table class="grid"><thead><tr><th></th>${HEAD2}</tr></thead><tbody>${Object.entries(obj || {}).sort().map(([k, v]) => { const s = sub(v); return `<tr class="${s.valid.n >= 50 && s.valid.avgR > 0 && s.valid.profitFactor > 1.1 ? 'cand' : ''}"><td>${esc(k)}</td><td>${s.train.n}</td><td class="${cls(s.train.avgR)}">${fmt(s.train.avgR, 3)}</td><td>${fmt(s.train.profitFactor)}</td>${cells(s.valid)}</tr>`; }).join('')}</tbody></table></div></div>`;
 async function main() {
   let r;
   try { const res = await fetch('docs/backtest/lab.json', { cache: 'no-store' }); if (!res.ok) throw new Error(`HTTP ${res.status}`); r = await res.json(); }
   catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Henüz laboratuvar koşusu yok (${esc(err.message)}). Actions → backtest → mode: lab.</p>`; return; }
   const m = r.meta, S = Object.values(r.strategies);
   document.querySelector('#sub').textContent = `${m.coins.length} coin · ${m.months} ay · bölünme ${new Date(m.split).toLocaleDateString('tr-TR')} · komisyon %${m.fee}/taraf, kayma %${m.slip} · ${new Date(m.generatedAt).toLocaleString('tr-TR')} · ${m.elapsedSec} sn`;
-  const summary = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Strateji</th><th>TF</th><th>Eğit. n</th><th>Eğit. ort R</th><th>Eğit. PF</th>${HEAD.replace(/<th>/g, '<th>Doğr. ')}</tr></thead><tbody>${S.map((s) => `<tr class="${s.candidate ? 'cand' : ''}"><td>${esc(s.label)}${s.candidate ? '<span class="badge ok">aday</span>' : '<span class="badge no">ret</span>'}</td><td>${s.tfs.join(', ')}</td><td>${s.train.n}</td><td class="${cls(s.train.avgR)}">${fmt(s.train.avgR, 3)}</td><td>${fmt(s.train.profitFactor)}</td>${cells(s.valid)}</tr>`).join('')}</tbody></table></div></section>`;
-  const details = S.map((s) => `<section><h2>${esc(s.label)} <small>${esc(s.id)} · çıkış ${esc(s.exit.tpScheme)}${s.exit.trailAtr ? ` ${s.exit.trailAtr} ATR` : ''} · en fazla ${s.exit.maxHoldBars} mum · ${s.all.signals} sinyal, ${s.all.n} işlem · ${s.elapsedSec} sn</small></h2>${curveSvg(s.curve)}<div class="cols">${breakdown('Zaman dilimi', s.byTf)}${breakdown('Yön', s.byDirection)}${breakdown('Ay', s.byMonth)}</div></section>`).join('');
+  const summary = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Strateji</th><th>TF</th><th>Eğit. n</th><th>Eğit. ort R</th><th>Eğit. PF</th>${HEAD.replace(/<th>/g, '<th>Doğr. ')}</tr></thead><tbody>${S.map((s) => `<tr class="${s.candidate ? 'cand' : ''}"><td>${esc(s.label)}${s.candidate ? '<span class="badge ok">aday</span>' : s.weak ? '<span class="badge ok">zayıf aday</span>' : '<span class="badge no">ret</span>'}</td><td>${s.tfs.join(', ')}</td><td>${s.train.n}</td><td class="${cls(s.train.avgR)}">${fmt(s.train.avgR, 3)}</td><td>${fmt(s.train.profitFactor)}</td>${cells(s.valid)}</tr>`).join('')}</tbody></table></div></section>`;
+  const details = S.map((s) => `<section><h2>${esc(s.label)} <small>${esc(s.id)} · çıkış ${esc(s.exit.tpScheme)}${s.exit.trailAtr ? ` ${s.exit.trailAtr} ATR` : ''} · en fazla ${s.exit.maxHoldBars} mum · ${s.all.signals} sinyal, ${s.all.n} işlem · ${s.elapsedSec} sn</small></h2>${curveSvg(s.curve)}<div class="cols">${breakdown('Zaman dilimi', s.byTf)}${breakdown('Yön', s.byDirection)}${breakdown('TF × yön', s.byTfDir)}${breakdown('Ay', s.byMonth)}</div></section>`).join('');
   document.querySelector('#root').innerHTML = summary + details;
 }
 main();

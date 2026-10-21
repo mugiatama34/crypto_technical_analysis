@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulateTrade, BT_DEFAULTS } from '../backtest/engine.js';
-import { donchian, meanrev, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
+import { donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
 import { runStrategy, report } from '../backtest/lab/run.mjs';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
@@ -78,7 +78,22 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   const trades = runStrategy(donchian, { coin: 'T', tf: '1H', candles: trendSeries(400, 1) }, o);
   const rep = report(trades, 200 * 3600e3);
   assert.equal(rep.train.n + rep.valid.n, rep.all.n);
-  assert.ok(rep.byTf['1H'] && rep.byDirection.long);
+  assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
+  assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 4);
+  assert.equal(STRATEGIES.length, 8);
+});
+
+test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
+  const up = trendSeries(400, 1).map((c_) => ({ ...c_, time: c_.time * 4 }));
+  assert.ok(runStrategy(donchian4hLong, { coin: 'T', tf: '4H', candles: up }, o).length >= 1);
+  const down = trendSeries(400, -1, 400).map((c_) => ({ ...c_, time: c_.time * 4 }));
+  assert.equal(runStrategy(donchian4hLong, { coin: 'T', tf: '4H', candles: down }, o).length, 0);
+  assert.equal(runStrategy(meanrevLong, { coin: 'T', tf: '4H', candles: down }, o).filter((t) => t.direction === 'short').length, 0);
+  // günlük: 60 gün, ilk 55 gün düşüş, sonra yükseliş → EMA50 altı; up=false
+  const daily = Array.from({ length: 60 }, (_, i) => c(i * 86400e3, 0, 0, 0, i < 55 ? 200 - i : 150 + (i - 55) * 2));
+  assert.equal(dailyTrendAt(daily, 59 * 86400e3 + 3600e3).up, false);
+  assert.equal(dailyTrendAt(daily, 10 * 86400e3), null); // EMA50 henüz yok
+  assert.equal(dailyTrendAt(daily, 55 * 86400e3 + 7200e3).close, 200 - 54); // o güne kadar KAPANMIŞ son gün
+  assert.equal(runStrategy(donchian4hLongHtf, { coin: 'T', tf: '4H', candles: up, extra: { daily: null } }, o).length, 0);
 });

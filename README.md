@@ -150,9 +150,12 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   (20 bar kırılımı + ADX ≥ 25 yön uyumu, 2 ATR stop, 2 ATR izleyen stop; 1H/4H), `meanrev` (EMA20'den ≥ 2 ATR sapma,
   EMA200 yönünde, hedef EMA20; 1H/4H), `sweep_reclaim` (o ana kadarki onaylı pivotlardan eşit dip/tepe süpürülüp kapanışla
   geri alınırsa; stop fitil ötesi, TP1 karşı eşit seviye ya da 2R, TP2 3R; 15m/1H/4H) ve kontrol grubu `engine_wide`
-  (mevcut motor puan ≥ 60 + ADX ≥ 25, ama 2 ATR stop ve izleyen çıkış). Girişler sinyal mumundan sonraki açılıştan
+  (mevcut motor puan ≥ 60 + ADX ≥ 25, ama 2 ATR stop ve izleyen çıkış). 2. tur (1. turda 4H ve long kesitleri pozitif
+  çıkınca): `donchian_4h_long` (yalnız 4H long, EMA200 üstü), `donchian_4h_long_htf` (+ günlük EMA50 üstü; 1D mumlar
+  ayrıca çekilir), `meanrev_long`, `engine_wide_4h`; `sweep_reclaim` 15m'den çıkarıldı (PF 0,57). Kırılımlar (TF, yön,
+  TF × yön, ay) eğitim/doğrulama ayrı raporlanır. Girişler sinyal mumundan sonraki açılıştan
   (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
-  raporda "aday". Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  raporda "aday" (n 50–99: "zayıf aday"). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`.
