@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulateTrade, BT_DEFAULTS } from '../backtest/engine.js';
-import { engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
-import { runStrategy, report } from '../backtest/lab/run.mjs';
+import { stats } from '../backtest/report.js';
+import { regimeUp, engineWide4hLongBtc, donchian4hLongBtc, engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
+import { runStrategy, report, robustStats, acceptance } from '../backtest/lab/run.mjs';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
 const o = { ...BT_DEFAULTS, feePct: 0, slipPct: 0 };
@@ -81,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 13);
+  assert.equal(STRATEGIES.length, 15);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -121,4 +122,26 @@ test('diyagonal: kural motoru geçerliliği, bitiş planı (throw-over → short
   const { randomWalk } = await import('./helpers.js');
   const cs = randomWalk(500, 7);
   for (const st of [endingDiagonal, leadingDiagonal]) for (const t of runStrategy(st, { coin: 'T', tf: '4H', candles: cs }, o)) assert.ok(t.kind && Math.abs(t.entry - t.stop) > 0);
+});
+
+test('sağlamlık: en iyi ay atılınca ort. R düşer; sıkı kabul eğitim + sağlamlık ister; rejim filtresi', () => {
+  const M = 31 * 86400e3; // ay sınırlarını kesin aş
+  const mk_ = (m, R) => ({ time: m * M + 1, outcome: 'stopped', R });
+  const valid = [mk_(0, -1), mk_(0, -1), mk_(1, 3), mk_(1, 3), mk_(2, -0.5), mk_(2, 0.5)];
+  const rb = robustStats(valid);
+  assert.equal(rb.droppedMonth, new Date(1 * M + 1).toISOString().slice(0, 7));
+  assert.ok(rb.avgR < 0 && stats(valid).avgR > 0);
+  const good = { n: 150, avgR: 0.2, profitFactor: 1.5 };
+  assert.deepEqual(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: 0.05 } }), { candidate: true, weak: false });
+  assert.deepEqual(acceptance({ train: { avgR: -0.1 }, valid: good, robust: { avgR: 0.05 } }), { candidate: false, weak: true }); // eğitimde kenar yok
+  assert.deepEqual(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: -0.05 } }), { candidate: false, weak: true }); // tek aya bağlı
+  // rejim: BTC günlük 60 gün, ilk 55 düşüş → up=false; rejim yokken sinyal yok
+  const btc = Array.from({ length: 60 }, (_, i) => c(i * 86400e3, 0, 0, 0, i < 55 ? 200 - i : 150 + (i - 55) * 2));
+  assert.equal(regimeUp(btc, 59 * 86400e3 + 3600e3), false);
+  assert.equal(regimeUp(null, 1), false);
+  const up = trendSeries(400, 1).map((c_) => ({ ...c_, time: c_.time * 4 }));
+  assert.equal(runStrategy(donchian4hLongBtc, { coin: 'T', tf: '4H', candles: up, extra: { btcDaily: null } }, o).length, 0);
+  const btcUp = Array.from({ length: 120 }, (_, i) => c(i * 86400e3, 0, 0, 0, 100 + i));
+  assert.ok(runStrategy(donchian4hLongBtc, { coin: 'T', tf: '4H', candles: up, extra: { btcDaily: btcUp } }, o).length >= 1);
+  assert.ok(engineWide4hLongBtc.needs.includes('BTC1D'));
 });

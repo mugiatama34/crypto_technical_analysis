@@ -148,5 +148,21 @@ export const engineWide4hLong = {
 /** 10) Ortalamaya dönüş yalnız 4H long (2. turda n46 +0,12R PF 1,30). */
 export const meanrev4hLong = { ...meanrevLong, id: 'meanrev_4h_long', label: 'EMA20 sapması ≥ 2 ATR, yalnız 4H long, hedef EMA20', tfs: ['4H'] };
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, endingDiagonal, endingDiagonalWide, leadingDiagonal];
+/** BTC rejimi: BTC günlük kapanışı (o ana kadar kapanmış son gün) günlük EMA50 üstünde mi. Karar anında bilinir. */
+export const regimeUp = (btcDaily, time) => dailyTrendAt(btcDaily, time)?.up === true;
+
+/** Rejim sarmalayıcı: yalnız BTC yükseliş rejiminde sinyal; rejim verisi yoksa sinyal yok. */
+export function withBtcRegime(base, id, label) {
+  return {
+    ...base, id, label, needs: [...(base.needs || []), 'BTC1D'],
+    prepare(candles, tf, extra) { return { ...base.prepare(candles, tf, extra), btcDaily: extra?.btcDaily || null }; },
+    signal(i, candles, p) { return regimeUp(p.btcDaily, candles[i].time) ? base.signal(i, candles, p) : null; },
+  };
+}
+
+/** 11–12) 5. tur: 12 ay 4H koşusunda long aileleri eğitimde sıfır/eksi, doğrulamada Ağustos'la pozitifti → rejim filtresi. */
+export const engineWide4hLongBtc = withBtcRegime(engineWide4hLong, 'engine_wide_4h_long_btc', 'Mevcut motor 4H long, yalnız BTC günlük EMA50 üstündeyken');
+export const donchian4hLongBtc = withBtcRegime(donchian4hLong, 'donchian_4h_long_btc', 'Donchian 4H long, yalnız BTC günlük EMA50 üstündeyken');
+
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

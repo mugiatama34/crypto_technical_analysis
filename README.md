@@ -163,7 +163,10 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   TP2 ≥ 2R); `ending_diagonal_wide` stop tamponu 1 ATR (3. turda 0,2 ATR tamponla 55 işlemin 47'si stop oldu). Dersin
   15m PO3 tetiği modellenmez; throw-over mumunun kapanışı tetiktir. Girişler sinyal mumundan sonraki açılıştan
   (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
-  raporda "aday" (n 50–99: "zayıf aday"). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  raporda "aday"; 5. turdan itibaren sıkı ölçüt: eğitimde de ort. R > 0 **ve** doğrulamadan en iyi ay çıkarılınca ort. R > 0
+  ("sağlam"); yalnız doğrulama ölçütünü tutan aile "zayıf" (12 ay 4H koşusunda dört long ailesi doğrulamada pozitif ama
+  eğitimde sıfır/eksiydi: kazanç Ağustos–Eylül yükselişinden geliyordu). Rejim filtreli aileler (`*_btc`): yalnız BTC
+  günlük kapanışı günlük EMA50 üstündeyken long (`withBtcRegime`, karar anında bilinir). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`; `--tfs 4H` yalnız o TF'leri çeker/koşar (workflow `tfs` girdisi; 4H
