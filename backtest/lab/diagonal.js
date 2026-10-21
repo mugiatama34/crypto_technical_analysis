@@ -72,8 +72,8 @@ function basics(candles) {
 /** Bitiş diyagonali: 4H/1H; throw-over mumunda ters yönde piyasa girişi. */
 export const endingDiagonal = {
   id: 'ending_diagonal', label: 'Bitiş diyagonali: throw-over/under + kamaya kapanış → ters yön (TP1 ≥ 2R)', tfs: ['4H', '1H'],
-  exit: { tpScheme: 'half_be', maxHoldBars: 80 },
-  prepare(candles, tf) { return { ...basics(candles), tf, W: barsFor(tf), seen: new Set(), o: DIA_DEFAULTS }; },
+  exit: { tpScheme: 'half_be', maxHoldBars: 80 }, o: DIA_DEFAULTS,
+  prepare(candles, tf) { return { ...basics(candles), tf, W: barsFor(tf), seen: new Set(), o: this.o }; },
   signal(i, candles, p) {
     if (i < 100) return null;
     const a = p.atr[i]; if (a == null) return null;
@@ -97,6 +97,9 @@ export const endingDiagonal = {
     return null;
   },
 };
+
+/** Bitiş diyagonali, geniş stop: 3. turda 55 işlemin 47'si 0,2 ATR tamponla stop oldu; tampon 1 ATR, TP1 ≥ 2R şartı aynı. */
+export const endingDiagonalWide = { ...endingDiagonal, id: 'ending_diagonal_wide', label: 'Bitiş diyagonali, stop 5. dalga ucu + 1 ATR (TP1 ≥ 2R)', o: { ...DIA_DEFAULTS, bufferAtr: 1.0 } };
 
 /** Başlangıç diyagonali: 4H/1H; tamamlanınca 2. dalganın %61,8'ine limit. */
 export const leadingDiagonal = {

@@ -7,8 +7,8 @@ import { makeContext } from '../../src/scan/context.js';
 import { equalLevels } from '../../src/detectors/liquidity.js';
 import { analyzeRow, barsFor } from '../../src/scan/scanner.js';
 import { buildPlan } from '../../bot/plan.js';
-import { endingDiagonal, leadingDiagonal } from './diagonal.js';
-export { endingDiagonal, leadingDiagonal };
+import { endingDiagonal, endingDiagonalWide, leadingDiagonal } from './diagonal.js';
+export { endingDiagonal, endingDiagonalWide, leadingDiagonal };
 
 const r6 = (x) => +Number(x).toPrecision(8);
 const mk = (d, entry, stop, tp1, tp2, atr) => ({ d, direction: d === 1 ? 'long' : 'short', entry: r6(entry), stop: r6(stop), tp1: tp1 && r6(tp1), tp2: tp2 && r6(tp2), inZone: true, atr: r6(atr), price: r6(entry) });
@@ -148,5 +148,5 @@ export const engineWide4hLong = {
 /** 10) Ortalamaya dönüş yalnız 4H long (2. turda n46 +0,12R PF 1,30). */
 export const meanrev4hLong = { ...meanrevLong, id: 'meanrev_4h_long', label: 'EMA20 sapması ≥ 2 ATR, yalnız 4H long, hedef EMA20', tfs: ['4H'] };
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, endingDiagonal, leadingDiagonal];
+export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, endingDiagonal, endingDiagonalWide, leadingDiagonal];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

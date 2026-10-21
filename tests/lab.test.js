@@ -81,7 +81,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 12);
+  assert.equal(STRATEGIES.length, 13);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -109,6 +109,10 @@ test('diyagonal: kural motoru geçerliliği, bitiş planı (throw-over → short
   const e = endingPlan(pts, cOver, 0.6, 15);
   assert.equal(e.direction, 'short'); assert.equal(e.tp1, 100); assert.ok(e.stop > 106 && e.rr1 >= 2);
   assert.equal(endingPlan(pts, { ...cOver, close: 105.9 }, 0.6, 15), null); // gövde dışarıda kapandı: gerçek kırılım, tuzak değil
+  const { endingDiagonalWide } = await import('../backtest/lab/diagonal.js');
+  const w = endingPlan(pts, cOver, 0.6, 15, endingDiagonalWide.o);
+  assert.ok(w && Math.abs(w.stop - (106 + 0.6)) < 1e-6 && w.rr1 >= 2); // stop uç + 1 ATR
+  assert.equal(endingDiagonalWide.prepare([], '4H').o.bufferAtr, 1.0);
   assert.equal(endingPlan(pts, cOver, 0.6, 2), null); // önceki trend küçük: trend sonu değil
   const l = leadingPlan(pts, 0.6, true);
   assert.equal(l.direction, 'long'); assert.ok(Math.abs(l.entry - (106 - 0.618 * 6)) < 1e-6); assert.ok(l.stop < 100 && l.tp1 === 106 && l.tp2 > 110);

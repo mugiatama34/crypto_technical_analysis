@@ -47,7 +47,7 @@ jobs:
             plans-
       - name: Strategy lab
         if: ${{ inputs.mode == 'lab' }}
-        run: node backtest/lab/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
+        run: node backtest/lab/run.mjs --months ${{ inputs.months }} --top ${{ inputs.top }} --tfs ${{ inputs.tfs }} --fee ${{ inputs.fee }} --slip ${{ inputs.slip }}
       - name: Recover plans from git history (sweep mode)
         if: ${{ inputs.mode == 'sweep' }}
         run: |

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Strateji laboratuvarı koşusu: her strateji × coin × TF → sinyaller simüle edilir (aynı coinde açık işlem varken yeni
 // sinyal alınmaz) → eğitim/doğrulama raporu → docs/backtest/lab.json (lab.html okur).
-//   node backtest/lab/run.mjs [--months 6 --top 50] [--strategies donchian,meanrev] [--fee 0.05 --slip 0.05] [--fixture]
+//   node backtest/lab/run.mjs [--months 6 --top 50] [--strategies donchian,meanrev] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fixture]
 import fs from 'node:fs';
 import path from 'node:path';
 import { getTopCoins, instIdOf } from '../../src/data/okx.js';
@@ -11,7 +11,7 @@ import { stats } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
-const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null };
+const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
 
@@ -48,7 +48,9 @@ async function main() {
   if (CFG.fixture) { ({ fixtureProvider } = await import('../../src/data/fixture.js')); coins = await fixtureProvider.topCoins(CFG.top); }
   else if (CFG.coins) coins = CFG.coins.map((c) => ({ coin: c.toUpperCase(), instId: instIdOf(c.toUpperCase()) }));
   else coins = await getTopCoins(CFG.top, {});
-  const strategies = CFG.strategies ? CFG.strategies.map((id) => STRATEGY_MAP[id]).filter(Boolean) : STRATEGIES;
+  // --tfs: stratejilerin TF'leri bu kümeyle kesişir; kesişimi boş olan strateji atlanır (yalnız bu TF'lerin mumları çekilir)
+  const strategies = (CFG.strategies ? CFG.strategies.map((id) => STRATEGY_MAP[id]).filter(Boolean) : STRATEGIES)
+    .map((s) => (CFG.tfs ? { ...s, tfs: s.tfs.filter((t) => CFG.tfs.includes(t)) } : s)).filter((s) => s.tfs.length);
   const tfs = [...new Set(strategies.flatMap((s) => s.tfs))];
   log(`Laboratuvar: ${strategies.map((s) => s.id).join(', ')} × ${coins.length} coin × ${tfs.join(',')}; ${CFG.months} ay`);
   const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip };
@@ -67,7 +69,7 @@ async function main() {
   }
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
-  const out = { meta: { ...CFG, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
+  const out = { meta: { ...CFG, tfs, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
   for (const st of strategies) {
     const ts = Date.now(); const trades = [];
     for (const s of series) { if (!st.tfs.includes(s.tf)) continue; trades.push(...runStrategy(st, s, o)); }
