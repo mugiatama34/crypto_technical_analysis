@@ -80,7 +80,7 @@ export function runXsMom(seriesByCoin, o, extra = {}, params = {}) {
   return trades.sort((a, b) => a.time - b.time);
 }
 
-/** Portföy getirisi (basit toplam, her slot 1/K): tüm / eğitim / doğrulama (%). */
+/** Portföy getirisi (basit toplam, her slot 1/slots; long-short'ta slots = 2K, brüt kaldıraç 1): tüm / eğitim / doğrulama (%). */
 export function portfolioOf(trades, k, split) {
   const sum = (arr) => +((arr.reduce((a, t) => a + t.ret, 0) / k) * 100).toFixed(1);
   return { totalPct: sum(trades), trainPct: sum(trades.filter((t) => t.time < split)), validPct: sum(trades.filter((t) => t.time >= split)) };

@@ -56,7 +56,7 @@ const pctTxt = (x) => (x == null ? '–' : `%${fmt(x, 1)}`);
 function portfolioLine(s, bm = {}) {
   const P = s.portfolio, b = bm.btc || {}, e = bm.ew || {};
   const row = (k, lbl) => `<tr><td>${lbl}</td><td class="${cls(P[k + 'Pct'])}">${pctTxt(P[k + 'Pct'])}</td><td class="${cls(b[k])}">${pctTxt(b[k])}</td><td class="${cls(e[k])}">${pctTxt(e[k])}</td></tr>`;
-  return `<div class="tablewrap"><table class="grid" style="max-width:560px"><thead><tr><th>Getiri (basit toplam)</th><th>Portföy (${s.params.k} slot)</th><th>BTC al-tut</th><th>Eşit ağırlık al-tut</th></tr></thead><tbody>${row('train', 'Eğitim')}${row('valid', 'Doğrulama')}${row('total', 'Tümü')}</tbody></table></div><p class="note">Evren bugünkü hacim sıralaması (sağ kalanlık yanlılığı). Portföy getirisi her slot 1/${s.params.k} ağırlıkla işlem getirilerinin toplamı, bileşik değil.</p>`;
+  return `<div class="tablewrap"><table class="grid" style="max-width:560px"><thead><tr><th>Getiri (basit toplam)</th><th>Portföy (${s.slots || s.params.k} slot)</th><th>BTC al-tut</th><th>Eşit ağırlık al-tut</th></tr></thead><tbody>${row('train', 'Eğitim')}${row('valid', 'Doğrulama')}${row('total', 'Tümü')}</tbody></table></div><p class="note">Evren bugünkü hacim sıralaması (sağ kalanlık yanlılığı). Portföy getirisi her slot 1/${s.slots || s.params.k} ağırlıkla işlem getirilerinin toplamı, bileşik değil.</p>`;
 }
 async function main() {
   let r;
