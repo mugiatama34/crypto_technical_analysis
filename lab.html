@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Strateji laboratuvarı</title>
+<meta name="description" content="Farklı giriş-çıkış ailelerinin aynı backtest altyapısında yan yana sonuçları; eğitim ve doğrulama dilimleri.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; white-space: normal; }
+  .tablewrap { overflow-x: auto; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  tr.cand td { background: var(--surface-2); font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+  .badge.ok { background: rgba(94,163,240,.18); color: #5ea3f0; } .badge.no { background: rgba(239,125,125,.14); color: #ef7d7d; }
+  section { margin-top: 22px; }
+  h2 { font-size: 15px; margin: 0 0 6px; } h2 small { color: var(--ink-dim); font-weight: 400; font-size: 12px; }
+  .curve { width: 100%; height: 150px; display: block; margin: 6px 0 10px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Strateji laboratuvarı</h1><p class="sub" id="sub">Dört giriş-çıkış ailesi, aynı dolum/komisyon/kayma simülasyonu.</p></div>
+    <nav class="nav"><a href="backtest.html">← Backtest</a><a href="sweep.html">Tarama</a><a href="index.html">Tarayıcı</a></nav>
+  </header>
+  <p class="note">Kabul ölçütü (<b>aday</b>): doğrulama diliminde (son 1/3) ort. R &gt; 0, kâr faktörü &gt; 1,1 ve n ≥ 100. Eğitimde iyi görünüp doğrulamada çöken aile aşırı uyumdur. Aday çıkan aile bota/ajana ancak birlikte karar verilerek bağlanır.</p>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer>Girişler sinyal mumundan sonraki açılışta (piyasa + kayma). <strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
+const pct = (x) => `%${fmt(x * 100, 0)}`;
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const cells = (s) => `<td>${s.n}</td><td>${pct(s.winRate)}</td><td class="${cls(s.avgR)}">${fmt(s.avgR, 3)}</td><td class="${cls(s.totalR)}">${fmt(s.totalR, 1)}</td><td>${fmt(s.profitFactor)}</td><td>${fmt(s.maxDD, 1)}</td>`;
+const HEAD = '<th>n</th><th>Kazanma</th><th>Ort R</th><th>Toplam R</th><th>PF</th><th>Maks DD</th>';
+function curveSvg(pts) {
+  if (!pts || pts.length < 2) return '';
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(0, ...ys), y1 = Math.max(0, ...ys);
+  const W = 600, H = 150, X = (x) => ((x - x0) / (x1 - x0 || 1)) * (W - 10) + 5, Y = (y) => H - 5 - ((y - y0) / (y1 - y0 || 1)) * (H - 10);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+  return `<svg class="curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Özsermaye eğrisi (R)"><line x1="5" x2="${W - 5}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="var(--axis)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="${ys[ys.length - 1] >= 0 ? '#5ea3f0' : '#ef7d7d'}" stroke-width="1.5"/></svg>`;
+}
+const breakdown = (title, obj) => `<div><h2>${title}</h2><div class="tablewrap"><table class="grid"><thead><tr><th></th>${HEAD}</tr></thead><tbody>${Object.entries(obj).sort().map(([k, s]) => `<tr><td>${esc(k)}</td>${cells(s)}</tr>`).join('')}</tbody></table></div></div>`;
+async function main() {
+  let r;
+  try { const res = await fetch('docs/backtest/lab.json', { cache: 'no-store' }); if (!res.ok) throw new Error(`HTTP ${res.status}`); r = await res.json(); }
+  catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Henüz laboratuvar koşusu yok (${esc(err.message)}). Actions → backtest → mode: lab.</p>`; return; }
+  const m = r.meta, S = Object.values(r.strategies);
+  document.querySelector('#sub').textContent = `${m.coins.length} coin · ${m.months} ay · bölünme ${new Date(m.split).toLocaleDateString('tr-TR')} · komisyon %${m.fee}/taraf, kayma %${m.slip} · ${new Date(m.generatedAt).toLocaleString('tr-TR')} · ${m.elapsedSec} sn`;
+  const summary = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Strateji</th><th>TF</th><th>Eğit. n</th><th>Eğit. ort R</th><th>Eğit. PF</th>${HEAD.replace(/<th>/g, '<th>Doğr. ')}</tr></thead><tbody>${S.map((s) => `<tr class="${s.candidate ? 'cand' : ''}"><td>${esc(s.label)}${s.candidate ? '<span class="badge ok">aday</span>' : '<span class="badge no">ret</span>'}</td><td>${s.tfs.join(', ')}</td><td>${s.train.n}</td><td class="${cls(s.train.avgR)}">${fmt(s.train.avgR, 3)}</td><td>${fmt(s.train.profitFactor)}</td>${cells(s.valid)}</tr>`).join('')}</tbody></table></div></section>`;
+  const details = S.map((s) => `<section><h2>${esc(s.label)} <small>${esc(s.id)} · çıkış ${esc(s.exit.tpScheme)}${s.exit.trailAtr ? ` ${s.exit.trailAtr} ATR` : ''} · en fazla ${s.exit.maxHoldBars} mum · ${s.all.signals} sinyal, ${s.all.n} işlem · ${s.elapsedSec} sn</small></h2>${curveSvg(s.curve)}<div class="cols">${breakdown('Zaman dilimi', s.byTf)}${breakdown('Yön', s.byDirection)}${breakdown('Ay', s.byMonth)}</div></section>`).join('');
+  document.querySelector('#root').innerHTML = summary + details;
+}
+main();
+</script>
+</body>
+</html>

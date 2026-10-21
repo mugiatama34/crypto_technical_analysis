@@ -26,7 +26,7 @@ const CONF_ICON = { 'düşük': '○', 'orta': '◐', 'yüksek': '●' };
 /** Yeni setup mesajı. */
 export function formatSetup(plan, dec, size) {
   const dir = plan.direction === 'long' ? '🟢 LONG' : '🔴 SHORT';
-  const head = dec.trade === 'take' ? '✅ İŞLEM ADAYI' : '⏳ BEKLE';
+  const head = (dec.trade === 'take' ? '✅ İŞLEM ADAYI' : '⏳ BEKLE') + (dec.source === 'rules' ? ' (kural motoru)' : '');
   const tv = `https://www.tradingview.com/chart/?symbol=OKX:${plan.coin}USDT.P`;
   const sigs = [...new Set(plan.signals.filter((s) => s.direction === plan.direction || s.direction === 'neutral').map((s) => s.name))].slice(0, 8).join(' · ');
   const lines = [

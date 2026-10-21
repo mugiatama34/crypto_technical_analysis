@@ -55,6 +55,7 @@ jobs:
           REQUIRE_MTF: ${{ vars.REQUIRE_MTF }}
           MAX_EVAL: ${{ vars.MAX_EVAL }}
           SEND_WAIT: ${{ vars.SEND_WAIT }}
+          SEND_CLAUDE: ${{ vars.SEND_CLAUDE }}
           MIN_RR: ${{ vars.MIN_RR }}
           RISK_PCT: ${{ vars.RISK_PCT }}
           MAX_RISK_PCT: ${{ vars.MAX_RISK_PCT }}

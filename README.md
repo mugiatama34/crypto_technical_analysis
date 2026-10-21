@@ -57,18 +57,22 @@ uyumu, fiyat EMA200'ün doğru tarafında, 12 saat cooldown, tur başına en faz
 · 4H → puan ≥ 65. Örnek: `{"15m":{"minScore":80},"4H":{"requireMtf":true}}`.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
-aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday Claude'a gider,
-en fazla `MAX_ALERTS` (3) mesaj gönderilir. `SEND_WAIT` (vars. `high`): `take` her zaman, `wait` yalnız yüksek güvenle
-gönderilir (`medium`: orta+yüksek, `none`: yalnız take). Claude'un önerdiği seviyeler kurallara uymazsa kural motorunun
-seviyeleri kullanılır ve mesajda belirtilir. **Otomatik emir yoktur; sadece bildirim.**
+aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,
+en fazla `MAX_ALERTS` (3) mesaj gönderilir. **Sinyal botunda Claude varsayılan olarak kapalıdır** (`SEND_CLAUDE=0`):
+250 planlık örneklemde Claude'un take/wait ayrımı kural motoruna göre fark yaratmadı; Claude yalnızca ajanda çalışır.
+Kapalıyken karar kural motorundandır (güven: MTF + ADX yön uyumu varsa "orta", yoksa "düşük"; gerekçe = aynı bölgedeki
+yapılar + trend özeti) ve mesaj başlığında "(kural motoru)" yazar. `SEND_CLAUDE=1` ile Claude değerlendirmesi açılır:
+`SEND_WAIT` (vars. `high`) `take` her zaman, `wait` yalnız yüksek güvenle gönderilir (`medium`: orta+yüksek, `none`:
+yalnız take); Claude'un önerdiği seviyeler kurallara uymazsa kural motorunun seviyeleri kullanılır ve mesajda belirtilir.
+**Otomatik emir yoktur; sadece bildirim.**
 
 ### Kurulum (bir kez)
 1. Repo → **Settings → Secrets and variables → Actions → Secrets**:
    - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (crypto-scanner'daki bot kullanılabilir)
-   - `ANTHROPIC_API_KEY` (yoksa bot Claude'suz çalışır: yalnızca kural motoru planı, güven "düşük/orta")
+   - `ANTHROPIC_API_KEY` (ajan için; sinyal botu `SEND_CLAUDE=1` değilse kullanmaz)
    - `ACCOUNT_USDT` (isteğe bağlı; pozisyon büyüklüğü hesabı için hesap tutarı)
 2. İsteğe bağlı **Variables**: `SCAN_TFS` (vars. `15m,1H,4H`), `TOP_N` (100), `MIN_SCORE` (50), `MIN_RR` (2),
-   `REQUIRE_MTF` (1), `RISK_PCT` (1), `MAX_RISK_PCT` (5), `MAX_EVAL` (8), `MAX_ALERTS` (3), `SEND_WAIT` (high), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
+   `REQUIRE_MTF` (1), `RISK_PCT` (1), `MAX_RISK_PCT` (5), `MAX_EVAL` (8), `MAX_ALERTS` (3), `SEND_CLAUDE` (0), `SEND_WAIT` (high), `COOLDOWN_H` (6), `SUMMARY_HOUR_UTC` (6).
 3. **Actions** sekmesinde `scan-and-alert` workflow'unu bir kez **Run workflow** ile elle başlat (önce `dry` işaretli
    deneyip logda mesajları görebilirsin). Sonra her 15 dakikada kendi koşar (GitHub cron'u birkaç dakika geciktirebilir).
 
@@ -141,8 +145,17 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   regresyonla "R > 0" olasılığını öğrenir (eğitim ilk 2/3). Rapor `backtest.html` → "Öğrenilen puan": doğrulama
   desilleri ve katsayılar. Kabul koşulu (doğrulamada en üst %20: ort. R > 0, PF > 1,1, n ≥ 100) sağlanırsa
   `src/scan/learned.json` yazılır ve bot adayları bu olasılıkla da süzer (`MODEL_MIN_PROB`: 0 kapatır, boş = modelin eşiği).
+- **Strateji laboratuvarı:** tarama ve öğrenilen puan aynı giriş-çıkış iskeletini (bölge kenarı giriş, dar stop, sabit
+  R hedef) paylaştığı için `backtest/lab/` farklı aileleri aynı simülasyon ve raporla yan yana koşar: `donchian`
+  (20 bar kırılımı + ADX ≥ 25 yön uyumu, 2 ATR stop, 2 ATR izleyen stop; 1H/4H), `meanrev` (EMA20'den ≥ 2 ATR sapma,
+  EMA200 yönünde, hedef EMA20; 1H/4H), `sweep_reclaim` (o ana kadarki onaylı pivotlardan eşit dip/tepe süpürülüp kapanışla
+  geri alınırsa; stop fitil ötesi, TP1 karşı eşit seviye ya da 2R, TP2 3R; 15m/1H/4H) ve kontrol grubu `engine_wide`
+  (mevcut motor puan ≥ 60 + ADX ≥ 25, ama 2 ATR stop ve izleyen çıkış). Girişler sinyal mumundan sonraki açılıştan
+  (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
+  raporda "aday". Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
-  `node backtest/sweep.mjs --fixture --in <plans klasörü>`.
+  `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`.
 - **Sınırlar:** evren bugünkü hacim sıralamasıdır (sağ kalanlık yanlılığı); 15m geçmişi OKX'in verdiği kadardır (~3 ay);
   bot'taki MTF uyumu backtest'te uygulanmaz (her TF bağımsız); dönemin son 1/3'ü doğrulama olarak ayrı raporlanır,
   ağırlıklar yalnızca ilk 2/3'e bakılarak ayarlanmalıdır.
@@ -183,9 +196,10 @@ lib/                       lightweight-charts 5.2.1 (Apache-2.0)
 bot/                       run.mjs (cron akışı), plan.js (plan/takip), brain.js (Claude), telegram.js
 bot/agent/                 profiles.js (sert sınırlar), account.js (kâğıt hesap), manager.js (Claude), run.js (akış)
 agent.html                 ajan sayfası (docs/agent/*.json)
-backtest/                  data.js, engine.js, report.js, run.mjs, brain-sample.mjs, sweep.mjs, features.js + learn.mjs (öğrenilen puan)
+backtest/                  data.js, engine.js, report.js, run.mjs, brain-sample.mjs, sweep.mjs, features.js + learn.mjs (öğrenilen puan), lab/ (strateji laboratuvarı)
 signals.html               sinyal geçmişi ve istatistik (docs/signals/history.json)
 sweep.html                 parametre taraması sayfası (docs/backtest/sweep.json)
+lab.html                   strateji laboratuvarı sayfası (docs/backtest/lab.json)
 backtest.html              rapor sayfası (docs/backtest/results.json)
 tests/                     node --test
 ```

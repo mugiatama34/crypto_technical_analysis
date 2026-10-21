@@ -6,7 +6,8 @@
 //   ANTHROPIC_API_KEY                       beyin (yoksa Claude atlanır, yalnızca kural motoru planı gönderilir)
 //   ACCOUNT_USDT                            isteğe bağlı: pozisyon büyüklüğü hesabı
 //   SCAN_TFS=15m,1H,4H  TOP_N=100  MIN_SCORE=70  REQUIRE_MTF=1  MIN_RR=2  RISK_PCT=1  MAX_RISK_PCT=5
-//   MAX_EVAL=8 (tur başına Claude'a giden aday)  MAX_ALERTS=3 (tur başına mesaj)  SEND_WAIT=high|medium|none  COOLDOWN_H=6
+//   SEND_CLAUDE=0|1 (sinyal botunda Claude; vars. 0)  MAX_EVAL=8 (tur başına değerlendirilen aday)  MAX_ALERTS=3 (tur başına mesaj)
+//   SEND_WAIT=high|medium|none (yalnız SEND_CLAUDE=1)  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
@@ -31,6 +32,7 @@ const CFG = {
   requireMtf: env('REQUIRE_MTF', '1') === '1',
   maxEval: +env('MAX_EVAL', 8),
   sendWait: env('SEND_WAIT', 'high'),
+  sendClaude: env('SEND_CLAUDE', '0') === '1', // sinyal botunda Claude değerlendirmesi (örneklemde değer katmadı; vars. kapalı)
   minRR: +env('MIN_RR', 2),
   riskPct: +env('RISK_PCT', 1),
   maxRiskPct: +env('MAX_RISK_PCT', 5),
@@ -168,12 +170,20 @@ async function main() {
     const row = byKey.get(`${plan.coin}|${plan.tf}`);
     const others = row.clusters.slice(1, 3).map((c) => ({ direction: c.direction, score: c.score, zone: c.zone, top: c.signals.slice(0, 4).map((s) => s.name) }));
     let dec;
-    if (CFG.apiKey && !CFG.dry) {
+    if (CFG.sendClaude && CFG.apiKey && !CFG.dry) {
       try { dec = await askBrain(plan, { minRR: CFG.minRR, riskPct: CFG.riskPct, htf, others }, { apiKey: CFG.apiKey }); }
       catch (err) { log(`  Claude hatası ${plan.coin}: ${err.message}`); continue; }
+      dec.source = 'claude';
       log(`  Claude ${plan.coin} ${plan.tf}: ${dec.trade} / ${dec.confidence} (${dec._usage?.input_tokens}+${dec._usage?.output_tokens} tok)`);
     } else {
-      dec = { trade: 'take', direction: plan.direction, entry_low: plan.zone[0], entry_high: plan.zone[1], stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, confidence: plan.mtf ? 'orta' : 'düşük', reason: 'Claude değerlendirmesi yok (ANTHROPIC_API_KEY tanımlı değil ya da DRY); seviyeler kural motorundan.', invalidation: `${plan.direction === 'long' ? 'Stop altı' : 'Stop üstü'} kapanış planı iptal eder.`, evidence: [] };
+      // Kural motoru kararı: güven = MTF + trend uyumu; gerekçe = yapılar + trend özeti
+      const tr = plan.trend || {};
+      const strong = plan.mtf && tr.aligned;
+      const htfTxt = htf.length ? ` Üst/alt TF: ${htf.map((h) => `${h.tf} ${h.direction || '–'} ${h.score}`).join(', ')}.` : '';
+      dec = { source: 'rules', trade: 'take', direction: plan.direction, entry_low: plan.zone[0], entry_high: plan.zone[1], stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2,
+        confidence: strong ? 'orta' : 'düşük',
+        reason: `Kural motoru planı: ${plan.signals.slice(0, 4).map((s) => s.name).join(', ')} aynı bölgede${plan.mtf ? `; ${plan.mtf.tfs.join('+')} aynı yön` : ''}${tr.adx != null ? `; ADX ${tr.adx}${tr.aligned ? ' yön uyumlu' : ''}` : ''}${tr.emaSide != null ? `; fiyat EMA200'ün ${tr.emaSide ? 'doğru' : 'ters'} tarafında` : ''}.${htfTxt}`,
+        invalidation: `${plan.direction === 'long' ? 'Stop altı' : 'Stop üstü'} kapanış planı iptal eder.`, evidence: [] };
     }
     const v = validateDecision(dec, plan, { minRR: CFG.minRR, sendWait: CFG.sendWait });
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }

@@ -120,6 +120,8 @@ test('telegram biçimleri', () => {
   const v = validateDecision({ trade: 'take', direction: 'long', entry_low: 99, entry_high: 100, stop: 98.6, tp1: 102, tp2: 104, confidence: 'orta', reason: 'Neden <b>', invalidation: 'inv', evidence: ['e'] }, p);
   const m = formatSetup(p, v, positionSize({ ...p, entry: v.entry, risk: v.entry - v.stop }, 5000, 1));
   assert.ok(m.includes('İŞLEM ADAYI') && m.includes('BTC') && m.includes('LONG') && m.includes('&lt;b&gt;') && m.includes('TradingView'));
+  assert.ok(!m.includes('kural motoru'));
+  assert.ok(formatSetup(p, { ...v, source: 'rules' }, null).includes('İŞLEM ADAYI (kural motoru)'));
   assert.ok(formatUpdate({ ...p, entry: 100, stop: 98.6, tp1: 102, tp2: 104 }, 'tp1', 102.3).includes('TP1'));
   assert.ok(formatSummary({ sent: 3, active: 1, tp1: 0, done: 1, stopped: 1, expired: 0, missed: 0 }, [{ coin: 'ETH', tf: '4H', direction: 'short', status: 'waiting', entry: 1, stop: 2 }], Date.now()).includes('ETH'));
   assert.equal(esc('a<b>&'), 'a&lt;b&gt;&amp;');
