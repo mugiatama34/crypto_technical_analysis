@@ -249,8 +249,12 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 `short`, `long`).
 
 - Seçim kuralı laboratuvarla aynı fonksiyondur (`backtest/lab/xsmom.js`: `momentumAt` + `selectAt`).
-- Her pazartesi 00:00 UTC'den sonraki ilk turda o günün hacimde ilk 50 coini sıralanır; çıkan kapanır, giren açılır
-  (o anki fiyat + kayma). Sanal 300 USDT, slot başına eşit nominal (long-short: 10 slot × %10, brüt kaldıraç 1).
+- Her pazartesi 00:00 UTC'den sonraki ilk turda evren: 24 saatlik hacimde ilk 80 coinden o anki 30 günlük hacme göre
+  ilk 50 (laboratuvarın `pitN` kuralı). Çıkan kapanır, giren açılır (o anki fiyat + kayma). Sanal 300 USDT.
+- **Eşit risk boyutlama:** her pozisyon stop'a kadar özsermayenin %2'sini riske eder: nominal = %2 × özsermaye ÷ stop
+  uzaklığı, üst sınır özsermaye / slot (laboratuvarın R ölçüsüyle tutarlı). Örn. stop %25 uzaktaysa 24 USDT, %160
+  uzaktaysa ~4 USDT. Listede kalan pozisyon her yeniden dengelemede hedefe çekilir (sapma ≥ %20 ise; azaltılan kısmın
+  K/Z'si gerçekleşir). İlk sürüm eşit nominal (60 USDT) açmıştı; bu pozisyonlar ilk yeniden dengelemede uyarlanır.
 - Her turda: 3 ATR izleyen stop (kapanmış günlük mumla güncellenir), fonlama tahakkuku (8 saatte %0,01).
 - Telegram: başlangıç, haftalık yeniden dengeleme (giren/çıkan), stop olan pozisyonlar, günlük özete portföy satırı.
 - Durum `bot/momentum-state.json` (Actions cache), sayfa verisi `docs/agent/momentum.json`; sayfa **`momentum.html`**

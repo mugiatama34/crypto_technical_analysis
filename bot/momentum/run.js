@@ -24,7 +24,7 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
   const fresh = !pf.lastRebalance && !pf.positions.length && !pf.trades.length;
   const due = rebalanceDue(pf, now);
   // Evren: yeniden dengelemede o günün hacimde ilk N'i (canlıda sağ kalanlık yanlılığı yok); aksi halde yalnız açık pozisyonlar
-  const top = await src.top(due ? cfg.universe || 50 : 0).catch((e) => { log(`Momentum: evren alınamadı: ${e.message}`); return []; });
+  const top = await src.top(due ? cfg.universe || o.universe : 0).catch((e) => { log(`Momentum: evren alınamadı: ${e.message}`); return []; });
   const coins = new Map(top.map((t) => [t.coin, t.instId]));
   for (const q of pf.positions) coins.set(q.coin, q.instId || instIdOf(q.coin));
   coins.set('BTC', instIdOf('BTC'));
@@ -43,14 +43,15 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
   for (const t of checkStops(pf, daily, prices, now, o)) msgs.push(`🛑 Momentum stop: <b>${esc(t.coin)}</b> ${t.direction} ${fp(t.entry)} → ${fp(t.exit)} · ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`);
   if (due) {
     const universe = top.map((t) => ({ coin: t.coin, instId: t.instId, candles: daily[t.coin]?.candles || [], live: daily[t.coin]?.live }));
-    const { exits, entries, sel } = rebalance(pf, universe, prices, now, o);
+    const { exits, entries, resized, sel } = rebalance(pf, universe, prices, now, o);
     if (sel) {
-      log(`Momentum yeniden dengeleme: long ${sel.longs.join(',') || '–'} | short ${sel.shorts.join(',') || '–'} | çıkan ${exits.length}, giren ${entries.length}`);
+      log(`Momentum yeniden dengeleme: long ${sel.longs.join(',') || '–'} | short ${sel.shorts.join(',') || '–'} | çıkan ${exits.length}, giren ${entries.length}, yeniden boyutlanan ${resized.length}`);
       const lines = [`🔄 <b>Momentum portföyü — haftalık yeniden dengeleme</b> (kâğıt, ${o.side === 'ls' ? 'long-short' : o.side})`,
         `Özsermaye: ${equityOf(pf, prices).toFixed(2)} USDT (başlangıç ${pf.startEquity})`];
       if (exits.length) lines.push('', '<b>Çıkan</b>', ...exits.map((t) => `${esc(t.coin)} ${t.direction}: ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`));
-      if (entries.length) lines.push('', '<b>Giren</b>', ...entries.map((q) => `${esc(q.coin)} ${dirTxt(q.d)} @ ${fp(q.entry)} · stop ${fp(q.stop)} · ${q.notional} USDT`));
-      lines.push('', `Tutulan: ${pf.positions.map((q) => `${q.coin}${q.d === 1 ? '↑' : '↓'}`).join(' ') || '–'}`, 'Sanal portföy; gerçek emir yoktur.');
+      if (resized.length) lines.push('', '<b>Yeniden boyutlanan</b> (eşit risk)', ...resized.map((r) => `${esc(r.coin)} nominal ${r.from} → ${r.to} USDT`));
+      if (entries.length) lines.push('', '<b>Giren</b>', ...entries.map((q) => `${esc(q.coin)} ${dirTxt(q.d)} @ ${fp(q.entry)} · stop ${fp(q.stop)} (%${q.stopPct}) · ${q.notional} USDT · risk ${q.riskUsd} USDT`));
+      lines.push('', `Tutulan: ${pf.positions.map((q) => `${q.coin}${q.d === 1 ? '↑' : '↓'}`).join(' ') || '–'}`, `Her pozisyon stop'a kadar özsermayenin %${o.riskPct}'sini riske eder. Sanal portföy; gerçek emir yoktur.`);
       msgs.push(lines.join('\n'));
     } else log('Momentum: evren yetersiz, yeniden dengeleme atlandı');
   }

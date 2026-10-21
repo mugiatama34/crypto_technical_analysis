@@ -84,3 +84,40 @@ test('runMomentum: sahte kaynakla tur; durum ve yayın yazılır; ikinci tur ayn
   await runMomentum({ ...args, now: MON + 2 * 3600e3 });
   assert.ok(!msgs.some((m) => m.includes('yeniden dengeleme')));
 });
+
+test('eşit risk: oynak coinin nominali küçük, ikisi aynı riski taşır; pitN 30 günlük hacimle süzer', async () => {
+  const { targetNotional, rebalance, newPortfolio, MOM_DEFAULTS } = await import('../bot/momentum/portfolio.js');
+  const o = { ...MOM_DEFAULTS, k: 2, side: 'short' };
+  assert.equal(targetNotional(300, 0.25, o), 24); // %2 × 300 / %25
+  assert.equal(targetNotional(300, 0.01, o), 150); // üst sınır: 300 / 2 slot
+  // C0 en zayıf ve çok oynak, C1 de zayıf ama sakin; C2 zayıf ama 30 günlük hacmi çok düşük (pitN dışı)
+  const mk = (coin, drift, amp, vol) => { const out = []; let p = 100; for (let i = 0; i < 80; i++) { const open = p; p = p * (1 + drift); out.push({ time: MON - (80 - i) * DAY, open, high: Math.max(open, p) * (1 + amp), low: Math.min(open, p) * (1 - amp), close: p, volume: 1, quoteVol: vol }); } return { coin, instId: coin, candles: out }; };
+  const u = [mk('C0', -0.01, 0.15, 1e7), mk('C1', -0.008, 0.005, 1e7), mk('C2', -0.02, 0.005, 1), ...Array.from({ length: 5 }, (_, i) => mk(`U${i}`, 0.002 * (i + 1), 0.01, 1e7))];
+  const px = Object.fromEntries(u.map((x) => [x.coin, x.candles.at(-1).close]));
+  const pf = newPortfolio(MON, o);
+  const r = rebalance(pf, u, px, MON + 60e3, { ...o, pitN: 7 });
+  assert.deepEqual(r.sel.shorts.sort(), ['C0', 'C1']); // C2 hacimde ilk 7'de değil
+  const q0 = pf.positions.find((q) => q.coin === 'C0'), q1 = pf.positions.find((q) => q.coin === 'C1');
+  assert.ok(q0.notional < q1.notional, 'oynak coin daha küçük');
+  assert.ok(Math.abs(q0.riskUsd - 6) < 0.2, `risk ${q0.riskUsd}`); // %2 × 300
+  assert.ok(Math.abs(q1.riskUsd - 6) < 0.2 && q1.notional <= 150); // ikisi de aynı riski taşır
+});
+
+test('yeniden boyutlama: listede kalan pozisyon hedefe çekilir, yalnız azaltılan kısmın K/Z ve komisyonu gerçekleşir', async () => {
+  const { resizePos, newPortfolio, MOM_DEFAULTS } = await import('../bot/momentum/portfolio.js');
+  const o = { ...MOM_DEFAULTS, feePct: 0.1, slipPct: 0 };
+  const pf = newPortfolio(MON, o);
+  const q = { coin: 'X', d: -1, entry: 100, qty: 0.6, notional: 60, stop: 160, funding: 0.06 };
+  pf.positions.push(q);
+  assert.equal(resizePos(pf, q, 100, 55, MON, o), null); // %9 sapma: dokunma
+  const r = resizePos(pf, q, 90, 21, MON, o);
+  assert.equal(r.from, 60); assert.ok(Math.abs(q.qty - 21 / 90) < 1e-9);
+  const cut = 0.6 - 21 / 90;
+  const expected = cut * 10 - (100 * cut + 90 * cut) * 0.001 - 0.06 * (cut / 0.6);
+  assert.ok(Math.abs(pf.realized - expected) < 1e-9, `${pf.realized} vs ${expected}`);
+  assert.equal(q.stop, 160);
+  // büyütme: ortalama giriş ağırlıklı
+  const q2 = { coin: 'Y', d: 1, entry: 10, qty: 1, notional: 10, stop: 8, funding: 0 };
+  resizePos(pf, q2, 12, 24, MON, o);
+  assert.ok(Math.abs(q2.qty - 2) < 1e-9 && Math.abs(q2.entry - 11) < 1e-9);
+});
