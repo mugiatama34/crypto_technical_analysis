@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 19);
+  assert.equal(STRATEGIES.length, 20);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -177,7 +177,7 @@ test('kesitsel momentum: güçlü coinler long, zayıflar ls short; geleceğe ba
   assert.ok(Math.abs(pf.trainPct + pf.validPct - pf.totalPct) < 0.2);
   const bm = benchmarks(coins, T0 + 30 * DAY, T0 + 120 * DAY, T0 + 199 * DAY);
   assert.ok(bm.btc.total > 0 && bm.ew.total != null);
-  assert.equal(XS_STRATEGIES.length, 4);
+  assert.equal(XS_STRATEGIES.length, 5);
 });
 
 test('dönem evreni: o tarihte hacmi düşük coin sıralamaya girmez; eğitim sağlamlığı kabulü etkiler', async () => {
@@ -200,4 +200,23 @@ test('dönem evreni: o tarihte hacmi düşük coin sıralamaya girmez; eğitim s
   const good = { n: 150, avgR: 0.2, profitFactor: 1.5 };
   assert.equal(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: 0.05 }, robustTrain: { avgR: -0.1 } }).candidate, false);
   assert.equal(acceptance({ train: { avgR: 0.1 }, valid: good, robust: { avgR: 0.05 }, robustTrain: { avgR: 0.02 } }).candidate, true);
+});
+
+test('momentum: fonlama R\'yi düşürür; yalnız-short varyantı; selectAt ortak kural', async () => {
+  const { runXsMom, selectAt } = await import('../backtest/lab/xsmom.js');
+  const DAY = 86400e3, T0 = Date.UTC(2025, 0, 5);
+  const mkCoin = (coin, drift) => { const out = []; let p = 100; for (let i = 0; i < 200; i++) { const open = p; p = p * (1 + drift + Math.sin(i * 0.7 + drift * 900) * 0.01); out.push(c(T0 + i * DAY, open, Math.max(open, p) * 1.005, Math.min(open, p) * 0.995, p)); } return { coin, candles: out }; };
+  const coins = Array.from({ length: 12 }, (_, i) => mkCoin(`C${i}`, (i - 5) * 0.002));
+  const sum = (tr) => tr.reduce((a, t) => a + t.R, 0);
+  const a = runXsMom(coins, { feePct: 0, slipPct: 0 }, {}, { lookback: 28, k: 3, fundingPct8h: 0 });
+  const b = runXsMom(coins, { feePct: 0, slipPct: 0 }, {}, { lookback: 28, k: 3, fundingPct8h: 0.05 });
+  assert.equal(a.length, b.length); assert.ok(sum(b) < sum(a));
+  const sh = runXsMom(coins, { feePct: 0, slipPct: 0 }, {}, { lookback: 28, k: 3, side: 'short' });
+  assert.ok(sh.length > 0 && sh.every((t) => t.direction === 'short'));
+  const ranks = [['A', 0.5, 10], ['B', 0.2, 9], ['C', -0.1, 8], ['D', -0.4, 1], ['E', 0.1, 7], ['F', -0.2, 6]].map(([coin, r, vol]) => ({ coin, r, vol }));
+  const p = { k: 2, side: 'ls', btcRegime: false };
+  assert.deepEqual(selectAt(ranks, p), { longs: ['A', 'B'], shorts: ['F', 'D'] });
+  assert.deepEqual(selectAt(ranks, p, { pitN: 4 }), { longs: ['A', 'B'], shorts: ['C'] }); // D hacimde dışarıda; F en zayıf ilk 4'te değil
+  assert.equal(selectAt(ranks, p, { pitN: 3 }), null);
+  assert.deepEqual(selectAt(ranks, { ...p, btcRegime: true }, { regimeOk: false }).longs, []);
 });

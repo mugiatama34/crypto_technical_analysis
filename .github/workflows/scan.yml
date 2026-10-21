@@ -39,6 +39,7 @@ jobs:
           path: |
             bot/state.json
             bot/agent-state.json
+            bot/momentum-state.json
           key: bot-state-${{ github.run_id }}
           restore-keys: |
             bot-state-
@@ -70,6 +71,8 @@ jobs:
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
           TF_RULES: ${{ vars.TF_RULES }}
           SHORT_RULE: ${{ vars.SHORT_RULE }}
+          MOMENTUM: ${{ vars.MOMENTUM }}
+          MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 
@@ -80,6 +83,7 @@ jobs:
           path: |
             bot/state.json
             bot/agent-state.json
+            bot/momentum-state.json
           key: bot-state-${{ github.run_id }}
 
       - name: Publish agent pages

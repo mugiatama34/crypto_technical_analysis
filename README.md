@@ -182,7 +182,8 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   Çalıştırma: `mode: lab, months: 24, tfs: 1D`. **Dönem evreni** (`universe: 150`): bugünün ilk 150 coini havuz olur,
   her yeniden dengelemede o tarihteki 30 günlük USDT hacmine göre ilk `top` (50) seçilir; "bugün ilk 50'de olan =
   geçmişte yükselmiş" yanlılığını azaltır (listeden kalkmış coinler yine yoktur). 7. turdan itibaren sıkı aday,
-  eğitimden de en iyi ay çıkarılınca pozitif kalmalıdır. Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
+  eğitimden de en iyi ay çıkarılınca pozitif kalmalıdır. 8. tur: fonlama maliyeti (`--funding 0.01`, 8 saatte %0,01,
+  ihtiyatlı olarak iki yöne de) ve `xsmom_l28_k5_short` (yalnız en zayıf 5 short). Workflow'da `mode: lab`; rapor **`lab.html`** (`docs/backtest/lab.json`). Yeni aile eklemek için
   `backtest/lab/strategies.js`'e `{ id, label, tfs, exit, prepare, signal }` nesnesi eklenir.
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`; `node backtest/lab/run.mjs --fixture --top 6`; `--tfs 4H` yalnız o TF'leri çeker/koşar (workflow `tfs` girdisi; 4H
@@ -239,3 +240,19 @@ tests/                     node --test
 MIT. Elliott Wave kural motoru, dalga-3 / üçgen tarayıcıları ve OKX istemcisi
 [klonnist/ew-setup-scanner](https://github.com/klonnist/ew-setup-scanner) (MIT) kopyasından alınmıştır
 (`LICENSE-ew-scanner`). Grafik: [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/).
+
+## Momentum kâğıt portföyü (`bot/momentum/`, `momentum.html`)
+
+Laboratuvarda dönem evreniyle sıkı ölçütü geçen tek aile kesitsel momentumdu (28 günlük getiri; en güçlü 5 long + en
+zayıf 5 short; asıl tutarlı ayak short). Geçmiş test sağ kalanlık yanlılığını tamamen temizleyemediği için asıl kanıt
+ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1` ile açılır (`MOMENTUM_VARIANT`: `ls` vars.,
+`short`, `long`).
+
+- Seçim kuralı laboratuvarla aynı fonksiyondur (`backtest/lab/xsmom.js`: `momentumAt` + `selectAt`).
+- Her pazartesi 00:00 UTC'den sonraki ilk turda o günün hacimde ilk 50 coini sıralanır; çıkan kapanır, giren açılır
+  (o anki fiyat + kayma). Sanal 300 USDT, slot başına eşit nominal (long-short: 10 slot × %10, brüt kaldıraç 1).
+- Her turda: 3 ATR izleyen stop (kapanmış günlük mumla güncellenir), fonlama tahakkuku (8 saatte %0,01).
+- Telegram: başlangıç, haftalık yeniden dengeleme (giren/çıkan), stop olan pozisyonlar, günlük özete portföy satırı.
+- Durum `bot/momentum-state.json` (Actions cache), sayfa verisi `docs/agent/momentum.json`; sayfa **`momentum.html`**
+  (özsermaye eğrisi, BTC al-tut kıyası, açık pozisyonlar, yeniden dengelemeler, işlemler).
+- Açıldığı ilk turda hemen bir yeniden dengeleme yapar (hafta ortasında başlayabilir).

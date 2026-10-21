@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Momentum portföyü</title>
+<meta name="description" content="Haftalık yeniden dengelenen kesitsel momentum kâğıt portföyü: en güçlü coinler long, en zayıflar short; sanal 300 USDT.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  .tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 760px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .stat .v.pos { color: #4cc24c; } .stat .v.neg { color: #ef7d7d; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; }
+  .tablewrap { overflow-x: auto; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  svg.curve { width: 100%; height: 200px; display: block; background: var(--surface-2); border-radius: 8px; }
+  section { margin-top: 20px; }
+  h2 { font-size: 15px; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Momentum portföyü</h1><p class="sub" id="sub">Her pazartesi 00:00 UTC'den sonraki ilk turda: son 28 günde en güçlü 5 coin long, en zayıf 5 coin short. Sanal sermaye, gerçek emir yok.</p></div>
+    <nav class="nav"><a href="agent.html">Ajan</a><a href="lab.html">Laboratuvar</a><a href="signals.html">Sinyaller</a><a href="index.html">Tarayıcı</a></nav>
+  </header>
+  <p class="note">Kural laboratuvardaki <code>xsmom_l28_k5_ls</code> ile aynı fonksiyondan gelir. Evren o haftanın hacimde ilk 50 coini; koruma 3 ATR izleyen stop; komisyon %0,05/taraf, kayma %0,05, fonlama 8 saatte %0,01 (iki yöne de maliyet). Amaç geçmiş testteki kenarın ileriye dönük tutup tutmadığını görmek.</p>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer>Dolumlar tur anındaki fiyattan simüle edilir; gerçek borsadan farklı olabilir. <strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+const fp = (x) => (Number.isFinite(x) ? (x >= 100 ? fmt(x, 2) : x >= 1 ? fmt(x, 4) : x.toPrecision(4)) : '–');
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const dt = (t) => (t ? new Date(t).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '–');
+const dir = (d) => (d === 'long' ? '<span class="pos">long</span>' : '<span class="neg">short</span>');
+function curveSvg(pts, base) {
+  if (!pts || pts.length < 2) return '<p class="empty">Eğri için en az iki ölçüm gerekiyor.</p>';
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(base, ...ys), y1 = Math.max(base, ...ys);
+  const W = 800, H = 200, X = (x) => ((x - x0) / (x1 - x0 || 1)) * (W - 10) + 5, Y = (y) => H - 8 - ((y - y0) / (y1 - y0 || 1)) * (H - 16);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+  return `<svg class="curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Özsermaye eğrisi"><line x1="5" x2="${W - 5}" y1="${Y(base).toFixed(1)}" y2="${Y(base).toFixed(1)}" stroke="var(--axis)" stroke-dasharray="3 3"/><path d="${d}" fill="none" stroke="${ys.at(-1) >= base ? '#5ea3f0' : '#ef7d7d'}" stroke-width="1.6"/></svg>`;
+}
+async function main() {
+  let r;
+  try { const res = await fetch('docs/agent/momentum.json', { cache: 'no-store' }); if (!res.ok) throw new Error(`HTTP ${res.status}`); r = await res.json(); }
+  catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Portföy henüz başlamadı (${esc(err.message)}). Repo → Settings → Variables: <code>MOMENTUM=1</code>.</p>`; return; }
+  document.querySelector('#sub').textContent = `${r.params.side === 'ls' ? 'En güçlü 5 long + en zayıf 5 short' : r.params.side === 'short' ? 'En zayıf 5 short' : 'En güçlü 5 long'} · ${r.params.lookback} günlük getiri · başlangıç ${dt(r.start)} · güncelleme ${dt(r.updatedAt)} · sanal sermaye`;
+  const tiles = `<div class="tiles">
+    <div class="stat"><div class="k">Özsermaye</div><div class="v ${cls(r.equity - r.startEquity)}">${fmt(r.equity)} USDT</div><div class="k">başlangıç ${fmt(r.startEquity, 0)}</div></div>
+    <div class="stat"><div class="k">Getiri</div><div class="v ${cls(r.pnlPct)}">%${fmt(r.pnlPct)}</div><div class="k">gerçekleşen ${fmt(r.realized)} USDT</div></div>
+    <div class="stat"><div class="k">BTC al-tut (aynı dönem)</div><div class="v ${cls(r.btc?.pct)}">${r.btc ? `%${fmt(r.btc.pct)}` : '–'}</div><div class="k">${r.btc ? `${fp(r.btc.start)} → ${fp(r.btc.now)}` : ''}</div></div>
+    <div class="stat"><div class="k">Kapanan işlem</div><div class="v">${r.stats.trades}</div><div class="k">kazanma %${fmt(r.stats.winRate * 100, 0)} · ort. %${fmt(r.stats.avgPct)}</div></div>
+  </div>`;
+  const pos = r.positions.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Coin</th><th>Yön</th><th>Giriş</th><th>Fiyat</th><th>Stop</th><th>Nominal</th><th>K/Z</th><th>%</th><th>Fonlama</th><th>Açılış</th></tr></thead><tbody>${r.positions.map((p) => `<tr><td>${esc(p.coin)}</td><td>${dir(p.direction)}</td><td>${fp(p.entry)}</td><td>${fp(p.price)}</td><td>${fp(p.stop)}</td><td>${fmt(p.notional)}</td><td class="${cls(p.pnl)}">${fmt(p.pnl)}</td><td class="${cls(p.pct)}">${fmt(p.pct)}</td><td>${fmt(p.funding, 3)}</td><td>${dt(p.entryTime)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Açık pozisyon yok.</p>';
+  const reb = r.rebalances.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Zaman</th><th>Özsermaye</th><th>Long</th><th>Short</th></tr></thead><tbody>${r.rebalances.map((x) => `<tr><td>${dt(x.time)}</td><td>${fmt(x.equity)}</td><td>${esc(x.longs.join(', ') || '–')}</td><td>${esc(x.shorts.join(', ') || '–')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Henüz yeniden dengeleme yok.</p>';
+  const tr = r.trades.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Coin</th><th>Yön</th><th>Giriş</th><th>Çıkış</th><th>K/Z</th><th>%</th><th>R</th><th>Neden</th><th>Açılış</th><th>Kapanış</th></tr></thead><tbody>${r.trades.map((t) => `<tr><td>${esc(t.coin)}</td><td>${dir(t.direction)}</td><td>${fp(t.entry)}</td><td>${fp(t.exit)}</td><td class="${cls(t.pnl)}">${fmt(t.pnl)}</td><td class="${cls(t.pct)}">${fmt(t.pct)}</td><td class="${cls(t.R)}">${fmt(t.R)}</td><td>${t.reason === 'stop' ? 'stop' : 'listeden çıktı'}</td><td>${dt(t.entryTime)}</td><td>${dt(t.exitTime)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Henüz kapanan işlem yok.</p>';
+  document.querySelector('#root').innerHTML = `${tiles}
+    <section><h2>Özsermaye eğrisi</h2>${curveSvg(r.curve, r.startEquity)}<p class="note">Sonraki yeniden dengeleme: ${dt(r.nextRebalance)} sonrası ilk tur.</p></section>
+    <section><h2>Açık pozisyonlar</h2>${pos}</section>
+    <section><h2>Yeniden dengelemeler</h2>${reb}</section>
+    <section><h2>Kapanan işlemler</h2>${tr}</section>`;
+}
+main();
+</script>
+</body>
+</html>

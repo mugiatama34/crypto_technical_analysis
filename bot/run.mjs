@@ -10,6 +10,7 @@
 //   SEND_WAIT=high|medium|none (yalnız SEND_CLAUDE=1)  COOLDOWN_H=6
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
+//   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
@@ -19,6 +20,7 @@ import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, 
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
+import { runMomentum } from './momentum/run.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
 import { regimeNow } from '../src/scan/regime.js';
@@ -52,6 +54,9 @@ const CFG = {
   agentEveryMin: +env('AGENT_EVERY_MIN', 15),
   agentMinScore: +env('AGENT_MIN_SCORE', 60),
   agentStateFile: env('AGENT_STATE_FILE', 'bot/agent-state.json'),
+  momentum: env('MOMENTUM', '0') === '1', // haftalık kesitsel momentum kâğıt portföyü (bot/momentum)
+  momentumVariant: env('MOMENTUM_VARIANT', 'ls'), // ls | short | long
+  momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
   historyFile: env('HISTORY_FILE', 'docs/signals/history.json'),
   modelMinProb: env('MODEL_MIN_PROB', '') === '' ? (MODEL?.threshold ?? 0) : +env('MODEL_MIN_PROB', 0),
@@ -238,6 +243,11 @@ async function main() {
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
       await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
+  }
+  // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)
+  if (CFG.momentum) {
+    try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
+    catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
   }
   if (summaryDue) {
     const since = now - 24 * 3600e3;

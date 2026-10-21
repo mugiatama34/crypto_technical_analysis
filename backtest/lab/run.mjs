@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Strateji laboratuvarı koşusu: her strateji × coin × TF → sinyaller simüle edilir (aynı coinde açık işlem varken yeni
 // sinyal alınmaz) → eğitim/doğrulama raporu → docs/backtest/lab.json (lab.html okur).
-//   node backtest/lab/run.mjs [--months 6 --top 50] [--universe 150] [--strategies donchian,meanrev] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fixture]
+//   node backtest/lab/run.mjs [--months 6 --top 50] [--universe 150] [--funding 0.01] [--strategies donchian,meanrev] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fixture]
 import fs from 'node:fs';
 import path from 'node:path';
 import { getTopCoins, instIdOf } from '../../src/data/okx.js';
@@ -9,10 +9,10 @@ import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
 import { stats } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
-import { portfolioOf, benchmarks } from './xsmom.js';
+import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
-const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0) };
+const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01) };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
 
@@ -80,7 +80,7 @@ async function main() {
     .map((s) => (CFG.tfs ? { ...s, tfs: s.tfs.filter((t) => CFG.tfs.includes(t)) } : s)).filter((s) => s.tfs.length);
   const tfs = [...new Set(strategies.flatMap((s) => s.tfs))];
   log(`Laboratuvar: ${strategies.map((s) => s.id).join(', ')} × ${coins.length} coin × ${tfs.join(',')}; ${CFG.months} ay`);
-  const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip };
+  const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip, fundingPct8h: CFG.funding };
   const needDaily = strategies.some((s) => s.needs?.includes('1D'));
   const needBtc = strategies.some((s) => s.needs?.includes('BTC1D'));
   const fetchTf = async (instId, tf, n) => (CFG.fixture ? (await fixtureProvider.candles(instId, tf, n)).candles : getHistoryCached(instId, tf, startMs - (tf === '1D' ? 120 * 86400e3 : 0), endMs, { cacheDir: CFG.cacheDir }));
@@ -108,7 +108,7 @@ async function main() {
       if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily.filter((s) => topSet.has(s.coin)), startMs, split, endMs);
     } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin)) continue; trades.push(...runStrategy(st, s, o)); }
     const rep = report(trades, split);
-    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: st.params.k * (st.params.side === 'ls' ? 2 : 1), portfolio: portfolioOf(trades, st.params.k * (st.params.side === 'ls' ? 2 : 1), split) } : {}) };
+    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
     log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
