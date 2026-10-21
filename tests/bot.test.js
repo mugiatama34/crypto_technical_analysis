@@ -140,3 +140,13 @@ test('entryZone: geniş küme bölgesi çekirdek sinyale / 1,5 ATR dilime daral�
   assert.equal(buildPlan(r, { maxRiskPct: 5 }).ok, false);
   assert.equal(buildPlan(r, { maxRiskPct: 20 }).ok, true);
 });
+
+test('buildPlan: trend filtreleri (ADX ≥ eşik + DI yönü, EMA200 tarafı)', () => {
+  const base = row();
+  assert.equal(buildPlan({ ...base, trend: { adx: 20, pdi: 30, mdi: 10, ema200: 90 } }, { trendAdxMin: 35 }).ok, false);
+  assert.equal(buildPlan({ ...base, trend: { adx: 40, pdi: 10, mdi: 30, ema200: 90 } }, { trendAdxMin: 35 }).ok, false); // yön uyumsuz
+  const ok = buildPlan({ ...base, trend: { adx: 40, pdi: 30, mdi: 10, ema200: 90, time: 5 } }, { trendAdxMin: 35, trendEma: true });
+  assert.ok(ok.ok && ok.trend.aligned && ok.trend.emaSide && ok.time === 5);
+  assert.equal(buildPlan({ ...base, trend: { adx: 40, pdi: 30, mdi: 10, ema200: 110 } }, { trendEma: true }).ok, false); // fiyat EMA altında
+  assert.ok(buildPlan({ ...base }, { trendEma: false }).ok); // trend alanı yoksa filtre yok
+});

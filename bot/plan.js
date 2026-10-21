@@ -31,6 +31,15 @@ export function buildPlan(row, opts = {}) {
   if (score < o.minScore) return { ok: false, reason: `puan ${score} < ${o.minScore}` };
   if (o.requireMtf && !mtfOk) return { ok: false, reason: 'MTF uyumu yok' };
   const d = dirSign(row.direction), atr = row.atr, price = row.price;
+  // Trend filtreleri (satırda scanner'ın eklediği trend alanı varsa)
+  const t = row.trend || {};
+  const aligned = t.pdi != null && t.mdi != null ? (d === 1 ? t.pdi > t.mdi : t.mdi > t.pdi) : null;
+  const emaSide = t.ema200 != null ? (d * (price - t.ema200) > 0) : null;
+  if (o.trendAdxMin) {
+    if (t.adx == null || t.adx < o.trendAdxMin) return { ok: false, reason: `ADX ${t.adx?.toFixed?.(0) ?? '–'} < ${o.trendAdxMin}` };
+    if (!aligned) return { ok: false, reason: 'DI yönü uyumsuz' };
+  }
+  if (o.trendEma && !emaSide) return { ok: false, reason: 'fiyat EMA200\'ün yanlış tarafında' };
   const [lo, hi] = entryZone(b, d, atr, o.maxZoneAtr);
   // Giriş: bölgenin fiyata yakın kenarı (long: üst kenar, short: alt kenar); fiyat bölgedeyse fiyat
   const inZone = price >= lo && price <= hi;
@@ -70,6 +79,8 @@ export function buildPlan(row, opts = {}) {
     riskPct: +(risk / entry * 100).toFixed(2),
     signals: b.signals.map((s) => ({ name: s.name, detector: s.detector, group: s.group, direction: s.direction, strength: +s.strength.toFixed(2), status: s.status, zone: s.zone?.map(r4), note: s.note || '', invalidation: s.invalidation, target: s.target })),
     groups: [...b.groups],
+    trend: { adx: t.adx != null ? +t.adx.toFixed(1) : null, aligned, emaSide },
+    time: t.time ?? null,
     status: inZone ? 'active' : 'waiting',
   };
 }

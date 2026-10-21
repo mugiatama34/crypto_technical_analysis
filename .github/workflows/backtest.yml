@@ -65,6 +65,8 @@ jobs:
           key: plans-${{ github.run_id }}
       - name: Parameter sweep
         run: node backtest/sweep.mjs
+      - name: Learn scoring model
+        run: node backtest/learn.mjs
       - name: Claude sample
         if: ${{ inputs.claude_sample != '0' }}
         env:
@@ -75,7 +77,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm --cached -q docs/backtest/plans.json.gz 2>/dev/null || true
-          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/claude-sample.json; do [ -f "$f" ] && git add "$f"; done
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/claude-sample.json src/scan/learned.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || git commit -m "backtest (${{ inputs.mode }}): ${{ inputs.months }} ay, ilk ${{ inputs.top }}, ${{ inputs.tfs }} (run ${{ github.run_id }})"
           git pull --rebase origin ${{ github.ref_name }} || true
           git push origin HEAD:${{ github.ref_name }}

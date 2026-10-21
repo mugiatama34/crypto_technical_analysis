@@ -26,7 +26,7 @@
 <div class="wrap">
   <header class="top">
     <div><h1>Backtest raporu</h1><p class="sub" id="sub">Kural motoru, walk-forward; her adımda yalnızca geçmiş mumlar görülür.</p></div>
-    <nav class="nav"><a href="index.html">← Tarayıcı</a><a href="docs/backtest/results.json">results.json</a></nav>
+    <nav class="nav"><a href="index.html">← Tarayıcı</a><a href="sweep.html">Tarama</a><a href="signals.html">Sinyaller</a><a href="agent.html">Ajan</a></nav>
   </header>
   <div id="banner" class="banner" hidden></div>
   <div id="root"><p class="empty">Yükleniyor…</p></div>
@@ -74,13 +74,22 @@ async function main() {
   catch (err) { $('#root').innerHTML = `<p class="empty">Henüz rapor yok (${esc(err.message)}). Actions → <b>backtest</b> workflow'unu çalıştırınca <code>docs/backtest/results.json</code> oluşur.</p>`; return; }
   const m = r.meta;
   $('#sub').textContent = `${m.coins?.length || '?'} coin × ${m.tfs?.join(', ')} · ${dt(m.from)} – ${dt(m.to)} · komisyon %${m.fee}/taraf, kayma %${m.slip} · min puan ${m.minScore}, min R:R ${m.minRR} · ${dt(m.generatedAt)}`;
-  let claude = null;
+  let claude = null, learn = null;
   try { const cs = await fetch('docs/backtest/claude-sample.json', { cache: 'no-store' }); if (cs.ok) claude = (await cs.json()).summary; } catch { /* yok */ }
+  try { const ls = await fetch('docs/backtest/learn.json', { cache: 'no-store' }); if (ls.ok) learn = await ls.json(); } catch { /* yok */ }
+  const learnHtml = !learn || learn.meta?.error ? '' : `<section><h2>Öğrenilen puan (lojistik regresyon)</h2>
+    <p class="note">${esc(learn.verdict)} Eğitim ${learn.meta.nTrain}, doğrulama ${learn.meta.nValid} işlem; ${learn.coef.length} özellik. Desil 1 = modelin en güvendiği %10.</p>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Desil (doğrulama)</th><th>Olasılık</th><th>n</th><th>Kazanma</th><th>Ort. R</th><th>Toplam R</th><th>PF</th></tr></thead><tbody>${learn.validDeciles.map((d) => `<tr><td>${d.decile}</td><td>${fmt(d.pMin, 3)}–${fmt(d.pMax, 3)}</td><td>${d.n}</td><td>${pct(d.winRate)}</td><td class="${cls(d.avgR)}">${fmt(d.avgR, 3)}</td><td class="${cls(d.totalR)}">${fmt(d.totalR, 1)}</td><td>${fmt(d.profitFactor)}</td></tr>`).join('')}</tbody></table></div>
+    <h2 style="margin-top:12px">Eğitim desilleri (karşılaştırma)</h2>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Desil (eğitim)</th><th>n</th><th>Kazanma</th><th>Ort. R</th><th>PF</th></tr></thead><tbody>${learn.trainDeciles.map((d) => `<tr><td>${d.decile}</td><td>${d.n}</td><td>${pct(d.winRate)}</td><td class="${cls(d.avgR)}">${fmt(d.avgR, 3)}</td><td>${fmt(d.profitFactor)}</td></tr>`).join('')}</tbody></table></div>
+    <h2 style="margin-top:12px">Katsayılar (pozitif = kazanma olasılığını artırır)</h2>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Özellik</th><th>Ağırlık</th></tr></thead><tbody>${learn.coef.map((c) => `<tr><td>${esc(c.feature)}</td><td class="${cls(c.weight)}">${fmt(c.weight, 3)}</td></tr>`).join('')}</tbody></table></div></section>`;
   $('#root').innerHTML = `
     <section><h2>Genel</h2>${statTiles(r.overall)}</section>
     <section><h2>Özsermaye (R, işlem sırasıyla)</h2>${curveSvg(r.curve, m.split)}</section>
     <section><h2>Eğitim / doğrulama (zaman: ilk 2/3 – son 1/3)</h2>${table({ 'Eğitim (ilk 2/3)': r.inSample, 'Doğrulama (son 1/3)': r.outOfSample })}</section>
     ${claude ? `<section><h2>Claude örneklemi (${claude.n} plan)</h2><p class="note">Kural motorunun ürettiği rastgele planlar Claude'a yorumlatıldı; karar gruplarının gerçek sonucu. "take" grubunun ort. R'si "skip"ten belirgin yüksekse beyin değer katıyor demektir.</p>${table({ ...Object.fromEntries(Object.entries(claude.byDecision).map(([k, v]) => [`karar: ${k}`, v])), ...Object.fromEntries(Object.entries(claude.byConf).map(([k, v]) => [`güven: ${k}`, v])) })}<p class="note">Token: ${fmt(claude.usage?.input, 0)} giriş + ${fmt(claude.usage?.output, 0)} çıkış.</p></section>` : ''}
+    ${learnHtml}
     <section><h2>Zaman dilimi</h2>${table(r.byTf)}</section>
     <section><h2>Yön ve giriş tipi</h2>${table({ ...r.byDirection, ...r.byEntry })}</section>
     <section><h2>Puan aralığı</h2>${table(r.byScore)}</section>

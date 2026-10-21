@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Sinyal geçmişi</title>
+<meta name="description" content="Botun Telegram'a gönderdiği tüm setup'lar, takip durumları ve istatistikleri: giriş bölgesine gelen, stop olan, TP1/TP2 gören, süresi dolan.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  .tiles { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 760px) { .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .stat .v.pos { color: #4cc24c; } .stat .v.neg { color: #ef7d7d; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 5px 7px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; border-top: 1px solid var(--grid); vertical-align: top; }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--axis); border-top: 0; }
+  table.grid th:first-child, table.grid td:first-child { text-align: left; }
+  td.wrap { white-space: normal; text-align: left; min-width: 220px; }
+  .tablewrap { overflow-x: auto; }
+  .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
+  .st { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--hair); white-space: nowrap; }
+  .st.waiting { color: var(--ink-dim); } .st.active { color: #5ea3f0; } .st.tp1 { color: #fab219; } .st.done { color: #4cc24c; } .st.stopped { color: #ef7d7d; } .st.expired, .st.missed { color: var(--ink-muted); }
+  section { margin-top: 20px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Sinyal geçmişi</h1><p class="sub" id="sub">Botun gönderdiği tüm setup'lar ve takip sonuçları.</p></div>
+    <nav class="nav"><a href="index.html">Tarayıcı</a><a href="backtest.html">Backtest</a><a href="agent.html">Ajan</a></nav>
+  </header>
+  <p class="note">Durumlar: <b>bekliyor</b> fiyat giriş bölgesine gelmedi · <b>aktif</b> bölgeye geldi · <b>TP1</b> ilk hedef görüldü (stop başabaşa) · <b>tamam</b> TP2 · <b>stop</b> · <b>süresi doldu</b> 24 saatte dolmadı · <b>kaçtı</b> girişsiz hedefe gitti. R: stop −1, TP1 sonrası başabaş +½·R1, TP2 +½·R1 + ½·R2 (yarı yarıya kapatma varsayımı).</p>
+  <div id="root"><p class="empty">Yükleniyor…</p></div>
+  <footer><strong>Yatırım tavsiyesi değildir.</strong></footer>
+</div>
+<script type="module">
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
+const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
+const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
+const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
+const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const ST = { waiting: 'bekliyor', active: 'aktif', tp1: 'TP1', done: 'tamam', stopped: 'stop', expired: 'süresi doldu', missed: 'kaçtı' };
+const CLOSED = new Set(['done', 'stopped', 'expired', 'missed']);
+const realizedR = (s) => (s.status === 'stopped' ? -1 : s.status === 'done' ? 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5) : s.status === 'tp1' || s.status === 'tp1_be' ? null : null);
+/** Kapanmış işlemlerin R'si; TP1 sonrası stop (başabaş) için +½R1: takipte 'stopped' TP1'den sonra geldiyse tp1At dolu. */
+const finalR = (s) => { if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1; if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5); return null; };
+function stats(list) {
+  const n = list.length;
+  const filled = list.filter((s) => s.status !== 'waiting' && s.status !== 'expired' && s.status !== 'missed');
+  const c = (st) => list.filter((s) => s.status === st).length;
+  const tp1Seen = list.filter((s) => s.status === 'tp1' || s.status === 'done' || s.tp1At).length;
+  const traded = list.filter((s) => s.status === 'stopped' || s.status === 'done');
+  const Rs = traded.map(finalR).filter((x) => x != null);
+  const sumR = Rs.reduce((a, b) => a + b, 0);
+  return { n, filled: filled.length, fillRate: n ? filled.length / n : 0, stopped: c('stopped'), tp1: tp1Seen, done: c('done'), expired: c('expired'), missed: c('missed'), open: list.filter((s) => !CLOSED.has(s.status)).length, traded: traded.length, winRate: Rs.length ? Rs.filter((r) => r > 0).length / Rs.length : 0, avgR: Rs.length ? sumR / Rs.length : 0, totalR: sumR };
+}
+const row = (name, s) => `<tr><td>${esc(name)}</td><td>${s.n}</td><td>${s.filled} (${fmt(s.fillRate * 100, 0)}%)</td><td>${s.tp1}</td><td>${s.done}</td><td>${s.stopped}</td><td>${s.expired}</td><td>${s.missed}</td><td>${s.open}</td><td>${fmt(s.winRate * 100, 0)}%</td><td class="${cls(s.avgR)}">${fmt(s.avgR)}</td><td class="${cls(s.totalR)}">${fmt(s.totalR, 1)}</td></tr>`;
+const head = '<thead><tr><th>Kırılım</th><th>Gönderilen</th><th>Bölgeye geldi</th><th>TP1</th><th>TP2</th><th>Stop</th><th>Süresi doldu</th><th>Kaçtı</th><th>Açık</th><th>Kazanma</th><th>Ort. R</th><th>Toplam R</th></tr></thead>';
+const by = (list, f) => { const m = new Map(); for (const s of list) { const k = f(s) ?? '–'; if (!m.has(k)) m.set(k, []); m.get(k).push(s); } return [...m.entries()].map(([k, v]) => row(k, stats(v))).join(''); };
+let items = [], page = 0;
+function renderList() {
+  const tf = document.querySelector('#fTf').value, dir = document.querySelector('#fDir').value, st = document.querySelector('#fSt').value, q = document.querySelector('#fQ').value.trim().toUpperCase();
+  let list = [...items].reverse().filter((s) => (!tf || s.tf === tf) && (!dir || s.direction === dir) && (!st || (st === 'open' ? !CLOSED.has(s.status) : s.status === st)) && (!q || s.coin.includes(q)));
+  const PAGE = 50, pages = Math.max(1, Math.ceil(list.length / PAGE)); page = Math.min(page, pages - 1);
+  const slice = list.slice(page * PAGE, (page + 1) * PAGE);
+  document.querySelector('#list').innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>Gönderim</th><th>Coin</th><th>Yön</th><th>Puan</th><th>MTF</th><th>Karar</th><th>Giriş bölgesi</th><th>Stop</th><th>TP1 / TP2</th><th>R:R</th><th>Durum</th><th>Sonuç R</th><th class="wrap">Yapılar / gerekçe</th></tr></thead><tbody>${slice.map((s) => { const R = finalR(s); return `<tr><td>${dt(s.sentAt)}</td><td><a href="https://www.tradingview.com/chart/?symbol=OKX:${esc(s.coin)}USDT.P" target="_blank" rel="noopener">${esc(s.coin)}</a> ${esc(s.tf)}</td><td>${s.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'}</td><td>${s.score ?? '–'}</td><td>${(s.mtf || []).join('+') || '–'}</td><td>${esc(s.trade || '–')} / ${esc(s.confidence || '–')}</td><td>${s.zone ? `${fp(s.zone[0])} – ${fp(s.zone[1])}` : fp(s.entry)}</td><td>${fp(s.stop)}</td><td>${fp(s.tp1)} / ${fp(s.tp2)}</td><td>${fmt(s.rr1, 1)} / ${fmt(s.rr, 1)}</td><td><span class="st ${s.status}">${ST[s.status] || s.status}</span></td><td class="${cls(R)}">${R == null ? '–' : fmt(R)}</td><td class="wrap">${esc((s.signals || []).slice(0, 6).join(' · '))}${s.reason ? `<br><i>${esc(s.reason.slice(0, 240))}</i>` : ''}</td></tr>`; }).join('')}</tbody></table></div>
+  <div class="pager" style="display:flex;gap:8px;align-items:center;margin-top:8px"><button type="button" class="btn" id="prev" ${page === 0 ? 'disabled' : ''}>‹</button><span class="count">${page + 1} / ${pages} · ${list.length} kayıt</span><button type="button" class="btn" id="next" ${page >= pages - 1 ? 'disabled' : ''}>›</button></div>`;
+  document.querySelector('#prev')?.addEventListener('click', () => { page--; renderList(); });
+  document.querySelector('#next')?.addEventListener('click', () => { page++; renderList(); });
+}
+async function main() {
+  let h;
+  try { const r = await fetch('docs/signals/history.json', { cache: 'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); h = await r.json(); }
+  catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Henüz geçmiş yok (${esc(err.message)}). İlk gerçek koşudan sonra oluşur.</p>`; return; }
+  items = h.items || [];
+  const s = stats(items);
+  document.querySelector('#sub').textContent = `${items.length} sinyal · ${items.length ? dt(items[0].sentAt) : ''} – ${dt(h.updatedAt)}`;
+  const tiles = [['Gönderilen', s.n], ['Bölgeye geldi', `${s.filled} (${fmt(s.fillRate * 100, 0)}%)`], ['TP1 gördü', s.tp1], ['TP2 tamam', s.done, 'pos'], ['Stop', s.stopped, 'neg'], ['Süresi doldu', s.expired], ['Kaçtı', s.missed], ['Açık', s.open], ['Kazanma (kapanan)', `${fmt(s.winRate * 100, 0)}%`], ['Toplam R', fmt(s.totalR, 1), cls(s.totalR)]];
+  document.querySelector('#root').innerHTML = `
+    <section><div class="tiles">${tiles.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div></section>
+    <section><h2>Zaman dilimi</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.tf)}</tbody></table></div></section>
+    <section><h2>Yön · karar · güven</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.direction)}${by(items, (x) => `karar: ${x.trade || '–'}`)}${by(items, (x) => `güven: ${x.confidence || '–'}`)}</tbody></table></div></section>
+    <section><h2>Ay</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => new Date(x.sentAt).toISOString().slice(0, 7))}</tbody></table></div></section>
+    <section><h2>Tüm sinyaller</h2>
+      <div class="filters">
+        <select id="fTf"><option value="">TF: hepsi</option>${[...new Set(items.map((x) => x.tf))].map((t) => `<option>${esc(t)}</option>`).join('')}</select>
+        <select id="fDir"><option value="">Yön: hepsi</option><option value="long">Long</option><option value="short">Short</option></select>
+        <select id="fSt"><option value="">Durum: hepsi</option><option value="open">Açık</option>${Object.entries(ST).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+        <input type="text" id="fQ" placeholder="Coin" size="10">
+      </div>
+      <div id="list"></div></section>`;
+  for (const id of ['fTf', 'fDir', 'fSt']) document.querySelector(`#${id}`).addEventListener('change', () => { page = 0; renderList(); });
+  document.querySelector('#fQ').addEventListener('input', () => { page = 0; renderList(); });
+  renderList();
+}
+main();
+</script>
+</body>
+</html>

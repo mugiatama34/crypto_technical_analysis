@@ -52,7 +52,10 @@ yapıştırmak da olur.
 planı **Claude**'a değerlendirtir (take / wait / skip, güven, gerekçe, kanıt, geçersizlik) ve Telegram'a gönderir.
 Gönderilen planlar takip edilir: giriş bölgesine geldi → TP1 → TP2 / stop / süresi doldu güncellemeleri ve günlük özet.
 
-Kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
+**Zaman dilimine göre kurallar** (`TF_RULES`, JSON ile ezilebilir): 15m → puan ≥ 75, MTF zorunlu, ADX ≥ 35 ve ±DI yön
+uyumu, fiyat EMA200'ün doğru tarafında, 12 saat cooldown, tur başına en fazla 1 mesaj · 1H → puan ≥ 70, MTF, ADX ≥ 25
+· 4H → puan ≥ 65. Örnek: `{"15m":{"minScore":80},"4H":{"requireMtf":true}}`.
+Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday Claude'a gider,
 en fazla `MAX_ALERTS` (3) mesaj gönderilir. `SEND_WAIT` (vars. `high`): `take` her zaman, `wait` yalnız yüksek güvenle
@@ -70,6 +73,11 @@ seviyeleri kullanılır ve mesajda belirtilir. **Otomatik emir yoktur; sadece bi
    deneyip logda mesajları görebilirsin). Sonra her 15 dakikada kendi koşar (GitHub cron'u birkaç dakika geciktirebilir).
 
 Durum dosyası (`bot/state.json`) çalıştırmalar arasında Actions cache ile taşınır; repo'ya commit edilmez.
+
+### Sinyal geçmişi
+Gönderilen her setup ve takip sonucu `docs/signals/history.json`'a yazılır (her koşuda commit) ve **`signals.html`**'de
+görünür: kaçı giriş bölgesine geldi, kaçı TP1/TP2 gördü, kaçı stop oldu / süresi doldu / kaçtı; TF, yön, karar, güven ve
+aya göre kırılım; filtrelenebilir tam liste. Gerçekleşen R varsayımı backtest ile aynı (TP1'de yarı, başabaş stop).
 
 ### GitHub cron güvenilirliği
 GitHub'ın zamanlayıcısı "elinden geleni yapar": yoğun saatlerde dakikalarca gecikebilir, bazı tetiklemeler hiç
@@ -128,6 +136,11 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   puan eşiği, TF alt kümesi, grup dışlama/zorunluluk ve MTF vekiliyle yeniden simüle eder; eğitim diliminde en iyi
   4 tek değişikliğin birleşimlerini de dener. Rapor **`sweep.html`** (`docs/backtest/sweep.json`). Workflow'da
   `mode: sweep` yalnız taramayı koşar (son planlar Actions cache'ten), `full` önce yeniden koşar.
+- **Öğrenilen puan:** `backtest/learn.mjs` planları özelliklere çevirir (hangi detektör/grup var, sinyal sayısı, puan,
+  risk %, TF, yön, giriş tipi, ADX kovası ve yön uyumu, EMA200 tarafı, üst TF uyumu, saat dilimi) ve L2 cezalı lojistik
+  regresyonla "R > 0" olasılığını öğrenir (eğitim ilk 2/3). Rapor `backtest.html` → "Öğrenilen puan": doğrulama
+  desilleri ve katsayılar. Kabul koşulu (doğrulamada en üst %20: ort. R > 0, PF > 1,1, n ≥ 100) sağlanırsa
+  `src/scan/learned.json` yazılır ve bot adayları bu olasılıkla da süzer (`MODEL_MIN_PROB`: 0 kapatır, boş = modelin eşiği).
 - **Yerel:** `node backtest/run.mjs --months 6 --top 50 --tfs 15m,1H,4H` (OKX erişimi gerekir); `--fixture` sentetik veri;
   `node backtest/sweep.mjs --fixture --in <plans klasörü>`.
 - **Sınırlar:** evren bugünkü hacim sıralamasıdır (sağ kalanlık yanlılığı); 15m geçmişi OKX'in verdiği kadardır (~3 ay);
@@ -170,7 +183,8 @@ lib/                       lightweight-charts 5.2.1 (Apache-2.0)
 bot/                       run.mjs (cron akışı), plan.js (plan/takip), brain.js (Claude), telegram.js
 bot/agent/                 profiles.js (sert sınırlar), account.js (kâğıt hesap), manager.js (Claude), run.js (akış)
 agent.html                 ajan sayfası (docs/agent/*.json)
-backtest/                  data.js (OKX geçmiş + önbellek), engine.js (walk-forward), report.js, run.mjs, brain-sample.mjs, sweep.mjs
+backtest/                  data.js, engine.js, report.js, run.mjs, brain-sample.mjs, sweep.mjs, features.js + learn.mjs (öğrenilen puan)
+signals.html               sinyal geçmişi ve istatistik (docs/signals/history.json)
 sweep.html                 parametre taraması sayfası (docs/backtest/sweep.json)
 backtest.html              rapor sayfası (docs/backtest/results.json)
 tests/                     node --test

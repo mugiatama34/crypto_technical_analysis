@@ -67,6 +67,8 @@ jobs:
           AGENT_MODEL: ${{ vars.AGENT_MODEL }}
           AGENT_EVERY_MIN: ${{ vars.AGENT_EVERY_MIN }}
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
+          TF_RULES: ${{ vars.TF_RULES }}
+          MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 
       - name: Save state
@@ -83,7 +85,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/agent/*.json 2>/dev/null || true
+          git add docs/agent/*.json docs/signals/history.json 2>/dev/null || true
           git diff --cached --quiet && exit 0
-          git commit -q -m "agent: durum güncellemesi (run ${{ github.run_id }})"
+          git commit -q -m "bot: ajan/sinyal geçmişi güncellemesi (run ${{ github.run_id }})"
           for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || sleep 5; done

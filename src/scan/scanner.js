@@ -84,7 +84,10 @@ export function analyzeRow(job, { ids, weights = {}, settings = {}, errors = nul
   if (ctx.n < 50) return { ...job, signals: [], clusters: [], best: null, score: 0, direction: null, error: 'Yetersiz mum' };
   const signals = runDetectors(ctx, ids, errors);
   const { clusters, best } = clusterSignals(signals, { atr: ctx.atrNow, price: ctx.price, weights, opts: settings.scoring });
-  return { ...job, price: ctx.price, atr: ctx.atrNow, signals, clusters, best, score: best?.score ?? 0, direction: best?.direction ?? null, error: null };
+  // Trend bağlamı (bot TF kuralları ve öğrenilen puan için): ADX / ±DI, EMA200, son mum zamanı
+  const ax = ctx.adx, e200 = ctx.ema(200)[ctx.last];
+  const trend = { adx: ax.adx[ctx.last], pdi: ax.pdi[ctx.last], mdi: ax.mdi[ctx.last], ema200: e200, time: ctx.candles[ctx.last].time };
+  return { ...job, price: ctx.price, atr: ctx.atrNow, trend, signals, clusters, best, score: best?.score ?? 0, direction: best?.direction ?? null, error: null };
 }
 
 export function compareRows(a, b) {

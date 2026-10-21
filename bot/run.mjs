@@ -17,6 +17,11 @@ import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS }
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
+import { featuresOf, modelProb } from '../backtest/features.js';
+
+// Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). MODEL_MIN_PROB=0 kapatır,
+// >0 eşiği ezer; tanımsızsa modelin kendi eşiği.
+const MODEL = (() => { try { return JSON.parse(fs.readFileSync('src/scan/learned.json', 'utf8')); } catch { return null; } })();
 
 const env = (k, d) => (process.env[k] != null && process.env[k] !== '' ? process.env[k] : d);
 const CFG = {
@@ -43,7 +48,27 @@ const CFG = {
   agentMinScore: +env('AGENT_MIN_SCORE', 60),
   agentStateFile: env('AGENT_STATE_FILE', 'bot/agent-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
+  historyFile: env('HISTORY_FILE', 'docs/signals/history.json'),
+  modelMinProb: env('MODEL_MIN_PROB', '') === '' ? (MODEL?.threshold ?? 0) : +env('MODEL_MIN_PROB', 0),
 };
+/** Plana model olasılığı ekler; eşik altındaysa false döner. */
+function modelGate(plan, row, allRows) {
+  if (!MODEL) return true;
+  const up = { '15m': '1H', '1H': '4H' }[plan.tf];
+  const upRow = up ? allRows.get(`${plan.coin}|${up}`) : null;
+  const mtf = !!(upRow && !upRow.error && upRow.direction === plan.direction);
+  plan.modelProb = +modelProb(MODEL, featuresOf({ ...plan, time: row.trend?.time }, { ...row.trend, price: row.price, mtf })).toFixed(3);
+  return !(CFG.modelMinProb > 0) || plan.modelProb >= CFG.modelMinProb;
+}
+// Zaman dilimine göre kurallar (TF_RULES ile JSON olarak ezilebilir). 15m sıkı: yüksek puan, MTF, güçlü trend, EMA200
+// tarafı, 12 saat cooldown ve tur başına en fazla 1 mesaj.
+const TF_RULES_DEFAULT = {
+  '15m': { minScore: 75, requireMtf: true, trendAdxMin: 35, trendEma: true, cooldownHours: 12, maxPerRun: 1 },
+  '1H': { minScore: 70, requireMtf: true, trendAdxMin: 25 },
+  '4H': { minScore: 65, requireMtf: false },
+};
+const TF_RULES = (() => { try { return { ...TF_RULES_DEFAULT, ...JSON.parse(env('TF_RULES', '{}')) }; } catch { return TF_RULES_DEFAULT; } })();
+const ruleFor = (tf) => ({ minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours, ...(TF_RULES[tf] || {}) });
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
@@ -59,6 +84,13 @@ function saveState(file, st) {
   fs.writeFileSync(file, JSON.stringify(st, null, 1));
 }
 
+// ---- Sinyal geçmişi (sayfa için; append-only, en fazla 3000 kayıt)
+function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return { items: [] }; } }
+function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
+const histId = (p) => `${p.key}|${p.sentAt}`;
+function historyAdd(h, p, extra = {}) { if (!h.items.some((x) => x.id === histId(p))) h.items.push({ id: histId(p), ...p, ...extra }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt }); }
+
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
   const ok = await sendTelegram(text, CFG.tg);
@@ -70,7 +102,10 @@ async function main() {
   const now = Date.now();
   if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
-  log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minScore ${CFG.minScore}, MTF ${CFG.requireMtf ? 'zorunlu' : 'serbest'}, minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
+  const history = loadHistory(CFG.historyFile);
+  if (!history.items.length && state.sent.length) for (const p of state.sent) historyAdd(history, p); // ilk koşu: mevcut kayıtları aktar
+  log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
+  for (const tf of CFG.tfs) { const r = ruleFor(tf); log(`  ${tf}: puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}`); }
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
   const res = await runScan({ timeframes: CFG.tfs, topN: CFG.topN }, {
     provider,
@@ -92,29 +127,41 @@ async function main() {
     const { status, events } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours });
     if (events.length) {
       p.status = status; p.updatedAt = now;
-      for (const ev of events) { state.stats[ev] = (state.stats[ev] || 0) + 1; await notify(formatUpdate(p, ev, row.price), state); }
+      for (const ev of events) {
+        state.stats[ev] = (state.stats[ev] || 0) + 1;
+        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1') p.tp1At = now; else p.closedAt = now;
+        await notify(formatUpdate(p, ev, row.price), state);
+      }
+      historyUpdate(history, p);
       log(`  takip ${p.coin} ${p.tf} → ${events.join(',')}`);
     }
   }
 
   // 2) Adaylar
   const cands = [];
+  const rejects = {};
   for (const r of res.rows) {
     if (r.error) continue;
-    const plan = buildPlan(r, { minScore: CFG.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: CFG.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: CFG.requireMtf });
-    if (!plan.ok) continue;
-    if (onCooldown(plan, state.sent, now, CFG.cooldownHours)) continue;
+    const rule = ruleFor(r.tf);
+    const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma });
+    if (!plan.ok) { const k = plan.reason.replace(/[\d.,–-]+/g, '#'); rejects[k] = (rejects[k] || 0) + 1; continue; }
+    if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
+    if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     cands.push(plan);
   }
+  if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
+  log(`Elenme nedenleri: ${Object.entries(rejects).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' | ')}`);
   cands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
   log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score} r%${p.riskPct}`).join(' | ') : ''));
 
   // 3) Beyin + gönderim
   let sentNow = 0, evaluated = 0;
-  const usedCoins = new Set();
+  const usedCoins = new Set(), sentPerTf = {};
   for (const plan of cands) {
     if (sentNow >= CFG.maxAlerts || evaluated >= CFG.maxEval) break;
     if (usedCoins.has(plan.coin)) continue; // aynı turda aynı coin için tek plan
+    const cap = ruleFor(plan.tf).maxPerRun;
+    if (cap && (sentPerTf[plan.tf] || 0) >= cap) continue;
     usedCoins.add(plan.coin); evaluated++;
     const htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((r) => r && !r.error && r.best)
       .map((r) => ({ tf: r.tf, direction: r.direction, score: r.score, top: r.best.signals.slice(0, 5).map((s) => s.name) }));
@@ -132,9 +179,11 @@ async function main() {
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     await notify(formatSetup(plan, v, size), state);
-    state.sent.push({ key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, score: plan.score, trade: v.trade, confidence: v.confidence, sentAt: now, status: plan.inZone ? 'active' : 'waiting' });
+    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    state.sent.push(rec);
+    historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null });
     state.stats.sent = (state.stats.sent || 0) + 1;
-    sentNow++;
+    sentNow++; sentPerTf[plan.tf] = (sentPerTf[plan.tf] || 0) + 1;
   }
   log(`Değerlendirilen: ${evaluated}, gönderilen: ${sentNow}`);
 
@@ -147,7 +196,8 @@ async function main() {
       const agentCands = [];
       for (const r of res.rows) {
         if (r.error) continue;
-        const plan = buildPlan(r, { minScore: CFG.agentMinScore, minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false });
+        const rule = ruleFor(r.tf);
+        const plan = buildPlan(r, { minScore: Math.min(CFG.agentMinScore, rule.minScore - 10), minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false, trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma });
         if (!plan.ok) continue;
         plan.htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((x) => x && !x.error && x.best).map((x) => ({ tf: x.tf, direction: x.direction, score: x.score }));
         agentCands.push(plan);
@@ -169,7 +219,7 @@ async function main() {
     await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since), state);
     state.lastSummary = now;
   }
-  if (CFG.dry) log('DRY: durum kaydedilmedi'); else saveState(CFG.stateFile, state);
+  if (CFG.dry) log('DRY: durum kaydedilmedi'); else { saveState(CFG.stateFile, state); saveHistory(CFG.historyFile, history); }
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
