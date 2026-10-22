@@ -174,3 +174,14 @@ test('buildPlan: btcRegime with → long yalnız yükselişte, short yalnız dü
   assert.ok(ok.ok); assert.equal(ok.regime, 'up');
   assert.ok(buildPlan(r, { regime: 'down' }).ok); // şart yoksa rejim engellemez
 });
+
+test('buildPlan: rsBtc with → long yalnız BTC\'den güçlü coinde, short yalnız zayıfta; plan trend rsBtc taşır', () => {
+  const base = row();
+  const mk = (rs, side) => ({ ...base, coin: 'ETH', trend: { ...(base.trend || {}), rsBtc: rs, rsSide: side } }); // BTC satırına filtre uygulanmaz
+  assert.equal(buildPlan(mk(2.5, 1), { rsBtc: 'with' }).ok, true);
+  assert.equal(buildPlan(mk(2.5, 1), { rsBtc: 'with' }).trend.rsBtc, 2.5);
+  assert.equal(buildPlan(mk(-2.5, -1), { rsBtc: 'with' }).reason, 'BTC\'ye göre zayıf');
+  assert.equal(buildPlan(mk(2.5, -1), { rsBtc: 'with' }).reason, 'BTC\'ye göre zayıf'); // orta vade zayıf
+  assert.equal(buildPlan(mk(null, null), { rsBtc: 'with' }).reason, 'BTC göreli gücü bilinmiyor');
+  assert.equal(buildPlan(mk(-2.5, -1), {}).ok, true); // şart yoksa engel yok
+});

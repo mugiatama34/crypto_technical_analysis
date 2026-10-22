@@ -38,8 +38,10 @@ function fmtEvent(acct, ev) {
 }
 export function fmtDaily(acct, stats) {
   const open = acct.positions.map((p) => `• ${p.coin} ${p.direction.toUpperCase()} ${p.leverage}x ${p.unrealized >= 0 ? '+' : ''}${fp(p.unrealized)} USDT`).join('\n');
+  const adverse = acct.trades.filter((t) => t.btcPct != null && ((t.direction === 'long' && t.btcPct < 0) || (t.direction === 'short' && t.btcPct > 0)));
+  const btcLine = adverse.length ? `\nBTC ters giderken kapanan: ${adverse.length} işlem, ort ${(adverse.reduce((a, t) => a + t.R, 0) / adverse.length).toFixed(2)}R` : '';
   const lastLesson = acct.lessons[acct.lessons.length - 1];
-  return `🤖 <b>Ajan [${esc(acct.label)}] günlük özet</b>\nÖzsermaye <b>${fp(acct.equity)}</b> USDT (${stats.returnPct >= 0 ? '+' : ''}${stats.returnPct}% başlangıçtan) · gün başı ${fp(acct.day.startEquity)}\nİşlem ${stats.trades} · kazanma %${(stats.winRate * 100).toFixed(0)} · ort ${stats.avgR}R · PF ${stats.profitFactor} · maks DD ${fp(stats.maxDD)} · likidasyon ${stats.liquidations}\n${open ? `Açık:\n${open}` : 'Açık pozisyon yok'}${lastLesson ? `\nSon ders: ${esc(lastLesson)}` : ''}`;
+  return `🤖 <b>Ajan [${esc(acct.label)}] günlük özet</b>\nÖzsermaye <b>${fp(acct.equity)}</b> USDT (${stats.returnPct >= 0 ? '+' : ''}${stats.returnPct}% başlangıçtan) · gün başı ${fp(acct.day.startEquity)}\nİşlem ${stats.trades} · kazanma %${(stats.winRate * 100).toFixed(0)} · ort ${stats.avgR}R · PF ${stats.profitFactor} · maks DD ${fp(stats.maxDD)} · likidasyon ${stats.liquidations}\n${open ? `Açık:\n${open}` : 'Açık pozisyon yok'}${btcLine}${lastLesson ? `\nSon ders: ${esc(lastLesson)}` : ''}`;
 }
 
 /**
@@ -52,6 +54,7 @@ export async function runAgents(ctx) {
   for (const r of ctx.rows) { if (r.error || r.tf !== ctx.trackTf) continue; candlesByCoin[r.coin] = r.live ? [...r.candles, r.live] : r.candles; }
   for (const id of Object.keys(PROFILES)) {
     const profile = PROFILES[id], acct = st[id];
+    Object.defineProperty(acct, '_btcPrice', { value: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null, enumerable: false, configurable: true, writable: true }); // kapanış kayıtları için (yayınlanmaz)
     // 1) Güncelle
     const events = updatePositions(acct, candlesByCoin, now);
     markToMarket(acct, ctx.prices);
@@ -70,7 +73,7 @@ export async function runAgents(ctx) {
     if (dueDecision && ctx.llm.apiKey && !cfg.dry) {
       try {
         const stats = statsOf(acct);
-        const dec = await decide(acct, profile, cands, stats, ctx.llm);
+        const dec = await decide(acct, profile, cands, stats, ctx.llm, ctx.market || {});
         acct.lastDecision = now; acct.lastAssessment = dec.assessment;
         log(`  ajan ${id}: ${dec.actions.length} eylem (${dec._usage?.input_tokens}+${dec._usage?.output_tokens} tok) — ${dec.assessment.slice(0, 120)}`);
         for (const a of dec.actions) {
@@ -79,7 +82,7 @@ export async function runAgents(ctx) {
             const cand = cands.find((p) => p.coin === a.coin) || null;
             const price = ctx.prices[a.coin];
             if (!price) { log(`  ajan ${id}: ${a.coin} fiyat yok, atlandı`); continue; }
-            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [] }, now, profile.guards);
+            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], btcPrice: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null }, now, profile.guards);
             if (!res.ok) { log(`  ajan ${id}: ${a.coin} açılmadı — ${res.reason}`); acct.notes.push({ at: now, text: `${a.coin} ${a.direction} reddedildi: ${res.reason}` }); continue; }
             await notify(fmtOpen(acct, res.position, res.order));
           } else if (a.type === 'close') {

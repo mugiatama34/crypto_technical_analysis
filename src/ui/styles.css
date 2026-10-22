@@ -139,3 +139,7 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: 
 footer { color: var(--ink-dim); font-size: 12px; margin-top: 30px; line-height: 1.6; }
 footer a { color: var(--ink-2); }
 @media (prefers-reduced-motion: reduce) { .panel > summary::before, .progress .bar span { transition: none; } }
+
+/* BTC'ye göre göreli güç çipi */
+.mtf.rs-up { color: #4cc24c; }
+.mtf.rs-down { color: #ef7d7d; }

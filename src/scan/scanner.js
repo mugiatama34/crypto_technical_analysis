@@ -1,6 +1,7 @@
 // Tarama akışı: sembol listesi → her sembol × TF için mumlar → detektörler → confluence → sıralama.
 // Veri sağlayıcı enjekte edilebilir (testlerde fixture, tarayıcıda OKX).
 import { getTopCoins, getCandles, TIMEFRAMES, instIdOf } from '../data/okx.js';
+import { attachRelativeStrength } from './relative.js';
 import { makeContext } from './context.js';
 import { runDetectors, DETECTORS } from './registry.js';
 import { clusterSignals, multiTfAlignment } from './scoring.js';
@@ -74,6 +75,7 @@ export async function runScan(settings, hooks = {}) {
     const align = multiTfAlignment(Object.fromEntries(Object.entries(perTf).map(([tf, r]) => [tf, { best: r.best }])));
     for (const r of Object.values(perTf)) r.mtf = align;
   }
+  attachRelativeStrength(rows);
   rows.sort(compareRows);
   return { rows, at: Date.now(), errors, tfs, coins };
 }

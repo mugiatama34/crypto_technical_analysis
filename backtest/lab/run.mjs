@@ -4,7 +4,7 @@
 //   node backtest/lab/run.mjs [--months 6 --top 50] [--universe 150] [--funding 0.01] [--strategies donchian,meanrev] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fixture]
 import fs from 'node:fs';
 import path from 'node:path';
-import { getTopCoins, instIdOf } from '../../src/data/okx.js';
+import { getTopCoins, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
 import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
 import { stats } from '../report.js';
@@ -56,12 +56,34 @@ export function robustStats(validTrades) {
   return { ...stats(validTrades.filter((t) => new Date(t.time).toISOString().slice(0, 7) !== best)), droppedMonth: best };
 }
 
+/** İşaretli BTC getirisi (long: +BTC, short: −BTC) → R'ye regresyon eğimi ve korelasyon. */
+export function btcBeta(trades) {
+  const pts = trades.filter((t) => TRADED.has(t.outcome) && t.btcPct != null).map((t) => [(t.direction === 'long' ? 1 : -1) * t.btcPct, t.R]);
+  const n = pts.length;
+  if (n < 10) return { n, beta: null, corr: null };
+  const mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (const [x, y] of pts) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }
+  return { n, beta: sxx ? +(sxy / sxx).toFixed(3) : null, corr: sxx && syy ? +(sxy / Math.sqrt(sxx * syy)).toFixed(3) : null };
+}
+const btcBucket = (t) => (t.btcPct == null ? 'BTC bilinmiyor' : t.btcPct < -1 ? 'BTC < −1%' : t.btcPct > 1 ? 'BTC > +1%' : 'BTC ±1%');
+
+/** İşlemlere, tutulduğu süredeki BTC getirisini yazar (btcCloseAt(tf, time) → kapanış). */
+export function attachBtc(trades, btcCloseAt) {
+  for (const t of trades) {
+    const exitT = t.exitTime ?? (t.time + ((t.waitBars || 1) + (t.bars || 0)) * (TIMEFRAMES[t.tf]?.ms || 0));
+    const a = btcCloseAt(t.tf, t.entryTime ?? t.time), b = btcCloseAt(t.tf, exitT);
+    t.btcPct = a && b ? +((b / a - 1) * 100).toFixed(2) : null;
+  }
+  return trades;
+}
+
 export function report(trades, split) {
   const sorted = [...trades].sort((a, b) => a.time - b.time);
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, curve: thin };
 }
 
 async function main() {
@@ -97,6 +119,12 @@ async function main() {
       } catch (err) { log(`  ${c.coin} ${tf}: ${err.message}`); }
     }
   }
+  // BTC kapanışı (TF, zaman): BTC serisi yoksa null → btcPct null
+  const btcMaps = new Map();
+  for (const s of series) if (s.coin === 'BTC') btcMaps.set(s.tf, s.candles);
+  for (const tf of tfs) if (!btcMaps.has(tf)) { try { btcMaps.set(tf, await fetchTf(CFG.fixture ? 'BTC' : instIdOf('BTC'), tf, 1500)); } catch (err) { log(`  BTC ${tf}: ${err.message}`); } }
+  if (btcDaily && !btcMaps.has('1D')) btcMaps.set('1D', btcDaily);
+  const btcCloseAt = (tf, time) => { const c = btcMaps.get(tf); if (!c) return null; let lo = 0, hi = c.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (c[m].time <= time) { k = m; lo = m + 1; } else hi = m - 1; } return k >= 0 ? c[k].close : null; };
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
   const out = { meta: { ...CFG, tfs, pit, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
@@ -107,9 +135,10 @@ async function main() {
       trades.push(...st.run(daily, o, { btcDaily, startMs: CFG.fixture ? null : startMs, pitN: pit ? CFG.top : null }));
       if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily.filter((s) => topSet.has(s.coin)), startMs, split, endMs);
     } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin)) continue; trades.push(...runStrategy(st, s, o)); }
+    attachBtc(trades, btcCloseAt);
     const rep = report(trades, split);
     out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
-    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
+    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });

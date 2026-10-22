@@ -11,7 +11,7 @@ import * as I from '../../src/data/indicators.js';
 import { regimeUp } from '../../src/scan/regime.js';
 
 const DAY = 86400e3;
-export const XS_DEFAULTS = { lookback: 28, k: 5, stopAtr: 3, rebalanceDow: 0, minHistory: 20, side: 'long', btcRegime: false, volDays: 30, fundingPct8h: 0.01 };
+export const XS_DEFAULTS = { lookback: 28, k: 5, stopAtr: 3, rebalanceDow: 0, minHistory: 20, side: 'long', btcRegime: false, volDays: 30, fundingPct8h: 0.01, rank: 'abs' }; // rank 'rel': getiri − BTC getirisi (BTC'ye göre fazla getiri)
 
 /** USDT hacim (OKX volCcyQuote); yoksa hacim × kapanış. */
 export const quoteVolOf = (x) => (Number.isFinite(x.quoteVol) && x.quoteVol > 0 ? x.quoteVol : x.volume * x.close);
@@ -93,7 +93,12 @@ export function runXsMom(seriesByCoin, o, extra = {}, params = {}) {
     }
     // 3) Yeniden dengeleme kararı: bu günün kapanışında (yalnız ≤ T kapanışlar)
     if (new Date(T).getUTCDay() !== p.rebalanceDow || (extra.startMs && T < extra.startMs)) continue; // ısınma döneminde işlem yok
-    const ranks = S.map((s) => { const i = s.idx.get(T); return i == null ? null : momentumAt(s.coin, s.c, i, s.atr, p, volAt(s, i, p.volDays)); });
+    let ranks = S.map((s) => { const i = s.idx.get(T); return i == null ? null : momentumAt(s.coin, s.c, i, s.atr, p, volAt(s, i, p.volDays)); });
+    if (p.rank === 'rel') {
+      const b = ranks.find((x) => x && x.coin === 'BTC');
+      if (!b) continue; // BTC getirisi yoksa sıralama yapılamaz
+      ranks = ranks.map((x) => (x && x.coin !== 'BTC' ? { ...x, r: x.r - b.r } : null));
+    }
     // Dönem evreni: o tarihteki son volDays günlük USDT hacmine göre ilk pitN coin (bugünün sıralaması değil)
     const sel = selectAt(ranks, p, { pitN: extra.pitN, regimeOk: !p.btcRegime || regimeUp(extra.btcDaily, T + DAY) });
     if (!sel) continue;
@@ -139,5 +144,7 @@ export const xsmomL14 = mkXs('xsmom_l14_k5', 'Kesitsel momentum: 14 gün getiris
 export const xsmomL28Btc = mkXs('xsmom_l28_k5_btc', 'Kesitsel momentum 28 gün, yalnız BTC günlük EMA50 üstündeyken', { lookback: 28, btcRegime: true });
 export const xsmomL28Ls = mkXs('xsmom_l28_k5_ls', 'Kesitsel momentum 28 gün: en güçlü 5 long + en zayıf 5 short', { lookback: 28, side: 'ls' });
 export const xsmomL28Short = mkXs('xsmom_l28_k5_short', 'Kesitsel momentum 28 gün: yalnız en zayıf 5 short', { lookback: 28, side: 'short' });
-export const XS_STRATEGIES = [xsmomL28, xsmomL14, xsmomL28Btc, xsmomL28Ls, xsmomL28Short];
+export const xsmomL28ShortRel = mkXs('xsmom_l28_k5_short_rel', 'Kesitsel momentum 28 gün, BTC\'ye göre fazla getiri: en zayıf 5 short', { lookback: 28, side: 'short', rank: 'rel' });
+export const xsmomL28LsRel = mkXs('xsmom_l28_k5_ls_rel', 'Kesitsel momentum 28 gün, BTC\'ye göre fazla getiri: 5 long + 5 short', { lookback: 28, side: 'ls', rank: 'rel' });
+export const XS_STRATEGIES = [xsmomL28, xsmomL14, xsmomL28Btc, xsmomL28Ls, xsmomL28Short, xsmomL28ShortRel, xsmomL28LsRel];
 export const slotsOf = (p) => p.k * (p.side === 'ls' ? 2 : 1);

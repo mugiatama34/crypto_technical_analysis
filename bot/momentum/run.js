@@ -18,7 +18,7 @@ export function loadPortfolio(file, now, o) {
 const dirTxt = (d) => (d === 1 ? '🟢 long' : '🔴 short');
 
 export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publishDir, provider, summaryDue = false }) {
-  const o = { ...MOM_DEFAULTS, ...(cfg.variant ? { side: cfg.variant } : {}) };
+  const o = { ...MOM_DEFAULTS, ...(cfg.variant ? { side: cfg.variant } : {}), ...(cfg.rank ? { rank: cfg.rank } : {}) };
   const src = dataSource(provider);
   const pf = loadPortfolio(stateFile, now, o);
   const fresh = !pf.lastRebalance && !pf.positions.length && !pf.trades.length;
@@ -43,6 +43,7 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
   for (const t of checkStops(pf, daily, prices, now, o)) msgs.push(`🛑 Momentum stop: <b>${esc(t.coin)}</b> ${t.direction} ${fp(t.entry)} → ${fp(t.exit)} · ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`);
   if (due) {
     const universe = top.map((t) => ({ coin: t.coin, instId: t.instId, candles: daily[t.coin]?.candles || [], live: daily[t.coin]?.live }));
+    if (!universe.some((u) => u.coin === 'BTC') && daily.BTC) universe.push({ coin: 'BTC', instId: instIdOf('BTC'), candles: daily.BTC.candles, live: daily.BTC.live });
     const { exits, entries, resized, sel } = rebalance(pf, universe, prices, now, o);
     if (sel) {
       log(`Momentum yeniden dengeleme: long ${sel.longs.join(',') || '–'} | short ${sel.shorts.join(',') || '–'} | çıkan ${exits.length}, giren ${entries.length}, yeniden boyutlanan ${resized.length}`);

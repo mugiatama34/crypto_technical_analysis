@@ -93,3 +93,17 @@ test('clampParams + decidePrompt + şema', () => {
   assert.ok(txt.includes('ETH') && txt.includes('guards'));
   assert.ok(DECIDE_SCHEMA.properties.actions.items.required.includes('rationale'));
 });
+
+test('işlem kaydı: açılış ve kapanış BTC fiyatı, btcPct', async () => {
+  const { newAccount, openPosition, closeManual } = await import('../bot/agent/account.js');
+  const { PROFILES } = await import('../bot/agent/profiles.js');
+  const P = PROFILES.temkinli;
+  const a = newAccount('temkinli', 1000);
+  openPosition(a, { coin: 'X', tf: '1H', direction: 'long', margin: 30, leverage: 3, order: 'market', price: 100, stop: 95, tp1: 105, tp2: 110, rationale: 't', signals: [], btcPrice: 50000 }, 1000, P.guards);
+  assert.equal(a.positions[0].btcAtOpen, 50000);
+  Object.defineProperty(a, '_btcPrice', { value: 49000, enumerable: false, configurable: true, writable: true });
+  closeManual(a, a.positions[0].id, 101, 2000, 'test');
+  const t = a.trades[0];
+  assert.equal(t.btcAtOpen, 50000); assert.equal(t.btcAtClose, 49000); assert.equal(t.btcPct, -2);
+  assert.ok(!JSON.stringify(a).includes('_btcPrice'));
+});

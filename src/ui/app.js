@@ -181,8 +181,9 @@ function renderRows() {
     const tgt = b.signals.map((x) => x.target).filter(Number.isFinite);
     const invP = inv.length ? (r.direction === 'long' ? Math.min(...inv) : Math.max(...inv)) : null;
     const tgtP = tgt.length ? (r.direction === 'long' ? Math.min(...tgt.filter((t) => t > r.price)) : Math.max(...tgt.filter((t) => t < r.price))) : null;
+    const rs = r.trend?.rsBtc != null ? `<span class="mtf rs ${r.trend.rsSide > 0 ? 'rs-up' : 'rs-down'}" title="BTC'ye göre göreli güç: coin/BTC oranının son 20 bardaki değişimi; ${r.trend.rsSide > 0 ? 'oran EMA50 üstünde (güçlü)' : 'oran EMA50 altında (zayıf)'}">vs BTC ${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}%</span>` : '';
     return `<article class="row ${state.selected === rowKey(r) ? 'sel' : ''}" data-key="${rowKey(r)}" tabindex="0">
-      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}<span class="score ${scoreClass(r.score)}">${r.score}</span></div>
+      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}<span class="score ${scoreClass(r.score)}">${r.score}</span></div>
       <div class="badges">${b.signals.slice(0, 8).map(badge).join('')}${b.signals.length > 8 ? `<span class="badge dim">+${b.signals.length - 8}</span>` : ''}</div>
       <div class="row-grid">
         <div><span>Fiyat</span> <b>${fmtPrice(r.price)}</b></div>
@@ -219,6 +220,7 @@ function renderDetail(r) {
   const stats = [
     ['Fiyat', fmtPrice(r.price)], ['ATR', fmtPrice(r.atr, r.price)], ['Küme puanı', `${r.score}`],
     ['MTF', r.mtf ? `${r.mtf.direction === r.direction ? r.mtf.tfs.join('+') : 'çelişkili'} · ${r.mtf.score}` : '–'],
+    ['vs BTC (20 bar)', r.trend?.rsBtc != null ? `${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}% · ${r.trend.rsSide > 0 ? 'güçlü' : 'zayıf'}` : '–'],
   ];
   $('#detail').innerHTML = `
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>

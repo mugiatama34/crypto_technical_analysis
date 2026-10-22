@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { simulateTrade, BT_DEFAULTS } from '../backtest/engine.js';
 import { stats } from '../backtest/report.js';
 import { regimeUp, engineWide4hLongBtc, donchian4hLongBtc, engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
-import { runStrategy, report, robustStats, acceptance } from '../backtest/lab/run.mjs';
+import { runStrategy, report, robustStats, acceptance, btcBeta, attachBtc } from '../backtest/lab/run.mjs';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
 const o = { ...BT_DEFAULTS, feePct: 0, slipPct: 0 };
@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 20);
+  assert.equal(STRATEGIES.length, 22);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -177,7 +177,7 @@ test('kesitsel momentum: güçlü coinler long, zayıflar ls short; geleceğe ba
   assert.ok(Math.abs(pf.trainPct + pf.validPct - pf.totalPct) < 0.2);
   const bm = benchmarks(coins, T0 + 30 * DAY, T0 + 120 * DAY, T0 + 199 * DAY);
   assert.ok(bm.btc.total > 0 && bm.ew.total != null);
-  assert.equal(XS_STRATEGIES.length, 5);
+  assert.equal(XS_STRATEGIES.length, 7);
 });
 
 test('dönem evreni: o tarihte hacmi düşük coin sıralamaya girmez; eğitim sağlamlığı kabulü etkiler', async () => {
@@ -219,4 +219,28 @@ test('momentum: fonlama R\'yi düşürür; yalnız-short varyantı; selectAt ort
   assert.deepEqual(selectAt(ranks, p, { pitN: 4 }), { longs: ['A', 'B'], shorts: ['C'] }); // D hacimde dışarıda; F en zayıf ilk 4'te değil
   assert.equal(selectAt(ranks, p, { pitN: 3 }), null);
   assert.deepEqual(selectAt(ranks, { ...p, btcRegime: true }, { regimeOk: false }).longs, []);
+});
+
+test('BTC betası: R işaretli BTC getirisini izliyorsa beta ≈ 1; attachBtc tutma süresindeki BTC getirisini yazar; rel sıralama', async () => {
+  const mk = (dir, btcPct, R) => ({ direction: dir, btcPct, R, outcome: 'stopped', time: 0 });
+  const tr = [];
+  for (let i = -10; i <= 10; i++) { tr.push(mk('long', i, i / 1)); tr.push(mk('short', i, -i)); } // R = işaretli BTC%
+  const b = btcBeta(tr);
+  assert.ok(Math.abs(b.beta - 1) < 1e-9 && Math.abs(b.corr - 1) < 1e-9);
+  assert.equal(btcBeta(tr.slice(0, 5)).beta, null);
+  const H = 3600e3;
+  const btc = Array.from({ length: 50 }, (_, i) => ({ time: i * H, close: 100 + i }));
+  const closeAt = (tf, t) => { let v = null; for (const c of btc) if (c.time <= t) v = c.close; return v; };
+  const t = [{ tf: '1H', time: 10 * H, waitBars: 1, bars: 4, direction: 'long', R: 1, outcome: 'tp2' }];
+  attachBtc(t, closeAt);
+  assert.ok(Math.abs(t[0].btcPct - ((115 / 110) - 1) * 100) < 0.01); // giriş 10. saat, çıkış 15. saat (2 ondalık)
+  const { runXsMom } = await import('../backtest/lab/xsmom.js');
+  const DAY = 86400e3, T0 = Date.UTC(2025, 0, 5);
+  const mkCoin = (coin, drift) => { const out = []; let p = 100; for (let i = 0; i < 200; i++) { const open = p; p = p * (1 + drift + Math.sin(i * 0.7 + drift * 900) * 0.01); out.push(c(T0 + i * DAY, open, Math.max(open, p) * 1.005, Math.min(open, p) * 0.995, p)); } return { coin, candles: out }; };
+  // Herkes yükseliyor (BTC %0,8/gün); mutlak sıralamada short yok, rel sıralamada BTC'den yavaş yükselenler short
+  const coins = [mkCoin('BTC', 0.008), ...Array.from({ length: 10 }, (_, i) => mkCoin(`C${i}`, 0.002 + i * 0.001))];
+  const abs = runXsMom(coins, { feePct: 0, slipPct: 0 }, {}, { lookback: 28, k: 3, side: 'short' });
+  const rel = runXsMom(coins, { feePct: 0, slipPct: 0 }, {}, { lookback: 28, k: 3, side: 'short', rank: 'rel' });
+  assert.ok(abs.length < rel.length / 3, `mutlak ${abs.length} vs rel ${rel.length}`); assert.ok(rel.length > 0 && rel.every((x) => x.direction === 'short' && x.coin !== 'BTC'));
+  assert.ok(rel.some((x) => ['C0', 'C1', 'C2'].includes(x.coin)));
 });

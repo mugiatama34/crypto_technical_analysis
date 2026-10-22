@@ -73,6 +73,7 @@ jobs:
           SHORT_RULE: ${{ vars.SHORT_RULE }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
+          MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 

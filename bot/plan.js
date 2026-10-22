@@ -56,6 +56,12 @@ export function buildPlan(row, opts = {}) {
     if (!aligned) return { ok: false, reason: 'DI yönü uyumsuz' };
   }
   if (o.trendEma && !emaSide) return { ok: false, reason: 'fiyat EMA200\'ün yanlış tarafında' };
+  // BTC'ye göre göreli güç: 'with' → long yalnız BTC'den güçlü coinlerde (rsSide > 0 ve rs > 0), short yalnız zayıflarda
+  if (o.rsBtc === 'with' && row.coin !== 'BTC') {
+    if (t.rsBtc == null || t.rsSide == null) return { ok: false, reason: 'BTC göreli gücü bilinmiyor' };
+    const strong = t.rsSide > 0 && t.rsBtc > 0, weak = t.rsSide < 0 && t.rsBtc < 0;
+    if ((d === 1 && !strong) || (d === -1 && !weak)) return { ok: false, reason: d === 1 ? 'BTC\'ye göre zayıf' : 'BTC\'ye göre güçlü' };
+  }
   // BTC rejimi: 'with' → long yalnız BTC yükseliş rejiminde, short yalnız düşüş rejiminde (o.regime: 'up'|'down'|null)
   if (o.btcRegime === 'with') {
     if (!o.regime) return { ok: false, reason: 'BTC rejimi bilinmiyor' };
@@ -100,7 +106,7 @@ export function buildPlan(row, opts = {}) {
     riskPct: +(risk / entry * 100).toFixed(2),
     signals: b.signals.map((s) => ({ name: s.name, detector: s.detector, group: s.group, direction: s.direction, strength: +s.strength.toFixed(2), status: s.status, zone: s.zone?.map(r4), note: s.note || '', invalidation: s.invalidation, target: s.target })),
     groups: [...b.groups],
-    trend: { adx: t.adx != null ? +t.adx.toFixed(1) : null, aligned, emaSide },
+    trend: { adx: t.adx != null ? +t.adx.toFixed(1) : null, aligned, emaSide, rsBtc: t.rsBtc ?? null, rsSide: t.rsSide ?? null },
     regime: o.regime ?? null,
     time: t.time ?? null,
     status: inZone ? 'active' : 'waiting',

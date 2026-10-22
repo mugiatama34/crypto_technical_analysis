@@ -61,6 +61,15 @@ düşüş; "BTC rejimiyle aynı yön" şartı long'u yalnız yükselişte, short
 - **Short (tüm TF'ler, `SHORT_RULE`):** TF eşiği + 10 puan, MTF zorunlu, ADX ≥ 30 (TF'ninki daha yüksekse o) yön uyumlu,
   EMA200 tarafı, BTC rejimi düşüşte, 12 saat cooldown.
 - Ajan adayları aynı yön kurallarını kullanır (puan eşiği 10 düşük). Elenme nedenlerinde "BTC rejimi ters" görünür.
+- **BTC'ye göre göreli güç** (`src/scan/relative.js`): her satırda `trend.rsBtc` (coin/BTC oranının son 20 bardaki %
+  değişimi) ve `trend.rsSide` (oran EMA50 üstünde +1 / altında −1). Tarayıcıda "vs BTC" çipi, Telegram gerekçesinde
+  "BTC'ye göre 20 bar". Kural `rsBtc: "with"` (vars. kapalı): long yalnız BTC'den güçlü coinde (rsSide +1 ve rs > 0),
+  short yalnız zayıfta. Örn. `SHORT_RULE={"rsBtc":"with"}` ya da `TF_RULES={"1H":{"rsBtc":"with"}}`.
+- **BTC bağımlılığı ölçümü:** sinyal geçmişi `btcAtSend`/`btcAtClose`/`rsBtc`, ajan işlemleri `btcAtOpen`/`btcAtClose`/
+  `btcPct` kaydeder; `signals.html` ve `agent.html` "BTC bağımlılığı" bölümünde BTC ters/lehte giderken sonuçlar ve
+  R ~ BTC korelasyonu; laboratuvarda her aile için `byBtc` kırılımı ve BTC betası (`lab.html`). Momentum laboratuvarı
+  `rank: 'rel'` varyantları (BTC'ye göre fazla getiriyle sıralama: `xsmom_l28_k5_short_rel`, `_ls_rel`); canlı portföy
+  `MOMENTUM_RANK=rel` ile aynı sıralamaya geçer (vars. `abs`).
 - Ezme: `TF_RULES` (ör. `{"15m":{"minScore":85,"long":{"trendAdxMin":30}},"4H":{"requireMtf":true}}`; TF içinde
   `long`/`short` alt kuralı), `SHORT_RULE` (ör. `{"scoreAdd":5,"btcRegime":null}`).
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),

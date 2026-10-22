@@ -123,7 +123,9 @@ export function rebalance(pf, universe, prices, now, o = MOM_DEFAULTS) {
     const m = momentumAt(u.coin, c, i, atr, p, vol);
     return m && { ...m, atr: atr[i] };
   });
-  const sel = selectAt(ranks, p, { pitN: o.pitN }); // laboratuvarla aynı: o anki 30 günlük hacimde ilk pitN
+  let R = ranks;
+  if (p.rank === 'rel') { const b = ranks.find((x) => x && x.coin === 'BTC'); if (!b) { pf.lastRebalance = now; return { exits: [], entries: [], resized: [], sel: null }; } R = ranks.map((x) => (x && x.coin !== 'BTC' ? { ...x, r: x.r - b.r } : null)); }
+  const sel = selectAt(R, p, { pitN: o.pitN }); // laboratuvarla aynı: o anki 30 günlük hacimde ilk pitN
   pf.lastRebalance = now;
   if (!sel) return { exits: [], entries: [], resized: [], sel: null };
   const want = new Map([...sel.longs.map((c) => [c, 1]), ...sel.shorts.map((c) => [c, -1])]);
@@ -170,7 +172,7 @@ export function publishOf(pf, prices, now, o = MOM_DEFAULTS, btcPrice = null) {
   const closed = pf.trades;
   const wins = closed.filter((t) => t.pnl > 0);
   return {
-    updatedAt: now, variant: o.side, params: { lookback: o.lookback, k: o.k, side: o.side, stopAtr: o.stopAtr, feePct: o.feePct, slipPct: o.slipPct, fundingPct8h: o.fundingPct8h, riskPct: o.riskPct, pitN: o.pitN, universe: o.universe },
+    updatedAt: now, variant: o.side, params: { lookback: o.lookback, k: o.k, side: o.side, rank: o.rank, stopAtr: o.stopAtr, feePct: o.feePct, slipPct: o.slipPct, fundingPct8h: o.fundingPct8h, riskPct: o.riskPct, pitN: o.pitN, universe: o.universe },
     start: pf.start, startEquity: pf.startEquity, equity: +eq.toFixed(2), pnlPct: +(((eq / pf.startEquity) - 1) * 100).toFixed(2), realized: +pf.realized.toFixed(2),
     btc: pf.btcStart && btcPrice ? { start: pf.btcStart, now: btcPrice, pct: +(((btcPrice / pf.btcStart) - 1) * 100).toFixed(2) } : null,
     lastRebalance: pf.lastRebalance || null, nextRebalance: lastWeekClose(now) + 7 * DAY,
