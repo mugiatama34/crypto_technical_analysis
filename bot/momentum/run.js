@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { getTopCoins, getCandles, TIMEFRAMES, instIdOf } from '../../src/data/okx.js';
-import { MOM_DEFAULTS, newPortfolio, rebalanceDue, accrueFunding, checkStops, rebalance, markCurve, publishOf, equityOf } from './portfolio.js';
+import { MOM_DEFAULTS, newPortfolio, rebalanceDue, accrueFunding, checkStops, rebalance, markCurve, publishOf, equityOf, syncHedge, netExposure } from './portfolio.js';
 import { esc, fp } from '../telegram.js';
 
 /** Veri kaynağı: OKX ya da test/fixture sağlayıcısı ({ topCoins(n), candles(instId, tf, n) }). */
@@ -18,7 +18,7 @@ export function loadPortfolio(file, now, o) {
 const dirTxt = (d) => (d === 1 ? '🟢 long' : '🔴 short');
 
 export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publishDir, provider, summaryDue = false }) {
-  const o = { ...MOM_DEFAULTS, ...(cfg.variant ? { side: cfg.variant } : {}), ...(cfg.rank ? { rank: cfg.rank } : {}) };
+  const o = { ...MOM_DEFAULTS, ...(cfg.variant ? { side: cfg.variant } : {}), ...(cfg.rank ? { rank: cfg.rank } : {}), ...(cfg.hedge != null ? { hedge: !!cfg.hedge } : {}) };
   const src = dataSource(provider);
   const pf = loadPortfolio(stateFile, now, o);
   const fresh = !pf.lastRebalance && !pf.positions.length && !pf.trades.length;
@@ -40,25 +40,28 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
   if (pf.btcStart == null && prices.BTC) pf.btcStart = prices.BTC;
   accrueFunding(pf, now, o);
   const msgs = [];
-  for (const t of checkStops(pf, daily, prices, now, o)) msgs.push(`🛑 Momentum stop: <b>${esc(t.coin)}</b> ${t.direction} ${fp(t.entry)} → ${fp(t.exit)} · ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`);
+  const stopped = checkStops(pf, daily, prices, now, o);
+  for (const t of stopped) msgs.push(`🛑 Momentum stop: <b>${esc(t.coin)}</b> ${t.direction} ${fp(t.entry)} → ${fp(t.exit)} · ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`);
+  if (stopped.length && !due) { const hs = syncHedge(pf, prices, now, o); if (hs) msgs.push(`⚖️ BTC hedge ${hs.action === 'close' ? 'kapandı' : `${hs.from} → ${hs.notional} USDT`} (alt net maruziyet ${netExposure(pf, prices).toFixed(0)} USDT)`); }
   if (due) {
     const universe = top.map((t) => ({ coin: t.coin, instId: t.instId, candles: daily[t.coin]?.candles || [], live: daily[t.coin]?.live }));
     if (!universe.some((u) => u.coin === 'BTC') && daily.BTC) universe.push({ coin: 'BTC', instId: instIdOf('BTC'), candles: daily.BTC.candles, live: daily.BTC.live });
-    const { exits, entries, resized, sel } = rebalance(pf, universe, prices, now, o);
+    const { exits, entries, resized, hedge, sel } = rebalance(pf, universe, prices, now, o);
     if (sel) {
       log(`Momentum yeniden dengeleme: long ${sel.longs.join(',') || '–'} | short ${sel.shorts.join(',') || '–'} | çıkan ${exits.length}, giren ${entries.length}, yeniden boyutlanan ${resized.length}`);
-      const lines = [`🔄 <b>Momentum portföyü — haftalık yeniden dengeleme</b> (kâğıt, ${o.side === 'ls' ? 'long-short' : o.side})`,
+      const lines = [`🔄 <b>Momentum portföyü — haftalık yeniden dengeleme</b> (kâğıt, ${o.side === 'ls' ? 'long-short' : o.side}${o.rank === 'rel' ? ', BTC\'ye göre sıralama' : ''}${o.hedge ? ', BTC hedge\'li' : ''})`,
         `Özsermaye: ${equityOf(pf, prices).toFixed(2)} USDT (başlangıç ${pf.startEquity})`];
       if (exits.length) lines.push('', '<b>Çıkan</b>', ...exits.map((t) => `${esc(t.coin)} ${t.direction}: ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`));
       if (resized.length) lines.push('', '<b>Yeniden boyutlanan</b> (eşit risk)', ...resized.map((r) => `${esc(r.coin)} nominal ${r.from} → ${r.to} USDT`));
       if (entries.length) lines.push('', '<b>Giren</b>', ...entries.map((q) => `${esc(q.coin)} ${dirTxt(q.d)} @ ${fp(q.entry)} · stop ${fp(q.stop)} (%${q.stopPct}) · ${q.notional} USDT · risk ${q.riskUsd} USDT`));
-      lines.push('', `Tutulan: ${pf.positions.map((q) => `${q.coin}${q.d === 1 ? '↑' : '↓'}`).join(' ') || '–'}`, `Her pozisyon stop'a kadar özsermayenin %${o.riskPct}'sini riske eder. Sanal portföy; gerçek emir yoktur.`);
+      if (o.hedge) { const h = pf.positions.find((q) => q.hedge); lines.push('', `⚖️ <b>BTC hedge</b>: ${h ? `${dirTxt(h.d)} ${h.notional} USDT @ ${fp(h.entry)}` : 'yok'}${hedge ? ` (${hedge.action === 'open' ? 'açıldı' : hedge.action === 'close' ? 'kapandı' : `${hedge.from} → ${hedge.notional}`})` : ''} · alt net maruziyet ${netExposure(pf, prices).toFixed(0)} USDT`); }
+      lines.push('', `Tutulan: ${pf.positions.filter((q) => !q.hedge).map((q) => `${q.coin}${q.d === 1 ? '↑' : '↓'}`).join(' ') || '–'}`, `Her pozisyon stop'a kadar özsermayenin %${o.riskPct}'sini riske eder. Sanal portföy; gerçek emir yoktur.`);
       msgs.push(lines.join('\n'));
     } else log('Momentum: evren yetersiz, yeniden dengeleme atlandı');
   }
   const eq = markCurve(pf, prices, now, o);
   if (fresh) msgs.unshift(`📈 Momentum kâğıt portföyü başladı: ${pf.startEquity} USDT sanal sermaye, ${o.side === 'ls' ? 'en güçlü 5 long + en zayıf 5 short' : o.side === 'short' ? 'en zayıf 5 short' : 'en güçlü 5 long'}, haftalık yeniden dengeleme.`);
-  if (summaryDue) msgs.push(`📈 Momentum portföyü: ${eq.toFixed(2)} USDT (%${(((eq / pf.startEquity) - 1) * 100).toFixed(2)}) · açık ${pf.positions.length} · kapanan ${pf.trades.length}`);
+  if (summaryDue) msgs.push(`📈 Momentum portföyü: ${eq.toFixed(2)} USDT (%${(((eq / pf.startEquity) - 1) * 100).toFixed(2)}) · açık ${pf.positions.filter((q) => !q.hedge).length}${o.hedge ? ` + BTC hedge ${pf.positions.find((q) => q.hedge)?.notional ?? 0} USDT` : ''} · kapanan ${pf.trades.length}`);
   for (const m of msgs) await notify(m);
   log(`Momentum: özsermaye ${eq.toFixed(2)} USDT, açık ${pf.positions.length}, kapanan ${pf.trades.length}${due ? ' (yeniden dengelendi)' : ''}`);
   if (!cfg.dry) {

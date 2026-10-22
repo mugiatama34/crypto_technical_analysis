@@ -11,13 +11,38 @@ const DAY = 86400e3, H8 = 8 * 3600e3;
 // riskPct: her pozisyon stop'a kadar özsermayenin bu %'sini riske eder (eşit risk; laboratuvarın R ölçüsüyle tutarlı),
 // nominal üst sınırı özsermaye / slot. universe: çekilen havuz (24 saatlik hacim), pitN: 30 günlük hacme göre ilk N.
 // resizeTol: listede kalan pozisyon hedef nominalden bu oranda saparsa yeniden boyutlanır.
-export const MOM_DEFAULTS = { ...XS_DEFAULTS, lookback: 28, k: 5, side: 'ls', capital: 300, feePct: 0.05, slipPct: 0.05, fundingPct8h: 0.01, riskPct: 2, universe: 80, pitN: 50, resizeTol: 0.2, maxTrades: 400, maxCurve: 2000 };
+export const MOM_DEFAULTS = { ...XS_DEFAULTS, lookback: 28, k: 5, side: 'ls', capital: 300, feePct: 0.05, slipPct: 0.05, fundingPct8h: 0.01, riskPct: 2, universe: 80, pitN: 50, resizeTol: 0.2, hedge: false, maxTrades: 400, maxCurve: 2000 }; // hedge: alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
 
 /** Eşit risk hedef nominali: min(özsermaye / slot, riskPct% × özsermaye ÷ stop uzaklığı). */
 export function targetNotional(equity, stopPct, o = MOM_DEFAULTS) {
   const cap = equity / slotsOf(o);
   if (!(stopPct > 0)) return cap;
   return Math.min(cap, (o.riskPct / 100) * equity / stopPct);
+}
+
+/** Alt pozisyonların net maruziyeti (USDT, işaretli: + net long). Hedge bacağı hariç. */
+export const netExposure = (pf, prices) => pf.positions.filter((q) => !q.hedge).reduce((a, q) => a + q.d * q.qty * (prices[q.coin] ?? q.lastPrice ?? q.entry), 0);
+
+/**
+ * BTC hedge bacağını alt net maruziyetin tersine eşitler: yoksa açar, varsa hedefe çeker, hedef ~0 ise kapatır.
+ * → { action: 'open'|'resize'|'close'|null, notional, from }
+ */
+export function syncHedge(pf, prices, now, o = MOM_DEFAULTS) {
+  if (!o.hedge) return null;
+  const px = prices.BTC; if (!(px > 0)) return null;
+  const target = -netExposure(pf, prices); // + → BTC long
+  const h = pf.positions.find((q) => q.hedge);
+  const minN = 5; // USDT altı: hedge yok
+  if (Math.abs(target) < minN) { if (h) { const t = closePos(pf, h, px, 'hedge', now, o); return { action: 'close', notional: 0, from: t.notional }; } return null; }
+  const d = target > 0 ? 1 : -1;
+  if (h && h.d !== d) { closePos(pf, h, px, 'hedge', now, o); return syncHedge(pf, prices, now, o); }
+  if (!h) {
+    const entry = px * (1 + d * (o.slipPct / 100)), notional = Math.abs(target);
+    pf.positions.push({ coin: 'BTC', instId: 'BTC-USDT-SWAP', hedge: true, d, entry: +entry.toPrecision(8), qty: notional / entry, notional: +notional.toFixed(2), stop: null, stop0: null, risk: null, stopPct: null, riskUsd: 0, entryTime: now, funding: 0, lastPrice: px });
+    return { action: 'open', notional: +notional.toFixed(2), from: 0 };
+  }
+  const r = resizePos(pf, h, px, Math.abs(target), now, o);
+  return r ? { action: 'resize', notional: r.to, from: r.from } : null;
 }
 
 export function newPortfolio(now, o = MOM_DEFAULTS) {
@@ -44,7 +69,7 @@ function closePos(pf, q, price, reason, now, o) {
   const fee = (q.entry * q.qty + exit * q.qty) * (o.feePct / 100);
   const pnl = q.d * (exit - q.entry) * q.qty - fee - q.funding;
   pf.realized += pnl;
-  const t = { coin: q.coin, direction: q.d === 1 ? 'long' : 'short', entryTime: q.entryTime, exitTime: now, entry: q.entry, exit: +exit.toPrecision(8), qty: q.qty, notional: q.notional, pnl: +pnl.toFixed(2), pct: +((pnl / q.notional) * 100).toFixed(2), R: +((pnl / q.notional) / q.risk).toFixed(2), reason, funding: +q.funding.toFixed(3), fee: +fee.toFixed(3) };
+  const t = { coin: q.coin, direction: q.d === 1 ? 'long' : 'short', entryTime: q.entryTime, exitTime: now, entry: q.entry, exit: +exit.toPrecision(8), qty: q.qty, notional: q.notional, pnl: +pnl.toFixed(2), pct: +((pnl / q.notional) * 100).toFixed(2), R: q.risk ? +((pnl / q.notional) / q.risk).toFixed(2) : null, hedge: !!q.hedge, reason, funding: +q.funding.toFixed(3), fee: +fee.toFixed(3) };
   pf.trades.push(t);
   if (pf.trades.length > o.maxTrades) pf.trades.splice(0, pf.trades.length - o.maxTrades);
   pf.positions = pf.positions.filter((x) => x !== q);
@@ -71,8 +96,7 @@ export function resizePos(pf, q, px, target, now, o = MOM_DEFAULTS) {
     q.qty += dq;
   }
   q.notional = +(q.qty * q.entry).toFixed(2);
-  q.stopPct = +((Math.abs(px - q.stop) / px) * 100).toFixed(1);
-  q.riskUsd = +(q.qty * Math.abs(px - q.stop)).toFixed(2);
+  if (q.stop != null) { q.stopPct = +((Math.abs(px - q.stop) / px) * 100).toFixed(1); q.riskUsd = +(q.qty * Math.abs(px - q.stop)).toFixed(2); }
   return { coin: q.coin, d: q.d, from: before, to: q.notional, time: now };
 }
 
@@ -94,6 +118,7 @@ export function checkStops(pf, daily, prices, now, o = MOM_DEFAULTS) {
     const D = daily[q.coin]; const price = prices[q.coin];
     if (price == null) continue;
     q.lastPrice = price;
+    if (q.hedge) continue; // hedge bacağının stop'u yok; syncHedge yönetir
     if (D?.candles?.length) {
       const c = D.candles, i = c.length - 1;
       if (c[i].time > (q.trailDay ?? 0) && c[i].time >= Math.floor(q.entryTime / DAY) * DAY) {
@@ -130,18 +155,19 @@ export function rebalance(pf, universe, prices, now, o = MOM_DEFAULTS) {
   if (!sel) return { exits: [], entries: [], resized: [], sel: null };
   const want = new Map([...sel.longs.map((c) => [c, 1]), ...sel.shorts.map((c) => [c, -1])]);
   const exits = [];
-  for (const q of [...pf.positions]) if (want.get(q.coin) !== q.d && prices[q.coin] != null) exits.push(closePos(pf, q, prices[q.coin], 'rebalance', now, o));
+  for (const q of [...pf.positions]) if (!q.hedge && want.get(q.coin) !== q.d && prices[q.coin] != null) exits.push(closePos(pf, q, prices[q.coin], 'rebalance', now, o));
   const equity = equityOf(pf, prices);
   const entries = [], resized = [];
   const atrOf = new Map(ranks.filter(Boolean).map((x) => [x.coin, x.atr]));
   // Listede kalan pozisyonlar: eşit risk hedefine yeniden boyutla (stop yerinde kalır; risk = mevcut stop uzaklığı)
   for (const q of pf.positions) {
-    const px = prices[q.coin]; if (px == null) continue;
+    const px = prices[q.coin]; if (px == null || q.hedge) continue;
     const r = resizePos(pf, q, px, targetNotional(equity, Math.abs(px - q.stop) / px, o), now, o);
     if (r) resized.push(r);
   }
   for (const [coin, d] of want) {
-    if (pf.positions.some((q) => q.coin === coin)) continue;
+    if (pf.positions.some((q) => q.coin === coin && !q.hedge)) continue;
+    if (o.hedge && coin === 'BTC') continue; // hedge modunda BTC'nin kendisi seçilmez
     const px = prices[coin], atr = atrOf.get(coin);
     if (px == null || !atr) continue;
     const entry = px * (1 + d * (o.slipPct / 100));
@@ -152,9 +178,10 @@ export function rebalance(pf, universe, prices, now, o = MOM_DEFAULTS) {
     pf.positions.push(q);
     entries.push(q);
   }
-  pf.rebalances.push({ time: now, longs: sel.longs, shorts: sel.shorts, equity: +equity.toFixed(2) });
+  const hedge = syncHedge(pf, prices, now, o);
+  pf.rebalances.push({ time: now, longs: sel.longs, shorts: sel.shorts, equity: +equity.toFixed(2), hedgeNotional: pf.positions.find((q) => q.hedge)?.notional ?? 0 });
   if (pf.rebalances.length > 60) pf.rebalances.splice(0, pf.rebalances.length - 60);
-  return { exits, entries, resized, sel };
+  return { exits, entries, resized, hedge, sel };
 }
 
 /** Özsermaye eğrisine nokta (en fazla saatte bir). */
@@ -172,11 +199,12 @@ export function publishOf(pf, prices, now, o = MOM_DEFAULTS, btcPrice = null) {
   const closed = pf.trades;
   const wins = closed.filter((t) => t.pnl > 0);
   return {
-    updatedAt: now, variant: o.side, params: { lookback: o.lookback, k: o.k, side: o.side, rank: o.rank, stopAtr: o.stopAtr, feePct: o.feePct, slipPct: o.slipPct, fundingPct8h: o.fundingPct8h, riskPct: o.riskPct, pitN: o.pitN, universe: o.universe },
+    updatedAt: now, variant: o.side, hedge: !!o.hedge, netExposure: +netExposure(pf, prices).toFixed(2), hedgeNotional: pf.positions.find((q) => q.hedge)?.notional ?? 0,
+    params: { lookback: o.lookback, k: o.k, side: o.side, rank: o.rank, hedge: !!o.hedge, stopAtr: o.stopAtr, feePct: o.feePct, slipPct: o.slipPct, fundingPct8h: o.fundingPct8h, riskPct: o.riskPct, pitN: o.pitN, universe: o.universe },
     start: pf.start, startEquity: pf.startEquity, equity: +eq.toFixed(2), pnlPct: +(((eq / pf.startEquity) - 1) * 100).toFixed(2), realized: +pf.realized.toFixed(2),
     btc: pf.btcStart && btcPrice ? { start: pf.btcStart, now: btcPrice, pct: +(((btcPrice / pf.btcStart) - 1) * 100).toFixed(2) } : null,
     lastRebalance: pf.lastRebalance || null, nextRebalance: lastWeekClose(now) + 7 * DAY,
-    positions: pf.positions.map((q) => { const px = prices[q.coin] ?? q.lastPrice ?? q.entry; const pnl = pnlOf(q, px) - q.funding; return { coin: q.coin, direction: q.d === 1 ? 'long' : 'short', entry: q.entry, price: px, stop: q.stop, stopPct: +((Math.abs(px - q.stop) / px) * 100).toFixed(1), riskUsd: +(q.qty * Math.abs(px - q.stop)).toFixed(2), notional: q.notional, pnl: +pnl.toFixed(2), pct: +((pnl / q.notional) * 100).toFixed(2), entryTime: q.entryTime, funding: +q.funding.toFixed(3) }; }),
+    positions: pf.positions.map((q) => { const px = prices[q.coin] ?? q.lastPrice ?? q.entry; const pnl = pnlOf(q, px) - q.funding; return { coin: q.coin, hedge: !!q.hedge, direction: q.d === 1 ? 'long' : 'short', entry: q.entry, price: px, stop: q.stop, stopPct: q.stop != null ? +((Math.abs(px - q.stop) / px) * 100).toFixed(1) : null, riskUsd: q.stop != null ? +(q.qty * Math.abs(px - q.stop)).toFixed(2) : 0, notional: q.notional, pnl: +pnl.toFixed(2), pct: +((pnl / q.notional) * 100).toFixed(2), entryTime: q.entryTime, funding: +q.funding.toFixed(3) }; }),
     stats: { trades: closed.length, winRate: closed.length ? +(wins.length / closed.length).toFixed(3) : 0, avgPct: closed.length ? +(closed.reduce((a, t) => a + t.pct, 0) / closed.length).toFixed(2) : 0 },
     trades: closed.slice(-200).reverse(), rebalances: pf.rebalances.slice(-12).reverse(), curve: pf.curve,
   };

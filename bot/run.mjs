@@ -57,6 +57,7 @@ const CFG = {
   momentum: env('MOMENTUM', '0') === '1', // haftalık kesitsel momentum kâğıt portföyü (bot/momentum)
   momentumVariant: env('MOMENTUM_VARIANT', 'ls'), // ls | short | long
   momentumRank: env('MOMENTUM_RANK', 'abs'), // abs | rel (BTC'ye göre fazla getiri)
+  momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
   historyFile: env('HISTORY_FILE', 'docs/signals/history.json'),
@@ -249,7 +250,7 @@ async function main() {
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)
   if (CFG.momentum) {
-    try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
+    try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
     catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
   }
   if (summaryDue) {

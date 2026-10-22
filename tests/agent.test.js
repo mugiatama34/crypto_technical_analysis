@@ -98,7 +98,7 @@ test('işlem kaydı: açılış ve kapanış BTC fiyatı, btcPct', async () => {
   const { newAccount, openPosition, closeManual } = await import('../bot/agent/account.js');
   const { PROFILES } = await import('../bot/agent/profiles.js');
   const P = PROFILES.temkinli;
-  const a = newAccount('temkinli', 1000);
+  const a = newAccount(P, 1000);
   openPosition(a, { coin: 'X', tf: '1H', direction: 'long', margin: 30, leverage: 3, order: 'market', price: 100, stop: 95, tp1: 105, tp2: 110, rationale: 't', signals: [], btcPrice: 50000 }, 1000, P.guards);
   assert.equal(a.positions[0].btcAtOpen, 50000);
   Object.defineProperty(a, '_btcPrice', { value: 49000, enumerable: false, configurable: true, writable: true });
@@ -106,4 +106,40 @@ test('işlem kaydı: açılış ve kapanış BTC fiyatı, btcPct', async () => {
   const t = a.trades[0];
   assert.equal(t.btcAtOpen, 50000); assert.equal(t.btcAtClose, 49000); assert.equal(t.btcPct, -2);
   assert.ok(!JSON.stringify(a).includes('_btcPrice'));
+});
+
+test('hedge: ters BTC bacağı aynı nominal; pozisyon sayısına girmez; ana kapanınca bacak kapanır; limit dolumunda bacak; marjin hedge dahil kırpılır', async () => {
+  const { newAccount, openPosition, closeManual, updatePositions, openPendingHedges, closeOrphanHedges } = await import('../bot/agent/account.js');
+  const { PROFILES } = await import('../bot/agent/profiles.js');
+  const P = PROFILES.temkinli;
+  const a = newAccount(P, 1000);
+  const r = openPosition(a, { coin: 'ETH', tf: '4H', direction: 'long', margin: 30, leverage: 3, order: 'market', price: 100, stop: 95, tp1: 110, tp2: 120, hedge: true, rationale: 't', signals: [], btcPrice: 50000 }, 1000, P.guards);
+  assert.ok(r.ok && r.hedgeLeg);
+  const h = r.hedgeLeg;
+  assert.equal(h.coin, 'BTC'); assert.equal(h.direction, 'short'); assert.equal(h.hedgeOf, r.position.id);
+  assert.ok(Math.abs(h.notional - r.position.notional) < 1e-6); assert.equal(h.tp1, null);
+  assert.ok(h.stop > h.entry && h.stop < h.liq);
+  assert.equal(a.positions.length, 2);
+  // pozisyon sayısı: maxPositions 3 → 2 ana daha açılabilir (hedge bacağı sayılmaz)
+  assert.ok(openPosition(a, { coin: 'SOL', tf: '4H', direction: 'long', margin: 20, leverage: 2, order: 'market', price: 10, stop: 9, rationale: '', signals: [] }, 1000, P.guards).ok);
+  assert.ok(openPosition(a, { coin: 'LINK', tf: '4H', direction: 'long', margin: 20, leverage: 2, order: 'market', price: 10, stop: 9, rationale: '', signals: [] }, 1000, P.guards).ok);
+  assert.equal(openPosition(a, { coin: 'ADA', tf: '4H', direction: 'long', margin: 20, leverage: 2, order: 'market', price: 10, stop: 9, rationale: '', signals: [] }, 1000, P.guards).ok, false);
+  // ana kapanınca bacak kapanır
+  closeManual(a, r.position.id, 101, 2000, 'test');
+  const ev = closeOrphanHedges(a, 49000, 2000);
+  assert.equal(ev.length, 1); assert.ok(!a.positions.some((p) => p.hedgeOf));
+  const ht = a.trades.find((t) => t.hedgeOf);
+  assert.ok(ht && ht.pnl > 0, 'BTC düştü, short bacak kârlı');
+  // limit dolumunda bacak
+  const b = newAccount(P, 1000);
+  const lim = openPosition(b, { coin: 'ETH', tf: '1H', direction: 'long', margin: 30, leverage: 3, order: 'limit', limit_price: 95, price: 100, stop: 90, hedge: true, rationale: '', signals: [], btcPrice: 50000 }, 1000, P.guards);
+  assert.ok(lim.ok && lim.order.hedge);
+  updatePositions(b, { ETH: [{ time: 2000, open: 100, high: 100, low: 94, close: 96 }] }, 2000);
+  assert.ok(b.positions[0].pendingHedge);
+  const legs = openPendingHedges(b, 51000, 2500);
+  assert.equal(legs.length, 1); assert.equal(legs[0].direction, 'short'); assert.equal(b.positions.length, 2);
+  // marjin: hedge dahil üst sınır (maxMarginPct 40 → 300 × 0,4 / 2 = 60)
+  const c = newAccount(P, 1000);
+  const big = openPosition(c, { coin: 'ETH', tf: '4H', direction: 'long', margin: 100, leverage: 2, order: 'market', price: 100, stop: 95, hedge: true, rationale: '', signals: [], btcPrice: 50000 }, 1000, P.guards);
+  assert.ok(big.ok && Math.abs(big.position.margin - 60) < 1e-6 && Math.abs(big.hedgeLeg.margin - 60) < 1e-6);
 });

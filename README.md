@@ -253,6 +253,13 @@ MIT. Elliott Wave kural motoru, dalga-3 / üçgen tarayıcıları ve OKX istemci
 [klonnist/ew-setup-scanner](https://github.com/klonnist/ew-setup-scanner) (MIT) kopyasından alınmıştır
 (`LICENSE-ew-scanner`). Grafik: [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/).
 
+### Ajanda BTC hedge seçeneği
+Ajan `open` eyleminde `hedge: true` diyebilir: aynı anda eşit nominalde **ters BTC bacağı** açılır (aynı marjin ve
+kaldıraç, stop likidasyonun %90 içinde, hedef yok, `hedgeOf` ile ana pozisyona bağlı). Ana pozisyon kapanınca bacak aynı
+turda piyasa fiyatından kapanır; limit emirlerde bacak dolumda açılır. Hedge bacakları pozisyon sayısına girmez; marjin
+sınırı ana + bacak toplamına uygulanır. Sistem talimatı laboratuvar bulgusunu söyler (4H kurulumlarının kazancı BTC'nin
+yönüydü); hedge'leyip hedge'lememek Claude'un kararıdır. `agent.html`'de "hedge'li" / "hedge bacağı" etiketleri.
+
 ## Momentum kâğıt portföyü (`bot/momentum/`, `momentum.html`)
 
 Laboratuvarda dönem evreniyle sıkı ölçütü geçen tek aile kesitsel momentumdu (28 günlük getiri; en güçlü 5 long + en
@@ -272,3 +279,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - Durum `bot/momentum-state.json` (Actions cache), sayfa verisi `docs/agent/momentum.json`; sayfa **`momentum.html`**
   (özsermaye eğrisi, BTC al-tut kıyası, açık pozisyonlar, yeniden dengelemeler, işlemler).
 - Açıldığı ilk turda hemen bir yeniden dengeleme yapar (hafta ortasında başlayabilir).
+- **BTC hedge (piyasa-nötr):** `MOMENTUM_HEDGE=1` ile alt pozisyonların net maruziyetine eşit **ters BTC bacağı**
+  tutulur (stop yok, fonlama işler); her yeniden dengelemede ve bir alt stop olduğunda hedefe çekilir. `MOMENTUM_RANK=rel`
+  ile birlikte laboratuvarda hedge'li kesitlerin tamamında pozitif kalan tek aile (`xsmom_l28_k5_short_rel`) canlıya
+  taşınmış olur. Sayfada "alt net maruziyet" ve hedge satırı görünür.

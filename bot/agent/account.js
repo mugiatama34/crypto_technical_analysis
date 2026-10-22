@@ -43,14 +43,18 @@ export function markToMarket(acct, prices) {
 export function clampOpen(acct, req, guards, now) {
   const notes = [];
   if (acct.day.halted) return { ok: false, reason: 'günlük kayıp sınırı: bugün yeni pozisyon yok' };
-  if (acct.positions.length + acct.orders.length >= guards.maxPositions) return { ok: false, reason: `en fazla ${guards.maxPositions} pozisyon/emir` };
-  if (acct.positions.some((p) => p.coin === req.coin) || acct.orders.some((o) => o.coin === req.coin)) return { ok: false, reason: `${req.coin} için zaten pozisyon/emir var` };
+  // Hedge bacakları (hedgeOf) pozisyon sayısına ve "zaten pozisyon var" kontrolüne girmez
+  const mains = acct.positions.filter((p) => !p.hedgeOf);
+  if (mains.length + acct.orders.length >= guards.maxPositions) return { ok: false, reason: `en fazla ${guards.maxPositions} pozisyon/emir` };
+  if (mains.some((p) => p.coin === req.coin) || acct.orders.some((o) => o.coin === req.coin)) return { ok: false, reason: `${req.coin} için zaten pozisyon/emir var` };
+  const hedged = !!req.hedge && req.coin !== 'BTC'; // ters BTC bacağı: marjin ve komisyon iki kat
+  const mult = hedged ? 2 : 1;
   let leverage = Math.max(1, Math.round(+req.leverage || 1));
   if (leverage > guards.maxLeverage) { notes.push(`kaldıraç ${leverage}→${guards.maxLeverage}`); leverage = guards.maxLeverage; }
   let margin = +req.margin || 0;
-  const cap = (acct.equity * guards.maxMarginPct) / 100;
-  if (margin > cap) { notes.push(`marjin ${margin.toFixed(0)}→${cap.toFixed(0)} (≤ %${guards.maxMarginPct})`); margin = cap; }
-  const usable = acct.cash - margin * leverage * (FEES.takerPct / 100);
+  const cap = (acct.equity * guards.maxMarginPct) / 100 / mult;
+  if (margin > cap) { notes.push(`marjin ${margin.toFixed(0)}→${cap.toFixed(0)} (≤ %${guards.maxMarginPct}${hedged ? ', hedge dahil' : ''})`); margin = cap; }
+  const usable = (acct.cash - margin * mult * leverage * (FEES.takerPct / 100)) / mult;
   if (margin > usable) { notes.push(`marjin nakde göre ${margin.toFixed(0)}→${Math.max(0, usable).toFixed(0)}`); margin = Math.max(0, usable); }
   if (margin < guards.minMargin) return { ok: false, reason: `marjin ${margin.toFixed(1)} < ${guards.minMargin} USDT` };
   const d = dirSign(req.direction);
@@ -63,20 +67,50 @@ export function clampOpen(acct, req, guards, now) {
   if (tp1 && d * (tp1 - ref) <= 0) tp1 = null;
   if (tp2 && d * (tp2 - ref) <= 0) tp2 = null;
   if (tp1 && tp2 && d * (tp2 - tp1) < 0) [tp1, tp2] = [tp2, tp1];
-  return { ok: true, leverage, margin: r6(margin), stop: r6(stop), tp1: tp1 && r6(tp1), tp2: tp2 && r6(tp2), notes, liq: r6(liq) };
+  return { ok: true, leverage, margin: r6(margin), stop: r6(stop), tp1: tp1 && r6(tp1), tp2: tp2 && r6(tp2), notes, liq: r6(liq), hedged };
+}
+
+/** Ana pozisyona bağlı ters BTC bacağı: aynı marjin/kaldıraç, stop likidasyonun %90 içinde, hedef yok. */
+export function openHedgeLeg(acct, main, btcPrice, now) {
+  if (!(btcPrice > 0)) return null;
+  const direction = main.direction === 'long' ? 'short' : 'long', d = dirSign(direction);
+  const fill = r6(btcPrice * (1 + d * FEES.slipPct / 100));
+  const liq = liqPrice(fill, main.leverage, direction);
+  const base = { id: newId(acct.profile), coin: 'BTC', tf: main.tf, direction, leverage: main.leverage, margin: main.margin, stop: r6(fill - d * 0.9 * Math.abs(fill - liq)), tp1: null, tp2: null, rationale: `BTC hedge (${main.coin} ${main.direction})`, signals: [], notes: [], createdAt: now, beAfterTp1: false, btcAtOpen: btcPrice, hedgeOf: main.id };
+  return fillPosition(acct, base, fill, now);
+}
+
+/** Limit dolumuyla açılmış, bacağı henüz açılmamış hedge'li pozisyonların BTC bacağını açar. */
+export function openPendingHedges(acct, btcPrice, now) {
+  const out = [];
+  for (const p of acct.positions) if (p.pendingHedge && !p.hedgeOf) { const h = openHedgeLeg(acct, p, btcPrice, now); if (h) { delete p.pendingHedge; out.push(h); } }
+  return out;
+}
+
+/** Ana pozisyonu kalmamış hedge bacaklarını piyasa fiyatından kapatır. */
+export function closeOrphanHedges(acct, btcPrice, now) {
+  const events = [];
+  for (const h of [...acct.positions]) {
+    if (!h.hedgeOf || acct.positions.some((p) => p.id === h.hedgeOf)) continue;
+    const px = btcPrice || h.lastPrice || h.entry;
+    closePart(acct, h, 1, px * (1 - dirSign(h.direction) * FEES.slipPct / 100), 'manual', now, events);
+  }
+  return events;
 }
 
 /** Pozisyon açar (piyasa) ya da limit emir koyar. */
 export function openPosition(acct, req, now, guards) {
   const c = clampOpen(acct, req, guards, now);
   if (!c.ok) return { ok: false, reason: c.reason };
-  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null };
+  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged };
   if (req.order === 'limit') {
     acct.orders.push({ ...base, type: 'limit', price: r6(+req.limit_price), expiresAt: now + (req.expireHours || 24) * 3600e3 });
     return { ok: true, order: acct.orders[acct.orders.length - 1], notes: c.notes };
   }
   const fill = r6(+req.price * (1 + dirSign(req.direction) * FEES.slipPct / 100));
-  return { ok: true, position: fillPosition(acct, base, fill, now), notes: c.notes };
+  const position = fillPosition(acct, base, fill, now);
+  const hedgeLeg = c.hedged ? openHedgeLeg(acct, position, req.btcPrice, now) : null;
+  return { ok: true, position, hedgeLeg, notes: c.notes };
 }
 
 function fillPosition(acct, base, fill, now) {
@@ -112,7 +146,7 @@ function finalizeTrade(acct, pos, kind, now) {
   acct.positions = acct.positions.filter((p) => p !== pos);
   const pnl = pos.realized;
   const R = pos.initialRisk > 0 ? pnl / pos.initialRisk : 0;
-  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null };
+  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, hedge: !!pos.hedge, hedgeOf: pos.hedgeOf || null, btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null };
   acct.trades.push(trade);
   const s = acct.stats;
   s.trades++; if (pnl > 0) { s.wins++; s.grossProfit = r6(s.grossProfit + pnl); } else { s.losses++; s.grossLoss = r6(s.grossLoss - pnl); }
@@ -138,6 +172,7 @@ export function updatePositions(acct, candlesByCoin, now) {
         acct.orders = acct.orders.filter((x) => x !== o);
         const pos = fillPosition(acct, { ...o, type: undefined, price: undefined, expiresAt: undefined }, o.price, c.time);
         pos.lastTime = c.time - 1; // bu mumun kalanı aşağıda işlenir
+        if (o.hedge) pos.pendingHedge = true; // BTC bacağı koşu içinde güncel BTC fiyatıyla açılır (openPendingHedges)
         events.push({ type: 'filled', pos, price: o.price });
         filled = true; break;
       }

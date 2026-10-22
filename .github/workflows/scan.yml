@@ -74,6 +74,7 @@ jobs:
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}
+          MOMENTUM_HEDGE: ${{ vars.MOMENTUM_HEDGE }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 

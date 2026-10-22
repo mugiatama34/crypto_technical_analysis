@@ -121,3 +121,32 @@ test('yeniden boyutlama: listede kalan pozisyon hedefe çekilir, yalnız azaltı
   resizePos(pf, q2, 12, 24, MON, o);
   assert.ok(Math.abs(q2.qty - 2) < 1e-9 && Math.abs(q2.entry - 11) < 1e-9);
 });
+
+test('BTC hedge: net maruziyet ≈ 0; stop sonrası hedge küçülür; altlar kapanınca hedge kapanır; checkStops hedge\'i atlar', async () => {
+  const { MOM_DEFAULTS, newPortfolio, rebalance, syncHedge, netExposure, checkStops, publishOf } = await import('../bot/momentum/portfolio.js');
+  const o = { ...MOM_DEFAULTS, k: 3, side: 'short', rank: 'rel', hedge: true, pitN: null, feePct: 0, slipPct: 0 };
+  const u = universe(); u.push({ coin: 'BTC', instId: 'BTC-USDT-SWAP', candles: mkDaily('BTC', 0.004) });
+  const px = pricesOf(u);
+  const pf = newPortfolio(MON, o);
+  const r = rebalance(pf, u, px, MON + 60e3, o);
+  assert.ok(r.sel.shorts.length === 3 && !r.sel.shorts.includes('BTC'));
+  const h = pf.positions.find((q) => q.hedge);
+  assert.ok(h && h.coin === 'BTC' && h.d === 1 && h.stop == null, 'alt net short → BTC long hedge');
+  assert.ok(Math.abs(netExposure(pf, px) + h.qty * px.BTC) < 1e-6, 'hedge net maruziyeti sıfırlar');
+  assert.equal(r.hedge.action, 'open');
+  // bir alt stop olur → hedge küçülür
+  const q = pf.positions.find((x) => !x.hedge);
+  const closed = checkStops(pf, {}, { ...px, [q.coin]: q.stop * 1.01 }, MON + DAY, o);
+  assert.equal(closed.length, 1);
+  const hs = syncHedge(pf, { ...px, [q.coin]: q.stop * 1.01 }, MON + DAY, o);
+  assert.equal(hs.action, 'resize'); assert.ok(hs.notional < hs.from);
+  // hedge stop'a tabi değil
+  assert.equal(checkStops(pf, {}, { ...px, BTC: 1 }, MON + 2 * DAY, o).length, 0);
+  // tüm altlar kapanınca hedge kapanır
+  for (const x of pf.positions.filter((p) => !p.hedge)) closed.push(...checkStops(pf, {}, { ...px, [x.coin]: x.stop * 1.01 }, MON + 3 * DAY, o));
+  const hc = syncHedge(pf, px, MON + 3 * DAY, o);
+  assert.equal(hc.action, 'close'); assert.equal(pf.positions.length, 0);
+  assert.ok(pf.trades.some((t) => t.hedge && t.reason === 'hedge' && t.R == null));
+  const pub = publishOf(pf, px, MON + 3 * DAY, o);
+  assert.equal(pub.hedge, true); assert.equal(pub.hedgeNotional, 0);
+});
