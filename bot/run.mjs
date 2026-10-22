@@ -23,7 +23,8 @@ import { runAgents } from './agent/run.js';
 import { runMomentum } from './momentum/run.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
-import { regimeNow } from '../src/scan/regime.js';
+import { regimeNow, marketRead, regimeFor } from '../src/scan/regime.js';
+import { atr as atrOf } from '../src/data/indicators.js';
 
 // Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). MODEL_MIN_PROB=0 kapatır,
 // >0 eşiği ezer; tanımsızsa modelin kendi eşiği.
@@ -87,7 +88,8 @@ const TF_RULES = (() => { try { return { ...TF_RULES_DEFAULT, ...JSON.parse(env(
 const SHORT_RULE = (() => { try { return { ...SHORT_RULE_DEFAULT, ...JSON.parse(env('SHORT_RULE', '{}')) }; } catch { return SHORT_RULE_DEFAULT; } })();
 const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours });
 const fmtRule = (r) => `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}${r.rsBtc === 'with' ? ', BTC\'ye göre göreli güç yönünde' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}`;
-const planOpts = (rule, regime) => ({ trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma, btcRegime: rule.btcRegime, rsBtc: rule.rsBtc, regime });
+// Rejim TF'ye göre: 15m/1H → BTC 4H eğilimi, 4H → günlük (regimeFor); read yoksa günlük rejim
+const planOpts = (rule, read, tf) => ({ trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma, btcRegime: rule.btcRegime, rsBtc: rule.rsBtc, regime: read ? regimeFor(tf, read) : null });
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
@@ -126,13 +128,10 @@ async function main() {
   log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
   for (const tf of CFG.tfs) log(`  ${tf} long: ${fmtRule(ruleFor(tf, 'long'))}\n  ${tf} short: ${fmtRule(ruleFor(tf, 'short'))}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
-  // BTC rejimi (günlük kapanış vs günlük EMA50)
-  let regime = null;
-  try {
-    const daily = provider ? (await provider.candles(instIdOf('BTC'), '1D', 120)).candles : (await getCandles(instIdOf('BTC'), TIMEFRAMES['1D'], 120)).candles;
-    regime = regimeNow(daily, now);
-  } catch (err) { log(`BTC rejimi alınamadı: ${err.message}`); }
-  log(`BTC rejimi: ${regime === 'up' ? 'yükseliş (günlük kapanış > EMA50)' : regime === 'down' ? 'düşüş (günlük kapanış < EMA50)' : 'bilinmiyor'}`);
+  // BTC günlük mumları (rejim: günlük kapanış vs EMA50); 4H/1H eğilimi tarama sonrası byKey'den okunur (marketRead)
+  let btcDaily = null;
+  try { btcDaily = provider ? (await provider.candles(instIdOf('BTC'), '1D', 120)).candles : (await getCandles(instIdOf('BTC'), TIMEFRAMES['1D'], 120)).candles; }
+  catch (err) { log(`BTC günlük mumları alınamadı: ${err.message}`); }
   const res = await runScan({ timeframes: CFG.tfs, topN: CFG.topN }, {
     provider,
     onProgress: ({ done, total }) => { if (done % 50 === 0 || done === total) log(`  ${done}/${total}`); },
@@ -144,6 +143,11 @@ async function main() {
   if (errs.length) log('  ilk hata:', errs[0].coin, errs[0].tf, errs[0].error);
   const byKey = new Map(res.rows.map((r) => [`${r.coin}|${r.tf}`, r]));
   const btcPrice = (() => { for (const tf of CFG.tfs) { const b = byKey.get(`BTC|${tf}`); if (b && !b.error && b.price) return b.price; } return null; })();
+  // Çok ufuklu BTC okuması: günlük (EMA50), 4H ve 1H eğilimi (EMA50 + eğim + ADX/DI), 4s/24s getiri
+  const btcRow = (tf) => { const b = byKey.get(`BTC|${tf}`); return b && !b.error ? b.candles : null; };
+  const read = marketRead({ daily: btcDaily, h4: btcRow('4H'), h1: btcRow('1H'), now });
+  const regime = read.daily; // günlük rejim (geriye uyumlu alan)
+  log(read.summary + ` → 15m/1H rejimi: ${regimeFor('1H', read) || 'yok (yatay)'}, 4H rejimi: ${regimeFor('4H', read) || 'yok'}`);
 
   // 1) Açık planları güncelle
   for (const p of state.sent) {
@@ -171,7 +175,7 @@ async function main() {
   for (const r of res.rows) {
     if (r.error) continue;
     const rule = ruleFor(r.tf, r.direction);
-    const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, ...planOpts(rule, regime) });
+    const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, ...planOpts(rule, read, r.tf) });
     if (!plan.ok) { const k = plan.reason.replace(/[\d.,–-]+/g, '#'); rejects[k] = (rejects[k] || 0) + 1; continue; }
     if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
@@ -209,7 +213,7 @@ async function main() {
       const htfTxt = htf.length ? ` Üst/alt TF: ${htf.map((h) => `${h.tf} ${h.direction || '–'} ${h.score}`).join(', ')}.` : '';
       dec = { source: 'rules', trade: 'take', direction: plan.direction, entry_low: plan.zone[0], entry_high: plan.zone[1], stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2,
         confidence: strong ? 'orta' : 'düşük',
-        reason: `Kural motoru planı: ${plan.signals.slice(0, 4).map((s) => s.name).join(', ')} aynı bölgede${plan.mtf ? `; ${plan.mtf.tfs.join('+')} aynı yön` : ''}${tr.adx != null ? `; ADX ${tr.adx}${tr.aligned ? ' yön uyumlu' : ''}` : ''}${tr.emaSide != null ? `; fiyat EMA200'ün ${tr.emaSide ? 'doğru' : 'ters'} tarafında` : ''}${regime ? `; BTC rejimi: ${regime === 'up' ? 'yükseliş' : 'düşüş'}` : ''}${tr.rsBtc != null ? `; BTC'ye göre 20 bar: ${tr.rsBtc > 0 ? '+' : ''}${tr.rsBtc}%${tr.rsSide != null ? (tr.rsSide > 0 ? ' (güçlü)' : ' (zayıf)') : ''}` : ''}.${htfTxt}`,
+        reason: `Kural motoru planı: ${plan.signals.slice(0, 4).map((s) => s.name).join(', ')} aynı bölgede${plan.mtf ? `; ${plan.mtf.tfs.join('+')} aynı yön` : ''}${tr.adx != null ? `; ADX ${tr.adx}${tr.aligned ? ' yön uyumlu' : ''}` : ''}${tr.emaSide != null ? `; fiyat EMA200'ün ${tr.emaSide ? 'doğru' : 'ters'} tarafında` : ''}; ${read.summary}${tr.rsBtc != null ? `; BTC'ye göre 20 bar: ${tr.rsBtc > 0 ? '+' : ''}${tr.rsBtc}%${tr.rsSide != null ? (tr.rsSide > 0 ? ' (güçlü)' : ' (zayıf)') : ''}` : ''}.${htfTxt}`,
         invalidation: `${plan.direction === 'long' ? 'Stop altı' : 'Stop üstü'} kapanış planı iptal eder.`, evidence: [] };
     }
     const v = validateDecision(dec, plan, { minRR: CFG.minRR, sendWait: CFG.sendWait });
@@ -218,7 +222,7 @@ async function main() {
     await notify(formatSetup(plan, v, size), state);
     const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     state.sent.push(rec);
-    historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime });
+    historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;
     sentNow++; sentPerTf[plan.tf] = (sentPerTf[plan.tf] || 0) + 1;
   }
@@ -234,7 +238,7 @@ async function main() {
       for (const r of res.rows) {
         if (r.error) continue;
         const rule = ruleFor(r.tf, r.direction);
-        const plan = buildPlan(r, { minScore: Math.min(CFG.agentMinScore, rule.minScore - 10), minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false, ...planOpts(rule, regime) });
+        const plan = buildPlan(r, { minScore: Math.min(CFG.agentMinScore, rule.minScore - 10), minRR: 1.5, riskPct: CFG.riskPct, maxRiskPct: CFG.maxRiskPct, requireMtf: false, ...planOpts(rule, read, r.tf) });
         if (!plan.ok) continue;
         plan.htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((x) => x && !x.error && x.best).map((x) => ({ tf: x.tf, direction: x.direction, score: x.score }));
         agentCands.push(plan);
@@ -242,10 +246,21 @@ async function main() {
       agentCands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
       const seenCoin = new Set();
       const uniq = agentCands.filter((p) => !seenCoin.has(p.coin) && seenCoin.add(p.coin)).slice(0, 10);
+      // BTC trend adayı: BTC 4H ya da 1H eğilimi yön tutuyorsa, BTC'nin kendisinde pozisyon (stop 2 ATR, hedef yok, izleyen)
+      for (const tf of ['4H', '1H']) {
+        const dir = tf === '4H' ? read.h4 : read.h1;
+        const b = byKey.get(`BTC|${tf}`);
+        if (!b || b.error || !(dir === 'up' || dir === 'down') || uniq.some((p) => p.coin === 'BTC')) continue;
+        const cs = b.candles, a = atrOf(cs.map((c) => c.high), cs.map((c) => c.low), cs.map((c) => c.close), 14).at(-1);
+        if (!a || !b.price) continue;
+        const d = dir === 'up' ? 1 : -1, stop = +(b.price - d * 2 * a).toPrecision(8);
+        uniq.push({ coin: 'BTC', tf, direction: d === 1 ? 'long' : 'short', d, source: 'btc_trend', score: null, mtf: null, price: b.price, atr: +a.toPrecision(6), zone: [b.price, b.price], inZone: true, entry: b.price, stop, tp1: null, tp2: null, rr: null, rr1: null, riskPct: +((2 * a / b.price) * 100).toFixed(2), trend: { rsBtc: null, rsSide: null, adx: tf === '4H' ? read.adx4h : read.adx1h }, signals: [{ name: `BTC ${tf} trend ${d === 1 ? '↑' : '↓'} (EMA50 eğimi + ADX ${tf === '4H' ? read.adx4h : read.adx1h} DI uyumlu)`, group: 'trend', direction: d === 1 ? 'long' : 'short', strength: 1 }], htf: [] });
+        break; // tek BTC adayı: 4H öncelikli
+      }
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)

@@ -185,3 +185,15 @@ test('buildPlan: rsBtc with → long yalnız BTC\'den güçlü coinde, short yal
   assert.equal(buildPlan(mk(null, null), { rsBtc: 'with' }).reason, 'BTC göreli gücü bilinmiyor');
   assert.equal(buildPlan(mk(-2.5, -1), {}).ok, true); // şart yoksa engel yok
 });
+
+test('çok ufuklu rejim: 1H short, günlük yükseliş ama 4H düşüşte geçer; 4H short günlük yükselişte ret', async () => {
+  const { regimeFor } = await import('../src/scan/regime.js');
+  const read = { daily: 'up', h4: 'down', h1: 'down' };
+  const shortRow = row({ coin: 'ETH', direction: 'short', best: { ...row().best, direction: 'short', zone: [102, 103], signals: [sig('OB ↓', { direction: 'short', zone: [102, 103], invalidation: 103.5, strength: 0.9 })] }, mtf: { direction: 'short', score: 75, tfs: ['1H', '4H'], conflicting: [] } });
+  const p1 = buildPlan({ ...shortRow, tf: '1H' }, { btcRegime: 'with', regime: regimeFor('1H', read), minRR: 1 });
+  assert.ok(p1.ok, p1.reason); assert.equal(p1.regime, 'down');
+  const p4 = buildPlan({ ...shortRow, tf: '4H' }, { btcRegime: 'with', regime: regimeFor('4H', read), minRR: 1 });
+  assert.equal(p4.reason, 'BTC rejimi ters');
+  const pl = buildPlan(row({ coin: 'ETH', tf: '1H' }), { btcRegime: 'with', regime: regimeFor('1H', read) });
+  assert.equal(pl.reason, 'BTC rejimi ters'); // 4H düşüşte 1H long yok
+});

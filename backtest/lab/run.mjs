@@ -150,7 +150,7 @@ async function main() {
       const daily = series.filter((s) => s.tf === '1D').map((s) => ({ coin: s.coin, candles: s.candles }));
       trades.push(...st.run(daily, o, { btcDaily, startMs: CFG.fixture ? null : startMs, pitN: pit ? CFG.top : null }));
       if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily.filter((s) => topSet.has(s.coin)), startMs, split, endMs);
-    } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin)) continue; trades.push(...runStrategy(st, s, o)); }
+    } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin) || (st.coins && !st.coins.includes(s.coin))) continue; trades.push(...runStrategy(st, s, o)); }
     attachBtc(trades, btcCloseAt, CFG.fee);
     const rep = report(trades, split);
     out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };

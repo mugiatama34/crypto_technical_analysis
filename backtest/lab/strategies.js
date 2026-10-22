@@ -158,5 +158,23 @@ export function withBtcRegime(base, id, label) {
 export const engineWide4hLongBtc = withBtcRegime(engineWide4hLong, 'engine_wide_4h_long_btc', 'Mevcut motor 4H long, yalnız BTC günlük EMA50 üstündeyken');
 export const donchian4hLongBtc = withBtcRegime(donchian4hLong, 'donchian_4h_long_btc', 'Donchian 4H long, yalnız BTC günlük EMA50 üstündeyken');
 
-export const STRATEGIES = [donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, ...XS_STRATEGIES];
+/** BTC/ETH zaman serisi momentumu: EMA50 tarafı + EMA50 eğimi + ADX ≥ 20 DI uyumlu + Donchian 20 kırılımı; iki yön. */
+const mkTsmom = (id, tf, maxHold) => ({
+  id, label: `BTC/ETH ${tf} trend takibi: EMA50 tarafı + eğim + ADX ≥ 20 + Donchian 20, 2 ATR izleyen`, tfs: [tf], coins: ['BTC', 'ETH'],
+  exit: { tpScheme: 'trail_only', trailAtr: 2, maxHoldBars: maxHold },
+  prepare(candles) { const b = basics(candles); return { ...b, dc: I.donchian(b.highs, b.lows, 20), e50: I.ema(b.closes, 50) }; },
+  signal(i, candles, p) {
+    const c = candles[i], a = p.atr[i], ax = p.adx.adx[i], e = p.e50[i], e0 = p.e50[i - 10];
+    if (a == null || ax == null || e == null || e0 == null || p.dc.upper[i] == null || ax < 20) return null;
+    const side = c.close > e ? 1 : -1, slope = e > e0 ? 1 : e < e0 ? -1 : 0, di = p.adx.pdi[i] > p.adx.mdi[i] ? 1 : -1;
+    if (side !== slope || slope !== di) return null;
+    if (side === 1 && c.close > p.dc.upper[i]) return mk(1, c.close, c.close - 2 * a, null, null, a);
+    if (side === -1 && c.close < p.dc.lower[i]) return mk(-1, c.close, c.close + 2 * a, null, null, a);
+    return null;
+  },
+});
+export const btcTsmom1h = mkTsmom('btc_tsmom_1h', '1H', 200);
+export const btcTsmom4h = mkTsmom('btc_tsmom_4h', '4H', 100);
+
+export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, ...XS_STRATEGIES];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

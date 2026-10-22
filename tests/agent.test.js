@@ -143,3 +143,19 @@ test('hedge: ters BTC bacağı aynı nominal; pozisyon sayısına girmez; ana ka
   const big = openPosition(c, { coin: 'ETH', tf: '4H', direction: 'long', margin: 100, leverage: 2, order: 'market', price: 100, stop: 95, hedge: true, rationale: '', signals: [], btcPrice: 50000 }, 1000, P.guards);
   assert.ok(big.ok && Math.abs(big.position.margin - 60) < 1e-6 && Math.abs(big.hedgeLeg.margin - 60) < 1e-6);
 });
+
+test('piyasa okuması ve yön istatistiği karara girer; BTC trend adayı source ile açılır', async () => {
+  const { decidePrompt, dirStatsOf } = await import('../bot/agent/manager.js');
+  const { newAccount, openPosition } = await import('../bot/agent/account.js');
+  const { PROFILES } = await import('../bot/agent/profiles.js');
+  const P = PROFILES.temkinli;
+  const a = newAccount(P, 1000);
+  a.trades.push({ direction: 'long', R: -1, pnl: -5, btcPct: -2 }, { direction: 'long', R: 2, pnl: 10, btcPct: 1.5 }, { direction: 'short', R: 0.5, pnl: 2, btcPct: -1 }, { direction: 'short', R: -1, pnl: -3, hedgeOf: 'x' });
+  const ds = dirStatsOf(a);
+  assert.equal(ds.long.n, 2); assert.equal(ds.short.n, 1); assert.equal(ds.longWhileBtcDown.n, 1); assert.equal(ds.longWhileBtcDown.avgR, -1);
+  const read = { daily: 'up', h4: 'down', h1: 'down', adx4h: 27, adx1h: 22, ret4h: -1.2, ret24h: -2.7, summary: 'BTC: günlük yükseliş · 4H düşüş' };
+  const prompt = decidePrompt(a, P, [{ coin: 'BTC', tf: '4H', direction: 'short', source: 'btc_trend', price: 80000, atr: 900, zone: [80000, 80000], inZone: true, entry: 80000, stop: 81800, tp1: null, tp2: null, rr: null, riskPct: 2.25, signals: [{ name: 'BTC 4H trend ↓', group: 'trend', direction: 'short', strength: 1 }] }], { trades: 0 }, { regime: 'up', btcPrice: 80000, read });
+  assert.ok(prompt.includes('"h4": "down"') && prompt.includes('btc_trend') && prompt.includes('longWhileBtcDown'));
+  const r = openPosition(a, { coin: 'BTC', tf: '4H', direction: 'short', margin: 30, leverage: 3, order: 'market', price: 80000, stop: 81800, rationale: 'BTC 4H düşüş', signals: [], source: 'btc_trend', btcPrice: 80000 }, 1000, P.guards);
+  assert.ok(r.ok && !r.hedgeLeg); assert.equal(r.position.source, 'btc_trend');
+});

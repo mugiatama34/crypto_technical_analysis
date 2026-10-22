@@ -102,7 +102,7 @@ export function closeOrphanHedges(acct, btcPrice, now) {
 export function openPosition(acct, req, now, guards) {
   const c = clampOpen(acct, req, guards, now);
   if (!c.ok) return { ok: false, reason: c.reason };
-  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged };
+  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged, source: req.source || 'scanner' };
   if (req.order === 'limit') {
     acct.orders.push({ ...base, type: 'limit', price: r6(+req.limit_price), expiresAt: now + (req.expireHours || 24) * 3600e3 });
     return { ok: true, order: acct.orders[acct.orders.length - 1], notes: c.notes };
@@ -146,7 +146,7 @@ function finalizeTrade(acct, pos, kind, now) {
   acct.positions = acct.positions.filter((p) => p !== pos);
   const pnl = pos.realized;
   const R = pos.initialRisk > 0 ? pnl / pos.initialRisk : 0;
-  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, hedge: !!pos.hedge, hedgeOf: pos.hedgeOf || null, btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null };
+  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, hedge: !!pos.hedge, hedgeOf: pos.hedgeOf || null, source: pos.source || (pos.hedgeOf ? 'hedge' : 'scanner'), btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null };
   acct.trades.push(trade);
   const s = acct.stats;
   s.trades++; if (pnl > 0) { s.wins++; s.grossProfit = r6(s.grossProfit + pnl); } else { s.losses++; s.grossLoss = r6(s.grossLoss - pnl); }

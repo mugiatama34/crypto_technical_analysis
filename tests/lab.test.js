@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 22);
+  assert.equal(STRATEGIES.length, 24);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -260,4 +260,13 @@ test('hedge\'li R: eşit nominal ters BTC; long BTC +2% stop %4 → R − 0,5 �
   const rep = hedgedReport(t, 12 * H);
   assert.equal(rep.all.n, 2); assert.equal(rep.train.n, 2); assert.equal(rep.valid.n, 0);
   assert.equal(rep.candidate, false);
+});
+
+test('btc_tsmom: düşen trendde short, yatay seride sessiz; yalnız BTC/ETH', async () => {
+  const { btcTsmom1h, btcTsmom4h } = await import('../backtest/lab/strategies.js');
+  assert.deepEqual(btcTsmom4h.coins, ['BTC', 'ETH']);
+  const down = trendSeries(400, -1, 400);
+  const tr = runStrategy(btcTsmom1h, { coin: 'BTC', tf: '1H', candles: down }, o);
+  assert.ok(tr.length >= 1 && tr.every((t) => t.direction === 'short'));
+  assert.equal(runStrategy(btcTsmom4h, { coin: 'BTC', tf: '4H', candles: trendSeries(400, 0) }, o).length, 0);
 });

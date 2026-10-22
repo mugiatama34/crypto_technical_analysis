@@ -53,8 +53,10 @@ planı **Claude**'a değerlendirtir (take / wait / skip, güven, gerekçe, kanı
 Gönderilen planlar takip edilir: giriş bölgesine geldi → TP1 → TP2 / stop / süresi doldu güncellemeleri ve günlük özet.
 
 **Zaman dilimine ve yöne göre kurallar** (laboratuvarda short her ailede negatif, 15m en kötü TF çıktı; kapatılmadı,
-girişler sıkılaştırıldı). **BTC rejimi**: BTC'nin son kapanmış günlük mumu günlük EMA50 üstündeyse yükseliş, altındaysa
-düşüş; "BTC rejimiyle aynı yön" şartı long'u yalnız yükselişte, short'u yalnız düşüşte geçirir.
+girişler sıkılaştırıldı). **BTC piyasa okuması** (`src/scan/regime.js` `marketRead`): günlük (kapanış vs EMA50), 4H ve
+1H eğilimi (kapanış EMA50 tarafı + EMA50 eğimi + ADX ≥ 20 ile DI yönü; çelişirse "yatay"), 4 ve 24 saatlik getiri.
+"BTC rejimiyle aynı yön" şartı TF'ye göre okunur: **15m/1H için 4H eğilimi** (yatayken şartlı yön yok → o TF'de sinyal
+yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "yükseliş" dese de 1H short'lar açılabilir.
 - **15m:** puan ≥ 80, MTF zorunlu, ADX ≥ 35 ve ±DI yön uyumu, EMA200'ün doğru tarafı, BTC rejimiyle aynı yön, 12 saat
   cooldown, tur başına en fazla 1 mesaj.
 - **1H:** puan ≥ 70, MTF, ADX ≥ 25 yön uyumlu, EMA200 tarafı. **4H:** puan ≥ 65.
@@ -252,6 +254,15 @@ tests/                     node --test
 MIT. Elliott Wave kural motoru, dalga-3 / üçgen tarayıcıları ve OKX istemcisi
 [klonnist/ew-setup-scanner](https://github.com/klonnist/ew-setup-scanner) (MIT) kopyasından alınmıştır
 (`LICENSE-ew-scanner`). Grafik: [TradingView Lightweight Charts™](https://www.tradingview.com/lightweight-charts/).
+
+### Ajanda piyasa okuması ve BTC trend adayı
+Ajan her karar turunda BTC okumasını (günlük/4H/1H eğilim, ADX, 4s/24s getiri) ve hesabın yön istatistiğini
+(long/short ort. R, **BTC ters giderken long'ların ort. R'si**) görür. BTC 4H ya da 1H eğilimi yön tutuyorsa adaylara
+`source: btc_trend` ile BTC'nin kendisi eklenir (stop 2 ATR, hedef yok, izleyerek yönetilir). Sistem talimatı:
+BTC 4H düşüşteyken altcoin long'a, yükselişteyken altcoin short'a şüpheyle bak; BTC trend takibi laboratuvarda henüz
+doğrulanmadı, küçük marjinle dene. `agent.html`'de "BTC trend" etiketi. Laboratuvarda `btc_tsmom_1h` / `btc_tsmom_4h`
+(yalnız BTC ve ETH; EMA50 tarafı + eğim + ADX ≥ 20 + Donchian 20, 2 ATR izleyen) aynı sıkı ölçütle test edilir:
+`mode: lab, months: 24, tfs: 1H,4H`.
 
 ### Ajanda BTC hedge seçeneği
 Ajan `open` eyleminde `hedge: true` diyebilir: aynı anda eşit nominalde **ters BTC bacağı** açılır (aynı marjin ve
