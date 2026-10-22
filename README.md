@@ -257,12 +257,15 @@ MIT. Elliott Wave kural motoru, dalga-3 / üçgen tarayıcıları ve OKX istemci
 
 ### Ajanda piyasa okuması ve BTC trend adayı
 Ajan her karar turunda BTC okumasını (günlük/4H/1H eğilim, ADX, 4s/24s getiri) ve hesabın yön istatistiğini
-(long/short ort. R, **BTC ters giderken long'ların ort. R'si**) görür. BTC 4H ya da 1H eğilimi yön tutuyorsa adaylara
+(long/short ort. R, **BTC ters giderken long'ların ort. R'si**) görür. BTC 4H eğilimi ile günlük rejim aynı yöndeyse adaylara
 `source: btc_trend` ile BTC'nin kendisi eklenir (stop 2 ATR, hedef yok, izleyerek yönetilir). Sistem talimatı:
 BTC 4H düşüşteyken altcoin long'a, yükselişteyken altcoin short'a şüpheyle bak; BTC trend takibi laboratuvarda henüz
 doğrulanmadı, küçük marjinle dene. `agent.html`'de "BTC trend" etiketi. Laboratuvarda `btc_tsmom_1h` / `btc_tsmom_4h`
 (yalnız BTC ve ETH; EMA50 tarafı + eğim + ADX ≥ 20 + Donchian 20, 2 ATR izleyen) aynı sıkı ölçütle test edilir:
-`mode: lab, months: 24, tfs: 1H,4H`.
+`mode: lab, months: 24, tfs: 1H,4H, strategies: btc_tsmom_1h,btc_tsmom_4h` (`strategies` girdisi boşsa tüm aileler koşar;
+1H'te 50 coinin tüm aileleri saatler sürer). Sonuç (24 ay): 1H doğrulama −0,17R PF 0,71, 4H −0,15R PF 0,76, eğitimde
+başa baş → BTC'nin saatlik/4H yönü bu kuralla öngörülemiyor; ajana BTC trend adayı yalnız 4H eğilimi ile günlük rejim
+aynı yöndeyken sunulur.
 
 ### Ajanda BTC hedge seçeneği
 Ajan `open` eyleminde `hedge: true` diyebilir: aynı anda eşit nominalde **ters BTC bacağı** açılır (aynı marjin ve

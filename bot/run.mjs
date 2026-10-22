@@ -246,11 +246,12 @@ async function main() {
       agentCands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
       const seenCoin = new Set();
       const uniq = agentCands.filter((p) => !seenCoin.has(p.coin) && seenCoin.add(p.coin)).slice(0, 10);
-      // BTC trend adayı: BTC 4H ya da 1H eğilimi yön tutuyorsa, BTC'nin kendisinde pozisyon (stop 2 ATR, hedef yok, izleyen)
-      for (const tf of ['4H', '1H']) {
-        const dir = tf === '4H' ? read.h4 : read.h1;
+      // BTC trend adayı: yalnız 4H eğilimi ile günlük rejim AYNI yöndeyken (laboratuvar: BTC 1H/4H trend takibi tek başına
+      // kenar vermedi; çelişkili ufuklarda aday sunulmaz). BTC'nin kendisinde pozisyon: stop 2 ATR, hedef yok, izleyen.
+      for (const tf of ['4H']) {
+        const dir = read.h4;
         const b = byKey.get(`BTC|${tf}`);
-        if (!b || b.error || !(dir === 'up' || dir === 'down') || uniq.some((p) => p.coin === 'BTC')) continue;
+        if (!b || b.error || !(dir === 'up' || dir === 'down') || dir !== read.daily || uniq.some((p) => p.coin === 'BTC')) continue;
         const cs = b.candles, a = atrOf(cs.map((c) => c.high), cs.map((c) => c.low), cs.map((c) => c.close), 14).at(-1);
         if (!a || !b.price) continue;
         const d = dir === 'up' ? 1 : -1, stop = +(b.price - d * 2 * a).toPrecision(8);
