@@ -67,7 +67,10 @@ düşüş; "BTC rejimiyle aynı yön" şartı long'u yalnız yükselişte, short
   short yalnız zayıfta. Örn. `SHORT_RULE={"rsBtc":"with"}` ya da `TF_RULES={"1H":{"rsBtc":"with"}}`.
 - **BTC bağımlılığı ölçümü:** sinyal geçmişi `btcAtSend`/`btcAtClose`/`rsBtc`, ajan işlemleri `btcAtOpen`/`btcAtClose`/
   `btcPct` kaydeder; `signals.html` ve `agent.html` "BTC bağımlılığı" bölümünde BTC ters/lehte giderken sonuçlar ve
-  R ~ BTC korelasyonu; laboratuvarda her aile için `byBtc` kırılımı ve BTC betası (`lab.html`). Momentum laboratuvarı
+  R ~ BTC korelasyonu; laboratuvarda her aile için `byBtc` kırılımı ve BTC betası (`lab.html`). 12 ay 4H koşusunda
+  tüm ailelerde r 0,55–0,74 ve BTC ±1% iken hepsi negatif çıktı: kazanç BTC'nin yönünden geliyordu. **Hedge'li R:**
+  her işlemin yanına eşit nominalde ters BTC pozisyonu konmuş gibi (`hedgedR = R − d·BTC%/stop% − hedge komisyonu`);
+  `hedged` istatistikleri aynı sıkı ölçütle "hedge'li aday" verir. Pozitifse coin seçiminde BTC'den bağımsız kenar var. Momentum laboratuvarı
   `rank: 'rel'` varyantları (BTC'ye göre fazla getiriyle sıralama: `xsmom_l28_k5_short_rel`, `_ls_rel`); canlı portföy
   `MOMENTUM_RANK=rel` ile aynı sıralamaya geçer (vars. `abs`).
 - Ezme: `TF_RULES` (ör. `{"15m":{"minScore":85,"long":{"trendAdxMin":30}},"4H":{"requireMtf":true}}`; TF içinde

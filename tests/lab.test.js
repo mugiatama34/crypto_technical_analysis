@@ -244,3 +244,20 @@ test('BTC betası: R işaretli BTC getirisini izliyorsa beta ≈ 1; attachBtc tu
   assert.ok(abs.length < rel.length / 3, `mutlak ${abs.length} vs rel ${rel.length}`); assert.ok(rel.length > 0 && rel.every((x) => x.direction === 'short' && x.coin !== 'BTC'));
   assert.ok(rel.some((x) => ['C0', 'C1', 'C2'].includes(x.coin)));
 });
+
+test('hedge\'li R: eşit nominal ters BTC; long BTC +2% stop %4 → R − 0,5 − komisyon; short ayna; veri yoksa null', async () => {
+  const { attachBtc, hedgedReport } = await import('../backtest/lab/run.mjs');
+  const H = 3600e3;
+  const btc = [{ time: 0, close: 100 }, { time: 10 * H, close: 100 }, { time: 15 * H, close: 102 }];
+  const closeAt = (tf, t) => { if (t > 16 * H) return null; let v = null; for (const c of btc) if (c.time <= t) v = c.close; return v; }; // seri dışı: veri yok
+  const mk = (direction, R) => ({ tf: '1H', time: 10 * H, waitBars: 1, bars: 4, direction, R, outcome: 'stopped', entry: 50, stop: direction === 'long' ? 48 : 52 });
+  const t = [mk('long', 1), mk('short', -1), { ...mk('long', 0.5), tf: '4H', time: 999 * H }];
+  attachBtc(t, closeAt, 0.05);
+  const fee = 2 * 0.0005 / 0.04; // hedge komisyonu, R cinsinden
+  assert.ok(Math.abs(t[0].hedgedR - (1 - 0.02 / 0.04 - fee)) < 0.002, `${t[0].hedgedR}`);
+  assert.ok(Math.abs(t[1].hedgedR - (-1 + 0.02 / 0.04 - fee)) < 0.002, `${t[1].hedgedR}`);
+  assert.equal(t[2].btcPct, null); assert.equal(t[2].hedgedR, null);
+  const rep = hedgedReport(t, 12 * H);
+  assert.equal(rep.all.n, 2); assert.equal(rep.train.n, 2); assert.equal(rep.valid.n, 0);
+  assert.equal(rep.candidate, false);
+});

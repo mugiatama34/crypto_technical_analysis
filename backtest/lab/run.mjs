@@ -69,13 +69,29 @@ export function btcBeta(trades) {
 const btcBucket = (t) => (t.btcPct == null ? 'BTC bilinmiyor' : t.btcPct < -1 ? 'BTC < −1%' : t.btcPct > 1 ? 'BTC > +1%' : 'BTC ±1%');
 
 /** İşlemlere, tutulduğu süredeki BTC getirisini yazar (btcCloseAt(tf, time) → kapanış). */
-export function attachBtc(trades, btcCloseAt) {
+export function attachBtc(trades, btcCloseAt, feePct = 0.05) {
   for (const t of trades) {
     const exitT = t.exitTime ?? (t.time + ((t.waitBars || 1) + (t.bars || 0)) * (TIMEFRAMES[t.tf]?.ms || 0));
     const a = btcCloseAt(t.tf, t.entryTime ?? t.time), b = btcCloseAt(t.tf, exitT);
     t.btcPct = a && b ? +((b / a - 1) * 100).toFixed(2) : null;
+    // Hedge'li R: pozisyonun yanına eşit nominalde ters BTC konsaydı (piyasa-nötr). Hedge K/Z = −d × BTC%; R birimine
+    // çevirmek için stop uzaklığına (%) bölünür; hedge komisyonu iki taraf.
+    const stopPct = t.entry && t.stop ? Math.abs(t.entry - t.stop) / t.entry : (t.risk || null);
+    const d = t.direction === 'long' ? 1 : -1;
+    t.hedgedR = t.btcPct != null && stopPct > 0 && t.R != null ? +(t.R - (d * (t.btcPct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) : null;
   }
   return trades;
+}
+
+/** İşlem listesinin R'si hedgedR ile değiştirilmiş kopyası (hedgedR olmayanlar atılır). */
+const hedgedOf = (trades) => trades.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
+
+/** BTC hedge'li (piyasa-nötr) istatistikler; btcPct'si olmayan işlemler dışarıda. */
+export function hedgedReport(trades, split) {
+  const h = hedgedOf(trades);
+  const tr = h.filter((t) => t.time < split), va = h.filter((t) => t.time >= split);
+  const rep = { all: stats(h), train: stats(tr), valid: stats(va), robust: robustStats(va), robustTrain: robustStats(tr) };
+  return { ...rep, ...acceptance(rep) };
 }
 
 export function report(trades, split) {
@@ -83,7 +99,7 @@ export function report(trades, split) {
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
 }
 
 async function main() {
@@ -135,10 +151,10 @@ async function main() {
       trades.push(...st.run(daily, o, { btcDaily, startMs: CFG.fixture ? null : startMs, pitN: pit ? CFG.top : null }));
       if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily.filter((s) => topSet.has(s.coin)), startMs, split, endMs);
     } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin)) continue; trades.push(...runStrategy(st, s, o)); }
-    attachBtc(trades, btcCloseAt);
+    attachBtc(trades, btcCloseAt, CFG.fee);
     const rep = report(trades, split);
     out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
-    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
+    log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) | hedge'li doğr. n${rep.hedged.valid.n} ${rep.hedged.valid.avgR}R PF ${rep.hedged.valid.profitFactor}${rep.hedged.candidate ? ' ← HEDGE\'Lİ ADAY' : ''} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });
