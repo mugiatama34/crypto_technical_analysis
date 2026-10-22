@@ -42,7 +42,15 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
   const msgs = [];
   const stopped = checkStops(pf, daily, prices, now, o);
   for (const t of stopped) msgs.push(`🛑 Momentum stop: <b>${esc(t.coin)}</b> ${t.direction} ${fp(t.entry)} → ${fp(t.exit)} · ${t.pnl >= 0 ? '+' : ''}${t.pnl} USDT (%${t.pct})`);
-  if (stopped.length && !due) { const hs = syncHedge(pf, prices, now, o); if (hs) msgs.push(`⚖️ BTC hedge ${hs.action === 'close' ? 'kapandı' : `${hs.from} → ${hs.notional} USDT`} (alt net maruziyet ${netExposure(pf, prices).toFixed(0)} USDT)`); }
+  // Hedge her turda eşitlenir (yeniden dengeleme turunda rebalance() içinde yapılır): ayar sonradan açılınca ya da
+  // stop/fiyat sürüklenmesiyle net maruziyet kayınca hedge yoksa açılır, sapma resizeTol'u aşarsa hedefe çekilir.
+  if (!due) {
+    const hs = syncHedge(pf, prices, now, o);
+    if (hs) {
+      const h = pf.positions.find((q) => q.hedge);
+      msgs.push(`⚖️ BTC hedge ${hs.action === 'open' ? `açıldı: ${h ? dirTxt(h.d) : ''} ${hs.notional} USDT @ ${fp(h?.entry)}` : hs.action === 'close' ? 'kapandı' : `${hs.from} → ${hs.notional} USDT`} (alt net maruziyet ${netExposure(pf, prices).toFixed(0)} USDT)`);
+    }
+  }
   if (due) {
     const universe = top.map((t) => ({ coin: t.coin, instId: t.instId, candles: daily[t.coin]?.candles || [], live: daily[t.coin]?.live }));
     if (!universe.some((u) => u.coin === 'BTC') && daily.BTC) universe.push({ coin: 'BTC', instId: instIdOf('BTC'), candles: daily.BTC.candles, live: daily.BTC.live });

@@ -83,6 +83,21 @@ test('runMomentum: sahte kaynakla tur; durum ve yayın yazılır; ikinci tur ayn
   msgs.length = 0;
   await runMomentum({ ...args, now: MON + 2 * 3600e3 });
   assert.ok(!msgs.some((m) => m.includes('yeniden dengeleme')));
+  // Hedge sonradan açılırsa (net short portföy): yeniden dengeleme olmadan, aynı turda hedge açılır ve bildirilir;
+  // sonraki turda sapma küçükse tekrar mesaj yok. (long-short zaten nötr olduğu için ayrı, yalnız-short durum dosyası.)
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'mom2-'));
+  const args2 = { ...args, stateFile: path.join(dir2, 'st.json'), publishDir: dir2 };
+  msgs.length = 0;
+  await runMomentum({ ...args2, cfg: { dry: false, variant: 'short', hedge: false }, now: MON + 60e3 });
+  assert.ok(!msgs.some((m) => m.includes('BTC hedge')));
+  msgs.length = 0;
+  const pf3 = await runMomentum({ ...args2, cfg: { dry: false, variant: 'short', hedge: true }, now: MON + 3 * 3600e3 });
+  const h = pf3.positions.find((q) => q.hedge);
+  assert.ok(h && h.coin === 'BTC' && h.d === 1, 'hedge bacağı (BTC long) açılmalı');
+  assert.ok(msgs.some((m) => m.includes('BTC hedge açıldı')) && !msgs.some((m) => m.includes('yeniden dengeleme')));
+  msgs.length = 0;
+  await runMomentum({ ...args2, cfg: { dry: false, variant: 'short', hedge: true }, now: MON + 4 * 3600e3 });
+  assert.ok(!msgs.some((m) => m.includes('BTC hedge')), 'sapma küçük: yeni hedge mesajı yok');
 });
 
 test('eşit risk: oynak coinin nominali küçük, ikisi aynı riski taşır; pitN 30 günlük hacimle süzer', async () => {
