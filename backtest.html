@@ -92,6 +92,7 @@ async function main() {
     ${learnHtml}
     <section><h2>Zaman dilimi</h2>${table(r.byTf)}</section>
     <section><h2>Yön ve giriş tipi</h2>${table({ ...r.byDirection, ...r.byEntry })}</section>
+    ${r.byApproach ? `<section><h2>Bölgeye yaklaşma hızı (düşen bıçak) — doğrulama dilimi</h2>${table(r.byApproach.valid)}</section>` : ''}
     <section><h2>Puan aralığı</h2>${table(r.byScore)}</section>
     <section><h2>Yapı grubu kümede varken / yokken</h2><p class="note">Pozitif fark: o grup kümedeyken sonuçlar daha iyi. Ağırlık ayarı için ana tablo.</p>${presence(r.byGroup)}</section>
     <section><h2>Detektör varken / yokken</h2>${presence(r.byDetector)}</section>

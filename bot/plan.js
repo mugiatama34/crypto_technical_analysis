@@ -1,6 +1,7 @@
 // Aday plan çıkarma ve takip (saf fonksiyonlar, ağ yok).
 // Tarama satırından (scanner.js Row) giriş bölgesi / stop / TP1 / TP2 / R:R üretir; risk kurallarını uygular;
 // gönderilmiş planların durumunu (bekliyor → aktif → TP1 → tamam | stop | süresi doldu) mumlarla günceller.
+import { TIMEFRAMES } from '../src/data/okx.js';
 
 export const PLAN_DEFAULTS = {
   minScore: 50, // en iyi küme puanı
@@ -139,27 +140,86 @@ export function positionSize(plan, accountUsdt, riskPct) {
   return { riskUsd: +riskUsd.toFixed(2), qty: +qty.toPrecision(4), notional: +(qty * plan.entry).toFixed(2), leverageFor1x: +((qty * plan.entry) / accountUsdt).toFixed(2) };
 }
 
+// "Düşen bıçak" koruması: limit emir çoğu zaman fiyat bölgeye en sert geldiğinde dolar (ters seçim). Bölgeye hızlı gelişte
+// (son 3 mumda giriş yönüne ters hareket > maxApproachAtr × ATR ya da dolum mumu > maxFillBarAtr × ATR) emir dolmaz; sonraki
+// confirmBars kapanmış mum içinde teyit mumu (long: kapanış bölge üst kenarı ya da önceki mumun tepesi üstünde) gelirse o
+// mumun kapanışından girilir. Teyitten önce stop geçilirse plan iptal (knife, işlem yok). skip: teyit beklemeden iptal.
+export const KNIFE_DEFAULTS = { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3, skip: false };
+
+/** true | '1' | JSON | nesne → koruma ayarı; boş/'0' → null (kapalı). */
+export function knifeGuardOf(v) {
+  if (v == null || v === false || v === '' || v === '0' || v === 0) return null;
+  if (v === true || v === '1' || v === 1) return { ...KNIFE_DEFAULTS };
+  if (typeof v === 'string') { try { return { ...KNIFE_DEFAULTS, ...JSON.parse(v) }; } catch { return { ...KNIFE_DEFAULTS }; } }
+  return { ...KNIFE_DEFAULTS, ...v };
+}
+
+/** Yaklaşma hızı: i (dolum mumu) dahil son `bars` mumda giriş yönüne ters en büyük hareket ÷ ATR ve dolum mumu boyu ÷ ATR. */
+export function approachOf(candles, i, d, atr, bars = 3) {
+  const c = candles[i];
+  if (!c || !(atr > 0)) return null;
+  let ext = d === 1 ? -Infinity : Infinity;
+  for (let k = Math.max(0, i - bars + 1); k <= i; k++) { const x = candles[k]; if (x) ext = d === 1 ? Math.max(ext, x.high) : Math.min(ext, x.low); }
+  const move = d === 1 ? ext - c.low : c.high - ext;
+  return { approachAtr: +(move / atr).toFixed(2), fillBarAtr: +((c.high - c.low) / atr).toFixed(2) };
+}
+
+export const isKnife = (a, g) => !!(g && a && (a.approachAtr > g.maxApproachAtr || a.fillBarAtr > g.maxFillBarAtr));
+
+/** Teyit mumu: long kapanış giriş bölgesinin üst kenarı (bölge yoksa giriş) ya da önceki mumun tepesi üstünde; short ayna. */
+export function confirmsTurn(c, prev, plan) {
+  const d = plan.d;
+  const edge = plan.zone ? (d === 1 ? Math.max(...plan.zone) : Math.min(...plan.zone)) : plan.entry;
+  return d === 1 ? c.close > edge || !!(prev && c.close > prev.high) : c.close < edge || !!(prev && c.close < prev.low);
+}
+
 /**
  * Açık planı yeni mumlarla günceller. candles: sentAt'tan sonraki mumlar (eskiden yeniye) + canlı.
- * @returns {{ status, events: string[] }}
+ * opts.knifeGuard: düşen bıçak koruması (knifeGuardOf); açıkken waiting → confirming → active | knife | expired.
+ * @returns {{ status, events: string[], patch: object }} patch: plana yazılacak alanlar (yaklaşma ölçüsü, teyitli giriş)
  */
 export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   const o = { ...PLAN_DEFAULTS, ...opts };
+  const g = knifeGuardOf(o.knifeGuard);
+  const ms = TIMEFRAMES[plan.tf]?.ms;
   const d = plan.d;
   let status = plan.status;
-  const events = [];
-  for (const c of candles) {
+  const events = [], patch = {};
+  const knifeAt = () => patch.knifeAt ?? plan.knifeAt;
+  for (let j = 0; j < candles.length; j++) {
+    const c = candles[j];
     if (!c || c.time <= plan.sentAt) continue;
     const touchEntry = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
     const hitStop = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
     const hitTp1 = d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1;
     const hitTp2 = d === 1 ? c.high >= plan.tp2 : c.low <= plan.tp2;
     if (status === 'waiting') {
-      if (touchEntry) { status = 'active'; events.push('active'); }
-      else if (hitTp1) { status = 'missed'; events.push('missed'); break; }
+      if (touchEntry) {
+        const a = g ? approachOf(candles, j, d, plan.atr || Math.abs(plan.entry - plan.stop)) : null;
+        if (a) Object.assign(patch, a);
+        if (isKnife(a, g)) {
+          if (g.skip || hitStop) { status = 'knife'; events.push('knife'); break; }
+          status = 'confirming'; events.push('confirming'); patch.knifeAt = c.time; continue;
+        }
+        status = 'active'; events.push('active');
+      } else if (hitTp1) { status = 'missed'; events.push('missed'); break; }
       else continue;
     }
+    if (status === 'confirming') {
+      if (c.time <= knifeAt()) continue;
+      if (hitStop) { status = 'knife'; events.push('knife'); break; }
+      if (ms && c.time + ms > now) continue; // teyit yalnız kapanmış mumla
+      if (confirmsTurn(c, candles[j - 1], plan)) {
+        const risk = d * (c.close - plan.stop);
+        if (d * (plan.tp1 - c.close) <= 0 || !(risk > 0)) { status = 'missed'; events.push('missed'); break; }
+        Object.assign(patch, { confirmedAt: c.time, entry: c.close, entryPlanned: plan.entry, rr1: +((d * (plan.tp1 - c.close)) / risk).toFixed(2), rr: +((d * (plan.tp2 - c.close)) / risk).toFixed(2) });
+        status = 'active'; events.push('active'); continue;
+      }
+      if (ms && Math.round((c.time - knifeAt()) / ms) >= g.confirmBars) { status = 'expired'; events.push('unconfirmed'); break; }
+      continue;
+    }
     if (status === 'active' || status === 'tp1') {
+      if (plan.confirmedAt && c.time <= plan.confirmedAt) continue; // teyitli girişten (kapanış) önceki mumlar
       // Aynı mumda hem stop hem hedef: kötü olan (stop) sayılır
       if (hitStop) { status = 'stopped'; events.push('stopped'); break; }
       if (status === 'active' && hitTp1) { status = 'tp1'; events.push('tp1'); }
@@ -167,10 +227,10 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
     }
   }
   if (status === 'waiting' && now - plan.sentAt > o.expireHours * 3600e3) { status = 'expired'; events.push('expired'); }
-  return { status, events };
+  return { status, events, patch };
 }
 
-export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed']);
+export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife']);
 
 /** Aynı anahtar ya da aynı coin+yön son `cooldownHours` içinde gönderilmiş mi? */
 export function onCooldown(plan, sent, now, cooldownHours) {

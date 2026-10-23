@@ -24,7 +24,7 @@ export function publish(acct, dir) {
   fs.writeFileSync(path.join(dir, `${acct.profile}.json`), JSON.stringify(out));
 }
 
-const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış' };
+const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış' };
 
 function fmtOpen(acct, pos, order, hedgeLeg = null) {
   const p = pos || order;
@@ -34,7 +34,7 @@ function fmtOpen(acct, pos, order, hedgeLeg = null) {
 function fmtEvent(acct, ev) {
   const p = ev.pos || ev.order;
   const head = `🤖 <b>Ajan [${esc(acct.label)}]</b> ${EV_TR[ev.type] || ev.type} — <b>${esc(p.coin)}</b> ${p.direction === 'long' ? 'LONG' : 'SHORT'} ${p.leverage}x`;
-  if (ev.type === 'filled' || ev.type === 'expired') return `${head}${ev.price ? ` @ ${fp(ev.price)}` : ''}`;
+  if (['filled', 'expired', 'confirming', 'knife', 'knife_expired'].includes(ev.type)) return `${head}${ev.price ? ` @ ${fp(ev.price)}` : ''}${ev.confirmed ? ' (teyit mumu kapanışı)' : ''}`;
   return `${head} @ ${fp(ev.price)} · K/Z ${ev.pnl >= 0 ? '+' : ''}${fp(ev.pnl)} USDT · özsermaye ${fp(acct.equity)} USDT`;
 }
 export function fmtDaily(acct, stats) {
@@ -58,7 +58,7 @@ export async function runAgents(ctx) {
     Object.defineProperty(acct, '_btcPrice', { value: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null, enumerable: false, configurable: true, writable: true }); // kapanış kayıtları için (yayınlanmaz)
     // 1) Güncelle
     const btcPx = ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null;
-    const events = updatePositions(acct, candlesByCoin, now);
+    const events = updatePositions(acct, candlesByCoin, now, { knifeGuard: cfg.knifeGuard });
     for (const h of openPendingHedges(acct, btcPx, now)) events.push({ type: 'hedge_open', pos: h, price: h.entry });
     events.push(...closeOrphanHedges(acct, btcPx, now).map((e) => ({ ...e, type: 'hedge_close' })));
     markToMarket(acct, ctx.prices);

@@ -1,6 +1,6 @@
 // Walk-forward backtest (saf): her adımda yalnızca o ana kadarki mumlarla analiz + plan; plan ileriye simüle edilir.
 import { analyzeRow, barsFor } from '../src/scan/scanner.js';
-import { buildPlan, onCooldown } from '../bot/plan.js';
+import { buildPlan, onCooldown, knifeGuardOf, approachOf, isKnife, confirmsTurn } from '../bot/plan.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 
 export const BT_DEFAULTS = {
@@ -16,6 +16,7 @@ export const BT_DEFAULTS = {
   // 'trail_only' (hedef yok; stop girişten itibaren trailAtr × ATR izler, stop'a kadar)
   tpScheme: 'half_be',
   trailAtr: 1.0,
+  knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
 };
@@ -25,16 +26,34 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   const d = plan.d, ms = TIMEFRAMES[tf].ms;
   const expireBars = Math.ceil((o.expireHours * 3600e3) / ms);
   const slip = o.slipPct / 100, fee = o.feePct / 100;
-  let i = from, entry = null, fillI = -1;
+  let i = from, entry = null, fillI = -1, mkt = !!plan.inZone, appr = null;
   // Dolum
   if (plan.inZone) { // piyasa: sonraki mumun açılışı + kayma
     if (i >= candles.length) return { outcome: 'expired', R: 0 };
     entry = candles[i].open * (1 + d * slip); fillI = i;
   } else {
+    const g = knifeGuardOf(o.knifeGuard);
     for (; i < candles.length && i < from + expireBars; i++) {
       const c = candles[i];
       const touched = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
-      if (touched) { entry = plan.entry; fillI = i; break; }
+      if (touched) {
+        appr = approachOf(candles, i, d, plan.atr || Math.abs(plan.entry - plan.stop));
+        if (!isKnife(appr, g)) { entry = plan.entry; fillI = i; break; }
+        // Hızlı yaklaşma: emir dolmaz; teyit mumu beklenir (kapanışından giriş), teyitten önce stop = iptal
+        const stopOf = (x) => (d === 1 ? x.low <= plan.stop : x.high >= plan.stop);
+        if (g.skip || stopOf(c)) return { outcome: 'knife', R: 0, ...appr };
+        for (let k = i + 1; k <= i + g.confirmBars && k < candles.length; k++) {
+          const x = candles[k];
+          if (stopOf(x)) return { outcome: 'knife', R: 0, ...appr };
+          if (confirmsTurn(x, candles[k - 1], plan)) {
+            if (d * (plan.tp1 - x.close) <= 0) return { outcome: 'missed', R: 0, ...appr };
+            entry = x.close * (1 + d * slip); fillI = k + 1; mkt = true; break;
+          }
+        }
+        if (entry == null) return { outcome: 'expired', R: 0, knifeWait: true, ...appr };
+        if (fillI >= candles.length) return { outcome: 'expired', R: 0, ...appr };
+        break;
+      }
       const tp1Hit = d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1;
       if (tp1Hit) return { outcome: 'missed', R: 0 };
     }
@@ -57,7 +76,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
     const tp1Hit = !single && !trailOnly && (d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1);
     const tp2Hit = !trailOnly && (d === 1 ? c.high >= plan.tp2 : c.low <= plan.tp2);
     // Dolum mumunda (piyasa girişte) stop ve hedef aynı mumdaysa stop sayılır (sıra bilinmez)
-    if (stopHit && (k > fillI || plan.inZone || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
+    if (stopHit && (k > fillI || mkt || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
     if (portion === 1 && tp1Hit && k >= fillI) {
       R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion;
       if (scheme === 'half_be') stop = entry; // başabaş
@@ -75,7 +94,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   }
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
   R -= feeR;
-  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6) };
+  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
 }
 
 /** Bir sembol+TF serisini baştan sona tarar; planları simüle eder. */

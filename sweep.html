@@ -45,7 +45,16 @@ async function main() {
     <td>${v.train.n}</td><td>${pct(v.train.winRate)}</td><td class="${cls(v.train.avgR)}">${fmt(v.train.avgR, 3)}</td><td>${fmt(v.train.profitFactor)}</td>
     <td>${v.valid.n}</td><td>${pct(v.valid.winRate)}</td><td class="${cls(v.valid.avgR)}">${fmt(v.valid.avgR, 3)}</td><td class="${cls(v.valid.totalR)}">${fmt(v.valid.totalR, 1)}</td><td>${fmt(v.valid.profitFactor)}</td><td>${fmt(v.valid.maxDD, 1)}</td>
     <td class="${cls(v.valid.avgR - b.valid.avgR)}">${fmt(v.valid.avgR - b.valid.avgR, 3)}</td></tr>`;
-  document.querySelector('#root').innerHTML = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Ayar</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th><th>Δ temel (doğr.)</th></tr></thead><tbody>${[b, ...r.results.filter((v) => v.name !== b.name)].map(row).join('')}</tbody></table></div></section>`;
+  document.querySelector('#root').innerHTML = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Ayar</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th><th>Δ temel (doğr.)</th></tr></thead><tbody>${[b, ...r.results.filter((v) => v.name !== b.name)].map(row).join('')}</tbody></table></div></section>${approachTable(b.byApproach)}`;
+}
+// Düşen bıçak ölçüsü: girişin bölgeye yaklaşma hızına göre (temel kurallar)
+function approachTable(a) {
+  if (!a) return '';
+  const keys = ['piyasa (bölgede)', 'limit yavaş (<1 ATR)', 'limit orta (1–2 ATR)', 'limit hızlı (>2 ATR)'];
+  const cell = (s) => (s && s.n ? `<td>${s.n}</td><td>${pct(s.winRate)}</td><td class="${cls(s.avgR)}">${fmt(s.avgR, 3)}</td>` : '<td>–</td><td>–</td><td>–</td>');
+  return `<section><h2>Bölgeye yaklaşma hızı (düşen bıçak)</h2><p class="hint">Limit dolumda son 3 mumda giriş yönüne ters hareket ÷ ATR. Hızlı dolumlar belirgin kötüyse "düşen bıçak koruması" satırına bakın.</p>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Giriş</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th></tr></thead>
+    <tbody>${keys.map((k) => `<tr><td>${esc(k)}</td>${cell(a.train?.[k])}${cell(a.valid?.[k])}</tr>`).join('')}</tbody></table></div></section>`;
 }
 main();
 </script>

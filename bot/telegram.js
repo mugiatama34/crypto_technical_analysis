@@ -49,12 +49,14 @@ export function formatSetup(plan, dec, size) {
   return lines.filter((l) => l !== '').join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
-const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)' };
+const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal' };
 
 /** Takip güncellemesi. */
 export function formatUpdate(plan, event, price) {
   const dir = plan.direction === 'long' ? 'LONG' : 'SHORT';
-  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)} · stop ${fp(plan.stop)} · TP1 ${fp(plan.tp1)} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
+  const conf = event === 'active' && plan.entryPlanned ? ` (teyit mumu kapanışı; plan ${fp(plan.entryPlanned)})` : '';
+  const spd = event === 'confirming' && plan.approachAtr != null ? ` · yaklaşma ${plan.approachAtr}×ATR, dolum mumu ${plan.fillBarAtr}×ATR` : '';
+  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd} · stop ${fp(plan.stop)} · TP1 ${fp(plan.tp1)} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
 }
 
 /** Günlük özet. */
@@ -64,6 +66,6 @@ export function formatSummary(stats, open, since) {
     `<b>📊 Günlük özet</b> (${d} sonrası)`,
     `Gönderilen: ${stats.sent} · Aktif: ${stats.active} · TP1: ${stats.tp1} · Tamam: ${stats.done} · Stop: ${stats.stopped} · Süresi dolan: ${stats.expired} · Kaçan: ${stats.missed}`,
   ];
-  if (open.length) lines.push('', '<b>Açık planlar:</b>', ...open.map((p) => `• ${esc(p.coin)} ${esc(p.tf)} ${p.direction.toUpperCase()} — ${p.status === 'waiting' ? 'bekliyor' : p.status === 'tp1' ? 'TP1 sonrası' : 'aktif'} (giriş ${fp(p.entry)}, stop ${fp(p.stop)})`));
+  if (open.length) lines.push('', '<b>Açık planlar:</b>', ...open.map((p) => `• ${esc(p.coin)} ${esc(p.tf)} ${p.direction.toUpperCase()} — ${p.status === 'waiting' ? 'bekliyor' : p.status === 'confirming' ? 'teyit bekliyor' : p.status === 'tp1' ? 'TP1 sonrası' : 'aktif'} (giriş ${fp(p.entry)}, stop ${fp(p.stop)})`));
   return lines.join('\n');
 }

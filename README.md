@@ -81,6 +81,15 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   `MOMENTUM_RANK=rel` ile aynı sıralamaya geçer (vars. `abs`).
 - Ezme: `TF_RULES` (ör. `{"15m":{"minScore":85,"long":{"trendAdxMin":30}},"4H":{"requireMtf":true}}`; TF içinde
   `long`/`short` alt kuralı), `SHORT_RULE` (ör. `{"scoreAdd":5,"btcRegime":null}`).
+- **Düşen bıçak koruması (`KNIFE_GUARD`, vars. kapalı):** limit giriş çoğu zaman fiyat bölgeye en sert geldiğinde dolar
+  (ters seçim; canlı geçmişte gönderimden 4–24 saat sonra dolan 15 işlemin 15'i stop). Ölçü: dolum mumu dahil son 3 mumda
+  giriş yönüne ters hareket ÷ ATR (`approachAtr`) ve dolum mumu boyu ÷ ATR (`fillBarAtr`). Hızlı gelişte (> 2 ATR ya da
+  dolum mumu > 1,5 ATR) emir dolmaz → "teyit bekliyor"; sonraki 3 **kapanmış** mumda teyit mumu (long: kapanış bölge üst
+  kenarı ya da önceki mumun tepesi üstünde; short ayna) gelirse o mumun kapanışından girilir, teyitten önce stop geçilirse
+  plan iptal (`knife`, işlem yok), teyit gelmezse süresi dolar. Sinyal takibi ve ajan limit emirleri (15m mumlarla) aynı
+  kuralı uygular. `KNIFE_GUARD=1` ya da JSON `{"maxApproachAtr":2,"maxFillBarAtr":1.5,"confirmBars":3,"skip":false}`
+  (`skip`: teyit beklemeden atla). Backtest raporu ve tarama `byApproach` kırılımını (piyasa · yavaş < 1 ATR · orta 1–2 ·
+  hızlı > 2) ve üç "düşen bıçak" varyantını gösterir (`sweep.html`); canlıda açmadan önce `mode: sweep` sonucuna bakın.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

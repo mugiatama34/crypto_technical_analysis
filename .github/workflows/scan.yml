@@ -71,6 +71,7 @@ jobs:
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
           TF_RULES: ${{ vars.TF_RULES }}
           SHORT_RULE: ${{ vars.SHORT_RULE }}
+          KNIFE_GUARD: ${{ vars.KNIFE_GUARD }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

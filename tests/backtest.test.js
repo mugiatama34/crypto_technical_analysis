@@ -60,3 +60,33 @@ test('simulateTrade: çıkış şemaları (half_nobe, single, trail)', () => {
   // TP1 103'te yarı (1.5R); izleyen stop = 103 − 1 = 102 → 3. mumda dip 101.9 stop (1R)
   assert.equal(trail.outcome, "tp1_be"); assert.ok(Math.abs(trail.R - 1.25) < 1e-9, `R ${trail.R}`); // yarı 1.5R + yarı 1R (stop 102)
 });
+
+// Düşen bıçak: bölgeye sert yaklaşma (son 3 mumda > 2 ATR) → teyit mumu kapanışından giriş ya da iptal
+const kplan = { d: 1, direction: 'long', entry: 100, stop: 97, tp1: 104, tp2: 108, zone: [99.5, 100], atr: 1, inZone: false, price: 102.5 };
+const kGuard = { ...o, knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 } };
+const drop = [c(1, 102.5, 102.8, 102.2, 102.5), c(2, 102.5, 102.5, 100.5, 100.6), c(3, 100.6, 100.6, 99.2, 99.4)];
+
+test('simulateTrade: yaklaşma hızı ölçülür; yavaş yaklaşmada koruma normal dolum yapar', () => {
+  const slow = [c(1, 100.6, 100.8, 100.4, 100.6), c(2, 100.5, 100.7, 100.3, 100.5), c(3, 100.4, 100.5, 99.9, 100.2), c(4, 100.2, 104.5, 100.1, 104.2), c(5, 104, 108.5, 103.8, 108)];
+  const a = simulateTrade(kplan, slow, 0, '1H', o), b = simulateTrade(kplan, slow, 0, '1H', kGuard);
+  assert.equal(a.approachAtr, 0.9); assert.equal(a.fillBarAtr, 0.6);
+  assert.deepEqual([b.outcome, b.R, b.entryFill], [a.outcome, a.R, 100]);
+  assert.equal(simulateTrade({ ...kplan, inZone: true }, slow, 0, '1H', o).approachAtr, null);
+});
+
+test('simulateTrade: hızlı yaklaşma + teyit mumu → teyit kapanışından giriş; teyitsiz stop → knife (R 0); skip', () => {
+  const up = [c(4, 99.4, 99.8, 98.9, 99.6), c(5, 99.6, 100.4, 99.5, 100.3), c(6, 100.3, 104.5, 100.2, 104.2), c(7, 104, 108.5, 103.8, 108)];
+  const plain = simulateTrade(kplan, [...drop, ...up], 0, '1H', o);
+  assert.equal(plain.entryFill, 100); assert.equal(plain.approachAtr, 3.6);
+  const g = simulateTrade(kplan, [...drop, ...up], 0, '1H', kGuard);
+  assert.equal(g.outcome, 'tp2'); assert.equal(g.entryFill, 100.3); assert.equal(g.confirmed, true);
+  const risk = 100.3 - 97;
+  assert.ok(Math.abs(g.R - (0.5 * (104 - 100.3) / risk + 0.5 * (108 - 100.3) / risk)) < 1e-3, `R ${g.R}`);
+  const knife = simulateTrade(kplan, [...drop, c(4, 99.4, 99.5, 96.8, 97), ...up], 0, '1H', kGuard);
+  assert.deepEqual([knife.outcome, knife.R], ['knife', 0]);
+  assert.equal(simulateTrade(kplan, [...drop, ...up], 0, '1H', { ...o, knifeGuard: { ...kGuard.knifeGuard, skip: true } }).outcome, 'knife');
+  // teyit gelmezse (3 mum) süre dolar
+  const flat = [c(4, 99.4, 99.6, 99, 99.3), c(5, 99.3, 99.6, 99, 99.3), c(6, 99.3, 99.6, 99, 99.3), ...up];
+  assert.equal(simulateTrade(kplan, [...drop, ...flat], 0, '1H', kGuard).outcome, 'expired');
+  assert.equal(stats([knife]).n, 0); // işlem sayılmaz
+});

@@ -15,12 +15,15 @@ export function stats(trades) {
     winRate: +(wins.length / n).toFixed(3), avgR: +(sum(tr.map((t) => t.R)) / n).toFixed(3), totalR: +sum(tr.map((t) => t.R)).toFixed(1),
     avgWin: wins.length ? +(gross / wins.length).toFixed(2) : 0, avgLoss: losses.length ? +(-lossSum / losses.length).toFixed(2) : 0,
     profitFactor: lossSum ? +(gross / lossSum).toFixed(2) : Infinity, maxDD: +maxDD.toFixed(1),
-    outcomes: Object.fromEntries(['expired', 'missed', 'stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout'].map((o) => [o, trades.filter((t) => t.outcome === o).length])),
+    outcomes: Object.fromEntries(['expired', 'missed', 'knife', 'stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout'].map((o) => [o, trades.filter((t) => t.outcome === o).length])),
     avgMfe: +(sum(tr.map((t) => t.mfe || 0)) / n).toFixed(2),
   };
 }
 
-const by = (trades, keyOf) => {
+/** Bölgeye yaklaşma hızı kovası (düşen bıçak ölçüsü): piyasa · limit yavaş < 1 ATR · orta 1–2 · hızlı > 2. */
+export const approachBucket = (t) => (t.inZone ? 'piyasa (bölgede)' : t.approachAtr == null ? null : t.approachAtr < 1 ? 'limit yavaş (<1 ATR)' : t.approachAtr <= 2 ? 'limit orta (1–2 ATR)' : 'limit hızlı (>2 ATR)');
+
+export const by = (trades, keyOf) => {
   const m = new Map();
   for (const t of trades) { const k = keyOf(t); if (k == null) continue; if (!m.has(k)) m.set(k, []); m.get(k).push(t); }
   return Object.fromEntries([...m.entries()].map(([k, v]) => [k, stats(v)]));
@@ -57,6 +60,7 @@ export function buildReport(trades, meta = {}) {
     inSample: stats(sorted.filter((t) => t.time < split)), outOfSample: stats(sorted.filter((t) => t.time >= split)),
     byTf: by(trades, (t) => t.tf), byDirection: by(trades, (t) => t.direction), byScore: by(trades, scoreBucket),
     byEntry: by(trades, (t) => (t.inZone ? 'piyasa (bölgede)' : 'limit (bekleme)')),
+    byApproach: { train: by(sorted.filter((t) => t.time < split), approachBucket), valid: by(sorted.filter((t) => t.time >= split), approachBucket) },
     byGroup: presence(groups, 'groups'), byDetector: presence(dets, 'detectors'), byName: nameStats, byGroupPair: pairs,
     byMonth: by(trades, month), bySymbol: by(trades, (t) => t.coin),
     curve: thin,

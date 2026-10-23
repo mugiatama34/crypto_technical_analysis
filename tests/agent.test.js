@@ -159,3 +159,28 @@ test('piyasa okuması ve yön istatistiği karara girer; BTC trend adayı source
   const r = openPosition(a, { coin: 'BTC', tf: '4H', direction: 'short', margin: 30, leverage: 3, order: 'market', price: 80000, stop: 81800, rationale: 'BTC 4H düşüş', signals: [], source: 'btc_trend', btcPrice: 80000 }, 1000, P.guards);
   assert.ok(r.ok && !r.hedgeLeg); assert.equal(r.position.source, 'btc_trend');
 });
+
+test('limit emir: düşen bıçak koruması — hızlı dolumda bekler, teyit kapanışından dolar; stop geçilirse iptal', () => {
+  const M = 900e3;
+  const k = (i, open, high, low, close) => c(i * M, open, high, low, close);
+  const calm = Array.from({ length: 6 }, (_, i) => k(i + 1, 102.5, 102.65, 102.35, 102.5));
+  const drop = [...calm, k(7, 102.5, 102.5, 100.5, 100.6), k(8, 100.6, 100.6, 98.8, 99.4)];
+  const a = newAccount(P, 0);
+  openPosition(a, req({ order: 'limit', limit_price: 100, stop: 96, tp1: 106, tp2: 110 }), 0, P.guards);
+  let ev = updatePositions(a, { BTC: drop }, 8.5 * M, { knifeGuard: true });
+  assert.deepEqual(ev.map((e) => e.type), ['confirming']);
+  assert.equal(a.orders.length, 1); assert.equal(a.positions.length, 0);
+  ev = updatePositions(a, { BTC: [...drop, k(9, 99.4, 100.4, 99.3, 100.3), k(10, 100.3, 100.5, 100.1, 100.4)] }, 11 * M, { knifeGuard: true });
+  assert.equal(ev[0].type, 'filled'); assert.equal(ev[0].confirmed, true);
+  assert.ok(Math.abs(a.positions[0].entry - 100.3) < 0.2, `giriş ${a.positions[0].entry}`);
+  // Teyitten önce stop
+  const b = newAccount(P, 0);
+  openPosition(b, req({ order: 'limit', limit_price: 100, stop: 96, tp1: 106, tp2: 110 }), 0, P.guards);
+  ev = updatePositions(b, { BTC: [...drop, k(9, 99.4, 99.5, 95.8, 96)] }, 10 * M, { knifeGuard: true });
+  assert.deepEqual(ev.map((e) => e.type), ['confirming', 'knife']);
+  assert.equal(b.orders.length, 0); assert.equal(b.positions.length, 0);
+  // Koruma kapalı: hemen dolar
+  const z = newAccount(P, 0);
+  openPosition(z, req({ order: 'limit', limit_price: 100, stop: 96, tp1: 106, tp2: 110 }), 0, P.guards);
+  assert.equal(updatePositions(z, { BTC: drop }, 8.5 * M)[0].type, 'filled');
+});

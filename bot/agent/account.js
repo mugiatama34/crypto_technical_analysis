@@ -1,6 +1,7 @@
 // Kâğıt hesap simülasyonu (saf): izole marjinli perp pozisyonlar, likidasyon, komisyon, kayma, kısmi kapanış,
 // bekleyen limit emirler, sert sınırlarla kırpma, istatistik ve özsermaye eğrisi.
 import { FEES } from './profiles.js';
+import { knifeGuardOf, approachOf, isKnife, confirmsTurn } from '../plan.js';
 
 const r6 = (x) => +Number(x).toPrecision(8);
 const dirSign = (d) => (d === 'long' ? 1 : -1);
@@ -160,24 +161,47 @@ function finalizeTrade(acct, pos, kind, now) {
  * Bekleyen emirleri ve açık pozisyonları yeni mumlarla günceller.
  * @param candlesByCoin { [coin]: candles (eskiden yeniye; pozisyonun lastTime'ından sonrakiler işlenir) }
  */
-export function updatePositions(acct, candlesByCoin, now) {
+export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   const events = [];
-  // Limit emirler
+  const g = knifeGuardOf(opts.knifeGuard ?? acct.params?.knifeGuard);
+  // Limit emirler (düşen bıçak koruması açıksa: bölgeye hızlı gelişte dolmaz, kapanmış teyit mumunun kapanışından dolar)
   for (const o of [...acct.orders]) {
-    const cs = (candlesByCoin[o.coin] || []).filter((c) => c.time > o.createdAt);
-    let filled = false;
-    for (const c of cs) {
-      const d = dirSign(o.direction);
+    const all = candlesByCoin[o.coin] || [];
+    const ms = all.length > 1 ? all[all.length - 1].time - all[all.length - 2].time : 0;
+    const d = dirSign(o.direction);
+    const fill = (price, c, lastTime) => {
+      acct.orders = acct.orders.filter((x) => x !== o);
+      const pos = fillPosition(acct, { ...o, type: undefined, price: undefined, expiresAt: undefined, knifeAt: undefined }, price, c.time);
+      pos.lastTime = lastTime;
+      if (o.hedge) pos.pendingHedge = true; // BTC bacağı koşu içinde güncel BTC fiyatıyla açılır (openPendingHedges)
+      events.push({ type: 'filled', pos, price, ...(o.knifeAt ? { confirmed: true } : {}) });
+    };
+    const cancel = (type) => { acct.orders = acct.orders.filter((x) => x !== o); events.push({ type, order: o }); };
+    let done = false;
+    for (let j = 0; j < all.length && !done; j++) {
+      const c = all[j];
+      if (c.time <= o.createdAt) continue;
+      const stopHit = d === 1 ? c.low <= o.stop : c.high >= o.stop;
+      if (o.knifeAt) { // teyit bekleniyor
+        if (c.time <= o.knifeAt) continue;
+        if (stopHit) { cancel('knife'); done = true; break; }
+        if (ms && c.time + ms > now) continue; // yalnız kapanmış mum
+        if (confirmsTurn(c, all[j - 1], { d, entry: o.price })) { fill(r6(c.close * (1 + d * FEES.slipPct / 100)), c, c.time); done = true; break; }
+        if (ms && Math.round((c.time - o.knifeAt) / ms) >= g.confirmBars) { cancel('knife_expired'); done = true; break; }
+        continue;
+      }
       if (d === 1 ? c.low <= o.price : c.high >= o.price) {
-        acct.orders = acct.orders.filter((x) => x !== o);
-        const pos = fillPosition(acct, { ...o, type: undefined, price: undefined, expiresAt: undefined }, o.price, c.time);
-        pos.lastTime = c.time - 1; // bu mumun kalanı aşağıda işlenir
-        if (o.hedge) pos.pendingHedge = true; // BTC bacağı koşu içinde güncel BTC fiyatıyla açılır (openPendingHedges)
-        events.push({ type: 'filled', pos, price: o.price });
-        filled = true; break;
+        const a = g ? approachOf(all, j, d, atrAt(all, j) || Math.abs(o.price - o.stop)) : null;
+        if (isKnife(a, g)) {
+          if (g.skip || stopHit) { cancel('knife'); done = true; break; }
+          o.knifeAt = c.time; o.approachAtr = a.approachAtr; events.push({ type: 'confirming', order: o, price: o.price });
+          continue;
+        }
+        fill(o.price, c, c.time - 1); // bu mumun kalanı aşağıda işlenir
+        done = true; break;
       }
     }
-    if (!filled && now > o.expiresAt) { acct.orders = acct.orders.filter((x) => x !== o); events.push({ type: 'expired', order: o }); }
+    if (!done && !o.knifeAt && now > o.expiresAt) cancel('expired');
   }
   // Pozisyonlar
   for (const pos of [...acct.positions]) {
@@ -203,6 +227,13 @@ export function updatePositions(acct, candlesByCoin, now) {
     if (acct.positions.includes(pos) && cs.length) pos.lastTime = cs[cs.length - 1].time;
   }
   return events;
+}
+
+/** Basit ATR(14): i'de biten mumların ortalama gerçek aralığı. */
+function atrAt(cs, i, n = 14) {
+  let sum = 0, k = 0;
+  for (let j = Math.max(1, i - n + 1); j <= i; j++) { const c = cs[j], p = cs[j - 1].close; sum += Math.max(c.high - c.low, Math.abs(c.high - p), Math.abs(c.low - p)); k++; }
+  return k ? sum / k : null;
 }
 
 /** Elle kapanış (piyasa). */

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, positionSize, trackPlan, onCooldown } from '../bot/plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED } from '../bot/plan.js';
 import { validateDecision, buildPrompt, SCHEMA, askBrain } from '../bot/brain.js';
 import { formatSetup, formatUpdate, formatSummary, esc } from '../bot/telegram.js';
 
@@ -196,4 +196,33 @@ test('çok ufuklu rejim: 1H short, günlük yükseliş ama 4H düşüşte geçer
   assert.equal(p4.reason, 'BTC rejimi ters');
   const pl = buildPlan(row({ coin: 'ETH', tf: '1H' }), { btcRegime: 'with', regime: regimeFor('1H', read) });
   assert.equal(pl.reason, 'BTC rejimi ters'); // 4H düşüşte 1H long yok
+});
+
+test('trackPlan: düşen bıçak koruması — confirming → active (teyit kapanışı) / knife / unconfirmed; kapalıyken eski davranış', () => {
+  const H = 3600e3;
+  const k = (i, open, high, low, close) => ({ time: i * H, open, high, low, close });
+  const base = { d: 1, direction: 'long', tf: '1H', entry: 100, stop: 97, tp1: 104, tp2: 108, zone: [99.5, 100], atr: 1, sentAt: 0, status: 'waiting' };
+  const drop = [k(1, 102.5, 102.8, 102.2, 102.5), k(2, 102.5, 102.5, 100.5, 100.6), k(3, 100.6, 100.6, 99.2, 99.4)];
+  const up = [k(4, 99.4, 99.8, 98.9, 99.6), k(5, 99.6, 100.4, 99.5, 100.3), k(6, 100.3, 104.5, 100.2, 104.2), k(7, 104, 108.5, 103.8, 108)];
+  const now = 9 * H;
+  assert.deepEqual(trackPlan(base, [...drop, ...up], now).events, ['active', 'tp1', 'done']);
+  let r = trackPlan(base, [...drop, ...up], now, { knifeGuard: '1' });
+  assert.deepEqual(r.events, ['confirming', 'active', 'tp1', 'done']);
+  assert.equal(r.patch.entry, 100.3); assert.equal(r.patch.entryPlanned, 100); assert.equal(r.patch.approachAtr, 3.6);
+  // Koşular arası: önce yalnız düşüş (confirming), sonra devamı
+  r = trackPlan(base, drop, 3.5 * H, { knifeGuard: true });
+  assert.equal(r.status, 'confirming');
+  const p2 = { ...base, ...r.patch, status: r.status };
+  r = trackPlan(p2, [...drop, up[0], { ...up[1], time: 5 * H }], 5.5 * H, { knifeGuard: true });
+  assert.equal(r.status, 'confirming'); // 5. mum henüz kapanmadı
+  r = trackPlan(p2, [...drop, ...up], now, { knifeGuard: true });
+  assert.equal(r.status, 'done');
+  // Teyitten önce stop → knife (kapalı durum)
+  r = trackPlan(base, [...drop, k(4, 99.4, 99.5, 96.8, 97), ...up], now, { knifeGuard: true });
+  assert.equal(r.status, 'knife'); assert.ok(CLOSED.has('knife'));
+  // 3 mum teyit yok → süre doldu
+  const flat = [k(4, 99.4, 99.6, 99, 99.3), k(5, 99.3, 99.6, 99, 99.3), k(6, 99.3, 99.6, 99, 99.3)];
+  r = trackPlan(base, [...drop, ...flat], now, { knifeGuard: true });
+  assert.deepEqual([r.status, r.events.at(-1)], ['expired', 'unconfirmed']);
+  assert.match(formatUpdate({ ...base, approachAtr: 3.6, fillBarAtr: 1.4 }, 'confirming', 99.4), /düşen bıçak.*3\.6×ATR/s);
 });

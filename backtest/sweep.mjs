@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { simulateTrade, BT_DEFAULTS } from './engine.js';
-import { stats } from './report.js';
+import { stats, by, approachBucket } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 
@@ -82,6 +82,10 @@ const SINGLE = [
   { name: 'yalnız 1H+4H', tfs: ['1H', '4H'] }, { name: 'yalnız 4H', tfs: ['4H'] },
   { name: 'üçgen/yapı hariç', excludeDetectors: ['triangles', 'structure'] }, { name: 'harmonik veya uyumsuzluk zorunlu', requireAnyGroup: ['harmonic', 'divergence'] },
   { name: 'MTF: üst TF aynı yön', mtf: true },
+  // Düşen bıçak: bölgeye hızlı gelen limit dolumlar (son 3 mumda > 2 ATR ya da dolum mumu > 1,5 ATR)
+  { name: 'düşen bıçak koruması (teyit mumu)', knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 } },
+  { name: 'düşen bıçak: hızlı dolumları atla', knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, skip: true } },
+  { name: 'düşen bıçak koruması, eşik 1,5 ATR', knifeGuard: { maxApproachAtr: 1.5, maxFillBarAtr: 1.2, confirmBars: 3 } },
 ];
 
 async function main() {
@@ -101,7 +105,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
     const trades = [];
     for (const [k, list] of groups) {
       const s = series.get(k); if (!s) continue;
@@ -110,11 +114,12 @@ async function main() {
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
-        trades.push({ time: t.time, outcome: sim.outcome, R: sim.R, mfe: sim.mfe });
+        trades.push({ time: t.time, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
       }
     }
     const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
-    return { ...v, train, valid, all: stats(trades) };
+    const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
+    return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) } };
   };
 
   const results = [];
@@ -123,14 +128,17 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach'].includes(k)) out[k] = val; return out; };
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
-  for (const v of combos) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
+  // aynı alanı ezen varyantlar (ör. iki düşen bıçak ayarı) birleştirilmez
+  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1;
+  for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
-  const out = { meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
+  const approach = results.find((r) => r.name === BASE.name)?.byApproach;
+  const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(out));
   log('En iyi (doğrulama):');
