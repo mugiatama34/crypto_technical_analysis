@@ -186,7 +186,13 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   dışına fitil atıp gövde kamanın içine kapanınca ters yönde piyasa girişi; stop 5. dalga ucu + 0,2 ATR; TP1 diyagonal
   başı, TP2 başın ötesi; TP1 ≥ 2R şartı) ve `leading_diagonal` (uzun trend ucunda başlayan diyagonal tamamlanınca
   2. dalganın %61,8'ine 5 gün geçerli limit; stop diyagonal başının ötesi; TP1 1. dalga tepesi, TP2 giriş + 1,618 × (1);
-  TP2 ≥ 2R); `ending_diagonal_wide` stop tamponu 1 ATR (3. turda 0,2 ATR tamponla 55 işlemin 47'si stop oldu). Dersin
+  TP2 ≥ 2R); **Ders 2 (Zigzag ve flat)** `backtest/lab/corrections.js`: `zigzag_c` ((1) itkisinden sonra zigzag; C ≈ A
+  (0,8–1,7) ve (1)'in 0,5–0,886 düzeltmesinde; dönüş mumuyla giriş; stop 0,786 ile C ucunun ötesi; TP1 (1) ucu ≥ 2R;
+  TP2 C + 1,618 × (1)) ve `expanded_flat_c` (B (3)'ün ucunu geçer, C A ucunu kırar, mum A ucunun bu tarafına geri kapanır;
+  stop C ucu ötesi; TP1 B ucu ≥ 2R; TP2 C + (3) boyu); iki yön, 1H/4H; ZigZag seri başına bir kez, `pivotsAsOf` ile
+  yalnız o ana kadar onaylı pivotlar (hızlı, geleceğe bakmaz). Tarayıcıda EW zigzag / EW flat sayımları (C oluşurken)
+  aynı seviyeleri Giriş/Stop/H1/H2 çizgileri ve not olarak gösterir. Koşu: `mode: lab, months: 24, tfs: 1H,4H,
+  strategies: zigzag_c,expanded_flat_c`. `ending_diagonal_wide` stop tamponu 1 ATR (3. turda 0,2 ATR tamponla 55 işlemin 47'si stop oldu). Dersin
   15m PO3 tetiği modellenmez; throw-over mumunun kapanışı tetiktir. Girişler sinyal mumundan sonraki açılıştan
   (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
   raporda "aday"; 5. turdan itibaren sıkı ölçüt: eğitimde de ort. R > 0 **ve** doğrulamadan en iyi ay çıkarılınca ort. R > 0

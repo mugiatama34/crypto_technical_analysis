@@ -147,3 +147,14 @@ test('Elliott preset seçenekleri: patterns yalnız o kalıbı bırakır, wave3:
     assert.ok(p && p.detectors.includes('elliott') && p.detectorOpts.elliott.patterns.length && p.detectorOpts.elliott.wave3 === false, id);
   }
 });
+
+test('Ders 2 seviyeleri: zigzag sayımında giriş/stop/hedef sıralı; genişleyen flat\'te giriş A ucu', async () => {
+  const { correctionLevels } = await import('../src/detectors/elliott.js');
+  const P = (i, price) => ({ i, price });
+  const z = correctionLevels('zigzag', 'Zigzag (5-3-5)', [P(20, 110), P(30, 105.5), P(36, 107.8), P(46, 103.3)], P(0, 100), 0.5);
+  assert.ok(z.stop < z.entry && z.entry < z.tp1 && z.tp1 < z.tp2); assert.equal(z.invalid, 100);
+  assert.equal(correctionLevels('zigzag', 'Zigzag (5-3-5)', [P(20, 110), P(30, 105.5), P(36, 107.8), P(46, 103.3)], P(0, 115), 0.5), null); // önceki itki ters
+  const f = correctionLevels('flat', 'Flat (3-3-5, expanded)', [P(20, 104), P(26, 99), P(32, 105.5), P(42, 97.4)], P(0, 94), 0.6);
+  assert.equal(f.entry, 99); assert.equal(f.tp1, 105.5); assert.ok(f.stop < 97.4);
+  assert.equal(correctionLevels('flat', 'Flat (3-3-5, regular)', [P(20, 104), P(26, 99), P(32, 103.8), P(42, 98.9)], P(0, 94), 0.6), null);
+});

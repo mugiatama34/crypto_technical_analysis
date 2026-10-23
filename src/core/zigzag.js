@@ -13,7 +13,7 @@ export function fillAtr(atrArr) {
  * @param k        dönüş eşiği çarpanı (k × ATR)
  * @param range    { from, to, start: { i, type: 'H'|'L' } } — aralık ve zorunlu başlangıç pivotu (isteğe bağlı)
  * @returns {{ pivots: {i:number, price:number, type:'H'|'L'}[], tentative: {i, price, type}|null }}
- *   pivots: onaylanmış dönüş noktaları; tentative: henüz onaylanmamış son uç
+ *   pivots: onaylanmış dönüş noktaları (at: onaylandığı mum indeksi); tentative: henüz onaylanmamış son uç
  */
 export function zigzag(candles, atrArr, k, range = {}) {
   const from = range.from ?? 0;
@@ -38,10 +38,10 @@ export function zigzag(candles, atrArr, k, range = {}) {
       if (c.low < candles[loI].low) loI = i;
       if (candles[hiI].high - candles[loI].low >= thr && hiI !== loI) {
         if (loI < hiI) {
-          pivots.push({ i: loI, price: candles[loI].low, type: 'L' });
+          pivots.push({ i: loI, price: candles[loI].low, type: 'L', at: i });
           dir = 1; ext = { i: hiI, price: candles[hiI].high };
         } else {
-          pivots.push({ i: hiI, price: candles[hiI].high, type: 'H' });
+          pivots.push({ i: hiI, price: candles[hiI].high, type: 'H', at: i });
           dir = -1; ext = { i: loI, price: candles[loI].low };
         }
       }
@@ -51,17 +51,35 @@ export function zigzag(candles, atrArr, k, range = {}) {
     if (dir === 1) {
       if (!ext || c.high > ext.price) ext = { i, price: c.high };
       else if (ext.price - c.low >= thr) {
-        pivots.push({ i: ext.i, price: ext.price, type: 'H' });
+        pivots.push({ i: ext.i, price: ext.price, type: 'H', at: i });
         dir = -1; ext = { i, price: c.low };
       }
     } else {
       if (!ext || c.low < ext.price) ext = { i, price: c.low };
       else if (c.high - ext.price >= thr) {
-        pivots.push({ i: ext.i, price: ext.price, type: 'L' });
+        pivots.push({ i: ext.i, price: ext.price, type: 'L', at: i });
         dir = 1; ext = { i, price: c.high };
       }
     }
   }
   const tentative = ext ? { ...ext, type: dir === 1 ? 'H' : 'L' } : null;
   return { pivots, tentative };
+}
+
+/**
+ * Tüm seri üzerinde bir kez hesaplanmış ZigZag'ın i anındaki görünümü (geleceğe bakmaz): at ≤ i olan onaylı pivotlar ve
+ * i anındaki geçici uç (son onaylı pivottan sonraki, i'ye kadarki en uç fiyat). candles: aynı seri.
+ */
+export function pivotsAsOf(zz, candles, i) {
+  const piv = [];
+  for (const p of zz.pivots) { if (p.at != null && p.at <= i) piv.push(p); else if (p.at == null && p.i <= i) piv.push(p); else break; }
+  const last = piv[piv.length - 1];
+  if (!last) return { pivots: piv, tentative: null };
+  const wantHigh = last.type === 'L';
+  let ext = null;
+  for (let j = last.i + 1; j <= i; j++) {
+    const v = wantHigh ? candles[j].high : candles[j].low;
+    if (!ext || (wantHigh ? v > ext.price : v < ext.price)) ext = { i: j, price: v };
+  }
+  return { pivots: piv, tentative: ext ? { ...ext, type: wantHigh ? 'H' : 'L' } : null };
 }

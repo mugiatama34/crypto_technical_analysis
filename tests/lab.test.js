@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 24);
+  assert.equal(STRATEGIES.length, 26);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -269,4 +269,39 @@ test('btc_tsmom: düşen trendde short, yatay seride sessiz; yalnız BTC/ETH', a
   const tr = runStrategy(btcTsmom1h, { coin: 'BTC', tf: '1H', candles: down }, o);
   assert.ok(tr.length >= 1 && tr.every((t) => t.direction === 'short'));
   assert.equal(runStrategy(btcTsmom4h, { coin: 'BTC', tf: '4H', candles: trendSeries(400, 0) }, o).length, 0);
+});
+
+test('Ders 2: zigzag ve genişleyen flat planları dersin örnek seviyelerini verir; aynası short; geri kapanış yoksa sinyal yok', async () => {
+  const { zigzagPlan, flatPlan } = await import('../backtest/lab/corrections.js');
+  const P = (i, price) => ({ i, price });
+  // Zigzag 2. dalga: (1) 100→110, A 105,5, B 107,8, C 103,3 (C = A, 0,618–0,786 bölgesi)
+  const z = zigzagPlan([P(0, 100), P(20, 110), P(30, 105.5), P(36, 107.8), P(46, 103.3)], { i: 47, open: 103.4, high: 103.9, low: 103.35, close: 103.8 }, { high: 103.7, low: 103.3 }, 0.5);
+  assert.equal(z.direction, 'long'); assert.equal(z.tp1, 110); assert.ok(z.stop < 102.2 && z.stop > 100 && z.rr1 >= 2 && Math.abs(z.tp2 - 119.48) < 0.01);
+  const m = (x) => 200 - x; // ayna
+  const zs = zigzagPlan([P(0, m(100)), P(20, m(110)), P(30, m(105.5)), P(36, m(107.8)), P(46, m(103.3))], { i: 47, open: m(103.4), high: m(103.35), low: m(103.9), close: m(103.8) }, { high: m(103.3), low: m(103.7) }, 0.5);
+  assert.equal(zs.direction, 'short'); assert.equal(zs.tp1, m(110));
+  // dönüş mumu yoksa (kapanış önceki tepenin altında) sinyal yok
+  assert.equal(zigzagPlan([P(0, 100), P(20, 110), P(30, 105.5), P(36, 107.8), P(46, 103.3)], { i: 47, open: 103.4, high: 103.6, low: 103.35, close: 103.5 }, { high: 103.7, low: 103.3 }, 0.5), null);
+  // Genişleyen flat 4. dalga: (3) 94→104, A 99, B 105,5, C 97,4; mum A dibinin üstüne geri kapanır
+  const f = flatPlan([P(0, 94), P(20, 104), P(26, 99), P(32, 105.5), P(42, 97.4)], { i: 42, open: 98, high: 99.6, low: 97.4, close: 99.2 }, 0.6);
+  assert.equal(f.direction, 'long'); assert.equal(f.tp1, 105.5); assert.ok(f.stop < 97.4 && f.rr1 >= 2 && f.tp2 > f.tp1);
+  // kapanış A dibinin altında kalırsa (gerçek kırılım) sinyal yok
+  assert.equal(flatPlan([P(0, 94), P(20, 104), P(26, 99), P(32, 105.5), P(42, 97.4)], { i: 42, open: 98, high: 98.6, low: 97.4, close: 98.2 }, 0.6), null);
+  // B (3)'ün ucunu geçmediyse (genişleyen değil) sinyal yok
+  assert.equal(flatPlan([P(0, 94), P(20, 104), P(26, 99), P(32, 103.5), P(42, 97.4)], { i: 42, open: 98, high: 99.6, low: 97.4, close: 99.2 }, 0.6), null);
+});
+
+test('pivotsAsOf: tüm seri ZigZag\'ının i anındaki kesiti, o ana kadarki mumlarla hesaplanan ZigZag ile aynı onaylı pivotlar', async () => {
+  const { zigzag, fillAtr, pivotsAsOf } = await import('../src/core/zigzag.js');
+  const I = await import('../src/data/indicators.js');
+  const { randomWalk } = await import('./helpers.js');
+  const cs = randomWalk(500, { seed: 11, step: 0.8 });
+  const atr = fillAtr(I.atr(cs.map((c) => c.high), cs.map((c) => c.low), cs.map((c) => c.close), 14));
+  const full = zigzag(cs, atr, 2);
+  for (const i of [120, 250, 333, 499]) {
+    const part = zigzag(cs.slice(0, i + 1), atr.slice(0, i + 1), 2);
+    const v = pivotsAsOf(full, cs, i);
+    assert.deepEqual(v.pivots.map((p) => [p.i, p.type]), part.pivots.map((p) => [p.i, p.type]), `i=${i}`);
+    assert.equal(v.tentative?.i, part.tentative?.i, `tentative i=${i}`);
+  }
 });

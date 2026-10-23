@@ -33,6 +33,29 @@ const labelsOf = (pattern) => ({
   zigzag: ['0', 'A', 'B', 'C'], flat: ['0', 'A', 'B', 'C'], triangle: ['0', 'A', 'B', 'C', 'D', 'E'], wxy: ['0', 'W', 'X', 'Y'],
 }[pattern] || []);
 
+/**
+ * Ders 2 işlem seviyeleri (0, A, B, C noktaları; prev: düzeltmeden önceki itkinin başı).
+ * zigzag: giriş C = A seviyesi, stop min(0,786, C) ötesi, TP1 itkinin ucu (0), TP2 C + 1,618 × itki.
+ * genişleyen flat: giriş A ucu (geri kapanış), stop C ucu ötesi, TP1 B ucu. → { entry, stop, tp1, tp2, note } ya da null.
+ */
+export function correctionLevels(pattern, label, [P0, A, B, C], prev, atr) {
+  const d = Math.sign(P0.price - A.price) || 1; // işlem yönü: düzeltmenin tersi (ana trend)
+  const LA = Math.abs(A.price - P0.price), buf = 0.2 * atr;
+  if (pattern === 'zigzag') {
+    const cEqA = B.price - d * LA;
+    if (!prev || d * (P0.price - prev.price) <= 0) return null;
+    const L1 = Math.abs(P0.price - prev.price), lvl786 = P0.price - d * 0.786 * L1, lvl618 = P0.price - d * 0.618 * L1;
+    const far = d === 1 ? Math.min(lvl786, C.price, cEqA) : Math.max(lvl786, C.price, cEqA);
+    return { entry: cEqA, stop: far - d * buf, tp1: P0.price, tp2: (d === 1 ? Math.min(C.price, cEqA) : Math.max(C.price, cEqA)) + d * 1.618 * L1, invalid: prev.price,
+      note: `Ders 2: C = A seviyesi ${cEqA.toPrecision(6)}; önceki itkinin 0,618–0,786 bölgesi ${lvl618.toPrecision(6)}–${lvl786.toPrecision(6)}. C bitince dönüş tetiğiyle ${d === 1 ? 'alış' : 'satış'}; stop 0,786 ötesi; TP1 itki ucu ${P0.price.toPrecision(6)}; sayım itkinin başı ${prev.price.toPrecision(6)} kırılırsa geçersiz.` };
+  }
+  if (pattern === 'flat' && /expanded\)/.test(label) && d * (A.price - C.price) > 0) {
+    return { entry: A.price, stop: C.price - d * buf, tp1: B.price, tp2: null, invalid: prev?.price ?? null,
+      note: `Ders 2: genişleyen flat. B önceki ucu geçti, C A ucunu (${A.price.toPrecision(6)}) süpürdü; fiyat A ucunun ${d === 1 ? 'üstüne' : 'altına'} geri kapanınca ${d === 1 ? 'alış' : 'satış'}; stop C ucu ötesi; TP1 B ucu ${B.price.toPrecision(6)}.` };
+  }
+  return null;
+}
+
 /** Pivot pencerelerini kural motoruyla sayar; en iyi geçerli sayımları döndürür. */
 export function countWaves(ctx, o) {
   const out = [];
@@ -51,7 +74,7 @@ export function countWaves(ctx, o) {
       for (const cand of res.candidates) {
         if (!cand.valid || cand.score < o.minScore) continue;
         if (o.patterns && !o.patterns.includes(cand.pattern)) continue;
-        out.push({ k, points: win, n: w, cand, tentative: win[win.length - 1] === tentative });
+        out.push({ k, points: win, n: w, cand, tentative: win[win.length - 1] === tentative, prev: pts[pts.length - w - 1] || null });
       }
     }
   }
@@ -115,6 +138,7 @@ export function detect(ctx) {
     const lbl = labelsOf(cand.pattern);
     const lastP = points[points.length - 1];
     const complete = cand.complete;
+    const lv = n === 4 && (cand.pattern === 'zigzag' || cand.pattern === 'flat') ? correctionLevels(cand.pattern, cand.label, points, c.prev, ctx.atrNow) : null;
     out.push(signal({
       id: `ew|count|${cand.pattern}|${points[0].i}|${lastP.i}`,
       type: 'elliott', group: 'elliott',
@@ -124,13 +148,21 @@ export function detect(ctx) {
       zone: [Math.min(lastP.price, ctx.price) - 0.2 * ctx.atrNow, Math.max(lastP.price, ctx.price) + 0.2 * ctx.atrNow],
       index: lastP.i,
       status: c.tentative ? 'forming' : 'active',
-      invalidation: inv, target,
-      note: `${cand.label}, ${n} nokta, kural skoru ${cand.score}/100${cand.warns ? ` (${cand.warns} uyarı)` : ''}. ${cand.targets?.title || ''}${target ? `: ilk hedef ${target.toPrecision(6)}` : ''}.`,
+      invalidation: lv?.invalid ?? inv, target: lv ? lv.tp1 : target,
+      ...(lv ? { entry: lv.entry, stop: lv.stop } : {}),
+      note: `${cand.label}, ${n} nokta, kural skoru ${cand.score}/100${cand.warns ? ` (${cand.warns} uyarı)` : ''}. ${lv ? lv.note : `${cand.targets?.title || ''}${target ? `: ilk hedef ${target.toPrecision(6)}` : ''}.`}`,
       draw: [
         { kind: 'line', points: points.map((p) => ({ i: p.i, price: p.price })), color: '#f0c75e', label: 'EW' },
         ...points.map((p, k) => ({ kind: 'marker', i: p.i, price: p.price, position: p.type === 'H' ? 'aboveBar' : 'belowBar', shape: p.type === 'H' ? 'arrowDown' : 'arrowUp', color: '#f0c75e', text: lbl[k] })),
-        ...(target ? [{ kind: 'hline', price: target, color: '#7cc4a8', label: 'EW hedef', style: 'dashed' }] : []),
-        ...(inv ? [{ kind: 'hline', price: inv, color: '#b06cf0', label: 'EW geçersiz', style: 'dotted' }] : []),
+        ...(lv ? [
+          { kind: 'hline', price: lv.entry, color: '#3987e5', label: 'Giriş', style: 'solid' },
+          { kind: 'hline', price: lv.stop, color: '#ef5350', label: 'Stop', style: 'dashed' },
+          { kind: 'hline', price: lv.tp1, color: '#7cc4a8', label: 'H1', style: 'dashed' },
+          ...(lv.tp2 ? [{ kind: 'hline', price: lv.tp2, color: '#7cc4a8', label: 'H2', style: 'dashed' }] : []),
+        ] : [
+          ...(target ? [{ kind: 'hline', price: target, color: '#7cc4a8', label: 'EW hedef', style: 'dashed' }] : []),
+        ]),
+        ...((lv?.invalid ?? inv) ? [{ kind: 'hline', price: lv?.invalid ?? inv, color: '#b06cf0', label: 'EW geçersiz', style: 'dotted' }] : []),
       ],
       meta: { pattern: cand.pattern, score: cand.score, n, complete, sensitivity: c.k, ratios: cand.ratios },
     }));
