@@ -192,7 +192,9 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   stop C ucu ötesi; TP1 B ucu ≥ 2R; TP2 C + (3) boyu); iki yön, 1H/4H; ZigZag seri başına bir kez, `pivotsAsOf` ile
   yalnız o ana kadar onaylı pivotlar (hızlı, geleceğe bakmaz). Tarayıcıda EW zigzag / EW flat sayımları (C oluşurken)
   aynı seviyeleri Giriş/Stop/H1/H2 çizgileri ve not olarak gösterir. Koşu: `mode: lab, months: 24, tfs: 1H,4H,
-  strategies: zigzag_c,expanded_flat_c`. `ending_diagonal_wide` stop tamponu 1 ATR (3. turda 0,2 ATR tamponla 55 işlemin 47'si stop oldu). Dersin
+  strategies: zigzag_c,expanded_flat_c`. İlk sonuç (24 ay): `zigzag_c` başa baş (doğr. −0,01R; hedge'li −0,10R),
+  `expanded_flat_c` zararda (doğr. −0,30R, %80 stop). Varyantlar: `zigzag_c_1h_short` (tek tutarlı kesit, sonradan
+  seçildiği için ayrı test) ve `expanded_flat_c_wide` (stop C ucu ∓ 1 ATR). `ending_diagonal_wide` stop tamponu 1 ATR (3. turda 0,2 ATR tamponla 55 işlemin 47'si stop oldu). Dersin
   15m PO3 tetiği modellenmez; throw-over mumunun kapanışı tetiktir. Girişler sinyal mumundan sonraki açılıştan
   (piyasa + kayma); aynı coinde işlem sürerken yeni sinyal alınmaz. Kabul: doğrulamada ort. R > 0, PF > 1,1, n ≥ 100 →
   raporda "aday"; 5. turdan itibaren sıkı ölçüt: eğitimde de ort. R > 0 **ve** doğrulamadan en iyi ay çıkarılınca ort. R > 0

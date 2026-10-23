@@ -114,3 +114,11 @@ export const zigzagC = mkFamily('zigzag_c', 'Zigzag 2. dalga: C ≈ A ve (1)\'in
   (w, c, prev, a, o) => zigzagPlan(w, c, prev, a, o), { tpScheme: 'half_be', maxHoldBars: 120 });
 export const expandedFlatC = mkFamily('expanded_flat_c', 'Genişleyen flat 4. dalga: C, A ucunu süpürüp geri kapanış (TP1 = B ucu ≥ 2R)',
   (w, c, prev, a, o) => flatPlan(w, c, a, o), { tpScheme: 'half_be', maxHoldBars: 120 });
+
+// Varyantlar (ilk 24 ay koşusundan sonra): zigzag yalnız 1H short (tek tutarlı kesit; sonradan seçildi, ayrı test edilir) ve
+// genişleyen flat geniş stop (C ucu ∓ 1 ATR; ikinci süpürmeye dayanıklı, TP1 ≥ 2R şartı aynı).
+export const zigzagC1hShort = mkFamily('zigzag_c_1h_short', 'Zigzag 1H yalnız short: düşüş itkisinden sonra yukarı zigzag, C ≈ A (TP1 ≥ 2R)',
+  (w, c, prev, a, o) => { const pl = zigzagPlan(w, c, prev, a, o); return pl && pl.d === -1 ? pl : null; }, { tpScheme: 'half_be', maxHoldBars: 120 });
+zigzagC1hShort.tfs = ['1H'];
+export const expandedFlatCWide = { ...mkFamily('expanded_flat_c_wide', 'Genişleyen flat 4. dalga, stop C ucu ∓ 1 ATR (TP1 = B ucu ≥ 2R)',
+  (w, c, prev, a, o) => flatPlan(w, c, a, o), { tpScheme: 'half_be', maxHoldBars: 120 }), o: { ...CORR_DEFAULTS, bufferAtr: 1.0 } };

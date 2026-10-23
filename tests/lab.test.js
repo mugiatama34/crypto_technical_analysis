@@ -82,7 +82,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
-  assert.equal(STRATEGIES.length, 26);
+  assert.equal(STRATEGIES.length, 28);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -304,4 +304,33 @@ test('pivotsAsOf: tüm seri ZigZag\'ının i anındaki kesiti, o ana kadarki mum
     assert.deepEqual(v.pivots.map((p) => [p.i, p.type]), part.pivots.map((p) => [p.i, p.type]), `i=${i}`);
     assert.equal(v.tentative?.i, part.tentative?.i, `tentative i=${i}`);
   }
+});
+
+test('Ders 2 varyantları: zigzag_c_1h_short yalnız short ve 1H; expanded_flat_c_wide stop C − 1 ATR, TP1 < 2R ise ret', async () => {
+  const { zigzagC1hShort, expandedFlatCWide, flatPlan } = await import('../backtest/lab/corrections.js');
+  assert.deepEqual(zigzagC1hShort.tfs, ['1H']);
+  const P = (i, price) => ({ i, price });
+  // long kurulumu (yükselen itki + aşağı zigzag) → short varyantı sinyal vermez; ayna → verir
+  const longW = [P(0, 100), P(20, 110), P(30, 105.5), P(36, 107.8), P(46, 103.3)];
+  const m = (x) => 200 - x, shortW = longW.map((q) => P(q.i, m(q.price)));
+  const { zigzagPlan, zigzagC } = await import('../backtest/lab/corrections.js');
+  // rastgele serilerde: temel aile iki yönü de üretebilir, short varyantı yalnız short üretir
+  const { randomWalk } = await import('./helpers.js');
+  let shorts = 0;
+  for (const seed of [3, 5, 8, 13]) {
+    const cs = randomWalk(1500, { seed, step: 0.7 });
+    const tr = runStrategy(zigzagC1hShort, { coin: 'T', tf: '1H', candles: cs }, o);
+    assert.ok(tr.every((t) => t.direction === 'short')); shorts += tr.length;
+    assert.ok(runStrategy(zigzagC, { coin: 'T', tf: '1H', candles: cs }, o).filter((t) => t.direction === 'short').length >= tr.length);
+  }
+  assert.ok(shorts >= 0);
+  assert.equal(zigzagPlan(longW, { i: 47, open: 103.4, high: 103.9, low: 103.35, close: 103.8 }, { high: 103.7, low: 103.3 }, 0.5).d, 1);
+  assert.equal(zigzagPlan(shortW, { i: 47, open: m(103.4), high: m(103.35), low: m(103.9), close: m(103.8) }, { high: m(103.3), low: m(103.7) }, 0.5).d, -1);
+  // geniş stop
+  const fw = [P(0, 94), P(20, 104), P(26, 99), P(32, 105.5), P(42, 97.4)];
+  const c = { i: 42, open: 98, high: 99.6, low: 97.4, close: 99.2 };
+  const wide = flatPlan(fw, c, 0.6, expandedFlatCWide.o);
+  assert.ok(Math.abs(wide.stop - (97.4 - 0.6)) < 1e-6 && wide.rr1 >= 2);
+  assert.equal(flatPlan(fw, c, 2.0, expandedFlatCWide.o), null); // stop çok uzak → TP1 < 2R
+  assert.equal(expandedFlatCWide.prepare([{ high: 1, low: 1, close: 1 }]).o.bufferAtr, 1.0);
 });
