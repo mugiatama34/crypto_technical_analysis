@@ -140,6 +140,11 @@ async function main() {
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
   const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart'].includes(k)) out[k] = val; return out; };
+  // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
+  const V = (name) => SINGLE.find((v) => v.name === name);
+  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35');
+  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx]];
+  for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
