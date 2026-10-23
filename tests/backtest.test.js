@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { simulateTrade, simulateSeries, BT_DEFAULTS } from '../backtest/engine.js';
-import { stats, buildReport } from '../backtest/report.js';
+import { stats, buildReport, sessionOf, weekpartOf, entryTimeOf } from '../backtest/report.js';
 import { build, randomWalk } from './helpers.js';
 
 const plan = { d: 1, direction: 'long', entry: 100, stop: 98, tp1: 103, tp2: 106, inZone: false, price: 101 };
@@ -89,4 +89,21 @@ test('simulateTrade: hızlı yaklaşma + teyit mumu → teyit kapanışından gi
   const flat = [c(4, 99.4, 99.6, 99, 99.3), c(5, 99.3, 99.6, 99, 99.3), c(6, 99.3, 99.6, 99, 99.3), ...up];
   assert.equal(simulateTrade(kplan, [...drop, ...flat], 0, '1H', kGuard).outcome, 'expired');
   assert.equal(stats([knife]).n, 0); // işlem sayılmaz
+});
+
+test('sessionOf / weekpartOf / entryTimeOf: UTC sınırları; buildReport seans kırılımı', () => {
+  const at = (s) => Date.parse(s);
+  assert.match(sessionOf(at('2026-10-21T06:59:00Z')), /^Asya/);
+  assert.match(sessionOf(at('2026-10-21T07:00:00Z')), /^Avrupa/);
+  assert.match(sessionOf(at('2026-10-21T13:00:00Z')), /^New York/);
+  assert.match(sessionOf(at('2026-10-21T20:00:00Z')), /^gece/);
+  assert.equal(weekpartOf(at('2026-10-24T10:00:00Z')), 'hafta sonu'); // Cumartesi
+  assert.equal(weekpartOf(at('2026-10-23T23:59:00Z')), 'hafta içi'); // Cuma
+  assert.equal(entryTimeOf({ time: at('2026-10-21T12:00:00Z'), tf: '1H', waitBars: 2 }), at('2026-10-21T14:00:00Z'));
+  const tr = (time, R) => ({ time, tf: '1H', waitBars: 1, outcome: R > 0 ? 'tp2' : 'stopped', R, groups: [], detectors: [], names: [], coin: 'X', direction: 'long', score: 60, inZone: true });
+  const rep = buildReport([tr(at('2026-10-21T02:00:00Z'), 1), tr(at('2026-10-21T15:00:00Z'), -1), tr(at('2026-10-24T15:00:00Z'), -1)]);
+  assert.ok(rep.bySession.train || rep.bySession.valid);
+  const all = { ...rep.bySession.train, ...rep.bySession.valid };
+  assert.ok(Object.keys(all).some((k) => /^Asya/.test(k)));
+  assert.ok(rep.byWeekpart.valid['hafta sonu']);
 });

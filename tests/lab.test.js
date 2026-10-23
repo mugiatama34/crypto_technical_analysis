@@ -82,6 +82,8 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.ok(rep.byTf['1H'].train && rep.byTf['1H'].valid && rep.byDirection.long.all && rep.byTfDir['1H long']);
   assert.equal(rep.byTf['1H'].train.n + rep.byTf['1H'].valid.n, rep.byTf['1H'].all.n);
   assert.equal(rep.curve.length, rep.all.n);
+  const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
+  assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
   assert.equal(STRATEGIES.length, 28);
 });
 

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { simulateTrade, BT_DEFAULTS } from './engine.js';
-import { stats, by, approachBucket } from './report.js';
+import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 
@@ -50,6 +50,11 @@ function passes(t, v, series, mtfIndex) {
   if (v.requireAnyGroup && !t.plan.groups.some((g) => v.requireAnyGroup.includes(g))) return false;
   const i = series.idx.get(t.time);
   if (i == null) return false;
+  // Seans/hafta sonu: plan mumunun kapanışı (karar anı), UTC
+  const decided = t.time + TIMEFRAMES[t.tf].ms, hr = new Date(decided).getUTCHours();
+  if (v.skipWeekend && weekpartOf(decided) === 'hafta sonu') return false;
+  if (v.hoursUtc && !(hr >= v.hoursUtc[0] && hr < v.hoursUtc[1])) return false;
+  if (v.excludeHoursUtc && hr >= v.excludeHoursUtc[0] && hr < v.excludeHoursUtc[1]) return false;
   if (v.trend === 'adx' || v.trend === 'both') {
     const a = series.adx.adx[i], p = series.adx.pdi[i], m = series.adx.mdi[i];
     if (a == null || a < (v.adxMin ?? 25)) return false;
@@ -86,6 +91,10 @@ const SINGLE = [
   { name: 'düşen bıçak koruması (teyit mumu)', knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 } },
   { name: 'düşen bıçak: hızlı dolumları atla', knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, skip: true } },
   { name: 'düşen bıçak koruması, eşik 1,5 ATR', knifeGuard: { maxApproachAtr: 1.5, maxFillBarAtr: 1.2, confirmBars: 3 } },
+  // Seans: plan saati (UTC; TR = UTC+3)
+  { name: 'hafta sonu hariç', skipWeekend: true },
+  { name: 'New York seansı hariç (13–20 UTC)', excludeHoursUtc: [13, 20] },
+  { name: 'yalnız Asya + Avrupa (00–13 UTC)', hoursUtc: [0, 13] },
 ];
 
 async function main() {
@@ -114,12 +123,14 @@ async function main() {
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
-        trades.push({ time: t.time, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
+        trades.push({ time: t.time, tf: t.tf, waitBars: sim.waitBars, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
       }
     }
     const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
-    return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) } };
+    return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
+      bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
+      byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) } };
   };
 
   const results = [];
@@ -128,16 +139,17 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart'].includes(k)) out[k] = val; return out; };
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
   // aynı alanı ezen varyantlar (ör. iki düşen bıçak ayarı) birleştirilmez
-  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1;
+  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
+  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(out));

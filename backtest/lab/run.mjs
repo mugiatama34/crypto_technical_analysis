@@ -7,7 +7,7 @@ import path from 'node:path';
 import { getTopCoins, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
 import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
-import { stats } from '../report.js';
+import { stats, sessionOf, weekpartOf, entryTimeOf } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 
@@ -99,7 +99,7 @@ export function report(trades, split) {
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
 }
 
 async function main() {

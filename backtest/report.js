@@ -1,4 +1,5 @@
 // Backtest raporu (saf): işlem listesinden özet istatistikler ve kırılımlar.
+import { TIMEFRAMES } from '../src/data/okx.js';
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
 
@@ -22,6 +23,17 @@ export function stats(trades) {
 
 /** Bölgeye yaklaşma hızı kovası (düşen bıçak ölçüsü): piyasa · limit yavaş < 1 ATR · orta 1–2 · hızlı > 2. */
 export const approachBucket = (t) => (t.inZone ? 'piyasa (bölgede)' : t.approachAtr == null ? null : t.approachAtr < 1 ? 'limit yavaş (<1 ATR)' : t.approachAtr <= 2 ? 'limit orta (1–2 ATR)' : 'limit hızlı (>2 ATR)');
+
+/** Giriş zamanı: kayıtlı entryTime ya da plan mumu + bekleme (waitBars) × TF. */
+export const entryTimeOf = (t) => t.entryTime ?? t.time + (t.waitBars || 1) * (TIMEFRAMES[t.tf]?.ms || 0);
+/** İşlem seansı (UTC saat; TR = UTC+3). */
+export function sessionOf(ms) {
+  const h = new Date(ms).getUTCHours();
+  return h < 7 ? 'Asya 00–07 UTC (03–10 TR)' : h < 13 ? 'Avrupa 07–13 UTC (10–16 TR)' : h < 20 ? 'New York 13–20 UTC (16–23 TR)' : 'gece 20–24 UTC (23–03 TR)';
+}
+export const SESSIONS = ['Asya 00–07 UTC (03–10 TR)', 'Avrupa 07–13 UTC (10–16 TR)', 'New York 13–20 UTC (16–23 TR)', 'gece 20–24 UTC (23–03 TR)'];
+/** Hafta içi / hafta sonu (UTC Cumartesi–Pazar). */
+export const weekpartOf = (ms) => ([0, 6].includes(new Date(ms).getUTCDay()) ? 'hafta sonu' : 'hafta içi');
 
 export const by = (trades, keyOf) => {
   const m = new Map();
@@ -61,6 +73,8 @@ export function buildReport(trades, meta = {}) {
     byTf: by(trades, (t) => t.tf), byDirection: by(trades, (t) => t.direction), byScore: by(trades, scoreBucket),
     byEntry: by(trades, (t) => (t.inZone ? 'piyasa (bölgede)' : 'limit (bekleme)')),
     byApproach: { train: by(sorted.filter((t) => t.time < split), approachBucket), valid: by(sorted.filter((t) => t.time >= split), approachBucket) },
+    bySession: { train: by(sorted.filter((t) => t.time < split), (t) => sessionOf(entryTimeOf(t))), valid: by(sorted.filter((t) => t.time >= split), (t) => sessionOf(entryTimeOf(t))) },
+    byWeekpart: { train: by(sorted.filter((t) => t.time < split), (t) => weekpartOf(entryTimeOf(t))), valid: by(sorted.filter((t) => t.time >= split), (t) => weekpartOf(entryTimeOf(t))) },
     byGroup: presence(groups, 'groups'), byDetector: presence(dets, 'detectors'), byName: nameStats, byGroupPair: pairs,
     byMonth: by(trades, month), bySymbol: by(trades, (t) => t.coin),
     curve: thin,
