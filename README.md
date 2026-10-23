@@ -90,6 +90,13 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   kuralı uygular. `KNIFE_GUARD=1` ya da JSON `{"maxApproachAtr":2,"maxFillBarAtr":1.5,"confirmBars":3,"skip":false}`
   (`skip`: teyit beklemeden atla). Backtest raporu ve tarama `byApproach` kırılımını (piyasa · yavaş < 1 ATR · orta 1–2 ·
   hızlı > 2) ve üç "düşen bıçak" varyantını gösterir (`sweep.html`); canlıda açmadan önce `mode: sweep` sonucuna bakın.
+- **Kayıp kesici giriş kuralları (bayrakla):** `LIMIT_ONLY=1` (gönderim anında fiyat zaten bölgedeyse gönderme),
+  `SKIP_WEEKEND=1` (UTC Cumartesi/Pazar yeni sinyal yok; açık planların takibi sürer), TF kapatma
+  `TF_RULES={"15m":{"off":true}}` (tarama ve ajanın 15m takibi sürer). Alanlar TF/yön kuralı olarak da verilebilir
+  (`limitOnly`, `skipWeekend`, `off`). 6 aylık hedefli taramada (doğrulama 28.08 sonrası) temel −0,132R iken
+  düşen bıçak koruması + hafta sonu hariç + yalnız limit + yalnız 1H/4H birlikte +0,028R (PF 1,05, n 2 734; eğitim
+  −0,032R). Etkiler toplanıyor ama sonuç başabaş ve çok varyant içinden seçildi: kenar değil, kayıp kesici; ileriye
+  dönük kâğıt sonuçla doğrulanmalı.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

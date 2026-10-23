@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED } from '../bot/plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule } from '../bot/plan.js';
 import { validateDecision, buildPrompt, SCHEMA, askBrain } from '../bot/brain.js';
 import { formatSetup, formatUpdate, formatSummary, esc } from '../bot/telegram.js';
 
@@ -225,4 +225,16 @@ test('trackPlan: düşen bıçak koruması — confirming → active (teyit kapa
   r = trackPlan(base, [...drop, ...flat], now, { knifeGuard: true });
   assert.deepEqual([r.status, r.events.at(-1)], ['expired', 'unconfirmed']);
   assert.match(formatUpdate({ ...base, approachAtr: 3.6, fillBarAtr: 1.4 }, 'confirming', 99.4), /düşen bıçak.*3\.6×ATR/s);
+});
+
+test('isWeekendUtc ve kayıp kesici kural alanları (off/limitOnly/skipWeekend) mergeRule ile birleşir', () => {
+  assert.equal(isWeekendUtc(Date.parse('2026-10-24T00:00:00Z')), true); // Cumartesi
+  assert.equal(isWeekendUtc(Date.parse('2026-10-25T23:59:00Z')), true); // Pazar
+  assert.equal(isWeekendUtc(Date.parse('2026-10-26T00:00:00Z')), false); // Pazartesi
+  const base = { minScore: 70, limitOnly: true, skipWeekend: true };
+  const rules = { '15m': { off: true, minScore: 80 }, '1H': { long: { limitOnly: false } } };
+  assert.equal(mergeRule('15m', 'long', rules, null, base).off, true);
+  assert.equal(mergeRule('1H', 'long', rules, null, base).limitOnly, false);
+  const s = mergeRule('1H', 'short', rules, { scoreAdd: 10 }, base);
+  assert.deepEqual([s.limitOnly, s.skipWeekend, s.minScore, s.off], [true, true, 80, undefined]);
 });

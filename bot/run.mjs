@@ -12,12 +12,13 @@
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
+//   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -59,6 +60,8 @@ const CFG = {
   momentum: env('MOMENTUM', '0') === '1', // haftalık kesitsel momentum kâğıt portföyü (bot/momentum)
   momentumVariant: env('MOMENTUM_VARIANT', 'ls'), // ls | short | long
   momentumRank: env('MOMENTUM_RANK', 'abs'), // abs | rel (BTC'ye göre fazla getiri)
+  limitOnly: env('LIMIT_ONLY', '0') === '1', // gönderimde fiyat zaten bölgedeyse gönderme (yalnız limit giriş)
+  skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
@@ -88,8 +91,8 @@ const TF_RULES_DEFAULT = {
 const SHORT_RULE_DEFAULT = { scoreAdd: 10, requireMtf: true, trendAdxMin: 30, trendEma: true, btcRegime: 'with', cooldownHours: 12 };
 const TF_RULES = (() => { try { return { ...TF_RULES_DEFAULT, ...JSON.parse(env('TF_RULES', '{}')) }; } catch { return TF_RULES_DEFAULT; } })();
 const SHORT_RULE = (() => { try { return { ...SHORT_RULE_DEFAULT, ...JSON.parse(env('SHORT_RULE', '{}')) }; } catch { return SHORT_RULE_DEFAULT; } })();
-const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours });
-const fmtRule = (r) => `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}${r.rsBtc === 'with' ? ', BTC\'ye göre göreli güç yönünde' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}`;
+const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours, ...(CFG.limitOnly ? { limitOnly: true } : {}), ...(CFG.skipWeekend ? { skipWeekend: true } : {}) });
+const fmtRule = (r) => r.off ? 'kapalı (sinyal gönderilmez)' : `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}${r.rsBtc === 'with' ? ', BTC\'ye göre göreli güç yönünde' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}${r.limitOnly ? ', yalnız limit giriş' : ''}${r.skipWeekend ? ', hafta sonu yok' : ''}`;
 // Rejim TF'ye göre: 15m/1H → BTC 4H eğilimi, 4H → günlük (regimeFor); read yoksa günlük rejim
 const planOpts = (rule, read, tf) => ({ trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma, btcRegime: rule.btcRegime, rsBtc: rule.rsBtc, regime: read ? regimeFor(tf, read) : null });
 
@@ -177,8 +180,12 @@ async function main() {
   for (const r of res.rows) {
     if (r.error) continue;
     const rule = ruleFor(r.tf, r.direction);
+    const reject = (k) => { rejects[k] = (rejects[k] || 0) + 1; };
+    if (rule.off) { reject('TF kapalı'); continue; }
+    if (rule.skipWeekend && isWeekendUtc(now)) { reject('hafta sonu'); continue; }
     const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, ...planOpts(rule, read, r.tf) });
     if (!plan.ok) { const k = plan.reason.replace(/[\d.,–-]+/g, '#'); rejects[k] = (rejects[k] || 0) + 1; continue; }
+    if (rule.limitOnly && plan.inZone) { reject('bölgede (yalnız limit)'); continue; }
     if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     plan.rule = rule;

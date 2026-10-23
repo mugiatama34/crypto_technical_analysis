@@ -72,6 +72,8 @@ jobs:
           TF_RULES: ${{ vars.TF_RULES }}
           SHORT_RULE: ${{ vars.SHORT_RULE }}
           KNIFE_GUARD: ${{ vars.KNIFE_GUARD }}
+          LIMIT_ONLY: ${{ vars.LIMIT_ONLY }}
+          SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

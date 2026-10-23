@@ -230,6 +230,9 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   return { status, events, patch };
 }
 
+/** UTC Cumartesi/Pazar mı? (tarama: hafta sonu girişleri her TF'de ve iki dilimde daha kötü) */
+export const isWeekendUtc = (ms) => { const d = new Date(ms).getUTCDay(); return d === 0 || d === 6; };
+
 export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife']);
 
 /** Aynı anahtar ya da aynı coin+yön son `cooldownHours` içinde gönderilmiş mi? */
