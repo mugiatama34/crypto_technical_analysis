@@ -10,6 +10,9 @@ export const EW_DEFAULTS = {
   windows: [6, 5, 4, 3], // pivot pencere boyları (son N pivot)
   sensitivities: [2, 3, 4.5],
   minRR: 1.5,
+  patterns: null, // ör. ['diagonal'] | ['zigzag', 'flat']: yalnız bu kalıpların sayımları (null = hepsi)
+  wave3: true, // dalga-3 giriş setup'ları (preset'e özgü taramada kapatılabilir)
+  maxCounts: 3, // en fazla bu kadar sayım sinyali
 };
 
 /** Sıradaki dalganın yönü: kalıp + nokta sayısı. c.d = ilk dalganın yönü. */
@@ -47,6 +50,7 @@ export function countWaves(ctx, o) {
       if (!res.ok) continue;
       for (const cand of res.candidates) {
         if (!cand.valid || cand.score < o.minScore) continue;
+        if (o.patterns && !o.patterns.includes(cand.pattern)) continue;
         out.push({ k, points: win, n: w, cand, tentative: win[win.length - 1] === tentative });
       }
     }
@@ -58,7 +62,7 @@ export function countWaves(ctx, o) {
     const dup = kept.find((x) => x.points[x.points.length - 1].i === c.points[c.points.length - 1].i);
     if (!dup) kept.push(c);
   }
-  return kept.slice(0, 3);
+  return kept.slice(0, o.maxCounts ?? 3);
 }
 
 export function detect(ctx) {
@@ -67,9 +71,9 @@ export function detect(ctx) {
   const { candles, live, last } = ctx;
   if (candles.length < 60) return out;
 
-  // 1) Dalga-3 setup'ları
+  // 1) Dalga-3 setup'ları (preset'e özgü taramada kapatılabilir)
   const w3opts = { ...W3, ruleSet: o.ruleSet, entryType: 'both', minRR: o.minRR, sensitivities: o.sensitivities };
-  for (const s of findWave3Setups(candles, w3opts, live)) {
+  for (const s of o.wave3 === false ? [] : findWave3Setups(candles, w3opts, live)) {
     const plans = activePlans(s, w3opts);
     if (!plans.length) continue;
     const plan = plans[0];

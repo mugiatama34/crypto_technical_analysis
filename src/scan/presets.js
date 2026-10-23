@@ -14,6 +14,28 @@ export const PRESETS = [
     detectors: ['elliott', 'fibonacci', 'divergence', 'structure'],
     weights: { elliott: 1.5, fibonacci: 0.9, divergence: 0.7, structure: 0.5 }, minScore: 35,
   },
+  // Elliott kalıbına özgü taramalar: yalnız kural motorunun geçerli saydığı sayımlar (ders: Diyagonaller, Zigzag & Flat).
+  // Tek detektör olduğu için küme puanı düşük kalır; minScore buna göre. Kalıp seçimi detectorOpts.elliott.patterns ile.
+  {
+    id: 'ew_diagonal', name: 'EW diyagonal', desc: 'Yalnız leading/ending diagonal sayımları (daralan/genişleyen); dalga-3 setup\'ları kapalı. Tamamlanan diyagonalde ters yön hedefi.',
+    detectors: ['elliott'], weights: { elliott: 2.0 }, minScore: 20,
+    detectorOpts: { elliott: { patterns: ['diagonal'], wave3: false, minScore: 50, maxCounts: 4 } },
+  },
+  {
+    id: 'ew_zigzag', name: 'EW zigzag', desc: 'Yalnız zigzag (5-3-5) düzeltme sayımları: C dalgası hedefleri ve tamamlanmış zigzag sonrası trend yönü.',
+    detectors: ['elliott'], weights: { elliott: 2.0 }, minScore: 20,
+    detectorOpts: { elliott: { patterns: ['zigzag'], wave3: false, minScore: 50, maxCounts: 4 } },
+  },
+  {
+    id: 'ew_flat', name: 'EW flat', desc: 'Yalnız flat (3-3-5: regular / expanded / running) düzeltme sayımları ve C dalgası hedefleri.',
+    detectors: ['elliott'], weights: { elliott: 2.0 }, minScore: 20,
+    detectorOpts: { elliott: { patterns: ['flat'], wave3: false, minScore: 50, maxCounts: 4 } },
+  },
+  {
+    id: 'ew_corrections', name: 'EW düzeltmeler', desc: 'Zigzag + flat + diyagonal birlikte; fib desteğiyle.',
+    detectors: ['elliott', 'fibonacci'], weights: { elliott: 1.8, fibonacci: 0.6 }, minScore: 25,
+    detectorOpts: { elliott: { patterns: ['zigzag', 'flat', 'diagonal'], wave3: false, minScore: 50, maxCounts: 4 } },
+  },
   {
     id: 'harmonic', name: 'Harmonik PRZ', desc: 'Harmonik kalıplar + fib + mum dönüşü.',
     detectors: ['harmonic', 'fibonacci', 'candlesticks', 'divergence'],

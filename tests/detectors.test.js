@@ -127,3 +127,23 @@ test('İndikatör sinyalleri: Donchian kırılımı ve hacim', () => {
   assert.ok(sigs.some((s) => /Donchian 20 kırılımı ↑/.test(s.name)), sigs.map((s) => s.name));
   assert.ok(sigs.some((s) => /Hacim/.test(s.name)));
 });
+
+test('Elliott preset seçenekleri: patterns yalnız o kalıbı bırakır, wave3:false dalga-3 setup\'larını kapatır', async () => {
+  const { PRESETS } = await import('../src/scan/presets.js');
+  let total = 0;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const cs = randomWalk(400, { seed, step: 0.9 });
+    for (const pat of ['diagonal', 'zigzag', 'flat']) {
+      const out = detectEw(ctxOf(cs, { tf: '1H', elliott: { patterns: [pat], wave3: false, minScore: 50, maxCounts: 4 } }));
+      total += out.length;
+      for (const s of out) { assert.equal(s.meta?.pattern, pat, s.name); assert.ok(!s.name.startsWith('EW dalga-3')); }
+    }
+    const all = detectEw(ctxOf(cs, { tf: '1H', elliott: { minScore: 50 } }));
+    assert.ok(all.length >= detectEw(ctxOf(cs, { tf: '1H', elliott: { patterns: ['flat'], wave3: false, minScore: 50 } })).length);
+  }
+  assert.ok(total > 0, 'kısıtlı taramalar en az bir sayım üretmeli');
+  for (const id of ['ew_diagonal', 'ew_zigzag', 'ew_flat', 'ew_corrections']) {
+    const p = PRESETS.find((x) => x.id === id);
+    assert.ok(p && p.detectors.includes('elliott') && p.detectorOpts.elliott.patterns.length && p.detectorOpts.elliott.wave3 === false, id);
+  }
+});

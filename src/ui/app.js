@@ -91,7 +91,7 @@ function banner(msg, kind = '') {
 async function scan() {
   if (state.busy) return;
   const s = state.settings;
-  const { ids, weights } = effectiveDetectors(s);
+  const { ids, weights, detectorOpts } = effectiveDetectors(s);
   const manual = s.universe === 'manual' ? s.manualCoins.split(/[\s,;]+/).filter(Boolean) : null;
   if (s.universe === 'manual' && !manual?.length) { banner('Elle liste boş: en az bir sembol yaz (örn. BTC, ETH).', 'err'); return; }
   state.busy = true; state.abort = new AbortController(); state.rows = []; state.selected = null;
@@ -102,7 +102,7 @@ async function scan() {
   let retries = 0;
   try {
     const res = await runScan(
-      { timeframes: s.timeframes, topN: s.universe === 'manual' ? 0 : +s.universe, manualCoins: manual, detectors: ids, weights },
+      { timeframes: s.timeframes, topN: s.universe === 'manual' ? 0 : +s.universe, manualCoins: manual, detectors: ids, weights, detectorOpts },
       {
         signal: state.abort.signal, cache: state.cache,
         provider: FIXTURE ? fixtureProvider : undefined,

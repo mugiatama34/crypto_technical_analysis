@@ -37,7 +37,7 @@ export function effectiveDetectors(s) {
   const p = PRESET_MAP[s.preset];
   if (s.preset === 'custom' || !p) {
     const ids = s.detectors || DETECTORS.map((d) => d.id);
-    return { ids, weights: s.weights || {} };
+    return { ids, weights: s.weights || {}, detectorOpts: {} };
   }
-  return { ids: p.detectors || DETECTORS.map((d) => d.id), weights: p.weights || {} };
+  return { ids: p.detectors || DETECTORS.map((d) => d.id), weights: p.weights || {}, detectorOpts: p.detectorOpts || {} };
 }

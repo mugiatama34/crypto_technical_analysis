@@ -37,8 +37,12 @@ grupların aynı bölgede buluşması bonus alır; fiyata uzaklık ve küme geni
 çok zaman dilimi aynı yönü gösteriyorsa **MTF** rozeti ve bonus verilir.
 
 ### Presetler
-**Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **Harmonik PRZ**, **Kırılım**, **Dönüş**. "Detektörler ve
-ağırlıklar" panelinden her detektör ayrı ayrı açılıp kapatılabilir ve ağırlığı değiştirilebilir ("Özel").
+**Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
+**Harmonik PRZ**, **Kırılım**, **Dönüş**. "Detektörler ve ağırlıklar" panelinden her detektör ayrı ayrı açılıp
+kapatılabilir ve ağırlığı değiştirilebilir ("Özel"). Elliott kalıbına özgü presetler yalnız kural motorunun geçerli
+saydığı o kalıbın sayımlarını listeler (`detectorOpts.elliott.patterns`; dalga-3 setup'ları kapalı): diyagonal
+(leading/ending, daralan/genişleyen; tamamlananda ters yön hedefi), zigzag (5-3-5; C hedefi ve tamamlanmış zigzag
+sonrası trend yönü), flat (3-3-5; regular/expanded/running). Tek detektör olduğundan küme puanı düşüktür, eşik 20.
 
 ### Ekran görüntüsü yorumu
 Sayfanın altındaki panele bir grafik görseli bırak / yapıştır, odak seç (genel, ICT, Elliott, Fib+harmonik,
