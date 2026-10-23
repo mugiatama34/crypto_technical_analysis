@@ -95,7 +95,14 @@ const SINGLE = [
   { name: 'hafta sonu hariç', skipWeekend: true },
   { name: 'New York seansı hariç (13–20 UTC)', excludeHoursUtc: [13, 20] },
   { name: 'yalnız Asya + Avrupa (00–13 UTC)', hoursUtc: [0, 13] },
+  // Zaman stopu: dolumdan N mum içinde TP1 yoksa kapanıştan çık (15m: 15 dk, 1H: 1 saat, 4H: 4 saat / mum)
+  { name: 'zaman stopu 4 mum', timeStop: { bars: 4 } },
+  { name: 'zaman stopu 8 mum', timeStop: { bars: 8 } },
+  { name: 'zaman stopu 16 mum', timeStop: { bars: 16 } },
+  { name: 'ilerleme stopu: 8 mumda MFE < 0,5R', timeStop: { bars: 8, minMfeR: 0.5 } },
 ];
+/** TP1'e ulaşma süresi kovası (mum; TF × kova). */
+const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
 
 async function main() {
   const t0 = Date.now();
@@ -114,7 +121,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
     const trades = [];
     for (const [k, list] of groups) {
       const s = series.get(k); if (!s) continue;
@@ -123,14 +130,15 @@ async function main() {
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
-        trades.push({ time: t.time, tf: t.tf, waitBars: sim.waitBars, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
+        trades.push({ time: t.time, tf: t.tf, waitBars: sim.waitBars, tp1Bars: sim.tp1Bars ?? null, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
       }
     }
     const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
     return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
       bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
-      byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) } };
+      byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
+      byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) } };
   };
 
   const results = [];
@@ -139,22 +147,22 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
-  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35');
-  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx]];
+  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum');
+  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx], [guard, wk, lim, htf, t8], [guard, wk, lim, htf, t16]];
   for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
   // aynı alanı ezen varyantlar (ör. iki düşen bıçak ayarı) birleştirilmez
-  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1;
+  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
-  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; }
+  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(out));

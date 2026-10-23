@@ -14,7 +14,7 @@ import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01) };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
-const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
+const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
 
 /** Bir seri üzerinde strateji: sinyal → simülasyon; işlem sürerken yeni sinyal yok. */
 export function runStrategy(strategy, { coin, tf, candles, extra }, o) {

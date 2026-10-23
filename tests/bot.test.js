@@ -238,3 +238,20 @@ test('isWeekendUtc ve kayıp kesici kural alanları (off/limitOnly/skipWeekend) 
   const s = mergeRule('1H', 'short', rules, { scoreAdd: 10 }, base);
   assert.deepEqual([s.limitOnly, s.skipWeekend, s.minScore, s.off], [true, true, 80, undefined]);
 });
+
+test('trackPlan: zaman stopu — active, N kapanmış mumda TP1 yok → timeout (time_stop); kapalıyken eski davranış', () => {
+  const H = 3600e3;
+  const k = (i, low, high, close) => ({ time: i * H, open: close, low, high, close });
+  const base = { d: 1, direction: 'long', tf: '1H', entry: 100, stop: 98, tp1: 103, tp2: 106, sentAt: 0, status: 'waiting' };
+  const cs = [k(1, 99.8, 100.5, 100.2), k(2, 99.5, 101, 100.6), k(3, 99.6, 101, 100.4), k(4, 99.6, 101, 100.8), k(5, 99.6, 101, 100.5)];
+  assert.equal(trackPlan(base, cs, 9 * H).status, 'active');
+  let r = trackPlan(base, cs, 9 * H, { timeStop: 4 });
+  assert.deepEqual(r.events, ['active', 'time_stop']); assert.equal(r.status, 'timeout');
+  assert.equal(r.patch.exitPrice, 100.8); assert.equal(r.patch.exitR, 0.4); assert.equal(r.patch.filledAt, H);
+  assert.ok(CLOSED.has('timeout'));
+  // 4. mum henüz kapanmadı → bekler
+  assert.equal(trackPlan(base, cs.slice(0, 4), 4.5 * H, { timeStop: 4 }).status, 'active');
+  // MFE 0,5R ≥ 0,5 → ilerleme stopu yok
+  assert.equal(trackPlan(base, cs, 9 * H, { timeStop: '{"bars":4,"minMfeR":0.5}' }).status, 'active');
+  assert.match(formatUpdate({ ...base, ...r.patch }, 'time_stop', 100.8), /Zaman stopu.*\+0\.4R/s);
+});

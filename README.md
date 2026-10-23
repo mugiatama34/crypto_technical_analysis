@@ -97,6 +97,11 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   düşen bıçak koruması + hafta sonu hariç + yalnız limit + yalnız 1H/4H birlikte +0,028R (PF 1,05, n 2 734; eğitim
   −0,032R). Etkiler toplanıyor ama sonuç başabaş ve çok varyant içinden seçildi: kenar değil, kayıp kesici; ileriye
   dönük kâğıt sonuçla doğrulanmalı.
+- **Zaman stopu (`TIME_STOP`, vars. kapalı):** dolumdan N mum içinde TP1 görülmezse işlem mum kapanışından kapatılır
+  (`TIME_STOP=8` ya da `{"bars":8,"minMfeR":0.5}` = 8 mumda en iyi hareket 0,5R'nin altındaysa). Mum, sinyalin
+  kendi TF'si (15m: 15 dk, 1H: 1 saat, 4H: 4 saat). TP1 sonrası işlemler etkilenmez (stop zaten başabaşta). Sinyal
+  takibi (`timeout` durumu, Telegram ⏱️) ve ajan pozisyonları aynı kuralı uygular. Tarama varyantları: 4 / 8 / 16 mum,
+  "8 mumda MFE < 0,5R", en iyi düzenle birlikte 8 ve 16 mum; `sweep.html` "TP1'e ulaşma süresi" tablosu.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

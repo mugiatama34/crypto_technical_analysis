@@ -1,7 +1,8 @@
 // Kâğıt hesap simülasyonu (saf): izole marjinli perp pozisyonlar, likidasyon, komisyon, kayma, kısmi kapanış,
 // bekleyen limit emirler, sert sınırlarla kırpma, istatistik ve özsermaye eğrisi.
 import { FEES } from './profiles.js';
-import { knifeGuardOf, approachOf, isKnife, confirmsTurn } from '../plan.js';
+import { knifeGuardOf, approachOf, isKnife, confirmsTurn, timeStopOf } from '../plan.js';
+import { TIMEFRAMES } from '../../src/data/okx.js';
 
 const r6 = (x) => +Number(x).toPrecision(8);
 const dirSign = (d) => (d === 'long' ? 1 : -1);
@@ -124,7 +125,7 @@ function fillPosition(acct, base, fill, now) {
   return pos;
 }
 
-/** Kısmi/tam kapanış. kind: 'stop'|'tp1'|'tp2'|'liq'|'manual'|'trail' */
+/** Kısmi/tam kapanış. kind: 'stop'|'tp1'|'tp2'|'liq'|'manual'|'trail'|'time' */
 function closePart(acct, pos, portion, price, kind, now, events) {
   const d = dirSign(pos.direction);
   const q = portion >= 1 ? pos.qty : r6(pos.qty * portion);
@@ -164,6 +165,7 @@ function finalizeTrade(acct, pos, kind, now) {
 export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   const events = [];
   const g = knifeGuardOf(opts.knifeGuard ?? acct.params?.knifeGuard);
+  const ts = timeStopOf(opts.timeStop ?? acct.params?.timeStop);
   // Limit emirler (düşen bıçak koruması açıksa: bölgeye hızlı gelişte dolmaz, kapanmış teyit mumunun kapanışından dolar)
   for (const o of [...acct.orders]) {
     const all = candlesByCoin[o.coin] || [];
@@ -222,6 +224,13 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
         continue;
       }
       if (tp2Hit && pos.tp1Done) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
+      // Zaman stopu: kendi TF'sinde bars mum doldu, TP1 görülmedi (ve MFE < minMfeR) → kapanıştan kapat
+      const tfMs = TIMEFRAMES[pos.tf]?.ms, risk0 = Math.abs(pos.entry - pos.stop);
+      if (ts && tfMs && !pos.tp1Done && risk0 > 0) {
+        pos.mfeR = Math.max(pos.mfeR || 0, (d * ((d === 1 ? c.high : c.low) - pos.entry)) / risk0);
+        const barMs = cs.length > 1 ? cs[1].time - cs[0].time : 0;
+        if (c.time + barMs - pos.openedAt >= ts.bars * tfMs && c.time + barMs <= now && pos.mfeR < ts.minMfeR) { closePart(acct, pos, 1, c.close * (1 - d * FEES.slipPct / 100), 'time', c.time, events); break; }
+      }
       pos.lastTime = c.time; pos.lastPrice = c.close;
     }
     if (acct.positions.includes(pos) && cs.length) pos.lastTime = cs[cs.length - 1].time;

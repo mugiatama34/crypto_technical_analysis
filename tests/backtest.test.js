@@ -107,3 +107,20 @@ test('sessionOf / weekpartOf / entryTimeOf: UTC sınırları; buildReport seans 
   assert.ok(Object.keys(all).some((k) => /^Asya/.test(k)));
   assert.ok(rep.byWeekpart.valid['hafta sonu']);
 });
+
+test('simulateTrade: zaman stopu — N mumda TP1 yoksa kapanıştan çık; TP1 sonrası etkilenmez; minMfeR şartı; tp1Bars', () => {
+  const p = { d: 1, direction: 'long', entry: 100, stop: 98, tp1: 103, tp2: 106, inZone: false, price: 101 };
+  const chop = [c(1, 101, 101, 99.5, 100.2), ...Array.from({ length: 10 }, (_, i) => c(i + 2, 100.2, 101.2, 99.4, 100.6)), c(12, 100.6, 100.6, 97.5, 97.8)];
+  assert.equal(simulateTrade(p, chop, 0, '1H', o).outcome, 'stopped');
+  const t = simulateTrade(p, chop, 0, '1H', { ...o, timeStop: { bars: 4 } });
+  assert.equal(t.outcome, 'time_stop'); assert.equal(t.bars, 3); assert.ok(Math.abs(t.R - 0.3) < 1e-9, `R ${t.R}`); // (100.6−100)/2
+  assert.equal(stats([t]).n, 1);
+  // MFE 0,6R ≥ 0,5R → ilerleme stopu tetiklenmez
+  assert.equal(simulateTrade(p, chop, 0, '1H', { ...o, timeStop: { bars: 4, minMfeR: 0.5 } }).outcome, 'stopped');
+  // TP1 3. mumda: zaman stopu etkilemez; tp1Bars
+  const win = [c(1, 101, 101, 99.5, 100.2), c(2, 100.2, 101, 99.8, 100.8), c(3, 100.8, 103.2, 100.5, 103), c(4, 103, 103.5, 102, 102.5), c(5, 102.5, 102.6, 101, 101.5), c(6, 101.5, 106.5, 101.4, 106)];
+  const w = simulateTrade(p, win, 0, '1H', { ...o, timeStop: { bars: 2 } });
+  assert.equal(w.outcome, 'time_stop'); // 2 mumda TP1 yok
+  const w4 = simulateTrade(p, win, 0, '1H', { ...o, timeStop: { bars: 4 } });
+  assert.equal(w4.outcome, 'tp2'); assert.equal(w4.tp1Bars, 3);
+});

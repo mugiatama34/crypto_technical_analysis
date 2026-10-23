@@ -164,6 +164,13 @@ export function approachOf(candles, i, d, atr, bars = 3) {
   return { approachAtr: +(move / atr).toFixed(2), fillBarAtr: +((c.high - c.low) / atr).toFixed(2) };
 }
 
+/** Zaman stopu ayarı: 8 | '8' | JSON {"bars":8,"minMfeR":0.5} → { bars, minMfeR } ya da null. */
+export function timeStopOf(v) {
+  if (v == null || v === '' || v === '0' || v === 0 || v === false) return null;
+  if (typeof v === 'number' || /^\d+$/.test(String(v))) return { bars: +v, minMfeR: Infinity };
+  try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o.bars > 0 ? { minMfeR: Infinity, ...o } : null; } catch { return null; }
+}
+
 export const isKnife = (a, g) => !!(g && a && (a.approachAtr > g.maxApproachAtr || a.fillBarAtr > g.maxFillBarAtr));
 
 /** Teyit mumu: long kapanış giriş bölgesinin üst kenarı (bölge yoksa giriş) ya da önceki mumun tepesi üstünde; short ayna. */
@@ -180,8 +187,9 @@ export function confirmsTurn(c, prev, plan) {
  */
 export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   const o = { ...PLAN_DEFAULTS, ...opts };
-  const g = knifeGuardOf(o.knifeGuard);
+  const g = knifeGuardOf(o.knifeGuard), ts = timeStopOf(o.timeStop);
   const ms = TIMEFRAMES[plan.tf]?.ms;
+  let mfe = 0; // zaman stopu için (R)
   const d = plan.d;
   let status = plan.status;
   const events = [], patch = {};
@@ -201,7 +209,7 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
           if (g.skip || hitStop) { status = 'knife'; events.push('knife'); break; }
           status = 'confirming'; events.push('confirming'); patch.knifeAt = c.time; continue;
         }
-        status = 'active'; events.push('active');
+        status = 'active'; events.push('active'); patch.filledAt = c.time;
       } else if (hitTp1) { status = 'missed'; events.push('missed'); break; }
       else continue;
     }
@@ -224,6 +232,17 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       if (hitStop) { status = 'stopped'; events.push('stopped'); break; }
       if (status === 'active' && hitTp1) { status = 'tp1'; events.push('tp1'); }
       if (status === 'tp1' && hitTp2) { status = 'done'; events.push('done'); break; }
+      // Zaman stopu: dolumdan bars kapanmış mum içinde TP1 görülmedi (ve MFE < minMfeR) → kapanıştan kapat
+      const start = patch.confirmedAt ?? plan.confirmedAt ?? patch.filledAt ?? plan.filledAt ?? plan.activeAt;
+      if (ts && status === 'active' && ms && start != null && c.time >= start) {
+        const risk = d * (plan.entry - plan.stop);
+        if (risk > 0) mfe = Math.max(mfe, (d * ((d === 1 ? c.high : c.low) - plan.entry)) / risk);
+        const n = Math.round((c.time - start) / ms) + ((patch.confirmedAt ?? plan.confirmedAt) ? 0 : 1);
+        if (c.time + ms <= now && n >= ts.bars && mfe < ts.minMfeR) {
+          Object.assign(patch, { exitPrice: c.close, exitR: risk > 0 ? +((d * (c.close - plan.entry)) / risk).toFixed(2) : 0 });
+          status = 'timeout'; events.push('time_stop'); break;
+        }
+      }
     }
   }
   if (status === 'waiting' && now - plan.sentAt > o.expireHours * 3600e3) { status = 'expired'; events.push('expired'); }
@@ -233,7 +252,7 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
 /** UTC Cumartesi/Pazar mı? (tarama: hafta sonu girişleri her TF'de ve iki dilimde daha kötü) */
 export const isWeekendUtc = (ms) => { const d = new Date(ms).getUTCDay(); return d === 0 || d === 6; };
 
-export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife']);
+export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout']);
 
 /** Aynı anahtar ya da aynı coin+yön son `cooldownHours` içinde gönderilmiş mi? */
 export function onCooldown(plan, sent, now, cooldownHours) {

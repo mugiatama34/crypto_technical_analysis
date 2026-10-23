@@ -13,12 +13,13 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
+//   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -63,6 +64,7 @@ const CFG = {
   limitOnly: env('LIMIT_ONLY', '0') === '1', // gönderimde fiyat zaten bölgedeyse gönderme (yalnız limit giriş)
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
+  timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
@@ -115,7 +117,7 @@ function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { if (!h.items.some((x) => x.id === histId(p))) h.items.push({ id: histId(p), ...p, ...extra }); }
-function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}) }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}) }); }
 
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
@@ -160,7 +162,7 @@ async function main() {
     const row = byKey.get(`${p.coin}|${p.tf}`);
     if (!row || row.error) continue;
     const candles = row.live ? [...row.candles, row.live] : row.candles;
-    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard });
+    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
     if (events.length) {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
       for (const ev of events) {
@@ -270,7 +272,7 @@ async function main() {
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)

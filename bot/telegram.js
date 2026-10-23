@@ -49,14 +49,15 @@ export function formatSetup(plan, dec, size) {
   return lines.filter((l) => l !== '').join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
-const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal' };
+const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal', time_stop: '⏱️ Zaman stopu: TP1 süresinde görülmedi — kapanıştan kapat' };
 
 /** Takip güncellemesi. */
 export function formatUpdate(plan, event, price) {
   const dir = plan.direction === 'long' ? 'LONG' : 'SHORT';
   const conf = event === 'active' && plan.entryPlanned ? ` (teyit mumu kapanışı; plan ${fp(plan.entryPlanned)})` : '';
+  const tsx = event === 'time_stop' && plan.exitPrice != null ? ` · çıkış ${fp(plan.exitPrice)} (${plan.exitR >= 0 ? '+' : ''}${plan.exitR}R)` : '';
   const spd = event === 'confirming' && plan.approachAtr != null ? ` · yaklaşma ${plan.approachAtr}×ATR, dolum mumu ${plan.fillBarAtr}×ATR` : '';
-  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd} · stop ${fp(plan.stop)} · TP1 ${fp(plan.tp1)} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
+  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd}${tsx} · stop ${fp(plan.stop)} · TP1 ${fp(plan.tp1)} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
 }
 
 /** Günlük özet. */

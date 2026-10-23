@@ -17,6 +17,7 @@ export const BT_DEFAULTS = {
   tpScheme: 'half_be',
   trailAtr: 1.0,
   knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
+  timeStop: null, // zaman stopu { bars, minMfeR }: dolumdan bars mum içinde TP1 yoksa (ve MFE < minMfeR) kapanıştan çık
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
 };
@@ -63,7 +64,8 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   if (!(risk > 0)) return { outcome: 'invalid', R: 0 };
   const Rof = (p) => (d * (p - entry)) / risk;
   const feeR = (fee * 2 * entry) / risk; // giriş + çıkış komisyonu (birim başına)
-  let stop = plan.stop, portion = 1, R = 0, mfe = 0, mae = 0, outcome = 'timeout', exitI = fillI;
+  let stop = plan.stop, portion = 1, R = 0, mfe = 0, mae = 0, outcome = 'timeout', exitI = fillI, tp1Bars = null;
+  const ts = o.timeStop && o.timeStop.bars > 0 ? { minMfeR: Infinity, ...o.timeStop } : null;
   const stopFill = (s) => s * (1 - d * slip);
   const scheme = o.tpScheme || 'half_be';
   const single = scheme === 'single', trailOnly = scheme === 'trail_only';
@@ -78,7 +80,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
     // Dolum mumunda (piyasa girişte) stop ve hedef aynı mumdaysa stop sayılır (sıra bilinmez)
     if (stopHit && (k > fillI || mkt || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
     if (portion === 1 && tp1Hit && k >= fillI) {
-      R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion;
+      R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion; tp1Bars = k - fillI + 1;
       if (scheme === 'half_be') stop = entry; // başabaş
       if (scheme === 'trail') stop = d === 1 ? Math.max(stop, c.close - o.trailAtr * atr) : Math.min(stop, c.close + o.trailAtr * atr);
       if (tp2Hit && scheme !== 'trail') { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
@@ -91,10 +93,12 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
     if (single && tp2Hit && k >= fillI) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
     if (trailOnly) { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
     exitI = k;
+    // Zaman stopu: TP1 görülmeden bars mum doldu (ve ilerleme yetersiz) → mum kapanışından çık
+    if (ts && portion === 1 && k - fillI + 1 >= ts.bars && mfe < ts.minMfeR) { R += Rof(c.close * (1 - d * slip)); outcome = 'time_stop'; portion = 0; break; }
   }
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
   R -= feeR;
-  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
+  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
 }
 
 /** Bir sembol+TF serisini baştan sona tarar; planları simüle eder. */

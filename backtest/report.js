@@ -1,7 +1,7 @@
 // Backtest raporu (saf): işlem listesinden özet istatistikler ve kırılımlar.
 import { TIMEFRAMES } from '../src/data/okx.js';
 const sum = (a) => a.reduce((s, x) => s + x, 0);
-const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout']);
+const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
 
 export function stats(trades) {
   const tr = trades.filter((t) => TRADED.has(t.outcome));
@@ -16,7 +16,7 @@ export function stats(trades) {
     winRate: +(wins.length / n).toFixed(3), avgR: +(sum(tr.map((t) => t.R)) / n).toFixed(3), totalR: +sum(tr.map((t) => t.R)).toFixed(1),
     avgWin: wins.length ? +(gross / wins.length).toFixed(2) : 0, avgLoss: losses.length ? +(-lossSum / losses.length).toFixed(2) : 0,
     profitFactor: lossSum ? +(gross / lossSum).toFixed(2) : Infinity, maxDD: +maxDD.toFixed(1),
-    outcomes: Object.fromEntries(['expired', 'missed', 'knife', 'stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout'].map((o) => [o, trades.filter((t) => t.outcome === o).length])),
+    outcomes: Object.fromEntries(['expired', 'missed', 'knife', 'stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop'].map((o) => [o, trades.filter((t) => t.outcome === o).length])),
     avgMfe: +(sum(tr.map((t) => t.mfe || 0)) / n).toFixed(2),
   };
 }

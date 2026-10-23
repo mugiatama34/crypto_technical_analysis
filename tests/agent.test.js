@@ -184,3 +184,14 @@ test('limit emir: düşen bıçak koruması — hızlı dolumda bekler, teyit ka
   openPosition(z, req({ order: 'limit', limit_price: 100, stop: 96, tp1: 106, tp2: 110 }), 0, P.guards);
   assert.equal(updatePositions(z, { BTC: drop }, 8.5 * M)[0].type, 'filled');
 });
+
+test('zaman stopu: ajan pozisyonu kendi TF\'sinde N mum içinde TP1 görmezse kapanıştan kapanır', () => {
+  const M = 900e3;
+  const a = newAccount(P, 0);
+  openPosition(a, req({ tf: '1H', price: 100, stop: 97, tp1: 104, tp2: 108 }), 0, P.guards);
+  const cs = Array.from({ length: 12 }, (_, i) => c((i + 1) * M, 100, 100.8, 99.4, 100.3)); // 3 saat salınım
+  assert.equal(updatePositions(a, { BTC: cs.slice(0, 6) }, 7 * M, { timeStop: 2 }).length, 0); // 1,75 saat: henüz değil
+  const ev = updatePositions(a, { BTC: cs }, 13 * M, { timeStop: 2 });
+  assert.equal(ev[0].type, 'time'); assert.equal(a.positions.length, 0);
+  assert.equal(a.trades.length, 1);
+});
