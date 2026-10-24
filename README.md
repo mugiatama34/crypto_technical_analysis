@@ -9,6 +9,11 @@ tarayıcı veriyi doğrudan OKX public API'sinden çeker.
 
 > Yatırım tavsiyesi değildir. Otomatik yapı tespiti hatalı olabilir; grafiği kendin kontrol et.
 
+## Devam etmek için (yeni sohbet)
+Yeni bir Claude Code oturumunda "devam edelim" demek yeter: kökteki `CLAUDE.md` proje belleğidir (otomatik okunur) ve
+`docs/DURUM.md` tarihli durum günlüğüdür (bulgular, canlı ayarlar, açık işler, sıradaki adım). Oturum sonunda DURUM.md
+güncellenir. Eğitim notları: `docs/egitim/` (SMC / price action, arkadaşın yöntemi, örnekler, ölçüm, rutin).
+
 ## Neler var
 
 | Grup | Detektör | İçerik |
