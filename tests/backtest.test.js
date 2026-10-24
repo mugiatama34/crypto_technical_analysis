@@ -124,3 +124,16 @@ test('simulateTrade: zaman stopu — N mumda TP1 yoksa kapanıştan çık; TP1 s
   const w4 = simulateTrade(p, win, 0, '1H', { ...o, timeStop: { bars: 4 } });
   assert.equal(w4.outcome, 'tp2'); assert.equal(w4.tp1Bars, 3);
 });
+
+test('sweep rebuild: tp1Pct (fiyat %) ve keepTp2; erken %80 + başabaş', async () => {
+  const { rebuild } = await import('../backtest/sweep.mjs');
+  const p = { d: 1, direction: 'long', entry: 100, stop: 98, tp1: 103, tp2: 106, zone: [99.5, 100], atr: 1, inZone: false };
+  const r = rebuild(p, { tp1Pct: 1.2, keepTp2: true });
+  assert.ok(Math.abs(r.tp1 - 101.2) < 1e-9); assert.equal(r.tp2, 106); assert.equal(r.stop, 98);
+  assert.ok(Math.abs(rebuild({ ...p, d: -1, direction: 'short', stop: 102, tp1: 97, tp2: 94 }, { tp1Pct: 1.2, keepTp2: true }).tp1 - 98.8) < 1e-9);
+  assert.ok(Math.abs(rebuild(p, { tp1R: 0.5, keepTp2: true }).tp1 - 101) < 1e-9);
+  // %80 erken (0,6R), kalan başabaşta kapanır: R = 0,8 × 0,6
+  const cs = [c(1, 101, 101, 99.5, 100.5), c(2, 100.5, 101.5, 100.2, 101.3), c(3, 101.3, 101.4, 99.8, 100)];
+  const s = simulateTrade(r, cs, 0, '1H', { ...o, tp1Portion: 0.8 });
+  assert.equal(s.outcome, 'tp1_be'); assert.ok(Math.abs(s.R - 0.48) < 1e-9, `R ${s.R}`);
+});

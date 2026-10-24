@@ -29,14 +29,17 @@ async function loadSeries(coin, tf, instId) {
 }
 
 /** Plan için stop/tp yeniden hesapla. */
-function rebuild(plan, v) {
+export function rebuild(plan, v) {
   const d = plan.d, atr = plan.atr, [lo, hi] = plan.zone;
   const entry = plan.entry;
   let stop = v.stopPadAtr == null ? plan.stop : (d === 1 ? lo - v.stopPadAtr * atr : hi + v.stopPadAtr * atr);
   const minRisk = (v.minRiskAtr ?? 0.6) * atr;
   if (d * (entry - stop) < minRisk) stop = entry - d * minRisk;
   const risk = d * (entry - stop);
-  const tp1 = entry + d * (v.tp1R ?? 1.5) * risk, tp2 = entry + d * (v.tp2R ?? 2.5) * risk;
+  // tp1Pct: fiyat yüzdesiyle erken hedef (ör. 25x'te marjin %30 ≈ fiyat %1,2); keepTp2: TP2 plandaki gibi
+  const tp1 = v.tp1Pct != null ? entry * (1 + d * v.tp1Pct / 100) : entry + d * (v.tp1R ?? 1.5) * risk;
+  let tp2 = v.keepTp2 ? plan.tp2 : entry + d * (v.tp2R ?? 2.5) * risk;
+  if (d * (tp2 - tp1) < 0) tp2 = tp1;
   return { ...plan, stop, tp1, tp2 };
 }
 
@@ -100,6 +103,11 @@ const SINGLE = [
   { name: 'zaman stopu 8 mum', timeStop: { bars: 8 } },
   { name: 'zaman stopu 16 mum', timeStop: { bars: 16 } },
   { name: 'ilerleme stopu: 8 mumda MFE < 0,5R', timeStop: { bars: 8, minMfeR: 0.5 } },
+  // Erken kâr al: pozisyonun %80'i erken hedefte, kalan %20 başabaş stopla plan TP2'sine (kullanıcının elle yönetimi)
+  { name: 'elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2', tp1Pct: 1.2, tp1Portion: 0.8, keepTp2: true },
+  { name: 'erken %80: 0,5R', tp1R: 0.5, tp1Portion: 0.8, keepTp2: true },
+  { name: 'erken %80: 0,75R', tp1R: 0.75, tp1Portion: 0.8, keepTp2: true },
+  { name: 'erken %80: 1R', tp1R: 1, tp1Portion: 0.8, keepTp2: true },
 ];
 /** TP1'e ulaşma süresi kovası (mum; TF × kova). */
 const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
@@ -121,14 +129,14 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
     const trades = [];
     for (const [k, list] of groups) {
       const s = series.get(k); if (!s) continue;
       for (const t of list) {
         if (!passes(t, v, s, mtfIndex)) continue;
         const i = s.idx.get(t.time);
-        const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null) ? rebuild(t.plan, v) : t.plan;
+        const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
         trades.push({ time: t.time, tf: t.tf, waitBars: sim.waitBars, tp1Bars: sim.tp1Bars ?? null, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
       }
@@ -138,7 +146,8 @@ async function main() {
     return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
       bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
       byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
-      byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) } };
+      byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
+      byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) } };
   };
 
   const results = [];
@@ -147,17 +156,17 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
-  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum');
-  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx], [guard, wk, lim, htf, t8], [guard, wk, lim, htf, t16]];
+  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2');
+  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx], [guard, wk, lim, htf, t8], [guard, wk, lim, htf, t16], [guard, wk, lim, htf, man]];
   for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
   // aynı alanı ezen varyantlar (ör. iki düşen bıçak ayarı) birleştirilmez
-  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1;
+  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1 || (v.name.match(/erken %80|elle yönetim|TP1 /g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
@@ -169,4 +178,4 @@ async function main() {
   log('En iyi (doğrulama):');
   for (const r of results.slice(0, 8)) log(`  ${r.name.padEnd(60)} eğitim n${r.train.n} ${r.train.avgR}R | doğrulama n${r.valid.n} ${r.valid.avgR}R PF ${r.valid.profitFactor}`);
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) main().catch((e) => { console.error(e); process.exit(1); });
