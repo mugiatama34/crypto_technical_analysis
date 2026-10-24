@@ -12,7 +12,7 @@ export const AUDIT_SCHEMA = {
     health: { type: 'string', enum: ['ok', 'watch', 'alert'] },
     findings: { type: 'array', description: 'en fazla 6 bulgu', items: { type: 'object', additionalProperties: false, required: ['area', 'severity', 'evidence', 'action'], properties: { area: { type: 'string', enum: ['signals', 'agents', 'momentum', 'rules', 'data'] }, severity: { type: 'string', enum: ['info', 'warn', 'high'] }, evidence: { type: 'string', description: 'sayıyla: n, ort. R, oran' }, action: { type: 'string', description: 'izle / araştır / kullanıcıya öner' } } } },
     researchRequests: { type: 'array', description: 'araştırmacı için test edilebilir hipotezler (en fazla 3; yoksa boş)', items: { type: 'object', additionalProperties: false, required: ['id', 'question', 'variantSpec', 'rationale', 'urgent'], properties: { id: { type: 'string', description: 'kısa kebab-case kimlik, ör. early-pct-1.5' }, question: { type: 'string' }, variantSpec: { type: 'string', description: `JSON nesnesi (metin olarak); yalnız şu alanlar: ${VARIANT_FIELDS.join(', ')}` }, rationale: { type: 'string' }, urgent: { type: 'boolean', description: 'true = haftalık koşuyu bekleme (yalnız high bulguda)' } } } },
-    varsSuggestion: { anyOf: [{ type: 'null' }, { type: 'object', additionalProperties: false, required: ['name', 'value', 'why'], properties: { name: { type: 'string' }, value: { type: 'string' }, why: { type: 'string' } } }], description: 'yalnız araştırmacı tarafından doğrulanmış bir değişiklik varsa; aksi halde null' },
+    varsSuggestion: { type: 'array', maxItems: 1, description: 'en fazla 1 öğe, yalnız araştırmacı tarafından doğrulanmış (confirmed) ve henüz uygulanmamış bir değişiklik varsa; aksi halde boş liste', items: { type: 'object', additionalProperties: false, required: ['name', 'value', 'why'], properties: { name: { type: 'string' }, value: { type: 'string' }, why: { type: 'string' } } } },
   },
 };
 
@@ -26,14 +26,15 @@ Kurallar:
 - Küçük örneklemden iddia üretme: n < 30 kapanan işlemde "beklentiden sapma" deme, "izle" de. Günlük R dalgalanması normaldir.
 - Aşırı uyum tuzağına düşme: dün kaybettiren tek bir filtreyi kaldırmayı önerme; hipotezin mantığı önceden savunulabilir olmalı.
 - researchRequests yalnız gerçekten yeni ve değerli soru için; çoğu gün boş liste doğru cevaptır.
-- varsSuggestion yalnız son araştırma raporunda 'confirmed' bir sonuç varsa ve henüz uygulanmamışsa.
+- varsSuggestion yalnız son araştırma raporunda 'confirmed' bir sonuç varsa ve henüz uygulanmamışsa; aksi halde boş liste.
+- Kısa yaz: summary ≤ 5 cümle, her bulgu ≤ 2 cümle.
 - Türkçe, somut, sayılarla. Bahane ve süsleme yok.`;
 
 export function auditPrompt(metrics, config, lastResearch, lastAudit) {
   return `Tarih: ${new Date(metrics.at).toISOString()}\n\nAktif kurallar (ortam değişkenleri): ${JSON.stringify(config)}\n\nÖlçümler: ${JSON.stringify(metrics)}\n\nSon araştırma raporu (özet): ${JSON.stringify(lastResearch ? { at: lastResearch.at, summary: lastResearch.summary, results: lastResearch.results?.slice(0, 8), proposals: lastResearch.proposals } : null)}\n\nÖnceki denetim: ${JSON.stringify(lastAudit ? { at: lastAudit.at, health: lastAudit.health, summary: lastAudit.summary, openRequests: lastAudit.researchRequests?.map((r) => r.id) } : null)}\n\nDenetimi yaz.`;
 }
 
-export const audit = (metrics, config, lastResearch, lastAudit, opts) => call({ ...opts, system: SYSTEM_AUDIT, user: auditPrompt(metrics, config, lastResearch, lastAudit), schema: AUDIT_SCHEMA, maxTokens: 3000 });
+export const audit = (metrics, config, lastResearch, lastAudit, opts) => call({ ...opts, system: SYSTEM_AUDIT, user: auditPrompt(metrics, config, lastResearch, lastAudit), schema: AUDIT_SCHEMA, maxTokens: 6000 });
 
 /** variantSpec metnini güvenli alanlara indirger; geçersizse null. */
 export function parseVariantSpec(text) {
@@ -64,7 +65,8 @@ export function formatAudit(a, m) {
     `Son 24s: ${d1.sent} sinyal, ${d1.closed} kapanan${d1.avgR != null ? `, ort ${d1.avgR}R` : ''} · 30 gün: ${d30.sent} sinyal, ${d30.closed} kapanan${d30.avgR != null ? `, ort ${d30.avgR}R, kazanma %${Math.round(d30.winRate * 100)}` : ''}`];
   if (a.findings?.length) lines.push('', '<b>Bulgular:</b>', ...a.findings.map((f) => `• [${f.severity}] ${esc(f.area)}: ${esc(f.evidence)} → ${esc(f.action)}`));
   if (a.researchRequests?.length) lines.push('', '<b>Araştırmacıya:</b>', ...a.researchRequests.map((r) => `• ${esc(r.id)}${r.urgent ? ' (acil)' : ''}: ${esc(r.question)}`));
-  if (a.varsSuggestion) lines.push('', `<b>Öneri (sen karar ver):</b> Variables → <code>${esc(a.varsSuggestion.name)}=${esc(a.varsSuggestion.value)}</code> — ${esc(a.varsSuggestion.why)}`);
+  const vs = Array.isArray(a.varsSuggestion) ? a.varsSuggestion[0] : a.varsSuggestion;
+  if (vs) lines.push('', `<b>Öneri (sen karar ver):</b> Variables → <code>${esc(vs.name)}=${esc(vs.value)}</code> — ${esc(vs.why)}`);
   return lines.join('\n');
 }
 const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));

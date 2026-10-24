@@ -67,7 +67,10 @@ export async function call({ apiKey, model, system, user, schema, maxTokens = 30
   if (!res.ok) { let m = `HTTP ${res.status}`; try { m = (await res.json())?.error?.message || m; } catch { /* yok */ } throw new Error(`Claude: ${m}`); }
   const j = await res.json();
   if (j.stop_reason === 'refusal') throw new Error('Claude reddetti');
-  const out = JSON.parse((j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''));
+  const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+  if (j.stop_reason === 'max_tokens') throw new Error(`Claude cevabı max_tokens'ta kesildi (${maxTokens}; ${text.length} karakter)`);
+  let out;
+  try { out = JSON.parse(text); } catch (e) { throw new Error(`Claude JSON ayrıştırılamadı (${e.message}; stop ${j.stop_reason}; ${text.length} karakter): ${text.slice(0, 200)}`); }
   out._usage = j.usage; return out;
 }
 

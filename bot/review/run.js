@@ -22,12 +22,12 @@ export async function runAudit(ctx) {
   const metrics = metricsOf({ history, agents, momentum, sweep, now, lastRejects: ctx.lastRejects });
   let a;
   if (cfg.dry || !llm.apiKey) {
-    a = { summary: 'DRY: Claude çağrısı yapılmadı; ölçümler toplandı.', health: 'ok', findings: [], researchRequests: [], varsSuggestion: null };
+    a = { summary: 'DRY: Claude çağrısı yapılmadı; ölçümler toplandı.', health: 'ok', findings: [], researchRequests: [], varsSuggestion: [] };
   } else {
     a = await audit(metrics, cfg.config, research?.latest || null, prev.reports.at(-1) || null, { apiKey: llm.apiKey, model: cfg.model });
     log(`  denetçi: ${a.health} (${a._usage?.input_tokens || 0}+${a._usage?.output_tokens || 0} tok) — ${a.summary.slice(0, 120)}`);
   }
-  const report = { at: now, health: a.health, summary: a.summary, findings: a.findings, researchRequests: a.researchRequests, varsSuggestion: a.varsSuggestion, metrics };
+  const report = { at: now, health: a.health, summary: a.summary, findings: a.findings, researchRequests: a.researchRequests, varsSuggestion: (Array.isArray(a.varsSuggestion) ? a.varsSuggestion[0] : a.varsSuggestion) || null, metrics };
   const out = { latest: report, reports: [...prev.reports.filter((r) => r.at !== now), { ...report, metrics: undefined }].slice(-30), updatedAt: now };
   const queue = enqueue(readJson(path.join(dir, 'research-queue.json'), { items: [] }), a.researchRequests, now);
   if (!cfg.dry) {

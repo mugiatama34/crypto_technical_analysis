@@ -30,8 +30,8 @@ test('auditor: variantSpec güvenli alanlara indirgenir; kuyruk tekil; rapor met
   q = enqueue(q, [{ id: 'a', question: 'tekrar', variantSpec: '{"tp1Pct":2}' }], now);
   assert.equal(q.items.length, 1);
   const m = metricsOf({ history: { items: [] }, now });
-  const txt = formatAudit({ summary: 'özet', health: 'watch', findings: [{ area: 'signals', severity: 'warn', evidence: 'n 3', action: 'izle' }], researchRequests: [{ id: 'a', question: 'soru', urgent: true }], varsSuggestion: null }, m);
-  assert.match(txt, /Denetçi günlük rapor/); assert.match(txt, /\[warn\] signals/); assert.match(txt, /a \(acil\)/);
+  const txt = formatAudit({ summary: 'özet', health: 'watch', findings: [{ area: 'signals', severity: 'warn', evidence: 'n 3', action: 'izle' }], researchRequests: [{ id: 'a', question: 'soru', urgent: true }], varsSuggestion: [{ name: 'X', value: '1', why: 'y' }] }, m);
+  assert.match(txt, /Denetçi günlük rapor/); assert.match(txt, /\[warn\] signals/); assert.match(txt, /a \(acil\)/); assert.match(txt, /X=1/);
   const p = auditPrompt(m, { tfs: ['4H'] }, null, null);
   assert.doesNotMatch(p, /TELEGRAM|API_KEY|token/i);
   assert.deepEqual(AUDIT_SCHEMA.required, ['summary', 'health', 'findings', 'researchRequests', 'varsSuggestion']);
