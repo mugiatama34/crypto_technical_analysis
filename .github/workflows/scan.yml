@@ -15,6 +15,10 @@ on:
         description: "Durumu sıfırla (takip + cooldown): sahte/dry kayıtları temizler"
         type: boolean
         default: false
+      force_audit:
+        description: "Denetçi ajanı şimdi çalıştır (AUDIT=1 gerekir)"
+        type: boolean
+        default: false
 
 concurrency:
   group: scan-and-alert
@@ -80,6 +84,7 @@ jobs:
           HTF_TREND: ${{ vars.HTF_TREND }}
           AUDIT: ${{ vars.AUDIT }}
           AUDIT_MODEL: ${{ vars.AUDIT_MODEL }}
+          FORCE_AUDIT: ${{ inputs.force_audit && '1' || '' }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

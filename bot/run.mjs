@@ -71,6 +71,7 @@ const CFG = {
   htfTrend: ['with', 'notAgainst'].includes(env('HTF_TREND', '')) ? env('HTF_TREND', '') : null, // coin'in üst TF eğilimi: with | notAgainst
   audit: env('AUDIT', '0') === '1', // denetçi ajan: günlük özet anında sistem denetimi (öneri üretir, kural değiştirmez)
   auditModel: env('AUDIT_MODEL', 'claude-opus-5-5'),
+  forceAudit: env('FORCE_AUDIT', '') === '1', // elle: denetçiyi bu turda çalıştır
   earlyTp: earlyTpOf(env('EARLY_TP', '')), // erken kâr al: {"pct":1.2,"portion":0.8,"tfs":["4H"]}
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
@@ -310,7 +311,7 @@ async function main() {
     try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
     catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
   }
-  if (summaryDue && CFG.audit) {
+  if ((summaryDue || CFG.forceAudit) && CFG.audit) {
     try {
       const config = { tfs: CFG.tfs, rules: Object.fromEntries(CFG.tfs.map((tf) => [tf, fmtRule(ruleFor(tf, 'long'))])), knifeGuard: CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop, momentum: CFG.momentum ? { variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge } : null, agent: CFG.agent };
       await runAudit({ now, cfg: { dry: CFG.dry, model: CFG.auditModel, config }, llm: { apiKey: CFG.apiKey }, notify: (t) => notify(t, state), log, historyFile: CFG.historyFile, publishDir: CFG.agentPublishDir, sweepFile: 'docs/backtest/sweep.json', lastRejects: state.lastRejects || null, flagFile: 'bot/research-request.flag' });

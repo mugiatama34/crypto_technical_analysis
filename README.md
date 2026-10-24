@@ -125,7 +125,7 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
 - **Denetçi** (`bot/review`, günlük özet anında, günde bir çağrı): sinyal geçmişi (24s/7g/30g: dolum, stop, erken kâr, ort. R,
   BTC ters giderken R), ajan hesapları, momentum portföyü ve son taramadaki beklenti ile karşılaştırır; durum
   (`ok`/`watch`/`alert`), bulgular ve test edilebilir hipotezler üretir → Telegram "🕵️ Denetçi günlük rapor",
-  `docs/agent/review.json`, hipotezler `docs/agent/research-queue.json`. Acil hipotezde `backtest.yml mode=research`
+  `docs/agent/review.json`, hipotezler `docs/agent/research-queue.json`. Elle: Actions → scan-and-alert → `force_audit`. Acil hipotezde `backtest.yml mode=research`
   tetiklenir. Küçük örneklemde iddia yok (n < 30 → "izle"). `AUDIT_MODEL` (vars. claude-opus-5-5).
 - **Araştırmacı** (`bot/research`, Pazar 06:00 UTC ve istek üzerine): kuyruktaki hipotezleri (boşsa standart komşu-eşik
   seti: erken hedef %1,0/%1,5, kapanış %70/%90, üst TF "ters değil", bıçak eşiği 1,5) canlı 4H düzeninin üstüne tarama
