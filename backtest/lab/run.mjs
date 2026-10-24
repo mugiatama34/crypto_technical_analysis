@@ -28,7 +28,8 @@ export function runStrategy(strategy, { coin, tf, candles, extra }, o) {
     const sim = simulateTrade(plan, candles, i + 1, tf, { ...o, ...strategy.exit });
     if (sim.outcome === 'invalid') continue;
     busyUntil = i + 1 + (sim.waitBars || 1) + (sim.bars || 0);
-    trades.push({ coin, tf, direction: plan.direction, time: candles[i].time, entry: plan.entry, stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, ...sim });
+    const mult = plan.sizeMult ?? 1; // üst dilime ters işlemde yarım boy (R ölçeklenir)
+    trades.push({ coin, tf, direction: plan.direction, time: candles[i].time, entry: plan.entry, stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, ...sim, R: +(sim.R * mult).toFixed(3), sizeMult: mult, htf: plan.htf ?? null });
   }
   return trades;
 }
@@ -135,6 +136,18 @@ async function main() {
         const candles = await fetchTf(c.instId, tf, 1500);
         if (candles.length >= (tf === '1D' ? 120 : 350)) series.push({ coin: c.coin, tf, candles, extra: { daily, btcDaily } });
       } catch (err) { log(`  ${c.coin} ${tf}: ${err.message}`); }
+    }
+  }
+  // Üst TF mumları (coin'in kendi): 15m→1H, 1H→4H (4H→1D extra.daily); gerekirse ayrıca çekilir
+  const needUpper = strategies.some((s) => s.needs?.includes('upper'));
+  if (needUpper) {
+    const UP = { '15m': '1H', '1H': '4H' };
+    const byKey = new Map(series.map((s) => [`${s.coin}|${s.tf}`, s]));
+    for (const s of series) {
+      const up = UP[s.tf]; if (!up) continue;
+      let u = byKey.get(`${s.coin}|${up}`)?.candles;
+      if (!u) { try { u = await fetchTf(coins.find((c) => c.coin === s.coin)?.instId || s.coin, up, 1500); } catch (err) { log(`  ${s.coin} ${up}: ${err.message}`); } }
+      if (u) s.extra.upper = u;
     }
   }
   // BTC kapanışı (TF, zaman): BTC serisi yoksa null → btcPct null

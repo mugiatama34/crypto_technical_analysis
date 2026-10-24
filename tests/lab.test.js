@@ -5,6 +5,7 @@ import { stats } from '../backtest/report.js';
 import { regimeUp, engineWide4hLongBtc, donchian4hLongBtc, engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
 import { runStrategy, report, robustStats, acceptance, btcBeta, attachBtc } from '../backtest/lab/run.mjs';
 import { fibClusterC, fibClusterCStrict } from '../backtest/lab/corrections.js';
+import { sweepMssFvg, sweepMssFvgHtf, sweepMssFvg1r, prevDayLevels, fvgInLeg } from '../backtest/lab/smc.js';
 import { build } from './helpers.js';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
@@ -86,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 30);
+  assert.equal(STRATEGIES.length, 34);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -354,4 +355,39 @@ test('fib_cluster_c: itki + ABC serisinde bölgeye limit plan (giriş 0,618×1,2
   let p2 = null; for (let i = 80; i < cs.length && !p2; i++) p2 = fibClusterCStrict.signal(i, cs, pre2);
   assert.ok(p2 && p2.retr === 0.618 && p2.ext === 1.272);
   assert.equal(fibClusterC.tfs.join(), '1H,4H');
+});
+
+test('sweep_mss_fvg: eşit tepe/PDH fitille süpürülür → kapanışla minör dip kırılır (MSS) → bacaktaki FVG %50 limit short; stop fitil ötesi; TP1 karşı likidite ≥ 2R; sizeMult', () => {
+  // Taban 100, eşit tepeler 110 (bar 70, 85), dip 104, süpürme fitili 111,5 (bar 99), sert düşüş (FVG 106,4–109,4), MSS bar 102 (kapanış 103,2 < 103,8)
+  const path = [[0, 100], [60, 100], [70, 110], [78, 104], [85, 110], [92, 104], [99, 109.5], [100, 109.8], [101, 109.6], [102, 106.2], [103, 103.2], [106, 102.5], [110, 108.2], [130, 99]];
+  const cs = build(path, { spread: 0.2 }); cs[99].high = 111.5; cs[99].close = 109.8;
+  assert.deepEqual(fvgInLeg(cs, 99, 102, -1, 0.3), { lo: 106.4, hi: cs[100].low, i: 102 });
+  const { pdh } = prevDayLevels(cs); assert.ok(pdh[30] != null && pdh[23] == null); // ilk gün PDH yok
+  const pre = sweepMssFvg.prepare(cs, '1H', {});
+  let plan = null, at = -1;
+  for (let i = 90; i < 110 && !plan; i++) { plan = sweepMssFvg.signal(i, cs, pre); at = i; }
+  assert.ok(plan, 'plan yok'); assert.equal(at, 102); assert.equal(plan.direction, 'short'); assert.equal(plan.inZone, false);
+  assert.ok(Math.abs(plan.entry - 107.9) < 0.01); assert.ok(plan.stop > 111.5 && plan.stop < 111.8); assert.ok(Math.abs(plan.tp1 - 99.8) < 0.01); assert.ok(plan.rr1 >= 2); assert.equal(plan.sizeMult, 1);
+  // Dolum: bar 106–110 geri çekilme 108,2'ye (FVG ortası 107,9 dolar), sonra 99'a → TP1
+  const tr = runStrategy(sweepMssFvg, { coin: 'T', tf: '1H', candles: cs }, o);
+  assert.equal(tr.length, 1); assert.ok(['tp1_be', 'tp2', 'tp1_timeout'].includes(tr[0].outcome), tr[0].outcome); assert.ok(tr[0].R > 0.5);
+  // Üst TF düşüşte iken aynı seri: short üst dilim yönünde → sizeMult 1; üst TF yükselişte → 0,5; htf='with' → plan yok
+  const up = Array.from({ length: 200 }, (_, i) => ({ time: (i - 200) * 4 * 3600e3 + cs[0].time, open: 50 + i * 0.3, high: 50.6 + i * 0.3, low: 49.6 + i * 0.3, close: 50.3 + i * 0.3 }));
+  const pre2 = sweepMssFvg.prepare(cs, '1H', { upper: up }); let p2 = null;
+  for (let i = 90; i < 110 && !p2; i++) p2 = sweepMssFvg.signal(i, cs, pre2);
+  assert.equal(p2.htf, 'up'); assert.equal(p2.sizeMult, 0.5);
+  const tr2 = runStrategy(sweepMssFvg, { coin: 'T', tf: '1H', candles: cs, extra: { upper: up } }, o);
+  assert.ok(Math.abs(tr2[0].R - tr[0].R * 0.5) < 0.01); assert.equal(tr2[0].sizeMult, 0.5);
+  const pre3 = sweepMssFvgHtf.prepare(cs, '1H', { upper: up }); let p3 = null;
+  for (let i = 90; i < 110 && !p3; i++) p3 = sweepMssFvgHtf.signal(i, cs, pre3);
+  assert.equal(p3, null);
+  // 1R varyantı: TP1 = giriş − 1R, TP2 = likidite
+  const pre4 = sweepMssFvg1r.prepare(cs, '1H', {}); let p4 = null;
+  for (let i = 90; i < 110 && !p4; i++) p4 = sweepMssFvg1r.signal(i, cs, pre4);
+  assert.ok(Math.abs(p4.tp1 - (107.9 - (p4.stop - 107.9))) < 0.01); assert.ok(Math.abs(p4.tp2 - 99.8) < 0.01);
+  // MSS olmadan (düşüş 104'ün altına kapanmaz) plan yok
+  const cs5 = build([[0, 100], [60, 100], [70, 110], [78, 104], [85, 110], [92, 104], [99, 109.5], [100, 109.8], [101, 109.6], [102, 106.2], [103, 104.5], [120, 105]], { spread: 0.2 }); cs5[99].high = 111.5; cs5[99].close = 109.8;
+  const pre5 = sweepMssFvg.prepare(cs5, '1H', {}); let p5 = null;
+  for (let i = 90; i < 118 && !p5; i++) p5 = sweepMssFvg.signal(i, cs5, pre5);
+  assert.equal(p5, null);
 });

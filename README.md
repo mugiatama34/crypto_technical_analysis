@@ -132,6 +132,15 @@ grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) v
 (kazanma %35); dolum oranı %12–18 (sinyallerin yarısında fiyat bölgeye gelmeden itki ucunu geçiyor). Kenar yok.
 Not: lab hedge'li R'si limit girişli ailelerde önceden sinyal mumundan hesaplanıyordu; artık dolum zamanından.
 
+### SMC: süpürme → MSS → FVG %50 (arkadaşın kuralı)
+Lab aileleri `sweep_mss_fvg*` (`backtest/lab/smc.js`): bir likidite seviyesi (swing tepe/dip, eşit tepe/dip, önceki günün
+tepe/dibi) **fitille süpürülür** (kapanış seviyenin bu tarafında), ardından `maxBars` içinde (1H 12, 4H 6) ters yöne
+**MSS** (kapanış son minör dip/tepeyi geçer), süpürme→MSS bacağında **FVG** varsa FVG'nin **%50'sine limit** (24 saat),
+stop süpürme fitili ∓ 0,1 ATR, TP1 en yakın karşı likidite (**≥ 2R yoksa işlem yok**, ≤ 6R), TP2 sonraki likidite / 4R;
+half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçeklenir; `runStrategy`). Varyantlar: `_htf`
+(yalnız üst dilim yönünde), `_btc` (yalnız BTC günlük rejimi yönünde; USDT.D verisi olmadığı için vekil), `_1r`
+(1R'de yarı + başabaş, kalan likiditeye). Lab `needs: upper` ile coin'in üst TF mumlarını (15m→1H, 1H→4H, 4H→1D) sağlar.
+
 ### Denetçi ve araştırmacı ajanlar (`AUDIT=1`)
 İki Claude ajanı sistemi gözetler; **hiçbiri kural değiştirmez**, yalnız öneri üretir (Variables'ı kullanıcı değiştirir).
 - **Denetçi** (`bot/review`, günlük özet anında, günde bir çağrı): sinyal geçmişi (24s/7g/30g: dolum, stop, erken kâr, ort. R,
