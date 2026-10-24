@@ -22,6 +22,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   scan:
@@ -77,6 +78,8 @@ jobs:
           TIME_STOP: ${{ vars.TIME_STOP }}
           EARLY_TP: ${{ vars.EARLY_TP }}
           HTF_TREND: ${{ vars.HTF_TREND }}
+          AUDIT: ${{ vars.AUDIT }}
+          AUDIT_MODEL: ${{ vars.AUDIT_MODEL }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}
@@ -93,6 +96,12 @@ jobs:
             bot/agent-state.json
             bot/momentum-state.json
           key: bot-state-${{ github.run_id }}
+
+      - name: Trigger research (auditor flagged urgent)
+        if: ${{ !inputs.dry && hashFiles('bot/research-request.flag') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run backtest.yml --ref ${{ github.ref_name }} -f mode=research && rm -f bot/research-request.flag
 
       - name: Publish agent pages
         if: ${{ !inputs.dry }}

@@ -13,6 +13,7 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
+//   AUDIT=1 AUDIT_MODEL=...: denetçi ajan (günlük rapor + araştırma kuyruğu; bot/review)
 //   HTF_TREND=with|notAgainst: coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D) aynı yön / ters değil
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
@@ -25,6 +26,7 @@ import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, 
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
+import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -67,6 +69,8 @@ const CFG = {
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
   htfTrend: ['with', 'notAgainst'].includes(env('HTF_TREND', '')) ? env('HTF_TREND', '') : null, // coin'in üst TF eğilimi: with | notAgainst
+  audit: env('AUDIT', '0') === '1', // denetçi ajan: günlük özet anında sistem denetimi (öneri üretir, kural değiştirmez)
+  auditModel: env('AUDIT_MODEL', 'claude-opus-5-5'),
   earlyTp: earlyTpOf(env('EARLY_TP', '')), // erken kâr al: {"pct":1.2,"portion":0.8,"tfs":["4H"]}
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
@@ -218,6 +222,7 @@ async function main() {
     cands.push(plan);
   }
   if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
+  state.lastRejects = rejects; // denetçi için
   log(`Elenme nedenleri: ${Object.entries(rejects).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' | ')}`);
   cands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
   log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score} r%${p.riskPct}`).join(' | ') : ''));
@@ -304,6 +309,12 @@ async function main() {
   if (CFG.momentum) {
     try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
     catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
+  }
+  if (summaryDue && CFG.audit) {
+    try {
+      const config = { tfs: CFG.tfs, rules: Object.fromEntries(CFG.tfs.map((tf) => [tf, fmtRule(ruleFor(tf, 'long'))])), knifeGuard: CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop, momentum: CFG.momentum ? { variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge } : null, agent: CFG.agent };
+      await runAudit({ now, cfg: { dry: CFG.dry, model: CFG.auditModel, config }, llm: { apiKey: CFG.apiKey }, notify: (t) => notify(t, state), log, historyFile: CFG.historyFile, publishDir: CFG.agentPublishDir, sweepFile: 'docs/backtest/sweep.json', lastRejects: state.lastRejects || null, flagFile: 'bot/research-request.flag' });
+    } catch (err) { log(`Denetçi hatası: ${err.message}`); console.error(err); }
   }
   if (summaryDue) {
     const since = now - 24 * 3600e3;

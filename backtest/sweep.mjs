@@ -14,6 +14,8 @@ import { getHistoryCached } from './data.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const IN = String(arg('in', 'docs/backtest')), OUT = String(arg('out', 'docs/backtest')), CACHE = String(arg('cache', 'backtest/cache')), FIXTURE = arg('fixture', false) === true;
+// --variants <json>: ek varyant listesi (araştırmacı); --only: yalnız temel + bu liste (SINGLE/birleşim yok); --outfile: çıktı adı
+const VARIANTS_FILE = arg('variants', null), ONLY = arg('only', false) === true, OUTFILE = String(arg('outfile', 'sweep.json'));
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 /** Seri verisi: mumlar + indeks haritası + ADX/EMA200. */
@@ -232,11 +234,14 @@ async function main() {
 
   const results = [];
   log('Temel…'); results.push(evaluate(BASE));
+  const extra = VARIANTS_FILE ? JSON.parse(fs.readFileSync(String(VARIANTS_FILE), 'utf8')) : [];
+  for (const v of extra) { log(`  [araştırma] ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, research: true }); }
+  if (ONLY) { writeOut(results, all, meta, split, t0); return; }
   for (const v of SINGLE) { log(`  ${v.name}`); results.push(evaluate(v)); }
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'hedged', 'hedgedByTf', 'btcCorr'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
   const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), h14 = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2'), hw = V('üst TF eğilimi aynı yön'), hn = V('üst TF eğilimi ters değil');
@@ -249,12 +254,17 @@ async function main() {
   const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1 || (v.name.match(/erken %80|elle yönetim|TP1 /g) || []).length > 1 || (v.name.match(/üst TF eğilimi/g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
+  writeOut(results, all, meta, split, t0);
+}
+
+function writeOut(results, all, meta, split, t0) {
+  const base = results[0];
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
   for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
-  fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(out));
+  fs.writeFileSync(path.join(OUT, OUTFILE), JSON.stringify(out));
   log('En iyi (doğrulama):');
   for (const r of results.slice(0, 8)) log(`  ${r.name.padEnd(60)} eğitim n${r.train.n} ${r.train.avgR}R | doğrulama n${r.valid.n} ${r.valid.avgR}R PF ${r.valid.profitFactor}`);
 }

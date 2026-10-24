@@ -119,6 +119,20 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   için indirilir (tur başına ≤ 10). Tarama varyantları "üst TF eğilimi aynı yön / ters değil" ve temel kırılımı
   `byHtfTrend` (`sweep.html`); 6 ve 12 aylık koşularda "üst TF'de aynı yönde plan" filtresi kötüleştirmişti, eğilim
   filtresi ölçülmeden açılmaz.
+
+### Denetçi ve araştırmacı ajanlar (`AUDIT=1`)
+İki Claude ajanı sistemi gözetler; **hiçbiri kural değiştirmez**, yalnız öneri üretir (Variables'ı kullanıcı değiştirir).
+- **Denetçi** (`bot/review`, günlük özet anında, günde bir çağrı): sinyal geçmişi (24s/7g/30g: dolum, stop, erken kâr, ort. R,
+  BTC ters giderken R), ajan hesapları, momentum portföyü ve son taramadaki beklenti ile karşılaştırır; durum
+  (`ok`/`watch`/`alert`), bulgular ve test edilebilir hipotezler üretir → Telegram "🕵️ Denetçi günlük rapor",
+  `docs/agent/review.json`, hipotezler `docs/agent/research-queue.json`. Acil hipotezde `backtest.yml mode=research`
+  tetiklenir. Küçük örneklemde iddia yok (n < 30 → "izle"). `AUDIT_MODEL` (vars. claude-opus-5-5).
+- **Araştırmacı** (`bot/research`, Pazar 06:00 UTC ve istek üzerine): kuyruktaki hipotezleri (boşsa standart komşu-eşik
+  seti: erken hedef %1,0/%1,5, kapanış %70/%90, üst TF "ters değil", bıçak eşiği 1,5) canlı 4H düzeninin üstüne tarama
+  varyantı olarak koşar (`sweep.mjs --variants --only`), sonucu sıkı ölçütle değerlendirir (confirmed = 4H'de eğitim ve
+  doğrulama temelden iyi, hedge'li doğrulama > 0, n ≥ 100) → Telegram "🔬 Araştırmacı raporu", `docs/agent/research.json`;
+  kuyruk `done` olur. `RESEARCH_MODEL`. İki ajan bu JSON dosyalarıyla haberleşir; `agent.html`'de "Denetçi" ve
+  "Araştırmacı" sekmeleri.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

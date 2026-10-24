@@ -71,15 +71,45 @@ function render(a) {
     <section><h2>BTC bağımlılığı</h2>${(() => { const w = a.trades.filter((t) => t.btcPct != null); if (!w.length) return '<p class="empty">BTC verili kapanmış işlem yok (alan yeni eklendi).</p>'; const adv = w.filter((t) => (t.direction === 'long' && t.btcPct < 0) || (t.direction === 'short' && t.btcPct > 0)), fav = w.filter((t) => !adv.includes(t)); const avg = (l) => (l.length ? l.reduce((x, t) => x + t.R, 0) / l.length : 0); const win = (l) => (l.length ? l.filter((t) => t.pnl > 0).length / l.length : 0); const hedgedN = a.trades.filter((t) => t.hedge).length; return `<div class="tiles"><div class="stat"><div class="k">Hedge'li işlem</div><div class="v">${hedgedN}</div><div class="k">ters BTC bacağıyla</div></div><div class="stat"><div class="k">BTC ters giderken</div><div class="v ${cls(avg(adv))}">${adv.length} işlem · ${fmt(avg(adv))}R</div><div class="k">kazanma %${fmt(win(adv) * 100, 0)}</div></div><div class="stat"><div class="k">BTC lehte giderken</div><div class="v ${cls(avg(fav))}">${fav.length} işlem · ${fmt(avg(fav))}R</div><div class="k">kazanma %${fmt(win(fav) * 100, 0)}</div></div></div>`; })()}</section>
     <section><h2>İşlem günlüğü (son ${a.trades.length})</h2>${trRows ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Kapanış</th><th>Coin</th><th>Yön</th><th>Marjin</th><th>Giriş</th><th>Sonuç</th><th>K/Z</th><th>R</th><th>BTC %</th><th class="wrap">Gerekçe / ders</th></tr></thead><tbody>${trRows}</tbody></table></div>` : '<p class="empty">Henüz kapanan işlem yok.</p>'}</section>`;
 }
+// Denetçi (review.json) ve araştırmacı (research.json) sekmeleri: yalnız öneri üretirler; kurallar Variables'tan değişir.
+const SEV = { info: 'ℹ️', warn: '⚠️', high: '🔴' }, HEALTH = { ok: '🟢 iyi', watch: '🟡 izle', alert: '🔴 uyarı' }, VERD = { confirmed: '✅ doğrulandı', rejected: '❌ ret', inconclusive: '➖ sonuçsuz' };
+function renderReview(r) {
+  const L = r.latest; if (!L) return '<p class="empty">Henüz denetim yok.</p>';
+  const m = L.metrics || {}, P = m.periods || {};
+  const per = (k, t) => (P[k] ? `<tr><td>${t}</td><td>${P[k].sent}</td><td>${P[k].filled}</td><td>${P[k].closed}</td><td>${P[k].stopped}</td><td>${P[k].early}</td><td>${P[k].winRate != null ? fmt(P[k].winRate * 100, 0) + '%' : '–'}</td><td class="${cls(P[k].avgR)}">${P[k].avgR != null ? fmt(P[k].avgR) : '–'}</td><td class="${cls(P[k].totalR)}">${fmt(P[k].totalR, 1)}</td><td class="${cls(P[k].btcAdverse?.avgR)}">${P[k].btcAdverse?.n ? `${fmt(P[k].btcAdverse.avgR)} (n${P[k].btcAdverse.n})` : '–'}</td></tr>` : '');
+  return `
+    <section><div class="assess"><b>${HEALTH[L.health] || esc(L.health)}</b> · ${dt(L.at)}<br>${esc(L.summary)}</div></section>
+    <section><h2>Sinyal botu dönemleri</h2><div class="tablewrap"><table class="grid"><thead><tr><th>Dönem</th><th>Gönderilen</th><th>Dolan</th><th>Kapanan</th><th>Stop</th><th>Erken kâr</th><th>Kazanma</th><th>Ort R</th><th>Toplam R</th><th>BTC ters: ort R</th></tr></thead><tbody>${per('d1', 'Son 24 saat')}${per('d7', 'Son 7 gün')}${per('d30', 'Son 30 gün')}</tbody></table></div>
+    ${m.expected ? `<p class="sub">Beklenti (12 ay tarama, ${esc(m.expected.name.slice(0, 60))}…): 4H doğrulama ort ${fmt(m.expected.tf4h?.avgR)}R, kazanma %${fmt((m.expected.tf4h?.winRate || 0) * 100, 0)}, hedge'li ${fmt(m.expected.hedgedValid4h)}R.</p>` : ''}</section>
+    <section><h2>Bulgular</h2>${L.findings?.length ? `<ul class="lessons">${L.findings.map((f) => `<li>${SEV[f.severity] || ''} <b>${esc(f.area)}</b>: ${esc(f.evidence)} → <i>${esc(f.action)}</i></li>`).join('')}</ul>` : '<p class="empty">Bulgu yok.</p>'}</section>
+    <section><h2>Araştırmacıya iletilen hipotezler</h2>${L.researchRequests?.length ? `<ul class="lessons">${L.researchRequests.map((q) => `<li><b>${esc(q.id)}</b>${q.urgent ? ' <span class="tag">acil</span>' : ''}: ${esc(q.question)} <code>${esc(q.variantSpec)}</code><br><i>${esc(q.rationale)}</i></li>`).join('')}</ul>` : '<p class="empty">Yeni hipotez yok.</p>'}
+    ${L.varsSuggestion ? `<div class="assess"><b>Öneri (kullanıcı karar verir):</b> <code>${esc(L.varsSuggestion.name)}=${esc(L.varsSuggestion.value)}</code> — ${esc(L.varsSuggestion.why)}</div>` : ''}</section>
+    <section><h2>Geçmiş denetimler</h2><div class="tablewrap"><table class="grid"><thead><tr><th>Tarih</th><th>Durum</th><th class="wrap">Özet</th></tr></thead><tbody>${[...(r.reports || [])].reverse().map((x) => `<tr><td>${dt(x.at)}</td><td>${HEALTH[x.health] || esc(x.health)}</td><td class="wrap">${esc(x.summary)}</td></tr>`).join('')}</tbody></table></div></section>`;
+}
+function renderResearch(r, queue) {
+  const L = r?.latest;
+  const q = (queue?.items || []);
+  const rowsT = L?.rows?.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Hipotez</th><th>4H eğit. n</th><th>4H eğit. R</th><th>4H doğr. n</th><th>4H doğr. R</th><th>4H hedge'li doğr. R</th><th>1H doğr. R</th><th>Karar</th></tr></thead><tbody>${L.rows.map((x) => { const v = L.results?.find((y) => y.requestId === x.requestId); return `<tr><td>${esc(x.name.slice(0, 70))}</td><td>${x.tf4h.train?.n ?? '–'}</td><td class="${cls(x.tf4h.train?.avgR)}">${fmt(x.tf4h.train?.avgR, 3)}</td><td>${x.tf4h.valid?.n ?? '–'}</td><td class="${cls(x.tf4h.valid?.avgR)}">${fmt(x.tf4h.valid?.avgR, 3)}</td><td class="${cls(x.tf4h.hedgedValid?.avgR)}">${fmt(x.tf4h.hedgedValid?.avgR, 3)}</td><td class="${cls(x.tf1h.valid?.avgR)}">${fmt(x.tf1h.valid?.avgR, 3)}</td><td>${v ? VERD[v.verdict] || esc(v.verdict) : (x.requestId === 'base' ? 'temel' : '–')}</td></tr>`; }).join('')}</tbody></table></div>` : '';
+  return `
+    ${L ? `<section><div class="assess"><b>Son rapor</b> · ${dt(L.at)}${L.plans ? ` · ${L.plans} plan` : ''}<br>${esc(L.summary)}</div></section>
+    <section><h2>Sonuçlar</h2>${rowsT}<ul class="lessons">${(L.results || []).map((x) => `<li><b>${esc(x.requestId)}</b> ${VERD[x.verdict] || ''}: ${esc(x.note)}</li>`).join('')}</ul></section>
+    ${L.proposals?.length ? `<section><h2>Öneriler (kullanıcı karar verir)</h2><ul class="lessons">${L.proposals.map((p) => `<li><code>${esc(p.varsName)}=${esc(p.value)}</code> — ${esc(p.evidence)}<br><i>Risk: ${esc(p.risk)}</i></li>`).join('')}</ul></section>` : ''}
+    ${L.nextQuestions?.length ? `<section><h2>Sonraki sorular</h2><ul class="lessons">${L.nextQuestions.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>` : ''}` : '<section><p class="empty">Henüz araştırma raporu yok (Pazar 06:00 UTC ya da denetçi isteğiyle).</p></section>'}
+    <section><h2>Kuyruk (${q.filter((x) => x.status === 'pending').length} bekleyen)</h2>${q.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Kimlik</th><th class="wrap">Soru</th><th class="wrap">Varyant</th><th>Durum</th><th>Tarih</th></tr></thead><tbody>${[...q].reverse().map((x) => `<tr><td>${esc(x.id)}${x.urgent ? ' <span class="tag">acil</span>' : ''}</td><td class="wrap">${esc(x.question)}</td><td class="wrap"><code>${esc(JSON.stringify(x.spec))}</code></td><td>${x.status === 'done' ? VERD[x.verdict] || 'bitti' : 'bekliyor'}</td><td>${dt(x.doneAt || x.createdAt)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">Kuyruk boş; araştırmacı standart komşu-eşik hipotezlerini dener.</p>'}</section>`;
+}
 async function main() {
   const data = {};
-  for (const p of PROFILES) { try { const r = await fetch(`docs/agent/${p}.json`, { cache: 'no-store' }); if (r.ok) data[p] = await r.json(); } catch { /* yok */ } }
+  const get = async (f) => { try { const r = await fetch(`docs/agent/${f}`, { cache: 'no-store' }); return r.ok ? await r.json() : null; } catch { return null; } };
+  for (const p of PROFILES) { const j = await get(`${p}.json`); if (j) data[p] = j; }
+  const review = await get('review.json'), researchJ = await get('research.json'), queue = await get('research-queue.json');
+  if (review) data.denetci = { label: 'Denetçi', _render: () => renderReview(review) };
+  if (researchJ || queue) data.arastirmaci = { label: 'Araştırmacı', _render: () => renderResearch(researchJ, queue) };
   const tabs = document.querySelector('#tabs'), root = document.querySelector('#root');
   const ids = Object.keys(data);
   if (!ids.length) { root.innerHTML = '<p class="empty">Henüz ajan verisi yok. İlk gerçek (dry olmayan) <code>scan-and-alert</code> koşusundan sonra <code>docs/agent/*.json</code> oluşur.</p>'; return; }
   let cur = (() => { try { return localStorage.getItem('agent-tab'); } catch { return null; } })();
   if (!ids.includes(cur)) cur = ids[0];
-  const draw = () => { tabs.innerHTML = ids.map((id) => `<button type="button" class="chip" data-id="${id}" aria-pressed="${id === cur}">${esc(data[id].label || id)} · ${fmt(data[id].equity, 0)} USDT</button>`).join(''); root.innerHTML = render(data[cur]); };
+  const draw = () => { tabs.innerHTML = ids.map((id) => `<button type="button" class="chip" data-id="${id}" aria-pressed="${id === cur}">${esc(data[id].label || id)}${data[id]._render ? '' : ` · ${fmt(data[id].equity, 0)} USDT`}</button>`).join(''); root.innerHTML = data[cur]._render ? data[cur]._render() : render(data[cur]); };
   tabs.addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (!b) return; cur = b.dataset.id; try { localStorage.setItem('agent-tab', cur); } catch { /* yok */ } draw(); });
   draw();
 }

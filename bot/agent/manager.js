@@ -57,7 +57,7 @@ export const REVIEW_SCHEMA = {
   },
 };
 
-async function call({ apiKey, model, system, user, schema, maxTokens = 3000, fetchImpl = fetch, effort = 'medium' }) {
+export async function call({ apiKey, model, system, user, schema, maxTokens = 3000, fetchImpl = fetch, effort = 'medium' }) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY yok');
   const res = await fetchImpl(API, {
     method: 'POST',
