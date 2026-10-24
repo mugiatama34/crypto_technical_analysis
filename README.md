@@ -128,6 +128,9 @@ trend sürer). Stop itkinin 0,886'sının 0,2 ATR ötesi, hedef 1 itki ucu, hede
 (`fibonacci.only='cluster'`) yalnız bu sinyali gösterir (giriş/stop/hedef çizgileriyle); diğer presetlerde de fib
 grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) ve `fib_cluster_c_strict` (yalnız
 0,618×1,272, tol 0,3 ATR): fiyat bölgeye gelmeden limit emir, 24 saat geçerli, half_be çıkış.
+24 ay 1H/4H sonucu (hedge'siz): loose eğitim −0,19R / doğrulama −0,12R (kazanma %22), strict −0,11 / −0,015R
+(kazanma %35); dolum oranı %12–18 (sinyallerin yarısında fiyat bölgeye gelmeden itki ucunu geçiyor). Kenar yok.
+Not: lab hedge'li R'si limit girişli ailelerde önceden sinyal mumundan hesaplanıyordu; artık dolum zamanından.
 
 ### Denetçi ve araştırmacı ajanlar (`AUDIT=1`)
 İki Claude ajanı sistemi gözetler; **hiçbiri kural değiştirmez**, yalnız öneri üretir (Variables'ı kullanıcı değiştirir).

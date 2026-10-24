@@ -235,9 +235,11 @@ test('BTC betası: R işaretli BTC getirisini izliyorsa beta ≈ 1; attachBtc tu
   const H = 3600e3;
   const btc = Array.from({ length: 50 }, (_, i) => ({ time: i * H, close: 100 + i }));
   const closeAt = (tf, t) => { let v = null; for (const c of btc) if (c.time <= t) v = c.close; return v; };
-  const t = [{ tf: '1H', time: 10 * H, waitBars: 1, bars: 4, direction: 'long', R: 1, outcome: 'tp2' }];
-  attachBtc(t, closeAt);
-  assert.ok(Math.abs(t[0].btcPct - ((115 / 110) - 1) * 100) < 0.01); // giriş 10. saat, çıkış 15. saat (2 ondalık)
+  const t = [{ tf: '1H', time: 10 * H, waitBars: 1, bars: 4, direction: 'long', R: 1, outcome: 'tp2' }, { tf: '1H', time: 10 * H, waitBars: 6, bars: 4, direction: 'long', R: 1, outcome: 'tp2', entry: 100, stop: 98 }];
+  attachBtc(t, closeAt, 0);
+  assert.ok(Math.abs(t[0].btcPct - ((115 / 111) - 1) * 100) < 0.01); // dolum 11. saat (sinyal + 1 mum), çıkış 15. saat
+  assert.ok(Math.abs(t[1].btcPct - ((120 / 116) - 1) * 100) < 0.01); // limit: 6 mum bekleme → giriş 16. saat, çıkış 20.; bekleme hedge'e girmez
+  assert.ok(Math.abs(t[1].hedgedR - (1 - (120 / 116 - 1) / 0.02)) < 0.01);
   const { runXsMom } = await import('../backtest/lab/xsmom.js');
   const DAY = 86400e3, T0 = Date.UTC(2025, 0, 5);
   const mkCoin = (coin, drift) => { const out = []; let p = 100; for (let i = 0; i < 200; i++) { const open = p; p = p * (1 + drift + Math.sin(i * 0.7 + drift * 900) * 0.01); out.push(c(T0 + i * DAY, open, Math.max(open, p) * 1.005, Math.min(open, p) * 0.995, p)); } return { coin, candles: out }; };

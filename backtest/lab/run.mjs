@@ -72,7 +72,9 @@ const btcBucket = (t) => (t.btcPct == null ? 'BTC bilinmiyor' : t.btcPct < -1 ? 
 export function attachBtc(trades, btcCloseAt, feePct = 0.05) {
   for (const t of trades) {
     const exitT = t.exitTime ?? (t.time + ((t.waitBars || 1) + (t.bars || 0)) * (TIMEFRAMES[t.tf]?.ms || 0));
-    const a = btcCloseAt(t.tf, t.entryTime ?? t.time), b = btcCloseAt(t.tf, exitT);
+    // Giriş zamanı: limit dolumda sinyal mumu + bekleme (waitBars); bekleme sırasındaki BTC hareketi hedge'e girmez
+    const entryT = t.entryTime ?? (t.time + (t.waitBars || 1) * (TIMEFRAMES[t.tf]?.ms || 0));
+    const a = btcCloseAt(t.tf, entryT), b = btcCloseAt(t.tf, exitT);
     t.btcPct = a && b ? +((b / a - 1) * 100).toFixed(2) : null;
     // Hedge'li R: pozisyonun yanına eşit nominalde ters BTC konsaydı (piyasa-nötr). Hedge K/Z = −d × BTC%; R birimine
     // çevirmek için stop uzaklığına (%) bölünür; hedge komisyonu iki taraf.
