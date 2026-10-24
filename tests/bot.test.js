@@ -237,6 +237,8 @@ test('isWeekendUtc ve kayıp kesici kural alanları (off/limitOnly/skipWeekend) 
   assert.equal(mergeRule('1H', 'long', rules, null, base).limitOnly, false);
   const s = mergeRule('1H', 'short', rules, { scoreAdd: 10 }, base);
   assert.deepEqual([s.limitOnly, s.skipWeekend, s.minScore, s.off], [true, true, 80, undefined]);
+  assert.equal(mergeRule('1H', 'long', { '1H': { htfTrend: 'with' } }, null, { htfTrend: 'notAgainst' }).htfTrend, 'with');
+  assert.equal(mergeRule('4H', 'long', {}, null, { htfTrend: 'notAgainst' }).htfTrend, 'notAgainst');
 });
 
 test('trackPlan: zaman stopu — active, N kapanmış mumda TP1 yok → timeout (time_stop); kapalıyken eski davranış', () => {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { horizonTrend, marketRead, regimeFor, dailyTrendAt } from '../src/scan/regime.js';
+import { horizonTrend, horizonSeries, horizonTrendAt, htfTrendAt, htfOk, UP_TF, marketRead, regimeFor, dailyTrendAt } from '../src/scan/regime.js';
 
 const H = 3600e3, DAY = 86400e3;
 const series = (f, n, ms, amp = 0.002) => Array.from({ length: n }, (_, i) => { const c = f(i); return { time: i * ms, open: c, high: c * (1 + amp), low: c * (1 - amp), close: c, volume: 1 }; });
@@ -32,4 +32,21 @@ test('marketRead: günlük yükseliş + 4H düşüş birlikte raporlanır; regim
   assert.equal(dailyTrendAt(daily, now).up, true);
   const empty = marketRead({ daily: null, h4: null, h1: null, now });
   assert.equal(empty.daily, null); assert.equal(empty.h4, null); assert.ok(empty.summary.includes('bilinmiyor'));
+});
+
+test('horizonTrendAt / htfTrendAt: son indekste horizonTrend ile aynı; karar anından sonraki mumları kullanmaz; htfOk', () => {
+  const up = series((i) => 100 + 0.3 * i, 120, 4 * H);
+  const hs = horizonSeries(up);
+  assert.deepEqual(horizonTrendAt(hs, up.length - 1), horizonTrend(up));
+  assert.equal(horizonTrendAt(hs, 10), null); // yetersiz geçmiş
+  // 80. mumdan sonra seri çöküyor; karar anı 80. mumun kapanışı → geleceği görmez, hâlâ 'up'
+  const crash = up.map((c, i) => (i > 80 ? { ...c, close: 100 - 2 * (i - 80), high: 101 - 2 * (i - 80), low: 99 - 2 * (i - 80) } : c));
+  const hs2 = horizonSeries(crash);
+  assert.equal(htfTrendAt(hs2, 4 * H, crash[80].time + 4 * H), 'up');
+  assert.equal(htfTrendAt(hs2, 4 * H, crash[119].time + 4 * H), 'down');
+  assert.equal(htfTrendAt(hs2, 4 * H, crash[0].time), null);
+  assert.equal(UP_TF['1H'], '4H'); assert.equal(UP_TF['4H'], '1D');
+  assert.equal(htfOk('with', 'up', 1), true); assert.equal(htfOk('with', 'flat', 1), false); assert.equal(htfOk('with', null, 1), false);
+  assert.equal(htfOk('notAgainst', 'flat', 1), true); assert.equal(htfOk('notAgainst', 'down', 1), false); assert.equal(htfOk('notAgainst', 'down', -1), true);
+  assert.equal(htfOk(null, 'down', 1), true);
 });

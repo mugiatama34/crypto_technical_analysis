@@ -13,6 +13,7 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
+//   HTF_TREND=with|notAgainst: coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D) aynı yön / ters değil
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
@@ -27,7 +28,7 @@ import { runAgents } from './agent/run.js';
 import { runMomentum } from './momentum/run.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
-import { regimeNow, marketRead, regimeFor } from '../src/scan/regime.js';
+import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
 import { atr as atrOf } from '../src/data/indicators.js';
 
 // Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). MODEL_MIN_PROB=0 kapatır,
@@ -65,6 +66,7 @@ const CFG = {
   limitOnly: env('LIMIT_ONLY', '0') === '1', // gönderimde fiyat zaten bölgedeyse gönderme (yalnız limit giriş)
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
+  htfTrend: ['with', 'notAgainst'].includes(env('HTF_TREND', '')) ? env('HTF_TREND', '') : null, // coin'in üst TF eğilimi: with | notAgainst
   earlyTp: earlyTpOf(env('EARLY_TP', '')), // erken kâr al: {"pct":1.2,"portion":0.8,"tfs":["4H"]}
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
@@ -95,8 +97,8 @@ const TF_RULES_DEFAULT = {
 const SHORT_RULE_DEFAULT = { scoreAdd: 10, requireMtf: true, trendAdxMin: 30, trendEma: true, btcRegime: 'with', cooldownHours: 12 };
 const TF_RULES = (() => { try { return { ...TF_RULES_DEFAULT, ...JSON.parse(env('TF_RULES', '{}')) }; } catch { return TF_RULES_DEFAULT; } })();
 const SHORT_RULE = (() => { try { return { ...SHORT_RULE_DEFAULT, ...JSON.parse(env('SHORT_RULE', '{}')) }; } catch { return SHORT_RULE_DEFAULT; } })();
-const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours, ...(CFG.limitOnly ? { limitOnly: true } : {}), ...(CFG.skipWeekend ? { skipWeekend: true } : {}) });
-const fmtRule = (r) => r.off ? 'kapalı (sinyal gönderilmez)' : `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}${r.rsBtc === 'with' ? ', BTC\'ye göre göreli güç yönünde' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}${r.limitOnly ? ', yalnız limit giriş' : ''}${r.skipWeekend ? ', hafta sonu yok' : ''}`;
+const ruleFor = (tf, direction) => mergeRule(tf, direction, TF_RULES, SHORT_RULE, { minScore: CFG.minScore, requireMtf: CFG.requireMtf, cooldownHours: CFG.cooldownHours, ...(CFG.limitOnly ? { limitOnly: true } : {}), ...(CFG.skipWeekend ? { skipWeekend: true } : {}), ...(CFG.htfTrend ? { htfTrend: CFG.htfTrend } : {}) });
+const fmtRule = (r) => r.off ? 'kapalı (sinyal gönderilmez)' : `puan ≥ ${r.minScore}, MTF ${r.requireMtf ? 'zorunlu' : 'serbest'}${r.trendAdxMin ? `, ADX ≥ ${r.trendAdxMin} yön uyumlu` : ''}${r.trendEma ? ', EMA200 tarafı' : ''}${r.btcRegime === 'with' ? ', BTC rejimiyle aynı yön' : ''}${r.rsBtc === 'with' ? ', BTC\'ye göre göreli güç yönünde' : ''}, cooldown ${r.cooldownHours}s${r.maxPerRun ? `, tur başına ≤ ${r.maxPerRun}` : ''}${r.limitOnly ? ', yalnız limit giriş' : ''}${r.skipWeekend ? ', hafta sonu yok' : ''}${r.htfTrend ? (r.htfTrend === 'with' ? ', üst TF eğilimi aynı yön' : ', üst TF eğilimi ters değil') : ''}`;
 // Rejim TF'ye göre: 15m/1H → BTC 4H eğilimi, 4H → günlük (regimeFor); read yoksa günlük rejim
 const planOpts = (rule, read, tf) => ({ trendAdxMin: rule.trendAdxMin, trendEma: rule.trendEma, btcRegime: rule.btcRegime, rsBtc: rule.rsBtc, regime: read ? regimeFor(tf, read) : null });
 
@@ -178,6 +180,21 @@ async function main() {
     }
   }
 
+  // Üst TF eğilimi: 15m→1H ve 1H→4H taramadan (kapanmış mumlar); 4H→1D adaylar için günlük indirilir (tur başına ≤ 10)
+  const dailyCache = new Map(); let dailyFetches = 0;
+  const htfDirOf = async (r) => {
+    const up = UP_TF[r.tf]; if (!up) return null;
+    const row = byKey.get(`${r.coin}|${up}`);
+    if (row && !row.error) return horizonTrend(row.candles)?.dir ?? null;
+    if (up !== '1D') return null;
+    if (!dailyCache.has(r.coin)) {
+      if (dailyFetches >= 10) return null;
+      dailyFetches++;
+      try { dailyCache.set(r.coin, (provider ? await provider.candles(instIdOf(r.coin), '1D', 120) : await getCandles(instIdOf(r.coin), TIMEFRAMES['1D'], 120)).candles); } catch { dailyCache.set(r.coin, null); }
+    }
+    return horizonTrend(dailyCache.get(r.coin))?.dir ?? null;
+  };
+
   // 2) Adaylar
   const cands = [];
   const rejects = {};
@@ -190,6 +207,11 @@ async function main() {
     const plan = buildPlan(r, { minScore: rule.minScore, minRR: CFG.minRR, riskPct: CFG.riskPct, cooldownHours: rule.cooldownHours, maxRiskPct: CFG.maxRiskPct, requireMtf: rule.requireMtf, ...planOpts(rule, read, r.tf) });
     if (!plan.ok) { const k = plan.reason.replace(/[\d.,–-]+/g, '#'); rejects[k] = (rejects[k] || 0) + 1; continue; }
     if (rule.limitOnly && plan.inZone) { reject('bölgede (yalnız limit)'); continue; }
+    if (rule.htfTrend) { // coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D), kapanmış mumlarla
+      const dir = await htfDirOf(r);
+      plan.htfTrend = dir;
+      if (!htfOk(rule.htfTrend, dir, plan.d)) { reject(dir ? 'üst TF eğilimi ters/yatay' : 'üst TF verisi yok'); continue; }
+    }
     if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     plan.rule = rule;
@@ -234,7 +256,7 @@ async function main() {
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
     await notify(formatSetup(plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
-    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     state.sent.push(rec);
     historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;

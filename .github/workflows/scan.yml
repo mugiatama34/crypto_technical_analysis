@@ -76,6 +76,7 @@ jobs:
           SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
           TIME_STOP: ${{ vars.TIME_STOP }}
           EARLY_TP: ${{ vars.EARLY_TP }}
+          HTF_TREND: ${{ vars.HTF_TREND }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

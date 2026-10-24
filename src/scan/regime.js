@@ -27,11 +27,16 @@ export function regimeNow(daily, now = Date.now()) {
  * Tek ufukta eğilim (kapanmış mumlar): kapanış vs EMA50, EMA50 eğimi (son slopeBars), ADX ≥ adxMin ve DI yönü.
  * Üçü aynı yöndeyse 'up'/'down'; eğim ile DI çelişirse ya da ADX zayıfsa 'flat'; veri yetersizse null.
  */
-export function horizonTrend(candles, { emaLen = 50, slopeBars = 10, adxMin = 20 } = {}) {
-  if (!candles || candles.length < emaLen + slopeBars + 15) return null;
+/** horizonTrendAt için ön-hesap: kapanışlar, EMA ve ADX bir kez (seri uzunsa her indeks için yeniden hesaplamamak için). */
+export function horizonSeries(candles, { emaLen = 50 } = {}) {
   const closes = candles.map((c) => c.close);
-  const e = ema(closes, emaLen), n = candles.length - 1;
-  const a = adx(candles.map((c) => c.high), candles.map((c) => c.low), closes, 14);
+  return { candles, closes, ema: ema(closes, emaLen), adx: adx(candles.map((c) => c.high), candles.map((c) => c.low), closes, 14) };
+}
+
+/** Ön-hesaplı seride n indeksinde (o mum kapanmış sayılır) eğilim; horizonTrend ile aynı kural. */
+export function horizonTrendAt(hs, n, { emaLen = 50, slopeBars = 10, adxMin = 20 } = {}) {
+  if (!hs || n == null || n < emaLen + slopeBars + 14 || n >= hs.closes.length) return null;
+  const { closes, ema: e, adx: a } = hs;
   if (e[n] == null || e[n - slopeBars] == null || a.adx[n] == null) return null;
   const side = closes[n] > e[n] ? 1 : -1;
   const slope = e[n] > e[n - slopeBars] ? 1 : e[n] < e[n - slopeBars] ? -1 : 0;
@@ -39,6 +44,35 @@ export function horizonTrend(candles, { emaLen = 50, slopeBars = 10, adxMin = 20
   const strong = a.adx[n] >= adxMin;
   const dir = side === slope && slope === di && strong ? side : 0;
   return { dir: dir === 1 ? 'up' : dir === -1 ? 'down' : 'flat', side, slope, di, adx: +a.adx[n].toFixed(1), close: closes[n], ema: +e[n].toPrecision(8) };
+}
+
+export function horizonTrend(candles, opts = {}) {
+  const { emaLen = 50, slopeBars = 10 } = opts;
+  if (!candles || candles.length < emaLen + slopeBars + 15) return null;
+  return horizonTrendAt(horizonSeries(candles, opts), candles.length - 1, opts);
+}
+
+/** Üst zaman dilimi eşlemesi (coin'in kendi üst TF eğilimi için). */
+export const UP_TF = { '5m': '15m', '15m': '1H', '1H': '4H', '4H': '1D' };
+
+/**
+ * Üst TF eğilimi, karar anında (decidedMs) kapanmış son üst TF mumuna göre; geleceğe bakmaz.
+ * hs: horizonSeries(üst TF mumları); upMs: üst TF mum süresi. → 'up'|'down'|'flat'|null
+ */
+export function htfTrendAt(hs, upMs, decidedMs, opts) {
+  if (!hs || !hs.candles.length) return null;
+  const cs = hs.candles, limit = decidedMs - upMs; // mum kapanışı ≤ karar anı
+  let lo = 0, hi = cs.length - 1, k = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (cs[m].time <= limit) { k = m; lo = m + 1; } else hi = m - 1; }
+  const t = k >= 0 ? horizonTrendAt(hs, k, opts) : null;
+  return t ? t.dir : null;
+}
+
+/** Filtre kuralı: 'with' → üst TF yönü işlem yönüyle aynı; 'notAgainst' → ters değil (yatay/bilinmiyor geçer). */
+export function htfOk(mode, dir, d) {
+  if (!mode) return true;
+  const want = d === 1 ? 'up' : 'down', against = d === 1 ? 'down' : 'up';
+  return mode === 'with' ? dir === want : dir !== against;
 }
 
 const retPct = (candles, bars) => { const n = candles.length - 1; return n - bars >= 0 ? +((candles[n].close / candles[n - bars].close - 1) * 100).toFixed(2) : null; };

@@ -9,6 +9,8 @@ import { simulateTrade, BT_DEFAULTS } from './engine.js';
 import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
+import { horizonSeries, htfTrendAt, htfOk, UP_TF } from '../src/scan/regime.js';
+import { getHistoryCached } from './data.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const IN = String(arg('in', 'docs/backtest')), OUT = String(arg('out', 'docs/backtest')), CACHE = String(arg('cache', 'backtest/cache')), FIXTURE = arg('fixture', false) === true;
@@ -78,7 +80,7 @@ const corr = (pts) => {
 };
 
 /** Filtreler: true = plan dahil. */
-function passes(t, v, series, mtfIndex) {
+function passes(t, v, series, mtfIndex, htf) {
   if (v.tfs && !v.tfs.includes(t.tf)) return false;
   if (v.minScore && t.plan.score < v.minScore) return false;
   if (v.onlyLimit && t.plan.inZone) return false;
@@ -100,6 +102,10 @@ function passes(t, v, series, mtfIndex) {
   if (v.trend === 'ema' || v.trend === 'both') {
     const e = series.ema200[i];
     if (e == null || (t.plan.d === 1 ? t.plan.price < e : t.plan.price > e)) return false;
+  }
+  if (v.htfTrend) { // coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D), karar anında kapanmış mumlarla
+    const h = htf?.get(`${t.coin}|${UP_TF[t.tf]}`);
+    if (h && !htfOk(v.htfTrend, htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms), t.plan.d)) return false;
   }
   if (v.mtf) {
     // Aynı coin + yön, bir üst TF'de ±1 üst-TF barı içinde plan var mı
@@ -142,7 +148,12 @@ const SINGLE = [
   { name: 'erken %80: 0,5R', tp1R: 0.5, tp1Portion: 0.8, keepTp2: true },
   { name: 'erken %80: 0,75R', tp1R: 0.75, tp1Portion: 0.8, keepTp2: true },
   { name: 'erken %80: 1R', tp1R: 1, tp1Portion: 0.8, keepTp2: true },
+  // Coin'in kendi üst TF eğilimi (EMA50 tarafı + eğimi + ADX/DI; 15m→1H, 1H→4H, 4H→1D), karar anında
+  { name: 'üst TF eğilimi aynı yön', htfTrend: 'with' },
+  { name: 'üst TF eğilimi ters değil', htfTrend: 'notAgainst' },
 ];
+/** Temel kırılımı: üst TF eğilimi işlem yönüne göre. */
+const htfBucket = (t) => (t.htf == null ? 'üst TF: veri yok' : t.htf === 'flat' ? 'üst TF: yatay' : (t.htf === 'up') === (t.d === 1) ? 'üst TF: aynı yön' : 'üst TF: ters');
 /** TP1'e ulaşma süresi kovası (mum; TF × kova). */
 const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
 
@@ -158,6 +169,24 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
   const series = new Map();
   for (const k of groups.keys()) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); else log(`  ${k}: mum yok, atlandı`); }
+  // Üst TF serileri (coin'in kendi eğilimi): 1H/4H önbellekten; 1D ağdan (getHistoryCached), yoksa o TF filtreden muaf
+  const htf = new Map();
+  {
+    const tMin = times[0], tMax = times[times.length - 1];
+    const need = new Set(all.map((t) => `${t.coin}|${UP_TF[t.tf]}`).filter((k) => k.split('|')[1]));
+    let miss = 0;
+    for (const k of need) {
+      const [coin, up] = k.split('|');
+      let cs = series.get(k)?.candles || null;
+      if (!cs) {
+        if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); cs = (await fixtureProvider.candles(`${coin}-USDT-SWAP`, up, 400)).candles; }
+        else if (up === '1D') { try { cs = await getHistoryCached(`${coin}-USDT-SWAP`, '1D', tMin - 120 * 86400e3, tMax + 86400e3, { cacheDir: CACHE }); } catch (e) { miss++; } }
+        else { const s = await loadSeries(coin, up, `${coin}-USDT-SWAP`); cs = s?.candles || null; }
+      }
+      if (cs && cs.length) htf.set(k, { hs: horizonSeries(cs), ms: TIMEFRAMES[up].ms }); else miss++;
+    }
+    log(`Üst TF serisi: ${htf.size} yüklendi, ${miss} eksik`);
+  }
   // BTC serileri (hedge'li R için; TF başına)
   const btcByTf = new Map();
   for (const tf of new Set(all.map((t) => t.tf))) { const b = series.get(`BTC|${tf}`) || await loadSeries('BTC', tf, 'BTC-USDT-SWAP'); if (b) btcByTf.set(tf, b.candles); }
@@ -171,11 +200,12 @@ async function main() {
     for (const [k, list] of groups) {
       const s = series.get(k); if (!s) continue;
       for (const t of list) {
-        if (!passes(t, v, s, mtfIndex)) continue;
+        if (!passes(t, v, s, mtfIndex, htf)) continue;
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
-        const tr = { time: t.time, tf: t.tf, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
+        const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
+        const tr = { time: t.time, tf: t.tf, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
         if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
         trades.push(tr);
       }
@@ -187,6 +217,7 @@ async function main() {
       byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
       byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
       byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
+      byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
       ...hedgedOfTrades(tr, va) };
   };
 
@@ -205,22 +236,22 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'hedged', 'hedgedByTf', 'btcCorr'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'hedged', 'hedgedByTf', 'btcCorr'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
-  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2');
-  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, htf], [guard, wk, lim, htf], [guard, wk, lim, htf, adx], [guard, wk, lim, htf, t8], [guard, wk, lim, htf, t16], [guard, wk, lim, htf, man]];
+  const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), h14 = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2'), hw = V('üst TF eğilimi aynı yön'), hn = V('üst TF eğilimi ters değil');
+  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, h14], [guard, wk, lim, h14], [guard, wk, lim, h14, adx], [guard, wk, lim, h14, t8], [guard, wk, lim, h14, t16], [guard, wk, lim, h14, man], [guard, wk, lim, h14, man, hw], [guard, wk, lim, h14, man, hn]];
   for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));
   // aynı alanı ezen varyantlar (ör. iki düşen bıçak ayarı) birleştirilmez
-  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1 || (v.name.match(/erken %80|elle yönetim|TP1 /g) || []).length > 1;
+  const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1 || (v.name.match(/erken %80|elle yönetim|TP1 /g) || []).length > 1 || (v.name.match(/üst TF eğilimi/g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
-  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; }
+  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'sweep.json'), JSON.stringify(out));

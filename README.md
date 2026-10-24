@@ -111,6 +111,14 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   +0,064R (PF 1,29, n 1 404) / doğrulama +0,097R (PF 1,44, n 992)**; 1H ≈ 0. Tarama hedge'li R'yi (kısmi çıkışlı, eşit
   nominal ters BTC) ve R ~ BTC korelasyonunu da raporlar (`sweep.html` "Hedefli birleşimler — zaman dilimine göre");
   canlıya almadan önce 4H hedge'li doğrulama R'sine bakın.
+- **Üst zaman dilimi eğilimi (`HTF_TREND`, vars. kapalı):** sistem üst TF'ye zaten iki yoldan bakar — MTF uyumu
+  (taranan TF'lerden en az ikisinin *kurulum yönü* aynı; `REQUIRE_MTF`) ve BTC rejimi (`btcRegime`: 15m/1H → BTC 4H,
+  4H → BTC günlük). Bu bayrak üçüncüsünü ekler: **coin'in kendi** bir üst TF eğilimi (15m→1H, 1H→4H, 4H→1D; EMA50
+  tarafı + eğimi + ADX/DI, kapanmış mumlarla). `HTF_TREND=with` aynı yön ister, `notAgainst` yalnız ters trendi eler
+  (yatay/veri yok geçer); TF/yön kuralı alanı `htfTrend` olarak da verilebilir. 4H için günlük mumlar yalnız adaylar
+  için indirilir (tur başına ≤ 10). Tarama varyantları "üst TF eğilimi aynı yön / ters değil" ve temel kırılımı
+  `byHtfTrend` (`sweep.html`); 6 ve 12 aylık koşularda "üst TF'de aynı yönde plan" filtresi kötüleştirmişti, eğilim
+  filtresi ölçülmeden açılmaz.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,
