@@ -48,7 +48,8 @@ export function agentSummary(a) {
 /** Momentum portföyü özeti (docs/agent/momentum.json). */
 export function momentumSummary(m) {
   if (!m) return null;
-  return { variant: m.variant, rank: m.params?.rank, hedge: m.hedge, equity: m.equity, pnlPct: m.pnlPct, netExposure: m.netExposure, positions: (m.positions || []).filter((p) => !p.hedge).length, btcPct: m.btc?.pct ?? null, lastRebalance: m.lastRebalance, trades: m.stats?.trades ?? 0, avgPct: m.stats?.avgPct ?? null };
+  const hedgeLeg = (m.positions || []).find((p) => p.hedge);
+  return { variant: m.variant, rank: m.params?.rank, hedge: m.hedge, equity: m.equity, pnlPct: m.pnlPct, altNetExposure: m.netExposure, hedgeNotional: m.hedgeNotional ?? 0, netAfterHedge: hedgeLeg ? +((m.netExposure ?? 0) + (hedgeLeg.direction === 'long' ? 1 : -1) * hedgeLeg.notional).toFixed(2) : m.netExposure, note: 'altNetExposure alt pozisyonların net yönü; hedge bacağı ters BTC; netAfterHedge ≈ 0 beklenir. trades yalnız kapanan alt pozisyonları sayar (haftalık yeniden dengeleme).', positions: (m.positions || []).filter((p) => !p.hedge).length, btcPct: m.btc?.pct ?? null, lastRebalance: m.lastRebalance, trades: m.stats?.trades ?? 0, avgPct: m.stats?.avgPct ?? null };
 }
 
 /** Beklenti: taramadaki 4H düzeni satırı (varsa) → karşılaştırma için eğitim/doğrulama R ve kazanma. */
@@ -63,13 +64,19 @@ export function expectedOf(sweep) {
  * Denetçi girdisi. history: {items}; agents: {temkinli, agresif}; momentum; sweep; now.
  * → { periods: {d1, d7, d30}, agents, momentum, expected, openSignals }
  */
-export function metricsOf({ history, agents = {}, momentum = null, sweep = null, now = Date.now(), lastRejects = null }) {
+export function metricsOf({ history, agents = {}, momentum = null, sweep = null, now = Date.now(), lastRejects = null, ruleSince = null, ruleLabel = null }) {
   const items = history?.items || [];
   const since = (d) => items.filter((s) => s.sentAt >= now - d * 86400e3);
+  const firstSignalAt = items.length ? Math.min(...items.map((s) => s.sentAt)) : null;
+  // Aktif kural seti ne zamandan beri geçerli: öncesi "eski rejim" (farklı TF'ler/kurallar), beklentiyle kıyaslanmaz
+  const current = ruleSince ? items.filter((s) => s.sentAt >= ruleSince) : [];
+  const legacy = ruleSince ? items.filter((s) => s.sentAt < ruleSince) : items;
   const openSignals = items.filter((s) => !CLOSED.has(s.status)).map((s) => ({ coin: s.coin, tf: s.tf, direction: s.direction, status: s.status, entry: s.entry, stop: s.stop, early: s.early ?? null, sentAt: s.sentAt, htfTrend: s.htfTrend ?? null }));
   const recentClosed = items.filter((s) => (s.closedAt || 0) >= now - 86400e3 && finalR(s) != null).map((s) => ({ coin: s.coin, tf: s.tf, direction: s.direction, status: s.status, R: r3(finalR(s)), approachAtr: s.approachAtr ?? null, htfTrend: s.htfTrend ?? null }));
   return {
     at: now,
+    dataSince: firstSignalAt, dataDays: firstSignalAt ? +((now - firstSignalAt) / 86400e3).toFixed(1) : 0,
+    rules: { since: ruleSince, label: ruleLabel, hoursActive: ruleSince ? +((now - ruleSince) / 3600e3).toFixed(1) : null, currentRules: signalStats(current), legacyRules: signalStats(legacy), legacyOpen: legacy.filter((s) => !CLOSED.has(s.status)).length },
     periods: { d1: signalStats(since(1)), d7: signalStats(since(7)), d30: signalStats(since(30)) },
     recentClosed, openSignals, lastRejects,
     agents: Object.fromEntries(Object.entries(agents).map(([k, v]) => [k, agentSummary(v)])),

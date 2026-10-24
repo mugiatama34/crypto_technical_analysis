@@ -103,9 +103,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm --cached -q docs/backtest/plans.json.gz 2>/dev/null || true
           for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
+          # Dal bu arada ilerlemiş olabilir (scan commit'leri): önce uzak ucu al, çalışma ağacındaki sonuçları onun üstüne koy
+          git stash -q --include-untracked || true
+          git fetch -q origin ${{ github.ref_name }} && git reset -q --hard origin/${{ github.ref_name }}
+          git stash pop -q || true
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || git commit -m "backtest (${{ env.MODE }}): ${{ env.MONTHS }} ay, ilk ${{ env.TOP }}, ${{ env.TFS }} (run ${{ github.run_id }})"
-          git pull --rebase origin ${{ github.ref_name }} || true
-          git push origin HEAD:${{ github.ref_name }}
+          for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || { git rebase --abort 2>/dev/null || true; sleep 5; }; done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

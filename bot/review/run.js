@@ -19,7 +19,7 @@ export async function runAudit(ctx) {
   const sweep = readJson(ctx.sweepFile);
   const research = readJson(path.join(dir, 'research.json'));
   const prev = readJson(path.join(dir, 'review.json'), { reports: [] });
-  const metrics = metricsOf({ history, agents, momentum, sweep, now, lastRejects: ctx.lastRejects });
+  const metrics = metricsOf({ history, agents, momentum, sweep, now, lastRejects: ctx.lastRejects, ruleSince: ctx.ruleSince ?? null, ruleLabel: ctx.ruleLabel ?? null });
   let a;
   if (cfg.dry || !llm.apiKey) {
     a = { summary: 'DRY: Claude çağrısı yapılmadı; ölçümler toplandı.', health: 'ok', findings: [], researchRequests: [], varsSuggestion: [] };

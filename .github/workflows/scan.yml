@@ -102,12 +102,6 @@ jobs:
             bot/momentum-state.json
           key: bot-state-${{ github.run_id }}
 
-      - name: Trigger research (auditor flagged urgent)
-        if: ${{ !inputs.dry && hashFiles('bot/research-request.flag') != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run backtest.yml --ref ${{ github.ref_name }} -f mode=research && rm -f bot/research-request.flag
-
       - name: Publish agent pages
         if: ${{ !inputs.dry }}
         run: |
@@ -117,3 +111,9 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -q -m "bot: ajan/sinyal geçmişi güncellemesi (run ${{ github.run_id }})"
           for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || sleep 5; done
+
+      - name: Trigger research (auditor flagged urgent; after publish so the queue is on the branch)
+        if: ${{ !inputs.dry && hashFiles('bot/research-request.flag') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run backtest.yml --ref ${{ github.ref_name }} -f mode=research && rm -f bot/research-request.flag

@@ -38,6 +38,14 @@ async function main() {
   fs.writeFileSync(path.join(DIR, 'research.json'), JSON.stringify({ latest: report, reports: [...prev.reports, { ...report, rows: undefined }].slice(-20), updatedAt: now }));
   const verdicts = new Map(rep.results.map((x) => [x.requestId, x.verdict]));
   for (const it of queue.items) if (it.status === 'pending' && verdicts.has(it.id)) { it.status = 'done'; it.verdict = verdicts.get(it.id); it.doneAt = now; }
+  // Koşu sırasında denetçi kuyruğa yeni istek eklemiş olabilir: uzak daldaki kuyruğu alıp id ile birleştir (bizde olmayanlar eklenir)
+  try {
+    const branch = env('GITHUB_REF_NAME', '');
+    if (branch && spawnSync('git', ['fetch', '-q', 'origin', branch]).status === 0) {
+      const remote = spawnSync('git', ['show', `origin/${branch}:${path.posix.join(DIR, 'research-queue.json')}`], { encoding: 'utf8' });
+      if (remote.status === 0) { const rq = JSON.parse(remote.stdout); let added = 0; for (const it of rq.items || []) if (!queue.items.some((x) => x.id === it.id)) { queue.items.push(it); added++; } if (added) log(`  kuyruk: uzaktan ${added} yeni istek eklendi`); }
+    }
+  } catch { /* yok */ }
   queue.updatedAt = now; fs.writeFileSync(path.join(DIR, 'research-queue.json'), JSON.stringify(queue));
   try { fs.unlinkSync(vFile); } catch { /* yok */ }
   const text = formatResearch(rep, rows);

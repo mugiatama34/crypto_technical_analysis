@@ -224,6 +224,9 @@ async function main() {
   }
   if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
   state.lastRejects = rejects; // denetçi için
+  // Aktif kural imzası: değişince zaman damgası (denetçi eski/yeni rejimi ayırır)
+  const ruleSig = JSON.stringify({ tfs: CFG.tfs, rules: CFG.tfs.map((tf) => fmtRule(ruleFor(tf, 'long')) + '|' + fmtRule(ruleFor(tf, 'short'))), earlyTp: CFG.earlyTp, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
+  if (state.ruleSig !== ruleSig) { state.ruleSig = ruleSig; state.ruleSince = now; log('Kural seti değişti; denetçi için zaman damgası güncellendi'); }
   log(`Elenme nedenleri: ${Object.entries(rejects).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' | ')}`);
   cands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
   log(`Aday: ${cands.length}` + (cands.length ? ' → ' + cands.slice(0, 10).map((p) => `${p.coin} ${p.tf} ${p.direction} ${p.score} r%${p.riskPct}`).join(' | ') : ''));
@@ -314,7 +317,7 @@ async function main() {
   if ((summaryDue || CFG.forceAudit) && CFG.audit) {
     try {
       const config = { tfs: CFG.tfs, rules: Object.fromEntries(CFG.tfs.map((tf) => [tf, fmtRule(ruleFor(tf, 'long'))])), knifeGuard: CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop, momentum: CFG.momentum ? { variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge } : null, agent: CFG.agent };
-      await runAudit({ now, cfg: { dry: CFG.dry, model: CFG.auditModel, config }, llm: { apiKey: CFG.apiKey }, notify: (t) => notify(t, state), log, historyFile: CFG.historyFile, publishDir: CFG.agentPublishDir, sweepFile: 'docs/backtest/sweep.json', lastRejects: state.lastRejects || null, flagFile: 'bot/research-request.flag' });
+      await runAudit({ now, cfg: { dry: CFG.dry, model: CFG.auditModel, config }, llm: { apiKey: CFG.apiKey }, notify: (t) => notify(t, state), log, historyFile: CFG.historyFile, publishDir: CFG.agentPublishDir, sweepFile: 'docs/backtest/sweep.json', lastRejects: state.lastRejects || null, ruleSince: state.ruleSince || null, ruleLabel: CFG.tfs.map((tf) => `${tf}: ${fmtRule(ruleFor(tf, 'long'))}`).join(' · '), flagFile: 'bot/research-request.flag' });
     } catch (err) { log(`Denetçi hatası: ${err.message}`); console.error(err); }
   }
   if (summaryDue) {

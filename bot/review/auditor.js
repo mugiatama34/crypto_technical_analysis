@@ -21,9 +21,23 @@ yalnız limit giriş, coin'in günlük trendiyle aynı yön; yönetim: +%1,2'de 
 300 USDT), haftalık kesitsel momentum portföyü (short, BTC'ye göre sıralama, BTC hedge'li). Hepsi sanal para; gerçek emir yok.
 Görevin: günlük veriyi beklentiyle (12 aylık backtest: 4H düzeni doğrulamada ort. +0,08R, kazanma ~%79; hedge'li +0,08R) karşılaştırmak,
 anormallikleri ve veri sorunlarını (dolum yok, hata, takip tutarsızlığı) bulmak, test edilebilir hipotez üretmek.
+Veriyi okurken bil:
+- metrics.dataSince / dataDays: geçmiş bu tarihte başlar; dataDays < 30 ise d7 ve d30 aynı olur, bu normaldir.
+- metrics.rules.since: AKTİF kural seti bu andan beri geçerli. Öncesi (legacyRules) eski rejimdir: farklı TF'ler (15m/1H açık), eski
+  yönetim; beklentiyle KIYASLANMAZ, yalnız bağlam. Beklenti (expected) yalnız rules.since sonrası 4H sinyallere uygulanır
+  (currentRules). Eski rejimden kalan açık sinyaller takipte kalır (legacyOpen); bu bir hata değildir.
+- Kayıt alanları zamanla eklendi: htfTrend/approachAtr/early alanı null ise "kayıt o tarihte yoktu" demektir, "filtre uygulanmadı" değil.
+  Erken kâr (early) sayacı yalnız rules.since sonrası 4H dolumlarında artabilir; hafta sonu yeni sinyal yoktur.
+- 'stopped' + tp1At dolu (R ≈ +0,67…+0,75) = TP1 sonrası başabaş stopu; normal sonuç.
+- Aynı coin/seviyeden tekrar sinyal cooldown (6 saat) sonrası normaldir.
+- Momentum: altNetExposure alt pozisyonların net yönü, hedge bacağı ters BTC; netAfterHedge ≈ 0 ise hedge doğru çalışıyor. trades=0
+  ilk haftalık yeniden dengelemeden önce normaldir.
+- Tarama (araştırmacı) 12 aylık geçmişe uygulanır; "son 7 gün" gibi kısa dönem istekleri desteklenmez, isteme.
 Kurallar:
 - Kural değiştirme yetkin yok; yalnız öneri. Önerin her zaman test edilebilir bir tarama varyantı (variantSpec) olmalı.
-- Küçük örneklemden iddia üretme: n < 30 kapanan işlemde "beklentiden sapma" deme, "izle" de. Günlük R dalgalanması normaldir.
+- Küçük örneklemden iddia üretme: aktif kurallarla n < 30 kapanan işlemde "beklentiden sapma" deme, "izle" de. Günlük R dalgalanması normaldir.
+- health: 'alert' yalnız uygulama hatası kanıtı (çalışmayan filtre, takip tutarsızlığı, veri kopukluğu) ya da aktif kurallarla n ≥ 30'da
+  beklentiden belirgin sapma varsa; eski rejimin kötü sonucu tek başına alert değildir.
 - Aşırı uyum tuzağına düşme: dün kaybettiren tek bir filtreyi kaldırmayı önerme; hipotezin mantığı önceden savunulabilir olmalı.
 - researchRequests yalnız gerçekten yeni ve değerli soru için; çoğu gün boş liste doğru cevaptır.
 - varsSuggestion yalnız son araştırma raporunda 'confirmed' bir sonuç varsa ve henüz uygulanmamışsa; aksi halde boş liste.
@@ -60,9 +74,9 @@ export function enqueue(queue, requests, now = Date.now()) {
 
 const H = { ok: '🟢', watch: '🟡', alert: '🔴' };
 export function formatAudit(a, m) {
-  const d1 = m.periods.d1, d30 = m.periods.d30;
+  const d1 = m.periods.d1, d30 = m.periods.d30, cur = m.rules?.currentRules;
   const lines = [`🕵️ <b>Denetçi günlük rapor</b> ${H[a.health] || ''} ${a.health}`, esc(a.summary), '',
-    `Son 24s: ${d1.sent} sinyal, ${d1.closed} kapanan${d1.avgR != null ? `, ort ${d1.avgR}R` : ''} · 30 gün: ${d30.sent} sinyal, ${d30.closed} kapanan${d30.avgR != null ? `, ort ${d30.avgR}R, kazanma %${Math.round(d30.winRate * 100)}` : ''}`];
+    `Son 24s: ${d1.sent} sinyal, ${d1.closed} kapanan${d1.avgR != null ? `, ort ${d1.avgR}R` : ''} · 30 gün: ${d30.sent} sinyal, ${d30.closed} kapanan${d30.avgR != null ? `, ort ${d30.avgR}R, kazanma %${Math.round(d30.winRate * 100)}` : ''}${cur && m.rules?.since ? ` · aktif kurallarla (${m.rules.hoursActive} saat): ${cur.sent} sinyal, ${cur.closed} kapanan${cur.avgR != null ? `, ort ${cur.avgR}R` : ''}` : ''}`];
   if (a.findings?.length) lines.push('', '<b>Bulgular:</b>', ...a.findings.map((f) => `• [${f.severity}] ${esc(f.area)}: ${esc(f.evidence)} → ${esc(f.action)}`));
   if (a.researchRequests?.length) lines.push('', '<b>Araştırmacıya:</b>', ...a.researchRequests.map((r) => `• ${esc(r.id)}${r.urgent ? ' (acil)' : ''}: ${esc(r.question)}`));
   const vs = Array.isArray(a.varsSuggestion) ? a.varsSuggestion[0] : a.varsSuggestion;
