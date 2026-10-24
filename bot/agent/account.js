@@ -1,7 +1,7 @@
 // Kâğıt hesap simülasyonu (saf): izole marjinli perp pozisyonlar, likidasyon, komisyon, kayma, kısmi kapanış,
 // bekleyen limit emirler, sert sınırlarla kırpma, istatistik ve özsermaye eğrisi.
 import { FEES } from './profiles.js';
-import { knifeGuardOf, approachOf, isKnife, confirmsTurn, timeStopOf } from '../plan.js';
+import { knifeGuardOf, approachOf, isKnife, confirmsTurn, timeStopOf, earlyTpOf } from '../plan.js';
 import { TIMEFRAMES } from '../../src/data/okx.js';
 
 const r6 = (x) => +Number(x).toPrecision(8);
@@ -125,7 +125,7 @@ function fillPosition(acct, base, fill, now) {
   return pos;
 }
 
-/** Kısmi/tam kapanış. kind: 'stop'|'tp1'|'tp2'|'liq'|'manual'|'trail'|'time' */
+/** Kısmi/tam kapanış. kind: 'stop'|'tp1'|'tp2'|'liq'|'manual'|'trail'|'time'|'early' */
 function closePart(acct, pos, portion, price, kind, now, events) {
   const d = dirSign(pos.direction);
   const q = portion >= 1 ? pos.qty : r6(pos.qty * portion);
@@ -166,6 +166,7 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   const events = [];
   const g = knifeGuardOf(opts.knifeGuard ?? acct.params?.knifeGuard);
   const ts = timeStopOf(opts.timeStop ?? acct.params?.timeStop);
+  const et = earlyTpOf(opts.earlyTp ?? acct.params?.earlyTp);
   // Limit emirler (düşen bıçak koruması açıksa: bölgeye hızlı gelişte dolmaz, kapanmış teyit mumunun kapanışından dolar)
   for (const o of [...acct.orders]) {
     const all = candlesByCoin[o.coin] || [];
@@ -216,6 +217,15 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
       const tp1Hit = pos.tp1 && !pos.tp1Done && (d === 1 ? c.high >= pos.tp1 : c.low <= pos.tp1);
       const tp2Hit = pos.tp2 && (d === 1 ? c.high >= pos.tp2 : c.low <= pos.tp2);
       if (liqHit) { closePart(acct, pos, 1, pos.liq, 'liq', c.time, events); break; }
+      // Erken kâr al: pozisyon TF'si listedeyse erken hedefte %portion kapat, stop girişe; kalan TP2'ye (tp1 mantığı devre dışı)
+      if (et && et.tfs.includes(pos.tf) && !pos.tp1Done && !stopHit) {
+        const ep = pos.entry * (1 + d * et.pct / 100);
+        if (d === 1 ? c.high >= ep : c.low <= ep) {
+          closePart(acct, pos, et.portion, r6(ep), 'early', c.time, events); pos.tp1Done = true; pos.earlyDone = true; pos.stop = r6(pos.entry);
+          if (tp2Hit) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
+          pos.lastTime = c.time; pos.lastPrice = c.close; continue;
+        }
+      }
       if (stopHit) { closePart(acct, pos, 1, pos.stop * (1 - d * FEES.slipPct / 100), pos.tp1Done ? 'tp1_stop' : 'stop', c.time, events); break; }
       if (tp1Hit) {
         if (pos.tp2) { closePart(acct, pos, 0.5, pos.tp1, 'tp1', c.time, events); pos.tp1Done = true; if (pos.beAfterTp1) pos.stop = r6(pos.entry); }

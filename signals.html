@@ -20,7 +20,7 @@
   .tablewrap { overflow-x: auto; }
   .pos { color: #5ea3f0; } .neg { color: #ef7d7d; }
   .st { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--hair); white-space: nowrap; }
-  .st.waiting { color: var(--ink-dim); } .st.active { color: #5ea3f0; } .st.tp1 { color: #fab219; } .st.done { color: #4cc24c; } .st.stopped { color: #ef7d7d; } .st.expired, .st.missed, .st.knife { color: var(--ink-muted); } .st.confirming { color: #fab219; } .st.timeout { color: var(--ink-dim); }
+  .st.waiting { color: var(--ink-dim); } .st.active { color: #5ea3f0; } .st.tp1 { color: #fab219; } .st.done { color: #4cc24c; } .st.stopped { color: #ef7d7d; } .st.expired, .st.missed, .st.knife { color: var(--ink-muted); } .st.confirming { color: #fab219; } .st.timeout { color: var(--ink-dim); } .st.early, .st.be { color: #4cc24c; }
   section { margin-top: 20px; }
   .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
 </style>
@@ -41,17 +41,18 @@ const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p)
 const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
 const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
 const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const ST = { waiting: 'bekliyor', active: 'aktif', tp1: 'TP1', done: 'tamam', stopped: 'stop', expired: 'süresi doldu', missed: 'kaçtı', confirming: 'teyit bekliyor', knife: 'düşen bıçak – iptal', timeout: 'zaman stopu' };
-const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout']);
+const ST = { waiting: 'bekliyor', active: 'aktif', tp1: 'TP1', done: 'tamam', stopped: 'stop', expired: 'süresi doldu', missed: 'kaçtı', confirming: 'teyit bekliyor', knife: 'düşen bıçak – iptal', timeout: 'zaman stopu', early: 'erken kâr alındı', be: 'erken kâr + başabaş' };
+const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout', 'be']);
 const realizedR = (s) => (s.status === 'stopped' ? -1 : s.status === 'done' ? 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5) : s.status === 'tp1' || s.status === 'tp1_be' ? null : null);
 /** Kapanmış işlemlerin R'si; TP1 sonrası stop (başabaş) için +½R1: takipte 'stopped' TP1'den sonra geldiyse tp1At dolu. */
-const finalR = (s) => { if (s.status === 'timeout') return s.exitR ?? null; if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1; if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5); return null; };
+const earlyR = (s) => Math.abs(s.early - s.entry) / Math.abs(s.entry - s.stop);
+const finalR = (s) => { if (s.early) { const p = s.earlyPortion ?? 0.8; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * earlyR(s); if (s.status === 'done') return p * earlyR(s) + (1 - p) * (s.rr || 2.5); return null; } if (s.status === 'timeout') return s.exitR ?? null; if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1; if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5); return null; };
 function stats(list) {
   const n = list.length;
   const filled = list.filter((s) => s.status !== 'waiting' && s.status !== 'expired' && s.status !== 'missed' && s.status !== 'confirming' && s.status !== 'knife');
   const c = (st) => list.filter((s) => s.status === st).length;
-  const tp1Seen = list.filter((s) => s.status === 'tp1' || s.status === 'done' || s.tp1At).length;
-  const traded = list.filter((s) => s.status === 'stopped' || s.status === 'done' || s.status === 'timeout');
+  const tp1Seen = list.filter((s) => s.status === 'tp1' || s.status === 'done' || s.status === 'early' || s.status === 'be' || s.tp1At).length;
+  const traded = list.filter((s) => s.status === 'stopped' || s.status === 'done' || s.status === 'timeout' || s.status === 'be');
   const Rs = traded.map(finalR).filter((x) => x != null);
   const sumR = Rs.reduce((a, b) => a + b, 0);
   return { n, filled: filled.length, fillRate: n ? filled.length / n : 0, stopped: c('stopped'), tp1: tp1Seen, done: c('done'), expired: c('expired'), missed: c('missed'), open: list.filter((s) => !CLOSED.has(s.status)).length, traded: traded.length, winRate: Rs.length ? Rs.filter((r) => r > 0).length / Rs.length : 0, avgR: Rs.length ? sumR / Rs.length : 0, totalR: sumR };

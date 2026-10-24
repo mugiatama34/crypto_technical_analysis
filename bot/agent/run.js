@@ -24,7 +24,7 @@ export function publish(acct, dir) {
   fs.writeFileSync(path.join(dir, `${acct.profile}.json`), JSON.stringify(out));
 }
 
-const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış', time: '⏱️ Zaman stopu (TP1 süresinde gelmedi)' };
+const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış', time: '⏱️ Zaman stopu (TP1 süresinde gelmedi)', early: '⚡ Erken hedef (%80 kapandı, stop girişe)' };
 
 function fmtOpen(acct, pos, order, hedgeLeg = null) {
   const p = pos || order;
@@ -58,7 +58,7 @@ export async function runAgents(ctx) {
     Object.defineProperty(acct, '_btcPrice', { value: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null, enumerable: false, configurable: true, writable: true }); // kapanış kayıtları için (yayınlanmaz)
     // 1) Güncelle
     const btcPx = ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null;
-    const events = updatePositions(acct, candlesByCoin, now, { knifeGuard: cfg.knifeGuard, timeStop: cfg.timeStop });
+    const events = updatePositions(acct, candlesByCoin, now, { knifeGuard: cfg.knifeGuard, timeStop: cfg.timeStop, earlyTp: cfg.earlyTp });
     for (const h of openPendingHedges(acct, btcPx, now)) events.push({ type: 'hedge_open', pos: h, price: h.entry });
     events.push(...closeOrphanHedges(acct, btcPx, now).map((e) => ({ ...e, type: 'hedge_close' })));
     markToMarket(acct, ctx.prices);

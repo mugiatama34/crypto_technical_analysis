@@ -171,6 +171,14 @@ export function timeStopOf(v) {
   try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o.bars > 0 ? { minMfeR: Infinity, ...o } : null; } catch { return null; }
 }
 
+/** Erken kâr al ayarı: JSON {"pct":1.2,"portion":0.8,"tfs":["4H"]} → nesne ya da null. */
+export function earlyTpOf(v) {
+  if (v == null || v === '' || v === '0' || v === false) return null;
+  try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && o.pct > 0 ? { portion: 0.8, tfs: ['4H'], ...o } : null; } catch { return null; }
+}
+/** Erken hedef fiyatı (plan TF'si listedeyse), yoksa null. */
+export const earlyPriceOf = (plan, entry, e) => (e && e.tfs.includes(plan.tf) ? +(entry * (1 + plan.d * e.pct / 100)).toPrecision(8) : null);
+
 export const isKnife = (a, g) => !!(g && a && (a.approachAtr > g.maxApproachAtr || a.fillBarAtr > g.maxFillBarAtr));
 
 /** Teyit mumu: long kapanış giriş bölgesinin üst kenarı (bölge yoksa giriş) ya da önceki mumun tepesi üstünde; short ayna. */
@@ -226,6 +234,20 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       if (ms && Math.round((c.time - knifeAt()) / ms) >= g.confirmBars) { status = 'expired'; events.push('unconfirmed'); break; }
       continue;
     }
+    // Erken kâr al (plan.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be)
+    if (status === 'early') {
+      if (c.time <= (patch.earlyAt ?? plan.earlyAt)) continue;
+      const hitBe = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
+      if (hitBe) { status = 'be'; events.push('be'); break; }
+      if (hitTp2) { status = 'done'; events.push('done'); break; }
+      continue;
+    }
+    if (status === 'active' && plan.early) {
+      if (plan.confirmedAt && c.time <= plan.confirmedAt) continue;
+      if (hitStop) { status = 'stopped'; events.push('stopped'); break; }
+      if (d === 1 ? c.high >= plan.early : c.low <= plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; if (hitTp2) { status = 'done'; events.push('done'); break; } }
+      continue;
+    }
     if (status === 'active' || status === 'tp1') {
       if (plan.confirmedAt && c.time <= plan.confirmedAt) continue; // teyitli girişten (kapanış) önceki mumlar
       // Aynı mumda hem stop hem hedef: kötü olan (stop) sayılır
@@ -252,7 +274,7 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
 /** UTC Cumartesi/Pazar mı? (tarama: hafta sonu girişleri her TF'de ve iki dilimde daha kötü) */
 export const isWeekendUtc = (ms) => { const d = new Date(ms).getUTCDay(); return d === 0 || d === 6; };
 
-export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout']);
+export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout', 'be']);
 
 /** Aynı anahtar ya da aynı coin+yön son `cooldownHours` içinde gönderilmiş mi? */
 export function onCooldown(plan, sent, now, cooldownHours) {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule } from '../bot/plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule, earlyTpOf, earlyPriceOf } from '../bot/plan.js';
 import { validateDecision, buildPrompt, SCHEMA, askBrain } from '../bot/brain.js';
 import { formatSetup, formatUpdate, formatSummary, esc } from '../bot/telegram.js';
 
@@ -254,4 +254,27 @@ test('trackPlan: zaman stopu — active, N kapanmış mumda TP1 yok → timeout 
   // MFE 0,5R ≥ 0,5 → ilerleme stopu yok
   assert.equal(trackPlan(base, cs, 9 * H, { timeStop: '{"bars":4,"minMfeR":0.5}' }).status, 'active');
   assert.match(formatUpdate({ ...base, ...r.patch }, 'time_stop', 100.8), /Zaman stopu.*\+0\.4R/s);
+});
+
+test('erken kâr al: earlyTpOf/earlyPriceOf; trackPlan active → early → done / be; koşular arası earlyAt', () => {
+  const e = earlyTpOf('{"pct":1.2}');
+  assert.deepEqual(e, { portion: 0.8, tfs: ['4H'], pct: 1.2 });
+  assert.equal(earlyTpOf(''), null);
+  assert.equal(earlyPriceOf({ tf: '4H', d: 1 }, 100, e), 101.2);
+  assert.equal(earlyPriceOf({ tf: '1H', d: 1 }, 100, e), null);
+  assert.equal(earlyPriceOf({ tf: '4H', d: -1 }, 100, e), 98.8);
+  const H = 4 * 3600e3;
+  const k = (i, low, high) => ({ time: i * H, open: low, low, high, close: high });
+  const base = { d: 1, direction: 'long', tf: '4H', entry: 100, stop: 97, tp1: 104, tp2: 108, early: 101.2, sentAt: 0, status: 'waiting' };
+  let r = trackPlan(base, [k(1, 99.9, 100.5), k(2, 100.3, 101.5), k(3, 100.8, 108.2)], 9 * H);
+  assert.deepEqual(r.events, ['active', 'early', 'done']);
+  r = trackPlan(base, [k(1, 99.9, 100.5), k(2, 100.3, 101.5), k(3, 99.8, 100.6)], 9 * H);
+  assert.deepEqual([r.status, r.events.at(-1)], ['be', 'be']); assert.ok(CLOSED.has('be'));
+  r = trackPlan(base, [k(1, 99.9, 100.5), k(2, 96.5, 100.6)], 9 * H);
+  assert.equal(r.status, 'stopped');
+  // sonraki koşu: early durumundaki plan, earlyAt öncesi mumları (dolum mumu girişe dokunur) yok sayar
+  r = trackPlan(base, [k(1, 99.9, 100.5), k(2, 100.3, 101.5)], 3 * H);
+  const p2 = { ...base, ...r.patch, status: r.status };
+  assert.equal(p2.status, 'early');
+  assert.equal(trackPlan(p2, [k(1, 99.9, 100.5), k(2, 100.3, 101.5), k(3, 100.5, 102)], 9 * H).status, 'early');
 });

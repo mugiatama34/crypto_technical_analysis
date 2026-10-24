@@ -75,6 +75,7 @@ jobs:
           LIMIT_ONLY: ${{ vars.LIMIT_ONLY }}
           SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
           TIME_STOP: ${{ vars.TIME_STOP }}
+          EARLY_TP: ${{ vars.EARLY_TP }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

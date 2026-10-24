@@ -137,3 +137,17 @@ test('sweep rebuild: tp1Pct (fiyat %) ve keepTp2; erken %80 + başabaş', async 
   const s = simulateTrade(r, cs, 0, '1H', { ...o, tp1Portion: 0.8 });
   assert.equal(s.outcome, 'tp1_be'); assert.ok(Math.abs(s.R - 0.48) < 1e-9, `R ${s.R}`);
 });
+
+test('sweep hedgeOf: kısmi çıkışlı hedge — %80 TP1\'e kadar, %20 çıkışa kadar ters BTC', async () => {
+  const { hedgeOf, closeAt } = await import('../backtest/sweep.mjs');
+  const H = 3600e3;
+  const btc = Array.from({ length: 10 }, (_, i) => ({ time: i * H, close: 100 + i })); // her saat +1
+  assert.equal(closeAt(btc, 2.5 * H), 102); assert.equal(closeAt(btc, -1), null);
+  // long; giriş t0 = 0 + 1×H → BTC 101; TP1 3. mumda (2 mum sonra → 103), çıkış 5 mum sonra (106); stop %2
+  const t = { time: 0, tf: '1H', waitBars: 1, bars: 5, tp1Bars: 3, d: 1, entryFill: 100, stop: 98, R: 0.5 };
+  const h = hedgeOf(t, btc, 0, 0.8);
+  const early = (103 / 101 - 1) * 100, full = (106 / 101 - 1) * 100;
+  assert.ok(Math.abs(h.hedgedR - (0.5 - (0.8 * early + 0.2 * full) / 100 / 0.02)) < 1e-3, `hedgedR ${h.hedgedR}`);
+  assert.equal(hedgeOf({ ...t, tp1Bars: null }, btc, 0, 0.8).hedgedR, +(0.5 - full / 100 / 0.02).toFixed(3));
+  assert.equal(hedgeOf(t, null, 0, 0.8).hedgedR, null);
+});

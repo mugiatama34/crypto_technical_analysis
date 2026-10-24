@@ -43,6 +43,40 @@ export function rebuild(plan, v) {
   return { ...plan, stop, tp1, tp2 };
 }
 
+/** Sıralı mum dizisinde time'a kadar (dahil) son kapanış; yoksa null. */
+export function closeAt(cs, time) {
+  let lo = 0, hi = cs.length - 1, k = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (cs[m].time <= time) { k = m; lo = m + 1; } else hi = m - 1; }
+  return k >= 0 ? cs[k].close : null;
+}
+
+/**
+ * Hedge'li R (lab attachBtc ile aynı mantık, kısmi çıkışlı): pozisyonun yanında eşit nominal ters BTC. Erken kısım (portion)
+ * TP1'e kadar (tp1Bars), kalan çıkışa kadar hedge'lenir. t: { time, tf, waitBars, bars, tp1Bars, d, entryFill, stop, R }.
+ * → { btcPct, hedgedR } (BTC verisi yoksa null'lar).
+ */
+export function hedgeOf(t, btc, feePct, portion) {
+  const ms = TIMEFRAMES[t.tf]?.ms;
+  if (!btc || !ms || !(t.entryFill > 0) || t.R == null) return { btcPct: null, hedgedR: null };
+  const t0 = t.time + (t.waitBars || 1) * ms, a = closeAt(btc, t0);
+  const pct = (bars) => { const b = closeAt(btc, t0 + Math.max(0, bars) * ms); return a && b ? (b / a - 1) * 100 : null; };
+  const full = pct(t.bars || 0);
+  if (full == null) return { btcPct: null, hedgedR: null };
+  const early = t.tp1Bars != null ? pct(t.tp1Bars - 1) : null;
+  const p = early != null ? portion : 0;
+  const hedgePct = p * (early ?? 0) + (1 - p) * full;
+  const stopPct = Math.abs(t.entryFill - t.stop) / t.entryFill;
+  if (!(stopPct > 0)) return { btcPct: null, hedgedR: null };
+  return { btcPct: +full.toFixed(2), hedgedR: +(t.R - (t.d * (hedgePct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) };
+}
+
+const corr = (pts) => {
+  const n = pts.length; if (n < 10) return null;
+  const mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
+  let sxy = 0, sxx = 0, syy = 0; for (const [x, y] of pts) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }
+  return sxx && syy ? +(sxy / Math.sqrt(sxx * syy)).toFixed(2) : null;
+};
+
 /** Filtreler: true = plan dahil. */
 function passes(t, v, series, mtfIndex) {
   if (v.tfs && !v.tfs.includes(t.tf)) return false;
@@ -124,6 +158,9 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
   const series = new Map();
   for (const k of groups.keys()) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); else log(`  ${k}: mum yok, atlandı`); }
+  // BTC serileri (hedge'li R için; TF başına)
+  const btcByTf = new Map();
+  for (const tf of new Set(all.map((t) => t.tf))) { const b = series.get(`BTC|${tf}`) || await loadSeries('BTC', tf, 'BTC-USDT-SWAP'); if (b) btcByTf.set(tf, b.candles); }
   // MTF indeksi
   const mtfIndex = new Map();
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
@@ -138,7 +175,9 @@ async function main() {
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
-        trades.push({ time: t.time, tf: t.tf, waitBars: sim.waitBars, tp1Bars: sim.tp1Bars ?? null, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr });
+        const tr = { time: t.time, tf: t.tf, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
+        if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
+        trades.push(tr);
       }
     }
     const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
@@ -147,7 +186,17 @@ async function main() {
       bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
       byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
       byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
-      byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) } };
+      byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
+      ...hedgedOfTrades(tr, va) };
+  };
+
+  // Hedge'li istatistikler (R yerine hedgedR) ve R ~ yönlü BTC% korelasyonu
+  const hedgedOfTrades = (tr, va) => {
+    const h = (a) => a.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
+    const ht = h(tr), hv = h(va);
+    const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
+    if (!ht.length && !hv.length) return {};
+    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
   };
 
   const results = [];
@@ -156,7 +205,7 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'hedged', 'hedgedByTf', 'btcCorr'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
   const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), htf = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2');

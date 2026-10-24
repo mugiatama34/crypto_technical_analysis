@@ -13,13 +13,14 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
+//   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -64,6 +65,7 @@ const CFG = {
   limitOnly: env('LIMIT_ONLY', '0') === '1', // gönderimde fiyat zaten bölgedeyse gönderme (yalnız limit giriş)
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
+  earlyTp: earlyTpOf(env('EARLY_TP', '')), // erken kâr al: {"pct":1.2,"portion":0.8,"tfs":["4H"]}
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
@@ -117,7 +119,7 @@ function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { if (!h.items.some((x) => x.id === histId(p))) h.items.push({ id: histId(p), ...p, ...extra }); }
-function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}) }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}) }); }
 
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
@@ -167,7 +169,7 @@ async function main() {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
       for (const ev of events) {
         state.stats[ev] = (state.stats[ev] || 0) + 1;
-        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = now;
+        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = now;
         await notify(formatUpdate(p, ev, row.price), state);
       }
       if (CLOSED.has(p.status) && btcPrice) p.btcAtClose = btcPrice;
@@ -230,8 +232,9 @@ async function main() {
     const v = validateDecision(dec, plan, { minRR: CFG.minRR, sendWait: CFG.sendWait });
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
-    await notify(formatSetup(plan, v, size), state);
-    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
+    await notify(formatSetup(plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
+    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     state.sent.push(rec);
     historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;
@@ -272,7 +275,7 @@ async function main() {
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)

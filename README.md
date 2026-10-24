@@ -102,6 +102,15 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   kendi TF'si (15m: 15 dk, 1H: 1 saat, 4H: 4 saat). TP1 sonrası işlemler etkilenmez (stop zaten başabaşta). Sinyal
   takibi (`timeout` durumu, Telegram ⏱️) ve ajan pozisyonları aynı kuralı uygular. Tarama varyantları: 4 / 8 / 16 mum,
   "8 mumda MFE < 0,5R", en iyi düzenle birlikte 8 ve 16 mum; `sweep.html` "TP1'e ulaşma süresi" tablosu.
+  6 ayda hiçbir zaman stopu varyantı temeli geçmedi (TP1'e ulaşanların ~%30'u 16 mumdan sonra ulaşıyor); kapalı tutun.
+- **Erken kâr al (`EARLY_TP`, vars. kapalı):** `{"pct":1.2,"portion":0.8,"tfs":["4H"]}` = listedeki TF planlarında fiyat
+  girişten %1,2 lehte gidince pozisyonun %80'i kapatılır, stop girişe çekilir, kalan %20 TP2'ye (TP1 kullanılmaz).
+  Sinyal mesajında "⚡ Erken hedef" satırı; takip durumları `early` → `done` | `be`; sinyal sayfası R'si
+  0,8 × erken R + 0,2 × (TP2 R | 0); ajan pozisyonları aynı kısmi kapanışı yapar. 12 aylık tam koşuda (1H/4H;
+  doğrulama 13.07.2026 sonrası) düşen bıçak koruması + hafta sonu hariç + yalnız limit + bu yönetim **4H'de eğitim
+  +0,064R (PF 1,29, n 1 404) / doğrulama +0,097R (PF 1,44, n 992)**; 1H ≈ 0. Tarama hedge'li R'yi (kısmi çıkışlı, eşit
+  nominal ters BTC) ve R ~ BTC korelasyonunu da raporlar (`sweep.html` "Hedefli birleşimler — zaman dilimine göre");
+  canlıya almadan önce 4H hedge'li doğrulama R'sine bakın.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

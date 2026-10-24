@@ -195,3 +195,17 @@ test('zaman stopu: ajan pozisyonu kendi TF\'sinde N mum içinde TP1 görmezse ka
   assert.equal(ev[0].type, 'time'); assert.equal(a.positions.length, 0);
   assert.equal(a.trades.length, 1);
 });
+
+test('erken kâr al: ajan pozisyonu (4H) erken hedefte %80 kapanır, stop girişe; kalan başabaşta kapanır', () => {
+  const a = newAccount(P, 0);
+  openPosition(a, req({ tf: '4H', price: 100, stop: 97, tp1: 104, tp2: 108 }), 0, P.guards);
+  const pos = a.positions[0];
+  const ev = updatePositions(a, { BTC: [c(1000, 100, 101.6, 99.9, 101.4), c(2000, 101.4, 101.5, 99.5, 99.8)] }, 3000, { earlyTp: { pct: 1.2 } });
+  assert.deepEqual(ev.map((e) => e.type), ['early', 'tp1_stop']);
+  assert.ok(Math.abs(ev[0].qty - pos.qty0 * 0.8) / pos.qty0 < 0.01);
+  assert.equal(a.positions.length, 0);
+  // 1H pozisyon: listede değil → erken çıkış yok
+  const b = newAccount(P, 0);
+  openPosition(b, req({ tf: '1H', price: 100, stop: 97, tp1: 104, tp2: 108 }), 0, P.guards);
+  assert.equal(updatePositions(b, { BTC: [c(1000, 100, 101.6, 99.9, 101.4)] }, 2000, { earlyTp: { pct: 1.2 } }).length, 0);
+});
