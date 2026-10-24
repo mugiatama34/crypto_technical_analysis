@@ -11,8 +11,8 @@ marjin zaten azaltılmış olduğu için kalan marjinin bir kısmı (TP1'de çey
 siliniyordu. İşlem pnl/R kayıtları doğruydu; yalnız nakit/özsermaye eksikti.
 | Hesap | Eski özsermaye | Kayıp marjin | Onarılmış | Not |
 |---|---|---|---|---|
-| Temkinli | 260,76 | 12,50 (JTO) | 273,26 | kalan fark ≈ açılış komisyonları |
-| Agresif | 264,08 | 29,25 (GRVT, JTO, PEPE, MEW, LA) | 293,33 | ort. R +0,01 ile artık tutarlı (−%2,2) |
+| Temkinli | 260,55 | 12,50 (JTO) | 273,05 | kalan fark ≈ açılış komisyonları |
+| Agresif | 264,28 | 29,25 (GRVT, JTO, PEPE, MEW, LA) | 293,53 | ort. R +0,01 ile artık tutarlı (−%2,2) |
 Düzeltme: marjin payı artık `pos.margin × q/pos.qty` (kalan oranı); açılış komisyonu da `realized`'a dahil (işlem pnl tam net;
 likidasyonda pnl = −marjin − açılış komisyonu). Hesap dosyalarına kayıp tutar nakde geri eklendi, nota yazıldı; eski
 maxDD/eğri ve denetçi raporlarındaki "−%12" düzeltilmedi (tarihsel). Momentum portföyü bu kodu kullanmıyor, etkilenmedi.
