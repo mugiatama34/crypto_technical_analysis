@@ -12,7 +12,9 @@ tarayıcı veriyi doğrudan OKX public API'sinden çeker.
 ## Devam etmek için (yeni sohbet)
 Yeni bir Claude Code oturumunda "devam edelim" demek yeter: kökteki `CLAUDE.md` proje belleğidir (otomatik okunur) ve
 `docs/DURUM.md` tarihli durum günlüğüdür (bulgular, canlı ayarlar, açık işler, sıradaki adım). Oturum sonunda DURUM.md
-güncellenir. Eğitim notları: `docs/egitim/` (SMC / price action, arkadaşın yöntemi, örnekler, ölçüm, rutin).
+güncellenir. Eğitim notları: `docs/egitim/` (SMC / price action, arkadaşın yöntemi, örnekler, ölçüm, rutin); aynı içeriğin
+sekmeli, bol grafikli hali `egitim.html` (8 sekme: SVG mum çizimleri, XRP kurulumu adım adım oynatıcı, pozisyon ve
+beklenti hesaplayıcı, risk/şans simülasyonları, 9 soruluk grafikli alıştırma; harici bağımlılık yok, yalnız Google Fonts).
 
 ## Neler var
 

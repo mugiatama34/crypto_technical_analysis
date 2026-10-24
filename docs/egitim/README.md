@@ -4,6 +4,10 @@ Bu klasör, arkadaşının (SMC / ICT ekolü) yöntemini öğrenmek için hazır
 grafikler ve soru listesine verdiği cevaplar (Ekim 2026), ICT/SMC'nin yerleşik kavramları ve bizim backtest
 ölçümlerimiz. Her bölüm kısa; önce oku, sonra grafikte kendin işaretle. Teori değil, işaretleme alışkanlığı kazandırır.
 
+**Görsel sürüm:** [`egitim.html`](../../egitim.html) — aynı modüller sekmeler halinde, her kavram çizimli grafikle,
+kurulum adım adım oynatılır, hesaplayıcılar ve 9 soruluk alıştırma. (`img/` klasöründeki resimler hiç eklenmedi;
+grafikler sayfada SVG olarak çizilir, mumlar temsilîdir.)
+
 | Bölüm | Ne öğretir | Süre |
 |---|---|---|
 | [01 — Temeller](01-temeller.md) | Likidite, süpürme, yapı (BOS/MSS), FVG, order block, premium/discount, OTE, üst dilim | 1–2 saat |

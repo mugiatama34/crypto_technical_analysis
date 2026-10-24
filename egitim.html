@@ -1,0 +1,1480 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--skeleton-end-->
+<title>SMC Price Action Eğitimi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Likidite, süpürme, MSS, FVG, order block, OTE; kurulum, risk, örnekler, ölçüm ve rutin. Her kavram çizimli grafik ve alıştırmayla.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Düzen: mühendislik defteri. Üstte antet bloğu, yapışkan sekme şeridi; her kavram = metin + çizimli grafik ikilisi. */
+:root {
+  --bg: #0e1214; --panel: #151b1e; --panel-2: #1b2327; --ink: #e7ecea; --ink-2: #b4bdb8; --ink-3: #85908b;
+  --line: #2a3438; --grid: #1f282b;
+  --up: #2bb38a; --down: #e0613f; --accent: #e8b04a; --liq: #b88cf2; --ob: #5aa2ea; --fvg: #e8b04a;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f3f5f4; --panel: #ffffff; --panel-2: #eef1f0; --ink: #141a1c; --ink-2: #3e4a47; --ink-3: #66726e;
+  --line: #d3dad7; --grid: #e6ebe9;
+  --up: #0f8a63; --down: #c4462a; --accent: #9a6400; --liq: #7d4cc9; --ob: #2a6fb8; --fvg: #a86d00; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f3f5f4; --panel: #ffffff; --panel-2: #eef1f0; --ink: #141a1c; --ink-2: #3e4a47; --ink-3: #66726e;
+  --line: #d3dad7; --grid: #e6ebe9;
+  --up: #0f8a63; --down: #c4462a; --accent: #9a6400; --liq: #7d4cc9; --ob: #2a6fb8; --fvg: #a86d00; color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 15px/1.6 var(--sans); }
+.page { max-width: 1120px; margin: 0 auto; padding-block: 0 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--ink-2); }
+h1, h2, h3 { font-family: var(--cond); text-wrap: balance; letter-spacing: -0.005em; margin: 0; }
+h2 { font-size: 26px; line-height: 1.15; }
+h3 { font-size: 19px; line-height: 1.25; }
+p { margin: 0; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+b, strong { font-weight: 600; color: var(--ink); }
+.dim { color: var(--ink-3); }
+
+/* Antet */
+.titleblock { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: end; padding: 26px 0 18px; border-bottom: 1px solid var(--line); }
+.titleblock h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.05; }
+.titleblock .lead { color: var(--ink-2); margin-top: 8px; max-width: 64ch; }
+.meta { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font: 12px/1.5 var(--mono); color: var(--ink-3); border: 1px solid var(--line); padding: 8px 12px; }
+.meta span:nth-child(odd) { text-transform: uppercase; letter-spacing: .06em; }
+.meta span:nth-child(even) { color: var(--ink-2); }
+@media (max-width: 640px) { .titleblock { grid-template-columns: 1fr; } }
+
+/* Sekmeler */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin: 0 0 22px; }
+.tabs-in { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs-in::-webkit-scrollbar { display: none; }
+.tab { flex: 0 0 auto; appearance: none; border: 0; background: none; color: var(--ink-3); font: 600 14px var(--cond); padding: 13px 12px 11px; cursor: pointer; border-bottom: 2px solid transparent; display: flex; gap: 7px; align-items: baseline; min-height: 44px; }
+.tab .n { font: 500 11px var(--mono); color: var(--ink-3); }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-selected="true"] .n { color: var(--accent); }
+.tab:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Bölümler */
+.panel > * + * { margin-top: 28px; }
+.intro { display: grid; gap: 10px; max-width: 72ch; }
+.intro .eyebrow { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.intro p { color: var(--ink-2); }
+.concept { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px 28px; padding-top: 26px; border-top: 1px solid var(--line); }
+.concept.wide { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 880px) { .concept { grid-template-columns: minmax(0, 1fr); } }
+.concept .txt { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.concept .txt p, .concept .txt li { color: var(--ink-2); }
+.concept .txt ul, .concept .txt ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.tag { font: 600 11px var(--mono); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
+.figs { display: grid; gap: 14px; min-width: 0; }
+.figs.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 700px) { .figs.two { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 10px 8px; min-width: 0; }
+figcaption { font-size: 13px; color: var(--ink-3); padding: 6px 4px 0; line-height: 1.45; }
+figcaption b { color: var(--ink-2); }
+.ch { width: 100%; min-height: 120px; }
+.ch svg { display: block; width: 100%; height: auto; }
+.ours { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--line); padding-left: 10px; }
+.ours code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+.quote { font-style: italic; color: var(--ink); border-left: 2px solid var(--accent); padding: 2px 0 2px 12px; max-width: 70ch; }
+
+/* SVG grafik */
+.ch .gl { stroke: var(--grid); stroke-width: 1; }
+.ch .ax { fill: var(--ink-3); font: 10.5px var(--mono); }
+.ch .wk { stroke-width: 1.2; }
+.ch .up { fill: var(--up); stroke: var(--up); }
+.ch .dn { fill: var(--down); stroke: var(--down); }
+.ch .ghost { opacity: .18; }
+.k-liq { --c: var(--liq); } .k-fvg { --c: var(--fvg); } .k-ob { --c: var(--ob); } .k-up { --c: var(--up); } .k-dn { --c: var(--down); }
+.k-ink { --c: var(--ink); } .k-mut { --c: var(--ink-3); } .k-acc { --c: var(--accent); }
+.ch .ln { stroke: var(--c); stroke-width: 1.4; fill: none; }
+.ch .ln.d { stroke-dasharray: 5 4; }
+.ch .ln.thin { stroke-width: 1; }
+.ch .zf { fill: var(--c); fill-opacity: .13; stroke: var(--c); stroke-opacity: .55; stroke-width: 1; }
+.ch .zf.soft { fill-opacity: .06; stroke-opacity: 0; }
+.ch .tx { fill: var(--c); font: 600 11.5px var(--sans); paint-order: stroke; stroke: var(--panel); stroke-width: 3.5px; stroke-linejoin: round; }
+.ch .tx.s { font-size: 10.5px; font-weight: 500; }
+.ch .dot { fill: var(--panel); stroke: var(--c); stroke-width: 2; }
+.ch .badge { fill: var(--c); }
+.ch .badge-t { fill: var(--panel); font: 700 11px var(--mono); }
+.ch .tagr { fill: var(--c); }
+.ch .tagt { fill: var(--panel); font: 600 10px var(--mono); }
+.ch .past { opacity: .55; }
+.ch .osc { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+
+/* Adım oynatıcı */
+.stepper { display: grid; gap: 8px; padding: 10px 4px 2px; }
+.stepbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sbtn { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 600 13px var(--cond); padding: 0 14px; min-height: 40px; border-radius: 5px; cursor: pointer; }
+.sbtn:hover { border-color: var(--ink-3); }
+.sbtn[disabled] { opacity: .4; cursor: default; }
+.dots { display: flex; gap: 6px; }
+.dots button { appearance: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--ink-3); font: 600 12px var(--mono); cursor: pointer; padding: 0; }
+.dots button[aria-current="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.dots button.done { color: var(--ink); border-color: var(--ink-3); }
+.stepcap { color: var(--ink-2); font-size: 14.5px; min-height: 3.2em; }
+.stepcap b { color: var(--accent); font-family: var(--cond); font-size: 15.5px; }
+
+/* Tablolar, kartlar */
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); background: var(--panel); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pos { color: var(--up); } .neg { color: var(--down); }
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.card h3 { font-size: 16.5px; }
+.card p { color: var(--ink-2); font-size: 14px; }
+.card .k { font: 600 11px var(--mono); color: var(--accent); letter-spacing: .06em; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 14px; font-size: 14px; }
+.facts dt { color: var(--ink-3); font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+.facts dd { margin: 0; color: var(--ink-2); }
+.facts dd .num { color: var(--ink); }
+
+/* Kontrol listesi */
+.check { display: grid; gap: 2px; }
+.check label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 10px; border-radius: 5px; cursor: pointer; color: var(--ink-2); }
+.check label:hover { background: var(--panel-2); }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--up); }
+.verdict { font: 600 15px var(--cond); padding: 10px 14px; border-radius: 5px; border: 1px solid var(--line); }
+.verdict.ok { color: var(--up); border-color: var(--up); }
+.verdict.no { color: var(--down); border-color: var(--down); }
+
+/* Hesaplayıcı */
+.calc { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; }
+@media (max-width: 820px) { .calc { grid-template-columns: minmax(0, 1fr); } }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.field { display: grid; gap: 4px; }
+.field label { font: 500 12px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+.field input { font: 500 15px var(--mono); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; min-height: 42px; width: 100%; }
+.field input[type="range"] { padding: 0; accent-color: var(--accent); background: none; border: 0; }
+.out { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
+.o { border-top: 1px solid var(--line); padding-top: 6px; }
+.o .l { font: 500 11.5px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+.o .v { font: 600 20px var(--mono); font-variant-numeric: tabular-nums; }
+.warn { grid-column: 1 / -1; padding: 9px 12px; border-radius: 5px; font-size: 14px; border: 1px solid var(--line); }
+.warn.bad { color: var(--down); border-color: var(--down); }
+.warn.good { color: var(--up); border-color: var(--up); }
+
+/* Isı haritası */
+.heat td { text-align: center; font: 500 12.5px var(--mono); padding: 7px 4px; border: 1px solid var(--bg); }
+.heat th { text-align: center; }
+.heat td.mark { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+/* Poster */
+.rules { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); counter-reset: r; }
+.rule { border: 1px solid var(--accent); border-radius: 6px; padding: 16px; display: grid; gap: 6px; counter-increment: r; }
+.rule::before { content: "KURAL " counter(r); font: 600 11px var(--mono); color: var(--accent); letter-spacing: .08em; }
+.rule p { font: 600 18px/1.3 var(--cond); }
+
+/* Alıştırma */
+.quiz { display: grid; gap: 18px; }
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 10px; }
+.q .qh { display: flex; gap: 10px; align-items: baseline; }
+.q .qh .k { font: 600 12px var(--mono); color: var(--accent); }
+.q .qt { font: 600 16.5px var(--cond); }
+.q figure { border: 0; padding: 0; background: none; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 500 14px var(--sans); padding: 8px 14px; min-height: 42px; border-radius: 5px; cursor: pointer; text-align: left; }
+.opt:hover { border-color: var(--ink-3); }
+.opt.right { border-color: var(--up); color: var(--up); }
+.opt.wrong { border-color: var(--down); color: var(--down); }
+.fb { font-size: 14px; color: var(--ink-2); border-left: 2px solid var(--line); padding-left: 10px; }
+.fb.right { border-color: var(--up); } .fb.wrong { border-color: var(--down); }
+.score { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); justify-self: end; background: var(--panel-2); border: 1px solid var(--line); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--mono); }
+
+.note { font-size: 13px; color: var(--ink-3); max-width: 80ch; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-3); padding-top: 18px; border-top: 1px solid var(--line); margin-top: 40px; }
+@media (prefers-reduced-motion: no-preference) { .ch svg .now { animation: fadein .35s ease-out; } @keyframes fadein { from { opacity: .2; } to { opacity: 1; } } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="titleblock">
+  <div>
+    <h1>SMC Price Action Eğitimi</h1>
+    <p class="lead">Likiditeyi okumak, süpürmeyi beklemek, yapı değişimini teyit etmek ve riski R ile yönetmek. Her kavram çizimli bir grafikle; kurulum adım adım oynatılır; sonda kendini test edersin.</p>
+  </div>
+  <div class="meta" aria-label="Belge bilgisi">
+    <span>Kaynak</span><span>docs/egitim 01–06</span>
+    <span>Rev.</span><span>2 · 24.10.2026</span>
+    <span>Süre</span><span>≈ 4–5 saat</span>
+    <span>Mod</span><span>kâğıt işlem</span>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Modüller"><div class="tabs-in" role="tablist">
+  <button class="tab" role="tab" data-t="baslangic"><span class="n">00</span>Başlangıç</button>
+  <button class="tab" role="tab" data-t="temeller"><span class="n">01</span>Temeller</button>
+  <button class="tab" role="tab" data-t="kurulum"><span class="n">02</span>Kurulum</button>
+  <button class="tab" role="tab" data-t="risk"><span class="n">03</span>Risk</button>
+  <button class="tab" role="tab" data-t="ornekler"><span class="n">04</span>Örnekler</button>
+  <button class="tab" role="tab" data-t="olcum"><span class="n">05</span>Ölçüm</button>
+  <button class="tab" role="tab" data-t="rutin"><span class="n">06</span>Rutin</button>
+  <button class="tab" role="tab" data-t="alistirma"><span class="n">07</span>Alıştırma</button>
+</div></nav>
+
+<!-- ============ 00 BAŞLANGIÇ ============ -->
+<section class="panel" id="p-baslangic" role="tabpanel">
+  <div class="intro">
+    <span class="eyebrow">00 · Başlangıç</span>
+    <h2>Bir okuma dili öğreniyorsun, sinyal değil</h2>
+    <p>Bu eğitim arkadaşının SMC / ICT yöntemini temel alıyor. Kaynaklar onun gönderdiği grafikler, soru listesine verdiği cevaplar (Ekim 2026) ve bizim backtest ölçümlerimiz. Yöntemin tamamı tek bir hikâyeye dayanıyor. Aşağıdaki grafik o hikâyenin dört adımını gösteriyor.</p>
+  </div>
+  <figure><div class="ch" data-chart="story"></div>
+    <figcaption><b>Dört adımlık hikâye:</b> likidite nerede birikmiş → fiyat onu süpürür (tuzak) → yapı ters yöne döner (MSS) → fiyat karşı taraftaki likiditeye gider. Bütün sekmeler bu hikâyenin bir parçasını açar.</figcaption></figure>
+
+  <div class="cards">
+    <div class="card"><span class="k">01 · TEMELLER</span><h3>Sözlük ve grafik okuma</h3><p>Likidite, süpürme, BOS/MSS, FVG, order block, premium/discount, OTE, seanslar, RSI. Her biri bir çizimle.</p><p class="dim">1–2 saat</p></div>
+    <div class="card"><span class="k">02 · KURULUM</span><h3>Süpürme → MSS → FVG %50</h3><p>XRP örneği 6 adımda oynatılır. Etkileşimli kontrol listesi ve sık yapılan üç hata.</p><p class="dim">1 saat</p></div>
+    <div class="card"><span class="k">03 · RİSK</span><h3>R, pozisyon büyüklüğü, limitler</h3><p>Pozisyon hesaplayıcı, aynı işlemlerin farklı riskle sonucu, kısmi kâr ve doğal hedge.</p><p class="dim">30 dk</p></div>
+    <div class="card"><span class="k">04 · ÖRNEKLER</span><h3>BTC, XRP, AAVE, COMP</h3><p>Arkadaşının işaretlediği seviyelerle yeniden çizilmiş grafikler; bağlam, giriş, stop, hedef, sonuç.</p><p class="dim">1 saat</p></div>
+    <div class="card"><span class="k">05 · ÖLÇÜM</span><h3>Kural olarak ne kadar işe yarıyor</h3><p>24 aylık backtest, beklenti ısı haritası, şans payı simülasyonu ve kendi işlem günlüğün.</p><p class="dim">30 dk</p></div>
+    <div class="card"><span class="k">06 · RUTİN</span><h3>Günde 20 dakika</h3><p>Sabah işaretleme akışı, Türkiye saatiyle seans haritası, haftalık gözden geçirme.</p><p class="dim">15 dk</p></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Nasıl çalışılır</span>
+      <h3>İki hafta işlem yok, yalnız işaretle</h3>
+      <ol>
+        <li>01 ve 02'yi oku. TradingView'da bir coinin 4H ve 15m grafiğini aç. 06'daki rutini <b>işlem açmadan</b> iki hafta uygula.</li>
+        <li>Pas geçtiğin kurulumları da günlüğe yaz. Arkadaşının yönteminde ölçemediğimiz tek şey hangi kurulumu aldığı, hangisini pas geçtiği. Senin öğrenmen gereken de bu.</li>
+        <li>30 işaretleme birikince kazanma oranını ve ortalama R'yi dürüstçe hesapla. 05'teki şablon ve hesaplayıcı bunun için.</li>
+        <li>Sonunda 07 · Alıştırma sekmesindeki 9 soruyla kendini test et.</li>
+      </ol>
+    </div>
+    <div class="txt">
+      <span class="tag">Dürüst not</span>
+      <h3>Kural olarak backtest kâr göstermedi</h3>
+      <p>Bu yöntemin mekanik hali 24 ayda ve 50 coinde kâr üretmedi (05 · Ölçüm). Yani yöntem bir sinyal üreticisi değil, bir <b>okuma dili</b>. Para, hangi kurulumu aldığında, hangisini almadığında ve risk disiplininde.</p>
+      <p class="quote">"Kurallara disiplinli uyduğum bir ay bile olmadı." — arkadaşının kendi cevabı</p>
+      <p>Önce disiplin, sonra kurulum.</p>
+    </div>
+  </div>
+  <p class="note">Grafikler öğretim amaçlı çizimlerdir. Mumlar temsilîdir. Örnekler sekmesindeki fiyat seviyeleri arkadaşının grafiklerinden alındı.</p>
+</section>
+
+<!-- ============ 01 TEMELLER ============ -->
+<section class="panel" id="p-temeller" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">01 · Temeller</span>
+    <h2>SMC / ICT sözlüğü, grafik üzerinde</h2>
+    <p>Her kavramda üç parça var: tanım, grafikte nasıl göründüğü ve bizim tarayıcıdaki karşılığı. Önce grafiğe bak, sonra metni oku.</p>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">1 · Likidite</span>
+      <h3>Fiyat stopların olduğu yere akar</h3>
+      <p>Likidite, stop emirlerinin biriktiği fiyatlardır. Alıcıların stopları diplerin altında, satıcıların stopları tepelerin üstünde durur. Büyük oyuncu pozisyon açmak için bu emirlere ihtiyaç duyar.</p>
+      <ul>
+        <li><b>Eşit tepeler / dipler (EQH/EQL):</b> iki-üç kez aynı yere gelen tepe ya da dip. En net tuzak.</li>
+        <li><b>Eski swing tepe/dip:</b> belirgin dönüş noktaları.</li>
+        <li><b>PDH/PDL, PWH/PWL:</b> önceki günün ve haftanın tepe/dibi.</li>
+        <li><b>Seans tepe/dibi:</b> Asya, Londra, New York.</li>
+        <li><b>Trend çizgisi altı/üstü:</b> herkesin stop koyduğu yer.</li>
+      </ul>
+      <p class="ours">Bizde: <code>liquidity</code> detektörü (eşit tepe/dip, süpürme); lab <code>smc.js</code> içinde pivot, eşit seviye ve PDH/PDL.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="liq"></div><figcaption>Range içinde iki eşit tepe ve iki eşit dip. Mor çizgilerin hemen ötesinde stoplar birikir. Fiyat er geç bunlardan birini almaya gider.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">2 · Süpürme ve kırılım</span>
+      <h3>Fark mumun kendisinde değil, sonrasında</h3>
+      <p><b>Süpürme (sweep):</b> fiyat seviyeyi fitille geçer ama mum seviyenin bu tarafında kapanır. Stoplar alınmış, fiyat geri dönmüştür. Bu bir tuzaktır.</p>
+      <p><b>Kırılım (BOS):</b> mum seviyenin ötesinde gövdeyle kapanır ve orada kalır. Geri testte seviye destek olur.</p>
+      <p class="quote">"Süpürme fark etmez, fitil de olur kapanış da. Önemli olan sonrasında ters yöne MSS gelmesi."</p>
+      <p>Kapanışla geçip hemen geri dönen mum da süpürme sayılır. Ayırt edici olan, sonrasında ne olduğudur.</p>
+      <p class="ours">Bizde: lab <code>smc.js</code> süpürmeyi "fitil geçer, kapanış seviyenin bu tarafında (0,1 ATR pay)" diye tanımlar.</p>
+    </div>
+    <div class="figs two">
+      <figure><div class="ch" data-chart="sweep"></div><figcaption><b>Süpürme:</b> fitil eski tepenin üstüne çıktı, kapanış altında kaldı, fiyat düştü.</figcaption></figure>
+      <figure><div class="ch" data-chart="brk"></div><figcaption><b>Kırılım:</b> gövde üstte kapandı, geri test seviyeyi destek yaptı, yükseliş sürdü.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">3 · Yapı</span>
+      <h3>Swing, BOS ve MSS / CHoCH</h3>
+      <ul>
+        <li><b>Swing tepe/dip:</b> iki yanındaki mumlardan yüksek ya da alçak mum.</li>
+        <li><b>BOS:</b> trend yönünde son swing'in kırılması. Trend sürüyor.</li>
+        <li><b>MSS / CHoCH:</b> trendin tersine son swing'in kapanışla kırılması. Yükselişte son dip kırılırsa yapı değişmiştir.</li>
+      </ul>
+      <p>Arkadaşının tetiği budur: süpürmeden sonra ters yöne MSS. MSS'i yapan mum "istekli" olmalı, yani büyük gövdeli ve hızlı. Sürünerek kırmak zayıftır.</p>
+      <p class="ours">Bizde: <code>structure</code> detektörü (BOS/CHoCH); lab'de MSS = kapanış son minör dip/tepeyi geçer.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="struct"></div><figcaption>Yükselen dipler (HL) ve yükselen tepeler (HH) her BOS ile trendi teyit ediyor. Son tepe öncekini geçemiyor (LH). Ardından büyük kırmızı mum son dibi kapanışla kırıyor: <b>MSS</b>.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">4 · FVG ve IFVG</span>
+      <h3>Üç mumluk boşluk</h3>
+      <p><b>FVG (fair value gap):</b> yükselişte 1. mumun tepesi ile 3. mumun dibi arasında kalan alan. 2. mumun gövdesi bu alanı geçti ama orada neredeyse hiç işlem olmadı. Sert hareket (displacement) bırakır. Fiyat genelde geri gelip boşluğu "doldurur".</p>
+      <p><b>CE (consequent encroachment):</b> boşluğun %50'si. En çok izlenen seviye ve arkadaşının giriş noktası.</p>
+      <p><b>IFVG (inverted FVG):</b> kapanışla geçilen FVG. Artık ters yönde destek ya da direnç olur.</p>
+      <p class="ours">Bizde: <code>fvg</code> detektörü (açık, kısmen dolu, ters çevrilmiş); lab <code>fvgInLeg</code> süpürme→MSS bacağındaki son FVG.</p>
+    </div>
+    <div class="figs two">
+      <figure><div class="ch" data-chart="fvg"></div><figcaption><b>FVG:</b> 1 ve 3 numaralı mumların fitilleri arasında boşluk kaldı. Fiyat CE'ye kadar geri gelip tepki verdi.</figcaption></figure>
+      <figure><div class="ch" data-chart="ifvg"></div><figcaption><b>IFVG:</b> düşüşün bıraktığı FVG yukarı kapanışla geçildi. Geri testte aynı bölge destek oldu.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">5 · Order block</span>
+      <h3>Sert hareketten önceki son ters mum</h3>
+      <p>Yükselişten hemen önceki son kırmızı mum, kurumsal emirlerin kaldığı varsayılan alandır. FVG ile çakışırsa güçlenir.</p>
+      <p>XRP örneğinde (02 · Kurulum, 2. adım) süpürmenin geldiği yer "4H order block bölgesi"dir.</p>
+      <p class="ours">Bizde: <code>orderblock</code> detektörü.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="ob"></div><figcaption>Mavi kutu OB'dir (son kırmızı mum). Sarı kutu aynı hareketin FVG'sidir. Geri çekilme FVG'yi doldurup OB'nin üst kenarına dokundu, oradan yükseldi.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">6 · Premium / discount ve OTE</span>
+      <h3>Ucuzdan al, pahalıdan sat</h3>
+      <p>Bir range'in (swing dip → tepe) 0,5'i dengedir. Üstü <b>premium</b> (pahalı, short aranır), altı <b>discount</b> (ucuz, long aranır). Arkadaşın 0 / 0,25 / 0,5 / 0,75 / 1 çeyrek seviyelerini çizer.</p>
+      <p><b>OTE (optimal trade entry):</b> bacağın 0,62–0,79 geri çekilmesi (0,618 / 0,705 / 0,786). BTC long girişi tam 0,705'ten yapıldı. OTE ile FVG/OB çakışması en iyi giriştir.</p>
+      <p><b>Kural:</b> üst dilim yükselişteyse discount'ta long, düşüşteyse premium'da short. Premium'da long almak, yapı yükseliş olsa bile zayıf işlemdir.</p>
+      <p class="ours">Bizde: <code>fibonacci</code> detektörü (OTE, fib çakışması, 0,618×1,272 kesişimi), <code>structure.dealingRange</code>.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="pd"></div><figcaption>Dip→tepe bacağı. Üst yarı premium (kırmızımsı), alt yarı discount (yeşilimsi). Sarı bant OTE. Geri çekilme 0,705'e geldi ve yükseliş devam etti.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">7 · Üst dilimden alt dilime</span>
+      <h3>Yönü büyük dilim, girişi küçük dilim belirler</h3>
+      <ul>
+        <li><b>Günlük + 4H:</b> yön (yükselen/alçalan dip-tepe), büyük likidite ve FVG/OB bölgeleri işaretlenir.</li>
+        <li><b>1H / 15m:</b> fiyat bu bölgelere gelince giriş aranır: süpürme → MSS → FVG.</li>
+        <li><b>USDT.D:</b> yükseliyorsa kriptolar düşer. Arkadaşın yönü bununla teyit eder. Bizde USDT.D yok, BTC'nin günlük/4H eğilimi vekil (<code>regime.js</code>).</li>
+        <li>Altcoinde BTC yönünde işlem. BTC sert hareket ederken altcoinde ters işlem riskli.</li>
+      </ul>
+    </div>
+    <div class="figs two">
+      <figure><div class="ch" data-chart="htf"></div><figcaption><b>4H:</b> yön yukarı. Sert yükselişin bıraktığı FVG alım bölgesi. Fiyat oraya dönünce alt dilime inilir.</figcaption></figure>
+      <figure><div class="ch" data-chart="ltf"></div><figcaption><b>15m:</b> aynı bölgede tetik aranır. Süpürme, MSS, FVG %50'den giriş.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">8 · Seanslar ve killzone</span>
+      <h3>Asya range'i kurar, Londra süpürür</h3>
+      <p>Asya 00–07 UTC, Londra 07–10, New York 12–15 UTC civarı. Londra ya da NY açılışında Asya seansının tepesi veya dibi sık süpürülür.</p>
+      <p>Arkadaşın killzone'ları "riskli" sayar. Hareket orada olur ama tuzak da orada olur.</p>
+      <p>Hafta sonu hacim düşük, hareket sahte. Bizim 6 aylık ölçümde de hafta sonu her dilimde daha kötü çıktı. Bot hafta sonu sinyal göndermiyor.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="sess"></div><figcaption>İki gün, 1 saatlik mumlar. 1. gün Londra açılışı Asya dibini süpürdü ve gün yükselişle kapandı. 2. gün Asya tepesi süpürüldü ve düşüş geldi.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">9 · RSI ve hacim</span>
+      <h3>Uyumsuzluk varsa o yöne işlem yok</h3>
+      <p>Fiyat yeni dip yapıyor ama RSI daha yüksek dip yapıyorsa düşüş zayıflıyor demektir (pozitif uyumsuzluk). Bu durumda short alınmaz.</p>
+      <p>Arkadaşın kuralı: alacağın yönün <b>tersine</b> RSI uyumsuzluğu varsa işlemi almaz.</p>
+      <p>Seviyeye sert gelen büyük mumları hacim ve RSI desteklemiyorsa "manipülasyon" sayar. Bizim düşen bıçak koruması aynı gözleme dayanır.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="rsi"></div><figcaption>Fiyat: ikinci dip birinciden alçak. RSI(9): ikinci dip birinciden yüksek. Düşüş güç kaybediyor, short için kötü yer.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Küçük sözlük</span>
+      <div class="tw"><table>
+        <thead><tr><th>Kısaltma</th><th>Anlamı</th><th>Kısaltma</th><th>Anlamı</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">BOS</td><td>Kırılım, trend yönünde</td><td class="mono">PDH / PDL</td><td>Önceki günün tepe / dibi</td></tr>
+          <tr><td class="mono">MSS / CHoCH</td><td>Yapı değişimi, trende ters</td><td class="mono">EQH / EQL</td><td>Eşit tepe / dip</td></tr>
+          <tr><td class="mono">FVG</td><td>Üç mumluk boşluk</td><td class="mono">OTE</td><td>0,62–0,79 geri çekilme</td></tr>
+          <tr><td class="mono">CE</td><td>Boşluğun %50'si</td><td class="mono">DOL</td><td>Draw on liquidity, fiyatın çekildiği hedef</td></tr>
+          <tr><td class="mono">OB</td><td>Order block</td><td class="mono">RH / RL</td><td>Range tepesi / dibi</td></tr>
+          <tr><td class="mono">HTF / LTF</td><td>Üst / alt zaman dilimi</td><td class="mono">R</td><td>Risk birimi (stop mesafesi)</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 KURULUM ============ -->
+<section class="panel" id="p-kurulum" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">02 · Kurulum</span>
+    <h2>Süpürme → MSS → FVG %50 → karşı likidite</h2>
+    <p class="quote">"Süpürme fark etmez, yeter ki süpürsün. Süpürdükten sonra ters tarafa LTF'de bir MSS beklerim. MSS yaparken de FVG bırakmasını. Sonra o FVG'nin %50'sinden girmek isterim. Eğer bir range varsa RH ya da RL'dan girerim. Üst dilim yapısı yönünde işlem almak her zaman en iyisi. Eğer terse işlem alınacaksa 0,5R riske etmeli."</p>
+  </div>
+
+  <figure>
+    <div class="ch" data-chart="setup"></div>
+    <figcaption>XRP 15m, 24 Ekim. Arkadaşının işaretli örneğinden yeniden çizildi. <b>İleri</b> düğmesiyle grafiği mum mum oynat.</figcaption>
+  </figure>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Bu işlemin sayıları</span>
+      <dl class="facts">
+        <dt>Giriş</dt><dd><span class="num">1,2809</span> · FVG %50 = range dibi (RL) = OTE</dd>
+        <dt>Stop</dt><dd><span class="num">1,2766</span> · süpürme fitilinin altı</dd>
+        <dt>Hedef</dt><dd><span class="num">1,2957</span> · eşit tepeler + üstteki FVG</dd>
+        <dt>Risk</dt><dd><span class="num">0,0043</span> (%0,34)</dd>
+        <dt>Ödül</dt><dd><span class="num">0,0148</span> (%1,16)</dd>
+        <dt>R:R</dt><dd><span class="num">3,4</span></dd>
+      </dl>
+      <span class="tag" style="margin-top:10px">Range kuralı</span>
+      <p>Fiyat belirgin bir range'deyse girişler range dibi (RL) ve tepesi (RH) civarında aranır. Süpürme bu uçlarda olur, hedef karşı uçtur. Range ortasında (0,5 civarı) işlem yok.</p>
+    </div>
+    <div class="txt">
+      <span class="tag">Kontrol listesi · işaretle</span>
+      <div class="check" id="checklist"></div>
+      <div class="verdict no" id="verdict" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Sık yapılan üç hata · aynı grafik üzerinde</span>
+      <h3>Acele eden, FOMO yapan ve hedefi uzatan</h3>
+    </div>
+    <div class="figs" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+      <figure><div class="ch" data-chart="err1"></div><figcaption><b>1. MSS beklemeden girmek.</b> Süpürmeyi görüp range'e dönüşte long açan, sıkı stopla ikinci düşüşte stop oldu. Doğrusu: kapanışla MSS'i beklemek.</figcaption></figure>
+      <figure><div class="ch" data-chart="err2"></div><figcaption><b>2. FVG'nin kenarından girmek.</b> Aynı stop ve hedefle FVG üst kenarından giriş R:R'ı 3,4'ten 2,2'ye düşürür. Stop mesafesi uzar, ödül kısalır.</figcaption></figure>
+      <figure><div class="ch" data-chart="err3"></div><figcaption><b>3. Hedefi "hissederek" uzatmak.</b> Hedef likiditeydi. Likidite alınınca hikâye bitti, fiyat geri döndü. "Biraz daha" diyen kârını geri verdi.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Pas geçme nedenleri · arkadaşının listesi</span>
+      <ul>
+        <li>Alacağı yöne ters RSI uyumsuzluğu var.</li>
+        <li>USDT.D yönü desteklemiyor (bizde: BTC eğilimi ters).</li>
+        <li>Süpürdü, geri kapattı ama <b>ters yönde alınacak likidite yok</b>. Hedef yoksa işlem yok.</li>
+        <li>Fiyat seviyeye çok sert geldi, hacim ve RSI desteklemiyor (manipülasyon).</li>
+      </ul>
+    </div>
+    <div class="txt">
+      <span class="tag">Sık hatanın dördüncüsü</span>
+      <p><b>Stopu MSS'i yapan swing'in içine koymak.</b> Normal bir geri test stopu alır. Stop her zaman süpürme fitilinin ya da yapının ötesinde durur. Pozisyon büyüklüğünü stop mesafesine göre küçültürsün, stopu yaklaştırmazsın (03 · Risk).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 RİSK ============ -->
+<section class="panel" id="p-risk" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">03 · Risk ve yönetim</span>
+    <h2>Her şey R ile konuşulur</h2>
+    <p><b>1R = stop olursa kaybedeceğin para.</b> İşlem başına risk hesabın %1'i. 1 000 USDT hesapta 1R = 10 USDT. Kaldıraç risk değildir. Pozisyon büyüklüğü stop mesafesinden hesaplanır, kaldıraç yalnız bu nominali hangi marjinle taşıdığını belirler.</p>
+  </div>
+
+  <div class="calc" id="calc">
+    <div class="fields">
+      <div class="field"><label for="c-acct">Hesap (USDT)</label><input id="c-acct" type="number" value="1000" step="50" inputmode="decimal"></div>
+      <div class="field"><label for="c-risk">Risk (%)</label><input id="c-risk" type="number" value="1" step="0.25" inputmode="decimal"></div>
+      <div class="field"><label for="c-entry">Giriş</label><input id="c-entry" type="number" value="1.2809" step="0.0001" inputmode="decimal"></div>
+      <div class="field"><label for="c-stop">Stop</label><input id="c-stop" type="number" value="1.2766" step="0.0001" inputmode="decimal"></div>
+      <div class="field"><label for="c-tgt">Hedef</label><input id="c-tgt" type="number" value="1.2957" step="0.0001" inputmode="decimal"></div>
+      <div class="field"><label for="c-lev">Kaldıraç (x)</label><input id="c-lev" type="number" value="10" step="1" min="1" inputmode="numeric"></div>
+    </div>
+    <div class="out" id="calc-out"></div>
+    <div style="grid-column: 1 / -1"><div class="ch" data-chart="calcviz"></div></div>
+  </div>
+  <p class="note">Formül: nominal = risk USDT ÷ stop mesafesi (%). Likidasyon yaklaşık giriş × (1 ∓ (1/kaldıraç − %0,5)). Stop her zaman likidasyonun içinde kalmalı. Varsayılan değerler 02'deki XRP işlemi.</p>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Aynı 150 işlem, farklı risk</span>
+      <h3>Kenarın olsa bile büyük risk seni yorar ve geri bırakır</h3>
+      <p>Aşağıdaki 150 işlemin sırası dört çizgide de aynı: kazanma %35, kazanınca +2,2R, kaybedince −1R. Beklenti işlem başına +0,12R. Bu, bizim 4H botunun ölçülen kenarına yakın, yani gerçekçi bir sistem. Tek fark işlem başına riske edilen yüzde.</p>
+      <p>%10 riskte bakiye %5'tekinden daha az büyüdü, üstelik yolda hesabın dörtte üçü eridi. Kazanma oranı birkaç puan düşük gelseydi aynı %10 risk hesabı sıfırlardı. %1–2 riskte aynı kayıp serileri küçük çukurlar olarak kalıyor.</p>
+      <div class="tw"><table id="simtbl"></table></div>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="riskSim"></div><figcaption>Başlangıç 1 000 USDT, her işlemde güncel bakiyenin yüzdesi riske ediliyor. Logaritmik ölçek: aynı yükseklik aynı yüzde değişim.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Kayıptan dönüş</span>
+      <h3>%50 kaybı kapatmak için %100 kazanç gerekir</h3>
+      <p>Günlük 2–3R ve haftalık 5–6R kayıp sınırı bu yüzden var. Sınır dolunca ekranı kapat. "Yoksa düzeltmek için daha fazla risk alırsın."</p>
+      <p id="streak" class="ours"></p>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="recover"></div><figcaption>Kaybedilen yüzde (kırmızı) ve başa dönmek için gereken kazanç (yeşil).</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Hedef ve kısmi kâr</span>
+      <h3>Güvenmiyorsan 1R'de yarısını kapat</h3>
+      <ul>
+        <li>Hedef karşı likidite ya da karşı FVG'dir. Hedefe gelince işlem biter, uzatma yok.</li>
+        <li><b>Güvenmiyorsan:</b> 1R kârda yarısını kapat, stopu girişe çek.</li>
+        <li><b>Güveniyorsan:</b> tam hedef. 4R'lik işlemde 2,5–3R hızlı geldiyse tamamını kapat: "1R daha almak için risk almaya gerek yok."</li>
+        <li>Stop hiç genişletilmez: "Yararı da oldu zararı da, zararı daha çok."</li>
+        <li>R:R en az 2–2,5. Hedef daha yakınsa işlem yok.</li>
+      </ul>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="partial"></div><figcaption>3R hedefli bir işlemin üç olası yolu. Kısmi kâr, kazananı küçültür ama "1R'ye gidip dönen" işlemi kayıptan kâra çevirir.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Kaç işlem, ne zaman yok</span>
+      <h3>En fazla 2 işlem, mümkünse ters yönde</h3>
+      <p>Hepsi aynı yöndeyse tek bir BTC hareketi hepsini stoplar. Biri long biri short ise doğal hedge oluşur.</p>
+      <ul>
+        <li>Hafta sonu işlem yok. Haber saatlerinde işlem yok.</li>
+        <li>Londra/NY açılışı riskli: önce işaretle sonra bekle, ya da hiç girme.</li>
+        <li>Altcoinde BTC yönünde işlem. BTC sert hareket ederken ters altcoin işlemi yok.</li>
+      </ul>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="hedge"></div><figcaption>Piyasa düştü: long 1R kaybetti, short 2R kazandı, net +1R. İkisi de long olsaydı sonuç −2R olurdu.</figcaption></figure></div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Hazır tablo · 1 000 USDT, %1 risk (10 USDT)</span>
+      <div class="tw"><table>
+        <thead><tr><th class="n">Stop mesafesi</th><th class="n">Nominal</th><th class="n">10x marjin</th><th class="n">25x marjin</th><th>Not</th></tr></thead>
+        <tbody>
+          <tr><td class="n">%0,5</td><td class="n">2 000</td><td class="n">200</td><td class="n">80</td><td>25x'te likidasyon ≈ %3,5 uzakta, stop içeride</td></tr>
+          <tr><td class="n">%1</td><td class="n">1 000</td><td class="n">100</td><td class="n">40</td><td></td></tr>
+          <tr><td class="n">%2</td><td class="n">500</td><td class="n">50</td><td class="n">20</td><td></td></tr>
+          <tr><td class="n">%3</td><td class="n">333</td><td class="n">33</td><td class="n">13</td><td class="neg">25x'te likidasyon stoptan önce gelebilir, kaldıracı düşür</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 ÖRNEKLER ============ -->
+<section class="panel" id="p-ornekler" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">04 · Örnekler</span>
+    <h2>Arkadaşının grafikleri, adım adım</h2>
+    <p>Her örnekte aynı sıra var: bağlam → likidite → tetik → giriş/stop/hedef → ne oldu. Seviyeler arkadaşının grafiklerinden, mumlar temsilîdir. Tarihler Ekim 2026.</p>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">A1 · BTC 1H · long · 20 Ekim 17:09</span>
+      <h3>Discount'ta OTE 0,705'ten long</h3>
+      <dl class="facts">
+        <dt>Bağlam</dt><dd>7 Ekim düşüşü (<span class="num">84 362 → 80 344</span>) çeyrek fibinde fiyat 0,25–0,5 arasında, yani discount. Yukarıda FVG (<span class="num">84 360–84 900</span>) ve eşit tepeler <span class="num">84 358</span>.</dd>
+        <dt>Bacak</dt><dd><span class="num">80 622 → 83 157</span>. 0,618 = <span class="num">81 595</span>, 0,705 = <span class="num">81 356</span>, 0,786 = <span class="num">81 158</span>.</dd>
+        <dt>Giriş</dt><dd><span class="num">81 354</span> (OTE 0,705)</dd>
+        <dt>Stop</dt><dd><span class="num">80 622</span> altı · risk <span class="num">732</span></dd>
+        <dt>Hedef</dt><dd><span class="num">84 357</span> likidite · ödül <span class="num">3 003</span></dd>
+        <dt>R:R</dt><dd><span class="num">4,1</span></dd>
+        <dt>Sonuç</dt><dd class="pos">22 Ekim'de <span class="num">84 400</span>, hedef görüldü.</dd>
+      </dl>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="btcLong"></div><figcaption>Gri kesikli çizgiler büyük düşüşün çeyrekleri. Sarı bant OTE (bacağın 0,618–0,786'sı). Hedef, üstteki eşit tepelerdeki likidite.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">A2–A3 · BTC 1H · short · 21–24 Ekim</span>
+      <h3>Aynı seviye, ters hikâye</h3>
+      <dl class="facts">
+        <dt>Bağlam</dt><dd>Haftalık ve günlük yapı yükseliş, ama bölge premium ve yükselen kanal daralıyor. Üstte eşit tepeler (<span class="num">84 350</span>) ve FVG (<span class="num">84 350–85 253</span>).</dd>
+        <dt>Senaryo</dt><dd>Fiyat eşit tepeleri süpürür, FVG'ye girer, reddedilir, alttaki likiditeye (<span class="num">80 338</span>) iner.</dd>
+        <dt>Giriş</dt><dd>FVG alt kenarı ≈ <span class="num">84 350</span></dd>
+        <dt>Stop</dt><dd><span class="num">85 253</span> (FVG üstü)</dd>
+        <dt>Hedef</dt><dd><span class="num">80 338</span> · R:R <span class="num">4,4</span></dd>
+        <dt>Sonuç</dt><dd>22 Ekim fitil <span class="num">84 358</span> üstüne (süpürme), sert dönüş. 24 Ekim <span class="num">80 689</span>, hedefe birkaç yüz dolar.</dd>
+      </dl>
+      <p>A1'in hedefi A2'nin girişi. Bir senaryo bitince ters yönde yenisi başlar: likidite alındı → tuzak → dönüş.</p>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="btcShort"></div><figcaption>Önce plan (21 Ekim), sonra sonuç (24 Ekim). İleri düğmesiyle geç.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">B · XRP 15m · short planı · 24 Ekim 09:34</span>
+      <h3>Düşüşün FVG'sine tepki satışı</h3>
+      <dl class="facts">
+        <dt>Bağlam</dt><dd>Sert düşüş <span class="num">1,3004 → 1,2807</span>, geride FVG (<span class="num">1,2958–1,3050</span>). Çeyrek fibte 0,5 = <span class="num">1,2882</span>, fiyat tam dengede.</dd>
+        <dt>Senaryo</dt><dd>FVG'ye tepki, ret, dibe dönüş.</dd>
+        <dt>Giriş</dt><dd><span class="num">1,2958</span></dd>
+        <dt>Stop</dt><dd><span class="num">1,3004</span></dd>
+        <dt>Hedef</dt><dd><span class="num">1,2807</span> · R:R <span class="num">3,3</span></dd>
+      </dl>
+      <p>Aynı gün öğleden sonra fiyat bu plana gelmedi. Önce aşağıdaki likiditeyi süpürüp long kurulumunu verdi. O işlem 02 · Kurulum sekmesinde adım adım var. Plan yazmak, plana gelmezse işlem yapmamayı da içerir.</p>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="xrpShort"></div><figcaption>Sağdaki boş alan plan. Kesikli kutular henüz dolmamış bir emri gösteriyor.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">C · Fib kesişimi (0,618 × 1,272)</span>
+      <h3>İki ölçü aynı yeri gösterince</h3>
+      <p>Önceki büyük itkinin <b>0,618 geri çekilmesi</b> ile düzeltmenin ilk bacağının (A) <b>1,272 uzantısı</b> aynı fiyata düşüyorsa orası işlem bölgesidir. Yön itkinin yönüdür. Tarayıcıda "Fib kesişimi" preseti bu bölgeyi çizer.</p>
+      <div class="tw"><table>
+        <thead><tr><th></th><th class="n">İtki</th><th class="n">0,618</th><th class="n">A bacağı</th><th class="n">1,272</th><th>Yön</th></tr></thead>
+        <tbody>
+          <tr><td>AAVE 15m</td><td class="n">157,98 → 150,39</td><td class="n">155,08</td><td class="n">150,86 → 154,12</td><td class="n">155,00</td><td class="neg">short</td></tr>
+          <tr><td>COMP 1H</td><td class="n">20,61 → 21,79</td><td class="n">21,06</td><td class="n">21,70 → 21,22</td><td class="n">21,08</td><td class="pos">long</td></tr>
+          <tr><td>ARB</td><td class="n">0,2497 → 0,163</td><td class="n">0,2207</td><td class="n">—</td><td class="n">0,2211</td><td class="neg">short</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Ölçüm: bu aile 24 ayda −0,02 … −0,15R verdi (05). Görme aracı olarak kullan.</p>
+    </div>
+    <div class="figs">
+      <figure><div class="ch" data-chart="aave"></div><figcaption><b>AAVE 15m short.</b> İtkinin 0,618'i 155,08, A bacağının 1,272'si 155,00. Fiyat 155,06'da döndü. Stop 157,98 üstü, hedef 148,6.</figcaption></figure>
+      <figure><div class="ch" data-chart="comp"></div><figcaption><b>COMP 1H long.</b> 0,618 = 21,06 ve 1,272 = 21,08 üst üste. Fiyat 21,07'den döndü ve 23'ün üstüne çıktı.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Örneklerden çıkan ortak dil</span>
+      <div class="cards">
+        <div class="card"><span class="k">1</span><p>Önce <b>likidite nerede</b> sorusu. Giriş değil, hedef ve tuzak aranır.</p></div>
+        <div class="card"><span class="k">2</span><p>Giriş hep bir <b>geri dönüşte</b> (FVG/OTE), hiç kovalamada değil.</p></div>
+        <div class="card"><span class="k">3</span><p>Stop yapısal (fitil/swing ötesi), hedef karşı likidite. Bu yüzden R:R 3–4.</p></div>
+        <div class="card"><span class="k">4</span><p>Her senaryo bir hikâye. Hikâye bozulursa (MSS yok) beklenir.</p></div>
+      </div>
+      <p class="note">Uyarı: bunlar bir haftalık dilimden seçilmiş başarılı örnekler. Arşivde çalışmayanlar da var.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 ÖLÇÜM ============ -->
+<section class="panel" id="p-olcum" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">05 · Ölçüm</span>
+    <h2>Kural olarak ne kadar işe yarıyor</h2>
+    <p>Arkadaşının kuralını mekanik olarak kodladık (<span class="mono">backtest/lab/smc.js</span>): likidite süpürmesi → 1H'de 12, 4H'de 6 mum içinde kapanışla MSS → bacakta FVG → %50'sine limit → stop fitil ötesi → hedef karşı likidite ≥ 2R. Test 24 ay, 1H/4H, hacme göre ilk 50 coin, komisyon ve kayma dahil.</p>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Sonuç</span>
+      <h3>Tek başına bir kenar değil</h3>
+      <p>Kazanç olduğunda BTC'nin yönünden geliyor (korelasyon 0,5). BTC yatayken her varyant yaklaşık −0,5R. Kurulum sık doluyor (%60) ama işlemlerin dörtte üçü stop oluyor.</p>
+      <p><b>Hedge'li R:</b> her işleme eşit nominal ters BTC eklenmiş hali. Kazancın coin seçiminden mi yoksa BTC'nin yönünden mi geldiğini gösterir.</p>
+      <p>Referans olarak bizim canlı 4H sinyal düzenimiz de grafikte. Zayıf ama iki dilimde pozitif.</p>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="bt"></div><figcaption>Ortalama R, eğitim (ilk 2/3) ve doğrulama (son 1/3) dilimleri. Sıfırın solu zarar.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Neden arkadaşın yine de kazanıyor olabilir</span>
+      <ul>
+        <li><b>Seçicilik:</b> hangi süpürmeyi alıp hangisini pas geçtiği. Bunu ölçemedik. "Pas geçtiğin 3–5 kurulum" cevabını bekliyoruz.</li>
+        <li><b>Bağlam:</b> HTF FVG/OB çakışması, USDT.D, RSI uyumsuzluğu, seans zamanlaması. Bunlar kodda yok ya da kaba.</li>
+        <li><b>Yönetim:</b> 2,5–3R hızlı gelince kapatmak, güvensizde 1R'de yarı. Kısmen test edildi, tek başına yetmedi.</li>
+        <li><b>Hayatta kalma kuralları:</b> günlük 2–3R limit, en fazla 2 işlem. Getiriyi değil, hesabın ömrünü belirler.</li>
+        <li><b>Hafıza yanılgısı:</b> örnekler akılda kalanlardır.</li>
+      </ul>
+    </div>
+    <div class="txt">
+      <span class="tag">Beklenti hesaplayıcı</span>
+      <div class="fields">
+        <div class="field"><label for="e-win">Kazanma oranı: <span id="e-win-v" class="num">35</span>%</label><input id="e-win" type="range" min="10" max="90" value="35"></div>
+        <div class="field"><label for="e-rr">Ort. kazanç: <span id="e-rr-v" class="num">2,5</span>R</label><input id="e-rr" type="range" min="0.5" max="5" step="0.1" value="2.5"></div>
+      </div>
+      <div class="out" id="e-out"></div>
+      <p class="note">Beklenti = kazanma × ort. kazanç − kaybetme × 1R. Komisyon hariç.</p>
+    </div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Beklenti ısı haritası</span>
+      <h3>Hangi sayı iyi?</h3>
+      <p>R:R 3 ile %35–45 kazanma ve ortalama +0,3R üstü iyidir. %60 kazanma ve ortalama 0 kötüdür: küçük kazanç sık, büyük kayıp seyrek ama ağır.</p>
+      <p>Çerçeveli hücre backtestteki temel kurulumun yaklaşık yeri: %25 kazanma, ortalama kazanç ≈ 2,6R.</p>
+      <p>Bizim sinyal botu referansı: 4H düzeni doğrulamada +0,08R, kazanma %79. Kazanma oranı erken kâr yönetimi yüzünden yüksek.</p>
+    </div>
+    <div class="figs"><div class="tw"><table class="heat" id="heat"></table></div></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Şans payı</span>
+      <h3>30 işlem az, 100 işlem bir şey söyler</h3>
+      <p>Grafikteki 24 çizginin hepsi <b>kenarı sıfır</b> olan aynı yöntem: kazanma %33, kazanınca +2R. Sadece şans farklı.</p>
+      <p>30. işlemde bazıları +6R'de, bazıları −8R'de. 30 işlemde +3R toplam tamamen şans olabilir. 100 işlemde +10R ise ciddi bir işarettir.</p>
+      <p>Bu yüzden CLAUDE.md kuralı: n &lt; 30 ile iddia yok, n &lt; 100 sonuçsuz.</p>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="luck"></div><figcaption>Kenarı sıfır bir yöntemin 24 farklı şans dizisi, 100 işlem. Dikey çizgi 30. işlem.</figcaption></figure></div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Senin ölçümün · işlem günlüğü</span>
+      <h3>Pas geçtiklerini de yaz</h3>
+      <p>Her işaretlemeyi yaz, aldın ya da almadın. 30 satır dolmadan sonuç çıkarma. Sonuç R'yi gerçek çıkıştan yaz, "aslında hedefe gitti" yazma. BTC sütunu: işlem sırasında BTC ±%1'den fazla gitti mi? 30 satır sonra "BTC yatayken" grubunu ayrı topla. Yöntem orada da kazanıyorsa gerçek seçicilik var.</p>
+      <div class="tw"><table>
+        <thead><tr><th>Tarih-saat</th><th>Coin / TF</th><th>Yön</th><th>Süpürülen seviye</th><th>MSS</th><th class="n">FVG %50</th><th class="n">Stop</th><th class="n">Hedef</th><th class="n">R:R</th><th>Aldın mı / neden</th><th class="n">Sonuç R</th><th>BTC</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">24.10 14:00</td><td>XRP 15m</td><td class="pos">long</td><td>eşit dipler + 4H OB</td><td>evet, istekli</td><td class="n">1,2809</td><td class="n">1,2766</td><td class="n">1,2957</td><td class="n">3,4</td><td>evet · RL + OTE çakışması</td><td class="n pos">+2,9</td><td>yatay</td></tr>
+          <tr><td class="mono">25.10 10:15</td><td>SOL 15m</td><td class="neg">short</td><td>Asya tepesi</td><td>evet</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">1,6</td><td>hayır · R:R &lt; 2</td><td class="n dim">(ne oldu?)</td><td>yukarı</td></tr>
+          <tr><td class="mono">…</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">İkinci satır örnek amaçlıdır. 30 satır sonra: kazanma oranı, ortalama R, toplam R ve "pas geçtim ama hedefe gitti" oranı.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 RUTİN ============ -->
+<section class="panel" id="p-rutin" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">06 · Rutin</span>
+    <h2>Günlük 20 dakika, haftalık 1 saat</h2>
+    <p>Amaç işlem açmak değil, işaretleme alışkanlığı kazanmak. İlk iki hafta işlem yok, yalnız işaretle ve günlüğe yaz.</p>
+  </div>
+
+  <figure><div class="ch" data-chart="routine"></div><figcaption>Sabah rutini, 09–10 TR (Asya kapanışına yakın). Kutuların genişliği süreyle orantılı.</figcaption></figure>
+
+  <div class="cards">
+    <div class="card"><span class="k">1 · 3 DK</span><h3>BTC günlük + 4H</h3><p>Yön (son dip-tepe yapısı). Fiyat premium mu discount mu (son büyük range'in 0,5'i)? Tarayıcı başlığında ve <span class="mono">signals.html</span>'de rejim var.</p></div>
+    <div class="card"><span class="k">2 · 1 DK</span><h3>USDT.D yerine BTC 4H</h3><p>Tarayıcıdaki "BTC: günlük … · 4H …" satırı. Altcoin işlemi bu yönde.</p></div>
+    <div class="card"><span class="k">3 · 8 DK</span><h3>İzleme listesi, 5–8 coin</h3><p>4H'de işaretle: eşit tepe/dip, PDH/PDL, son swing, açık FVG/OB. Önce kendin çiz, sonra ICT / SMC presetiyle karşılaştır.</p></div>
+    <div class="card"><span class="k">4 · 3 DK</span><h3>Senaryo cümlesi</h3><p>"X süpürülürse ve 15m'de MSS gelirse FVG %50'den long; hedef Y; R:R ≥ 2 mi?" Yazmadıysan senaryo yok demektir.</p></div>
+    <div class="card"><span class="k">5 · 5 DK</span><h3>Günlük</h3><p>Dünkü senaryolar ne oldu? 05'teki tabloya yaz.</p></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Gün içi · yalnız alarm</span>
+      <ul>
+        <li>TradingView'da seviyeye alarm kur. Alarm gelince <b>bakma, bekle</b>: 15m'de kapanışla MSS ve FVG lazım.</li>
+        <li>MSS geldiyse FVG %50'ye limit emir, stop fitil ötesi, hedef karşı likidite. R:R &lt; 2 ise emir yok.</li>
+        <li>Londra ve NY açılışında (10:00 ve 15:30 TR) yeni emir girme. Mevcut emirler kalır.</li>
+      </ul>
+    </div>
+    <div class="figs"><figure><div class="ch" data-chart="clock"></div><figcaption>Türkiye saatiyle bir gün (UTC+3). Kırmızı şeritler yeni emir girilmeyen açılış pencereleri.</figcaption></figure></div>
+  </div>
+
+  <div class="concept">
+    <div class="txt">
+      <span class="tag">Haftalık · Pazar, 1 saat · işaretle</span>
+      <div class="check" id="weekly"></div>
+      <p class="note">İşaretler yalnız bu tarayıcıda saklanır.</p>
+    </div>
+    <div class="txt">
+      <span class="tag">Tarayıcı ve bot nasıl destekler</span>
+      <ul>
+        <li><b>ICT / SMC preseti:</b> FVG, OB, likidite, yapı. Sinyaller aynı bölgeye yığıldığında puan yükselir.</li>
+        <li><b>Fib kesişimi preseti:</b> 0,618 × 1,272 bölgesi ve giriş/stop/hedef çizgileri.</li>
+        <li><b>4H sinyal botu:</b> süzgeçten geçen 4H kurulumlarını Telegram'a gönderir (yalnız limit, hafta sonu yok, günlük trend yönünde, erken %80 kâr). Senin işaretlemenle çakışan sinyal en güçlü adaydır.</li>
+        <li><b>Sinyal sayfası:</b> ileriye dönük gerçek sonuç. Kendi günlüğünle karşılaştır.</li>
+        <li><b>Denetçi ve araştırmacı raporu:</b> <span class="mono">agent.html</span> sekmelerinde. Sistemin bulduğu, senin gözleminle çelişiyor mu?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt"><span class="tag">Üç kural · duvara as</span></div>
+    <div class="rules">
+      <div class="rule"><p>Süpürme gördün → bekle. MSS yoksa işlem yok.</p></div>
+      <div class="rule"><p>R:R &lt; 2 → işlem yok. Günlük −2R → ekran kapalı.</p></div>
+      <div class="rule"><p>Pas geçtiğini de yaz. Ölçmediğin şeyi öğrenemezsin.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 ALIŞTIRMA ============ -->
+<section class="panel" id="p-alistirma" role="tabpanel" hidden>
+  <div class="intro">
+    <span class="eyebrow">07 · Alıştırma</span>
+    <h2>Grafiğe bak, karar ver</h2>
+    <p>Dokuz soru. Her cevaptan sonra neden doğru ya da yanlış olduğu yazar. Puan sağ altta.</p>
+  </div>
+  <div class="quiz" id="quiz"></div>
+</section>
+
+<!--repo-only-->
+<nav class="links" aria-label="Diğer sayfalar"><a href="index.html">Tarayıcı</a><a href="signals.html">Sinyal geçmişi</a><a href="agent.html">Ajan · Denetçi · Araştırmacı</a><a href="backtest.html">Backtest</a><a href="lab.html">Laboratuvar</a><a href="momentum.html">Momentum</a><span>Yatırım tavsiyesi değildir.</span></nav>
+<!--/repo-only-->
+</div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- yardımcılar ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const fmt = (x, d = 2) => Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–';
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* Mum serisi: segs = [[mum sayısı, hedef kapanış, gürültü?, fitil?], ...]. Her segment sonu = pivot. */
+function series({ start, unit, segs, noise = 0.35, wick = 0.45, seed = 7 }) {
+  const r = rng(seed); const cs = []; let p = start; const piv = [];
+  for (const [n, to, nz = noise, wk = wick] of segs) {
+    const from = p;
+    for (let k = 1; k <= n; k++) {
+      const base = from + (to - from) * k / n;
+      const c = k === n ? to : base + (r() - 0.5) * 2 * nz * unit;
+      const o = cs.length ? cs[cs.length - 1].c : start;
+      cs.push({ o, c, h: Math.max(o, c) + r() * wk * unit, l: Math.min(o, c) - r() * wk * unit });
+    }
+    p = to; piv.push(cs.length - 1);
+  }
+  cs.piv = piv; return cs;
+}
+function fix(cs) { for (let i = 0; i < cs.length; i++) { const x = cs[i]; if (i > 0) x.o = cs[i - 1].c; x.h = Math.max(x.h, x.o, x.c); x.l = Math.min(x.l, x.o, x.c); } return cs; }
+function cap(cs, hiCap, loCap, a = 0, b = cs.length - 1, keep = []) {
+  for (let i = a; i <= b; i++) { if (keep.includes(i)) continue; const x = cs[i];
+    if (hiCap != null) x.h = Math.max(Math.min(x.h, hiCap), x.o, x.c);
+    if (loCap != null) x.l = Math.min(Math.max(x.l, loCap), x.o, x.c); }
+}
+const hiOf = (cs, a, b) => { let v = -Infinity, i = a; for (let k = Math.max(0, a); k <= Math.min(b, cs.length - 1); k++) if (cs[k].h > v) { v = cs[k].h; i = k; } return { i, v }; };
+const loOf = (cs, a, b) => { let v = Infinity, i = a; for (let k = Math.max(0, a); k <= Math.min(b, cs.length - 1); k++) if (cs[k].l < v) { v = cs[k].l; i = k; } return { i, v }; };
+function fvgAt(cs, i) { const a = cs[i - 1], c = cs[i + 1]; if (!a || !c) return null;
+  if (c.l > a.h) return { dir: 1, top: c.l, bot: a.h, i }; if (c.h < a.l) return { dir: -1, top: a.l, bot: c.h, i }; return null; }
+function rsi(cs, n = 9) { const out = Array(cs.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i < cs.length; i++) { const d = cs[i].c - cs[i - 1].c; const up = Math.max(d, 0), dn = Math.max(-d, 0);
+    if (i <= n) { g += up / n; l += dn / n; if (i === n) out[i] = 100 - 100 / (1 + g / (l || 1e-9)); }
+    else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; out[i] = 100 - 100 / (1 + g / (l || 1e-9)); } }
+  return out; }
+function niceStep(span, n = 5) { const raw = span / n; const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+
+/* ---------- mum grafiği ---------- */
+const charts = [];
+function register(host, draw) { const c = { host, draw, w: 0 }; charts.push(c); return c; }
+function redraw(c, force) { const w = Math.round(c.host.clientWidth); if (!w) return; if (!force && w === c.w) return; c.w = w; c.draw(Math.max(300, w)); }
+const ro = new ResizeObserver((ents) => { for (const e of ents) { const c = charts.find((x) => x.host === e.target); if (c) redraw(c); } });
+
+function candleChart(host, cfg) {
+  const cs = cfg.cs; const steps = cfg.steps; let cur = steps ? 0 : null;
+  const svgBox = document.createElement('div'); host.appendChild(svgBox);
+  let capEl, dotsEl, prevB, nextB;
+  if (steps) {
+    const st = document.createElement('div'); st.className = 'stepper';
+    st.innerHTML = `<div class="stepbar"><button class="sbtn" data-a="prev" aria-label="Önceki adım">◀ Geri</button><div class="dots"></div><button class="sbtn" data-a="next" aria-label="Sonraki adım">İleri ▶</button></div><p class="stepcap" aria-live="polite"></p>`;
+    host.appendChild(st); capEl = $('.stepcap', st); dotsEl = $('.dots', st); prevB = $('[data-a=prev]', st); nextB = $('[data-a=next]', st);
+    dotsEl.innerHTML = steps.map((s, i) => `<button aria-label="Adım ${i + 1}">${i + 1}</button>`).join('');
+    $$('button', dotsEl).forEach((b, i) => b.onclick = () => go(i));
+    prevB.onclick = () => go(cur - 1); nextB.onclick = () => go(cur + 1);
+  }
+  const ch = register(host, (W) => render(W));
+  function go(i) { cur = Math.max(0, Math.min(steps.length - 1, i)); render(ch.w ? Math.max(300, ch.w) : 720); }
+  function render(W) {
+    const dec = cfg.dec ?? 2; const H = cfg.h || 300; const oscH = cfg.osc ? 96 : 0;
+    const L = 6, R = 64, T = 14, B = cfg.xl ? 24 : 10; const mainH = H - T - B - oscH;
+    const n = cfg.slots || cs.length;
+    let lo = Infinity, hi = -Infinity;
+    for (const c of cs) { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); }
+    for (const a of cfg.ann || []) {
+      for (const k of ['y', 'y1', 'y2', 'entry', 'stop', 'target']) if (typeof a[k] === 'number' && !a.noScale) { lo = Math.min(lo, a[k]); hi = Math.max(hi, a[k]); }
+      if (a.type === 'fib') for (const q of a.lv) { const v = a.p0 + (a.p1 - a.p0) * q; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    }
+    if (cfg.range) { lo = Math.min(lo, cfg.range[0]); hi = Math.max(hi, cfg.range[1]); }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const slot = (W - L - R) / n; const X = (i) => L + slot * (i + 0.5); const Y = (p) => T + (hi - p) / (hi - lo) * mainH;
+    const upto = steps ? steps[cur].upto : cs.length - 1;
+    const o = [];
+    o.push(`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.label || 'Mum grafiği')}"><defs><marker id="ah${cfg.id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>`);
+    const st = niceStep(hi - lo, mainH < 200 ? 4 : 5);
+    for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) { const y = Y(v); o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${W - R + 6}" y="${y + 3.5}">${fmt(v, dec)}</text>`); }
+    if (cfg.xl) for (const [i, t] of cfg.xl) o.push(`<text class="ax" x="${X(i)}" y="${H - 7}" text-anchor="middle">${esc(t)}</text>`);
+    // dikey bantlar önce
+    const anns = (cfg.ann || []).filter((a) => !steps || (a.s ?? 0) <= cur);
+    const cls = (a) => `k-${a.c || 'acc'}${steps && (a.s ?? 0) < cur ? ' past' : ''}${steps && (a.s ?? 0) === cur ? ' now' : ''}`;
+    for (const a of anns.filter((a) => a.type === 'vband')) {
+      o.push(`<g class="${cls(a)}"><rect class="zf soft" x="${X(a.x1) - slot / 2}" y="${T}" width="${(a.x2 - a.x1 + 1) * slot}" height="${mainH}" style="fill-opacity:.08"/><text class="tx s" x="${X(a.x1) - slot / 2 + 3}" y="${T + 11}">${esc(a.t)}</text></g>`);
+    }
+    for (const a of anns.filter((a) => a.type === 'zone')) {
+      const x1 = X(a.x1 ?? 0) - slot / 2, x2 = X(a.x2 ?? n - 1) + slot / 2; const y1 = Y(Math.max(a.y1, a.y2)), y2 = Y(Math.min(a.y1, a.y2));
+      o.push(`<g class="${cls(a)}"><rect class="zf${a.soft ? ' soft' : ''}" x="${x1}" y="${y1}" width="${Math.max(1, x2 - x1)}" height="${Math.max(1, y2 - y1)}"/>${a.t ? `<text class="tx s" x="${a.ta === 'end' ? x2 - 4 : x1 + 4}" y="${a.tb ? y2 - 4 : y1 + 12}" text-anchor="${a.ta || 'start'}">${esc(a.t)}</text>` : ''}</g>`);
+    }
+    // mumlar
+    const bw = Math.max(1.5, slot * 0.62);
+    for (let i = 0; i < cs.length; i++) {
+      if (i > upto) break; const c = cs[i]; const up = c.c >= c.o; const yb = Y(Math.max(c.o, c.c)), yb2 = Y(Math.min(c.o, c.c));
+      const gh = cfg.ghost && (i < cfg.ghost[0] || i > cfg.ghost[1]) ? ' ghost' : '';
+      o.push(`<g class="${up ? 'up' : 'dn'}${gh}"><line class="wk" x1="${X(i)}" x2="${X(i)}" y1="${Y(c.h)}" y2="${Y(c.l)}"/><rect x="${X(i) - bw / 2}" y="${yb}" width="${bw}" height="${Math.max(1, yb2 - yb)}"/></g>`);
+    }
+    for (const a of anns) {
+      const k = cls(a);
+      if (a.type === 'h') {
+        const x1 = X(a.x1 ?? 0) - (a.x1 == null ? slot / 2 : 0), x2 = a.x2 == null ? W - R : X(a.x2); const y = Y(a.y);
+        let s = `<g class="${k}"><line class="ln${a.d ? ' d' : ''}${a.thin ? ' thin' : ''}" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/>`;
+        if (a.t) { const tx = a.lx != null ? X(a.lx) : (a.ta === 'start' ? x1 + 2 : x2 - 2); s += `<text class="tx${a.small ? ' s' : ''}" x="${tx}" y="${a.below ? y + 13 : y - 5}" text-anchor="${a.ta || (a.lx != null ? 'middle' : 'end')}">${esc(a.t)}</text>`; }
+        if (a.tag) s += `<rect class="tagr" x="${W - R + 1}" y="${y - 8}" width="${R - 2}" height="16" rx="2"/><text class="tagt" x="${W - R + 5}" y="${y + 3.5}">${fmt(a.y, dec)}</text>`;
+        o.push(s + '</g>');
+      } else if (a.type === 'line') {
+        o.push(`<g class="${k}"><line class="ln${a.d ? ' d' : ''}" x1="${X(a.x1)}" y1="${Y(a.y1)}" x2="${X(a.x2)}" y2="${Y(a.y2)}"/></g>`);
+      } else if (a.type === 'arrow') {
+        o.push(`<g class="${k}"><line class="ln" x1="${X(a.x1)}" y1="${Y(a.y1)}" x2="${X(a.x2)}" y2="${Y(a.y2)}" marker-end="url(#ah${cfg.id})"/></g>`);
+      } else if (a.type === 'mark') {
+        const x = X(a.x), y = Y(a.y); const below = a.pos === 'b'; const dy = a.dy ?? 0;
+        o.push(`<g class="${k}"><circle class="dot" cx="${x}" cy="${y}" r="5"/>${a.t ? `<text class="tx" x="${x + (a.dx || 0)}" y="${below ? y + 19 + dy : y - 11 - dy}" text-anchor="${a.a || 'middle'}">${esc(a.t)}</text>` : ''}</g>`);
+      } else if (a.type === 'label') {
+        o.push(`<g class="${k}"><text class="tx${a.small ? ' s' : ''}" x="${X(a.x)}" y="${Y(a.y) + (a.dy || 0)}" text-anchor="${a.a || 'middle'}">${esc(a.t)}</text></g>`);
+      } else if (a.type === 'num') {
+        const x = X(a.x), y = Y(a.y) + (a.dy || 0);
+        o.push(`<g class="${k}"><circle class="badge" cx="${x}" cy="${y}" r="8.5"/><text class="badge-t" x="${x}" y="${y + 4}" text-anchor="middle">${esc(a.n)}</text></g>`);
+      } else if (a.type === 'fib') {
+        const x1 = X(a.x1), x2 = a.x2 == null ? W - R : X(a.x2);
+        let s = `<g class="${k}">`;
+        for (const q of a.lv) { const v = a.p0 + (a.p1 - a.p0) * q; const y = Y(v); const nm = a.names?.[q] ?? fmt(q, q === 0 || q === 1 ? 0 : (String(q).length > 4 ? 3 : 2));
+          s += `<line class="ln d thin" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/><text class="tx s" x="${a.la === 'start' ? x1 + 2 : x2 - 2}" y="${y - 3}" text-anchor="${a.la || 'end'}">${esc(nm)}${a.price ? ' · ' + fmt(v, dec) : ''}</text>`; }
+        o.push(s + '</g>');
+      } else if (a.type === 'pos') {
+        const x1 = X(a.x1) - slot / 2, x2 = a.x2 == null ? W - R : X(a.x2) + slot / 2; const ye = Y(a.entry), ys = Y(a.stop), yt = Y(a.target);
+        const rr = Math.abs(a.target - a.entry) / Math.abs(a.entry - a.stop); const dash = a.plan ? ' style="stroke-dasharray:4 3"' : '';
+        const tx = x2 - 4;
+        o.push(`<g class="${k}"><g class="k-up"><rect class="zf" x="${x1}" y="${Math.min(ye, yt)}" width="${x2 - x1}" height="${Math.abs(yt - ye)}"${dash}/><text class="tx s" x="${tx}" y="${yt + (yt < ye ? 13 : -5)}" text-anchor="end">Hedef ${fmt(a.target, dec)} · ${fmt(rr, 1)}R</text></g>`
+          + `<g class="k-dn"><rect class="zf" x="${x1}" y="${Math.min(ye, ys)}" width="${x2 - x1}" height="${Math.abs(ys - ye)}"${dash}/><text class="tx s" x="${tx}" y="${ys + (ys > ye ? -4 : 12)}" text-anchor="end">Stop ${fmt(a.stop, dec)}</text></g>`
+          + `<g class="k-ink"><line class="ln" x1="${x1}" x2="${x2}" y1="${ye}" y2="${ye}"/><text class="tx s" x="${x1 + 3}" y="${ye + (ys > ye ? -5 : 13)}">${esc(a.t || 'Giriş')} ${fmt(a.entry, dec)}</text></g></g>`);
+      }
+    }
+    if (cfg.osc) {
+      const vals = cfg.osc.vals; const top = T + mainH + 14, oh = oscH - 18; const OY = (v) => top + (100 - v) / 100 * oh;
+      o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${top - 6}" y2="${top - 6}"/>`);
+      for (const lv of [30, 50, 70]) o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${OY(lv)}" y2="${OY(lv)}"/><text class="ax" x="${W - R + 6}" y="${OY(lv) + 3.5}">${lv}</text>`);
+      let d = ''; vals.forEach((v, i) => { if (v == null || i > upto) return; d += (d ? 'L' : 'M') + X(i).toFixed(1) + ' ' + OY(v).toFixed(1); });
+      o.push(`<path class="osc" d="${d}"/><text class="ax" x="${L + 2}" y="${top + 6}">${esc(cfg.osc.t || 'RSI')}</text>`);
+      for (const ln of cfg.osc.lines || []) o.push(`<g class="k-${ln.c || 'acc'}"><line class="ln" x1="${X(ln.x1)}" y1="${OY(vals[ln.x1])}" x2="${X(ln.x2)}" y2="${OY(vals[ln.x2])}"/><circle class="dot" cx="${X(ln.x1)}" cy="${OY(vals[ln.x1])}" r="3.5"/><circle class="dot" cx="${X(ln.x2)}" cy="${OY(vals[ln.x2])}" r="3.5"/>${ln.t ? `<text class="tx s" x="${X(ln.x2) + 8}" y="${OY(vals[ln.x2]) + 4}">${esc(ln.t)}</text>` : ''}</g>`);
+    }
+    o.push('</svg>');
+    svgBox.innerHTML = o.join('');
+    if (steps) {
+      capEl.innerHTML = steps[cur].t; prevB.disabled = cur === 0; nextB.disabled = cur === steps.length - 1;
+      $$('button', dotsEl).forEach((b, i) => { b.setAttribute('aria-current', i === cur ? 'true' : 'false'); b.classList.toggle('done', i < cur); });
+    }
+  }
+  ro.observe(host);
+  return ch;
+}
+
+/* ---------- çizgi ve çubuk grafikleri ---------- */
+function lineChart(host, { series: ss, h = 260, yfmt = (v) => fmt(v, 0), vline, xmax, ylab, log }) {
+  const ch = register(host, (W) => {
+    const L = 8, R = 104, T = 22, B = 24; const ph = h - T - B;
+    let lo = Infinity, hi = -Infinity, nmax = 0;
+    for (const s of ss) { for (const v of s.vals) { lo = Math.min(lo, v); hi = Math.max(hi, v); } nmax = Math.max(nmax, s.vals.length - 1); }
+    nmax = xmax || nmax; const tr = log ? Math.log10 : (v) => v; const lo2 = tr(lo), hi2 = tr(hi); const pad = (hi2 - lo2) * 0.06;
+    const Y = (v) => T + (hi2 + pad - tr(v)) / (hi2 - lo2 + 2 * pad) * ph; const X = (i) => L + i / nmax * (W - L - R);
+    const o = [`<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="Çizgi grafiği">`];
+    const ticks = log ? [100, 200, 300, 500, 700, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 50000].filter((v) => v >= lo * 0.9 && v <= hi * 1.1) : (() => { const st = niceStep(hi - lo, 5); const a = []; for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) a.push(v); return a; })();
+    for (const v of ticks) o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${L + 2}" y="${Y(v) - 3}">${yfmt(v)}</text>`);
+    const xs = niceStep(nmax, 5); for (let i = 0; i <= nmax; i += xs) o.push(`<text class="ax" x="${X(i)}" y="${h - 7}" text-anchor="middle">${i}</text>`);
+    if (vline != null) o.push(`<line class="gl" style="stroke:var(--ink-3);stroke-dasharray:3 3" x1="${X(vline)}" x2="${X(vline)}" y1="${T}" y2="${h - B}"/>`);
+    const labs = [];
+    for (const s of ss) {
+      const d = s.vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+      o.push(`<g class="k-${s.c || 'acc'}"><path class="ln" d="${d}" style="stroke-width:${s.w || 1.6};${s.op ? 'opacity:' + s.op : ''}"/></g>`);
+      if (s.name) labs.push({ y: Y(s.vals[s.vals.length - 1]), s });
+    }
+    labs.sort((a, b) => a.y - b.y); for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 13) labs[i].y = labs[i - 1].y + 13;
+    for (const l of labs) o.push(`<g class="k-${l.s.c || 'acc'}"><text class="tx s" x="${W - R + 6}" y="${l.y + 3.5}" style="font-weight:600">${esc(l.s.name)}</text></g>`);
+    if (ylab) o.push(`<text class="ax" x="${W - R}" y="12" text-anchor="end">${esc(ylab)}</text>`);
+    o.push('</svg>'); host.innerHTML = o.join('');
+  });
+  ro.observe(host); return ch;
+}
+
+function hbar(host, { rows, keys, fmtv = (v) => (v > 0 ? '+' : '') + fmt(v, 2), lab = 150, h0 = 18 }) {
+  const ch = register(host, (W) => {
+    const lw = Math.min(lab, W * 0.36); const R = 46; const bh = h0, gap = 4, gg = 14; const T = 26;
+    const H = T + rows.length * (keys.length * (bh + gap) + gg) + 4;
+    let lo = 0, hi = 0; for (const r of rows) for (const v of r.v) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    lo -= 0.02; hi += 0.02; const X = (v) => lw + (v - lo) / (hi - lo) * (W - lw - R);
+    const o = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Çubuk grafiği">`];
+    keys.forEach((k, i) => o.push(`<g class="k-${k.c}"><rect class="badge" x="${lw + i * 112}" y="6" width="10" height="10" rx="2"/><text class="tx s" x="${lw + 14 + i * 112}" y="15">${esc(k.name)}</text></g>`));
+    o.push(`<line class="gl" style="stroke:var(--ink-3)" x1="${X(0)}" x2="${X(0)}" y1="${T - 4}" y2="${H - 2}"/>`);
+    let y = T;
+    for (const r of rows) {
+      o.push(`<text class="ax" style="fill:var(--ink-2);font-family:var(--sans);font-size:11.5px" x="0" y="${y + (keys.length * (bh + gap)) / 2 + 3}">${esc(r.name)}</text>`);
+      r.v.forEach((v, i) => { const x0 = X(Math.min(0, v)), x1 = X(Math.max(0, v));
+        o.push(`<g class="k-${keys[i].c}"><rect class="badge" x="${x0}" y="${y}" width="${Math.max(1, x1 - x0)}" height="${bh}" rx="2" style="opacity:.85"/><text class="tx s" x="${v < 0 ? x0 - 4 : x1 + 4}" y="${y + bh - 5}" text-anchor="${v < 0 ? 'end' : 'start'}">${fmtv(v)}</text></g>`);
+        y += bh + gap; });
+      y += gg;
+    }
+    o.push('</svg>'); host.innerHTML = o.join('');
+  });
+  ro.observe(host); return ch;
+}
+
+/* ============ GRAFİK VERİLERİ ============ */
+const C = {};
+let cid = 0; const mk = (name, cfg) => { const host = document.querySelector(`[data-chart="${name}"]`); if (!host) return; cfg.id = ++cid; candleChart(host, cfg); };
+
+/* --- Başlangıç: hikâye --- */
+(() => {
+  const cs = series({ start: 103.2, unit: 0.35, seed: 11, segs: [[4, 104.2], [4, 102.6], [4, 104.25], [5, 101.4], [3, 102.3], [3, 100.6], [1, 101.2], [1, 102.6, 0, .1], [2, 103.0], [3, 101.9], [7, 104.3], [3, 103.6]] });
+  const p = cs.piv; cap(cs, 104.45, 100.9, 0, cs.length - 1, [p[0], p[2], p[5], p[10]]);
+  cs[p[0]].h = 104.6; cs[p[2]].h = 104.58; cs[p[5]].l = 100.25; cs[p[10]].h = 104.75; fix(cs);
+  const eqh = 104.59, eql = loOf(cs, p[3], p[3]).v; const mssLvl = hiOf(cs, p[3], p[4]).v;
+  mk('story', { cs, h: 320, label: 'Likidite, süpürme, MSS, hedef', ann: [
+    { type: 'h', y: eqh, x1: p[0], c: 'liq', t: 'Likidite: eşit tepeler', d: true },
+    { type: 'h', y: eql, x1: p[3], x2: p[6] + 1, c: 'liq', t: 'Eski dip', d: true, below: true, ta: 'start', lx: p[3] - 0.5 },
+    { type: 'num', x: p[5], y: cs[p[5]].l, dy: 20, n: '2', c: 'dn' },
+    { type: 'label', x: p[5] + 1.5, y: cs[p[5]].l, dy: 24, a: 'start', t: 'Süpürme (tuzak)', c: 'dn' },
+    { type: 'num', x: p[3], y: eql, dy: 22, n: '1', c: 'liq' },
+    { type: 'h', y: mssLvl, x1: p[3], x2: p[7] + 0.5, c: 'ink', t: 'MSS', thin: true },
+    { type: 'num', x: p[7], y: cs[p[7]].h, dy: -16, n: '3', c: 'ink' },
+    { type: 'num', x: p[10], y: cs[p[10]].h, dy: -16, n: '4', c: 'up' },
+    { type: 'label', x: p[10] - 1, y: cs[p[10]].h, dy: -12, a: 'end', t: 'Karşı likidite alındı', c: 'up' },
+  ] });
+})();
+
+/* --- 1 Likidite --- */
+(() => {
+  const cs = series({ start: 101.2, unit: 0.4, noise: 0.3, wick: 0.4, seed: 3, segs: [[5, 103.7], [4, 101.6], [5, 103.75], [4, 100.5], [4, 102.3], [4, 100.45], [5, 102.9], [4, 101.9]] });
+  const p = cs.piv; cap(cs, 103.95, 100.3);
+  cs[p[0]].h = 104.12; cs[p[2]].h = 104.10; cs[p[3]].l = 100.08; cs[p[5]].l = 100.10; fix(cs);
+  mk('liq', { cs, h: 300, dec: 1, label: 'Eşit tepeler ve dipler', ann: [
+    { type: 'h', y: 104.11, x1: p[0], c: 'liq', t: 'Satıcıların stopları burada', d: true },
+    { type: 'mark', x: p[0], y: 104.12, c: 'liq', t: 'EQH' }, { type: 'mark', x: p[2], y: 104.10, c: 'liq', t: 'EQH' },
+    { type: 'h', y: 100.09, x1: p[3], c: 'liq', t: 'Alıcıların stopları burada', d: true, below: true },
+    { type: 'mark', x: p[3], y: 100.08, c: 'liq', t: 'EQL', pos: 'b', dy: 8 }, { type: 'mark', x: p[5], y: 100.10, c: 'liq', t: 'EQL', pos: 'b', dy: 8 },
+  ] });
+})();
+
+/* --- 2 Süpürme / kırılım --- */
+(() => {
+  const cs = series({ start: 101.6, unit: 0.35, seed: 5, segs: [[5, 103.5], [4, 102.3], [4, 103.4], [1, 103.55], [6, 101.2]] });
+  const p = cs.piv; cap(cs, 103.75, null, 0, cs.length - 1, [p[0], p[3]]); cs[p[0]].h = 103.9; cs[p[3]].h = 104.4; fix(cs);
+  mk('sweep', { cs, h: 260, dec: 1, label: 'Süpürme', ann: [
+    { type: 'h', y: 103.9, x1: p[0], c: 'liq', t: 'Eski tepe', d: true, ta: 'start', lx: p[0] + 0.5 },
+    { type: 'mark', x: p[3], y: 104.4, c: 'dn', t: 'Fitil geçti, kapanış altta', a: 'end', dx: 6 },
+    { type: 'arrow', x1: p[3] + 1, y1: 103.3, x2: p[4] - 1, y2: 101.7, c: 'dn' },
+  ] });
+  const cb = series({ start: 101.6, unit: 0.35, seed: 5, segs: [[5, 103.5], [4, 102.3], [4, 103.6], [1, 104.5, 0, .1], [3, 104.05], [6, 105.8]] });
+  const q = cb.piv; cap(cb, 103.75, null, 0, q[2], [q[0]]); cb[q[0]].h = 103.9; cap(cb, null, 103.98, q[3] + 1, q[5]); fix(cb);
+  mk('brk', { cs: cb, h: 260, dec: 1, label: 'Kırılım', ann: [
+    { type: 'h', y: 103.9, x1: q[0], c: 'liq', t: 'Eski tepe', d: true, ta: 'start', lx: q[0] + 0.5, below: true },
+    { type: 'mark', x: q[3], y: cb[q[3]].c, c: 'up', t: 'Gövde üstte kapandı', a: 'end', dx: -4, dy: 14 },
+    { type: 'mark', x: q[4], y: cb[q[4]].l, c: 'up', t: 'Geri test tuttu', pos: 'b', a: 'start', dx: -6 },
+  ] });
+})();
+
+/* --- 3 Yapı --- */
+(() => {
+  const cs = series({ start: 100, unit: 0.45, noise: 0.3, wick: 0.4, seed: 9, segs: [[5, 103.6], [3, 101.9], [5, 105.6], [3, 103.8], [5, 107.6], [3, 105.9], [3, 107.0], [1, 105.0, 0, .1], [4, 103.9]] });
+  const p = cs.piv; fix(cs);
+  const H = (i) => hiOf(cs, i - 1, i + 1), Lo = (i) => loOf(cs, i - 1, i + 1);
+  const ann = [];
+  const lab = [[0, 'H', 1], [1, 'HL', 0], [2, 'HH', 1], [3, 'HL', 0], [4, 'HH', 1], [5, 'HL · son dip', 0], [6, 'LH', 1]];
+  for (const [k, t, top] of lab) { const v = top ? H(p[k]) : Lo(p[k]); ann.push({ type: 'label', x: v.i, y: v.v, dy: top ? -8 : 16, t, c: top ? 'mut' : 'mut', small: true }); }
+  for (const k of [0, 2]) { const v = H(p[k]); let j = v.i + 1; while (j < cs.length && cs[j].c <= v.v) j++; ann.push({ type: 'h', y: v.v, x1: v.i, x2: j, c: 'up', d: true, t: 'BOS', lx: (v.i + j) / 2, small: true }); }
+  const sd = Lo(p[5]); let j = sd.i + 1; while (j < cs.length && cs[j].c >= sd.v) j++;
+  ann.push({ type: 'h', y: sd.v, x1: sd.i, x2: j, c: 'dn', t: 'MSS / CHoCH', ta: 'end', lx: sd.i - 0.6 });
+  ann.push({ type: 'mark', x: j, y: cs[j].l, c: 'dn', t: 'İstekli mum', pos: 'b', a: 'start', dx: 4 });
+  mk('struct', { cs, h: 310, dec: 1, label: 'Yapı', ann });
+})();
+
+/* --- 4 FVG / IFVG --- */
+(() => {
+  const cs = series({ start: 100.2, unit: 0.3, noise: 0.5, wick: 0.5, seed: 21, segs: [[6, 100.4], [1, 100.75], [1, 102.3, 0, 0.1], [1, 102.8], [3, 103.3], [4, 101.75], [6, 104.6]] });
+  const p = cs.piv; const m = p[2]; fix(cs); cs[m - 1].h = Math.min(cs[m - 1].h, 100.95); cs[m + 1].l = Math.max(cs[m + 1].l, 102.15);
+  const f = fvgAt(cs, m); const ce = (f.top + f.bot) / 2; cap(cs, null, ce + 0.02, m + 2, cs.length - 1, [p[5]]); cs[p[5]].l = ce - 0.01; fix(cs);
+  mk('fvg', { cs, h: 280, dec: 1, label: 'FVG', ann: [
+    { type: 'zone', x1: m - 1, x2: cs.length - 1, y1: f.bot, y2: f.top, c: 'fvg', t: 'FVG', ta: 'end' },
+    { type: 'h', y: ce, x1: m - 1, c: 'fvg', d: true, t: 'CE · %50', lx: m + 4, below: true, small: true },
+    { type: 'num', x: m - 1, y: cs[m - 1].l, dy: 16, n: '1', c: 'mut' }, { type: 'num', x: m, y: cs[m].l, dy: 16, n: '2', c: 'mut' }, { type: 'num', x: m + 1, y: cs[m + 1].h, dy: -14, n: '3', c: 'mut' },
+    { type: 'mark', x: p[5], y: cs[p[5]].l, c: 'up', t: 'Dolum + tepki', pos: 'b', a: 'start', dx: -4 },
+  ] });
+  const ci = series({ start: 104.4, unit: 0.3, seed: 4, segs: [[4, 104.5], [1, 103.9], [1, 102.3, 0, .1], [1, 101.8], [4, 101.4], [3, 102.4], [1, 104.2, 0, .1], [3, 104.0], [5, 105.0]] });
+  const q = ci.piv; const mi = q[2]; fix(ci); ci[mi + 1].h = Math.min(ci[mi + 1].h, 102.45); const g = fvgAt(ci, mi);
+  cap(ci, null, g.top + 0.03, q[6] + 1, ci.length - 1, [q[7]]); ci[q[7]].l = g.top + 0.02; fix(ci);
+  mk('ifvg', { cs: ci, h: 280, dec: 1, label: 'IFVG', ann: [
+    { type: 'zone', x1: mi - 1, x2: q[6], y1: g.bot, y2: g.top, c: 'dn', t: 'Düşüş FVG\'si', tb: true },
+    { type: 'zone', x1: q[6], x2: ci.length - 1, y1: g.bot, y2: g.top, c: 'up', t: 'IFVG = destek', ta: 'end', tb: true },
+    { type: 'mark', x: q[6], y: ci[q[6]].h, c: 'up', t: 'Kapanış üstte', a: 'end', dx: 4 },
+    { type: 'mark', x: q[7], y: ci[q[7]].l, c: 'up', t: 'Geri test', pos: 'b', dy: 22 },
+  ] });
+})();
+
+/* --- 5 OB --- */
+(() => {
+  const cs = series({ start: 102.2, unit: 0.3, seed: 8, segs: [[3, 102.6], [3, 101.3, .15], [1, 102.4, 0, .1], [1, 103.6, 0, .1], [2, 104.0], [4, 102.0], [6, 105.0]] });
+  const p = cs.piv; fix(cs); let j = p[1]; while (j > 0 && cs[j].c >= cs[j].o) j--;
+  const ob = { lo: cs[j].l, hi: cs[j].h }; const m = p[1] + 1; const f = fvgAt(cs, m);
+  cap(cs, null, ob.hi, p[4] + 1, cs.length - 1, [p[5]]); cs[p[5]].l = ob.hi - 0.04; fix(cs);
+  const ann = [{ type: 'zone', x1: j, x2: cs.length - 1, y1: ob.lo, y2: ob.hi, c: 'ob', t: 'Order block (son kırmızı mum)', tb: true, ta: 'end' },
+    { type: 'mark', x: p[5], y: cs[p[5]].l, c: 'up', t: 'Tepki', pos: 'b', dy: 20 }];
+  if (f && f.dir === 1) ann.unshift({ type: 'zone', x1: m - 1, x2: cs.length - 1, y1: f.bot, y2: f.top, c: 'fvg', t: 'FVG', ta: 'end' });
+  mk('ob', { cs, h: 280, dec: 1, label: 'Order block', ann });
+})();
+
+/* --- 6 Premium/discount + OTE --- */
+(() => {
+  const cs = series({ start: 101, unit: 0.5, noise: 0.35, wick: 0.4, seed: 13, segs: [[3, 100.2], [10, 109.8, .4], [7, 103.3, .3], [8, 108.6]] });
+  const p = cs.piv; fix(cs); cs[p[0]].l = 99.8; cs[p[1]].h = 110.2; const lo = 99.8, hi = 110.2, rgn = hi - lo;
+  const ote = (q) => hi - q * rgn; cap(cs, hi - 0.1, ote(0.705) + 0.05, p[1] + 1, cs.length - 1, [p[2]]); cap(cs, hi - 0.1, lo + 0.1, 0, p[1] - 1, [p[0]]); cs[p[2]].l = ote(0.705); fix(cs);
+  mk('pd', { cs, h: 320, dec: 1, label: 'Premium, discount, OTE', ann: [
+    { type: 'zone', x1: p[0], y1: lo + rgn / 2, y2: hi, c: 'dn', soft: true, t: 'PREMIUM · short aranır', ta: 'end' },
+    { type: 'zone', x1: p[0], y1: lo, y2: lo + rgn / 2, c: 'up', soft: true, t: 'DISCOUNT · long aranır', ta: 'end', tb: true },
+    { type: 'zone', x1: p[1], y1: ote(0.62), y2: ote(0.79), c: 'fvg', t: 'OTE 0,62–0,79', ta: 'end' },
+    { type: 'fib', x1: p[0], x2: p[1] + 1.5, p0: lo, p1: hi, lv: [0, 0.25, 0.5, 0.75, 1], names: { 0: '0 dip', 0.25: '0,25', 0.5: '0,5 denge', 0.75: '0,75', 1: '1 tepe' }, c: 'mut', la: 'start' },
+    { type: 'mark', x: p[2], y: ote(0.705), c: 'up', t: '0,705 giriş', pos: 'b', dy: 4 },
+  ] });
+})();
+
+/* --- 7 HTF / LTF --- */
+(() => {
+  const cs = series({ start: 92, unit: 1, seed: 17, segs: [[6, 98], [3, 95.5], [1, 96.6], [1, 100.6, 0, .15], [1, 102.2], [4, 104.5], [6, 99.6], [3, 101.5]] });
+  const p = cs.piv; fix(cs); const m = p[3]; cs[m - 1].h = Math.min(cs[m - 1].h, 97.0); cs[m + 1].l = Math.max(cs[m + 1].l, 100.4); fix(cs);
+  const f = fvgAt(cs, m); cap(cs, null, f.top - (f.top - f.bot) * 0.5, m + 2, cs.length - 1, [p[6]]); cs[p[6]].l = (f.top + f.bot) / 2; fix(cs);
+  mk('htf', { cs, h: 260, dec: 0, label: '4H', ann: [
+    { type: 'zone', x1: m - 1, y1: f.bot, y2: f.top, c: 'fvg', t: '4H FVG = alım bölgesi', ta: 'end' },
+    { type: 'label', x: 2, y: hiOf(cs, 0, 20).v, a: 'start', t: 'Yön: yükseliş (HH-HL)', c: 'up' },
+    { type: 'mark', x: p[6], y: cs[p[6]].l, c: 'acc', t: '15m\'ye in', pos: 'b', dy: 14 },
+  ] });
+  const S = setupSeries();
+  mk('ltf', { cs: S.cs, h: 260, dec: 4, label: '15m', ghost: [S.p[7] - 2, S.p[16] + 4], ann: [
+    { type: 'mark', x: S.sweep.i, y: S.sweep.v, c: 'dn', t: 'Süpürme', pos: 'b' },
+    { type: 'h', y: S.mss, x1: S.p[10], x2: S.k + 1, c: 'ink', t: 'MSS', thin: true, lx: S.p[10] - 1 },
+    { type: 'zone', x1: S.k - 1, x2: S.p[16] + 4, y1: S.f.bot, y2: S.f.top, c: 'fvg' },
+    { type: 'mark', x: S.p[16], y: S.entry, c: 'up', t: 'FVG %50', pos: 'b', a: 'start', dx: 2 },
+  ] });
+})();
+
+/* --- 8 Seanslar --- */
+(() => {
+  const cs = series({ start: 100.5, unit: 0.25, noise: 0.4, wick: 0.5, seed: 31, segs: [[3, 100.75], [4, 100.35], [1, 100.15], [1, 100.3], [3, 101.0], [3, 101.4], [4, 101.9], [5, 101.7], [4, 102.0], [3, 101.6], [1, 101.9], [1, 101.8], [4, 101.0], [4, 100.6], [7, 100.9]] });
+  fix(cs); const a1 = loOf(cs, 0, 6), h1 = hiOf(cs, 0, 6); cap(cs, null, a1.v + 0.02, 8, 23); cs[7].l = a1.v - 0.3;
+  const a2 = hiOf(cs, 24, 30), l2 = loOf(cs, 24, 30); cap(cs, a2.v - 0.02, null, 32, 47); cap(cs, a2.v - 0.02, null, 8, 23); cs[31].h = a2.v + 0.3; fix(cs);
+  const vb = (x1, x2, t, c) => ({ type: 'vband', x1, x2, t, c });
+  mk('sess', { cs, h: 320, dec: 1, label: 'Seanslar', range: [99.7, 103.0], xl: [[1, '00 UTC'], [7, '07'], [12, '12'], [24, '00'], [31, '07'], [36, '12']], ann: [
+    vb(0, 6, 'Asya', 'mut'), vb(7, 9, 'Londra', 'ob'), vb(12, 14, 'NY', 'liq'), vb(24, 30, 'Asya', 'mut'), vb(31, 33, 'Londra', 'ob'), vb(36, 38, 'NY', 'liq'),
+    { type: 'h', y: a1.v, x1: 0, x2: 11, c: 'liq', d: true, thin: true }, { type: 'h', y: h1.v, x1: 0, x2: 7, c: 'liq', d: true, thin: true },
+    { type: 'h', y: a2.v, x1: 24, x2: 35, c: 'liq', d: true, thin: true }, { type: 'h', y: l2.v, x1: 24, x2: 31, c: 'liq', d: true, thin: true },
+    { type: 'mark', x: 7, y: cs[7].l, c: 'up', t: 'Asya dibi süpürüldü', pos: 'b', a: 'start', dx: -6 },
+    { type: 'mark', x: 31, y: cs[31].h, c: 'dn', t: 'Asya tepesi süpürüldü', a: 'start', dx: -6 },
+  ] });
+})();
+
+/* --- 9 RSI --- */
+(() => {
+  const cs = series({ start: 105, unit: 0.35, noise: 0.25, wick: 0.35, seed: 41, segs: [[6, 105.6], [4, 101.3, .1], [6, 103.2], [10, 100.8, .3], [7, 103.6]] });
+  const p = cs.piv; fix(cs); const l1 = loOf(cs, p[1] - 1, p[1] + 1), l2 = loOf(cs, p[3] - 1, p[3] + 1); const r = rsi(cs, 9); const rmin = (a, b) => { let i = a; for (let k = a; k <= b; k++) if (r[k] != null && r[k] < r[i]) i = k; return i; }; const r1 = rmin(l1.i - 1, l1.i + 1), r2 = rmin(l2.i - 2, l2.i + 1);
+  mk('rsi', { cs, h: 330, dec: 1, label: 'RSI uyumsuzluğu', osc: { vals: r, t: 'RSI(9)', lines: [{ x1: r1, x2: r2, c: 'up', t: 'yüksek dip' }] }, ann: [
+    { type: 'line', x1: l1.i, y1: l1.v, x2: l2.i, y2: l2.v, c: 'dn' },
+    { type: 'label', x: l2.i + 1, y: l2.v, dy: 4, a: 'start', t: 'Fiyat: alçak dip', c: 'dn' },
+  ] });
+})();
+
+/* --- Kurulum serisi (XRP 15m) --- */
+function setupSeries() {
+  const cs = series({ start: 1.2880, unit: 0.0010, noise: 0.35, wick: 0.4, seed: 23, segs: [
+    [3, 1.2950], [4, 1.2880], [3, 1.2948], [5, 1.2830], [2, 1.2850], [3, 1.2816], [4, 1.2868], [4, 1.2817],
+    [3, 1.2840], [3, 1.2795], [3, 1.2834], [3, 1.2788], [1, 1.2790, .1, .2], [1, 1.2850, 0, .1], [1, 1.2862], [2, 1.2878], [4, 1.2813], [8, 1.2945], [1, 1.2952], [2, 1.2935], [6, 1.2872]] });
+  const p = cs.piv; fix(cs);
+  cap(cs, 1.2945, null, 0, cs.length - 1, [p[0], p[2], p[18]]); cs[p[0]].h = 1.2958; cs[p[2]].h = 1.2957; cs[p[18]].h = 1.2958;
+  cap(cs, null, 1.2812, p[3], p[8], [p[5], p[7]]); cs[p[5]].l = 1.2811; cs[p[7]].l = 1.2809;
+  cs[p[9]].l = 1.2772; cap(cs, null, 1.2781, p[9] + 1, p[11]); cs[p[11]].l = 1.2779;
+  const k = p[13]; cs[k - 1].h = 1.2793; cs[k + 1].l = 1.2825; cap(cs, 1.2838, null, p[9], k - 1, [p[10]]); cs[p[10]].h = 1.2838;
+  cap(cs, null, 1.2812, k + 2, p[17], [p[16]]); cs[p[16]].l = 1.2808; cap(cs, null, 1.2776, k, cs.length - 1); fix(cs);
+  const f = fvgAt(cs, k);
+  return { cs, p, k, f, sweep: { i: p[9], v: cs[p[9]].l }, mss: cs[p[10]].h, entry: 1.2809, stop: 1.2766, target: 1.2957 };
+}
+(() => {
+  const S = setupSeries(), { cs, p, k, f } = S;
+  const ce = (f.top + f.bot) / 2;
+  mk('setup', { cs, h: 360, dec: 4, label: 'XRP 15m kurulum', slots: cs.length, steps: [
+    { upto: p[7] + 1, t: '<b>1 · Likiditeyi bul.</b> Üstte iki eşit tepe (1,2958 / 1,2957): satıcıların stopları ve ileride hedef. Altta eşit dipler ≈ 1,2810: range dibi (RL), alıcıların stopları. Daha aşağıda 4H order block var. Henüz işlem yok.' },
+    { upto: p[9], t: '<b>2 · Süpürmeyi bekle.</b> Fiyat düştü ve eşit diplerin altındaki stopları aldı. Fitil 4H order block\'a kadar uzandı. Bu anda da işlem yok. Yalnız "süpürdü" notu alınır.' },
+    { upto: p[11], t: '<b>3 · Yanlış başlangıcı tanı.</b> Fiyat range\'e geri girdi ama son küçük tepeyi (1,2838) kapanışla kıramadı. MSS yok. Sonra tekrar dışarı çıktı. Acele edenin kaybettiği yer burası.' },
+    { upto: k + 1, t: '<b>4 · MSS + FVG.</b> İstekli bir yeşil mum range\'e girdi, 1,2838\'i kapanışla kırdı (MSS) ve arkasında bir FVG bıraktı. FVG\'nin %50\'si 1,2809.' },
+    { upto: p[16], t: '<b>5 · Giriş.</b> FVG %50 = 1,2809. Bu seviye range dibi (RL) ve OTE ile de çakışıyor: "en güzel giriş noktası". Limit emir dolar. Stop 1,2766: süpürme fitilinin altı. Hedef 1,2957. R:R ≈ 3,4.' },
+    { upto: p[18], t: '<b>6 · Hedef.</b> Fiyat karşı likiditeye, yani eşit tepelere ve oradaki FVG\'ye gitti. Hedef görüldü: +3,4R. Hikâye tamam: likidite alındı → tuzak → dönüş → karşı likidite.' },
+  ], ann: [
+    { s: 0, type: 'h', y: 1.29575, x1: p[0], c: 'liq', t: 'Eşit tepeler · hedef', d: true, lx: p[2] + 3, ta: 'start' },
+    { s: 0, type: 'mark', x: p[0], y: 1.2958, c: 'liq' }, { s: 0, type: 'mark', x: p[2], y: 1.2957, c: 'liq' },
+    { s: 0, type: 'h', y: 1.2810, x1: p[5], c: 'liq', t: 'Eşit dipler = RL', d: true, ta: 'start', lx: p[5] - 6, below: true },
+    { s: 0, type: 'zone', x1: p[5], y1: 1.2770, y2: 1.2800, c: 'ob', t: '4H order block', tb: true, ta: 'start' },
+    { s: 1, type: 'mark', x: p[9], y: cs[p[9]].l, c: 'dn', t: 'Süpürme', pos: 'b', a: 'end', dx: -4 },
+    { s: 2, type: 'h', y: S.mss, x1: p[10] - 0.5, x2: k + 2, c: 'ink', thin: true, t: 'Son küçük tepe 1,2838', lx: p[10] + 2, small: true },
+    { s: 2, type: 'mark', x: p[11], y: cs[p[11]].l, c: 'dn', t: 'MSS yok, tekrar dışarı', pos: 'b', a: 'start', dx: -8 },
+    { s: 3, type: 'zone', x1: k - 1, y1: f.bot, y2: f.top, c: 'fvg', t: 'FVG', ta: 'end' },
+    { s: 3, type: 'h', y: ce, x1: k - 1, c: 'fvg', d: true, thin: true },
+    { s: 3, type: 'mark', x: k, y: cs[k].h, c: 'up', t: 'MSS', a: 'end', dx: -6 },
+    { s: 4, type: 'pos', x1: p[16], x2: cs.length - 1, entry: S.entry, stop: S.stop, target: S.target },
+    { s: 5, type: 'mark', x: p[18], y: 1.2958, c: 'up', t: 'Hedef ✓ +3,4R', a: 'end', dx: -8 },
+  ] });
+  // hatalar
+  mk('err1', { cs, h: 250, dec: 4, label: 'Hata 1', ghost: [0, p[11] + 3], ann: [
+    { type: 'pos', x1: p[9] + 2, x2: p[11] + 4, entry: 1.2825, stop: 1.2785, target: 1.2957, t: 'Erken' },
+    { type: 'mark', x: p[11], y: cs[p[11]].l, c: 'dn', t: 'Stop oldu', pos: 'b' },
+  ] });
+  mk('err2', { cs, h: 250, dec: 4, label: 'Hata 2', ann: [
+    { type: 'zone', x1: k - 1, y1: f.bot, y2: f.top, c: 'fvg' },
+    { type: 'h', y: 1.2825, x1: k, c: 'dn', t: 'FOMO giriş 1,2825 → R:R 2,2', small: true },
+    { type: 'h', y: 1.2809, x1: k, c: 'up', t: '%50 giriş 1,2809 → R:R 3,4', small: true, below: true },
+    { type: 'h', y: 1.2766, x1: k - 3, c: 'dn', d: true, t: 'Stop', small: true, below: true },
+    { type: 'h', y: 1.2957, x1: k - 3, c: 'up', d: true, t: 'Hedef', small: true },
+  ] });
+  mk('err3', { cs, h: 250, dec: 4, label: 'Hata 3', ghost: [p[15], cs.length - 1], ann: [
+    { type: 'h', y: 1.2957, x1: p[16], c: 'up', t: 'Hedef: likidite', d: true, ta: 'start', lx: p[16], below: true },
+    { type: 'mark', x: p[18], y: 1.2958, c: 'up', t: 'Bitti', a: 'end', dx: -6 },
+    { type: 'arrow', x1: p[18] + 1, y1: 1.2950, x2: cs.length - 1, y2: 1.2880, c: 'dn' },
+    { type: 'label', x: cs.length - 2, y: 1.2870, a: 'end', t: '"Biraz daha"', c: 'dn', dy: 14 },
+  ] });
+})();
+
+/* --- Kontrol listesi --- */
+(() => {
+  const items = ['Günlük ve 4H yön belli, işlem bu yönde (ters ise yarım boy: 0,5R)', 'Süpürülen seviye gerçek likidite (eşit tepe/dip, PDH/PDL, seans, eski swing)', 'Süpürmeden sonra kapanışla MSS geldi (1H\'de 12, 4H\'de 6 mum içinde)', 'MSS bacağında FVG var, giriş %50\'si; mümkünse OTE/OB/RL ile çakışıyor', 'Stop son swing\'in ötesinde ve risk hesabın %1\'i', 'Karşı likidite hedefi en az 2–2,5R uzakta', 'Alacağın yöne ters RSI uyumsuzluğu yok; BTC eğilimi ters değil', 'Hafta sonu, killzone ya da haber saati değil', 'Açık işlem sayısı 2\'den az; bugünkü kayıp 2–3R\'nin altında'];
+  const box = $('#checklist'); const v = $('#verdict');
+  box.innerHTML = items.map((t, i) => `<label for="ck${i}"><input type="checkbox" id="ck${i}"><span>${esc(t)}</span></label>`).join('');
+  const upd = () => { const n = $$('input', box).filter((x) => x.checked).length; const ok = n === items.length;
+    v.className = 'verdict ' + (ok ? 'ok' : 'no'); v.textContent = ok ? 'Hepsi evet: işlem alınabilir.' : `${n}/${items.length} · eksik madde var: işlem yok.`; };
+  box.addEventListener('change', upd); upd();
+})();
+
+/* --- 3 Risk: hesaplayıcı --- */
+(() => {
+  const ids = ['acct', 'risk', 'entry', 'stop', 'tgt', 'lev']; const g = () => Object.fromEntries(ids.map((k) => [k, parseFloat($('#c-' + k).value)]));
+  const out = $('#calc-out'); const host = $('[data-chart="calcviz"]'); let st = g();
+  const ch = register(host, (W) => {
+    const { entry, stop, tgt, lev } = st; if (!(entry > 0 && stop > 0)) { host.innerHTML = ''; return; }
+    const d = entry > stop ? 1 : -1; const liq = entry * (1 - d * (1 / lev - 0.005));
+    const prices = [entry, stop, tgt].filter((x) => x > 0); let lo = Math.min(...prices), hi = Math.max(...prices); const span = hi - lo; lo -= span * 0.35; hi += span * 0.12;
+    const H = 170, T = 14, B = 10, X0 = 20, X1 = W - 20; const dec = entry < 10 ? 4 : 2; const liqIn = liq >= lo && liq <= hi;
+    const Y = (p) => T + (hi - p) / (hi - lo) * (H - T - B);
+    const row = (p, cls, t) => `<g class="${cls}"><line class="ln" x1="${X0}" x2="${X1}" y1="${Y(p)}" y2="${Y(p)}"/><text class="tx s" x="${X1}" y="${Y(p) - 4}" text-anchor="end">${t} ${fmt(p, dec)}</text></g>`;
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pozisyon şeması"><g class="k-up"><rect class="zf" x="${X0}" y="${Math.min(Y(entry), Y(tgt))}" width="${(X1 - X0) * 0.55}" height="${Math.abs(Y(tgt) - Y(entry))}"/></g><g class="k-dn"><rect class="zf" x="${X0}" y="${Math.min(Y(entry), Y(stop))}" width="${(X1 - X0) * 0.55}" height="${Math.abs(Y(stop) - Y(entry))}"/></g>${row(tgt, 'k-up', 'Hedef')}${row(entry, 'k-ink', 'Giriş')}${row(stop, 'k-dn', 'Stop')}${liqIn ? `<g class="k-liq"><line class="ln d" x1="${X0}" x2="${X1}" y1="${Y(liq)}" y2="${Y(liq)}"/><text class="tx s" x="${X1}" y="${Y(liq) + (d === 1 ? 13 : -4)}" text-anchor="end">Likidasyon ≈ ${fmt(liq, dec)}</text></g>` : `<g class="k-liq"><text class="tx s" x="${X1}" y="${d === 1 ? H - 4 : 10}" text-anchor="end">${d === 1 ? '↓' : '↑'} Likidasyon ≈ ${fmt(liq, dec)} (stoptan çok uzakta)</text></g>`}</svg>`;
+  });
+  ro.observe(host);
+  function calc() {
+    st = g(); const { acct, risk, entry, stop, tgt, lev } = st; if (![acct, risk, entry, stop, lev].every((x) => x > 0) || entry === stop) { out.innerHTML = '<div class="warn bad">Değerleri kontrol et: giriş ve stop farklı, hepsi pozitif olmalı.</div>'; return; }
+    const d = entry > stop ? 1 : -1; const rU = acct * risk / 100; const dist = Math.abs(entry - stop) / entry; const nom = rU / dist; const marg = nom / lev;
+    const liq = entry * (1 - d * (1 / lev - 0.005)); const liqFirst = d === 1 ? liq >= stop : liq <= stop; const rr = tgt > 0 ? Math.abs(tgt - entry) / Math.abs(entry - stop) : NaN; const wrongT = tgt > 0 && d * (tgt - entry) <= 0;
+    const O = (l, v) => `<div class="o"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+    let w = '';
+    if (liqFirst) w = `<div class="warn bad">Likidasyon (${fmt(liq, 4)}) stoptan önce geliyor. Kaldıracı düşür.</div>`;
+    else if (marg > acct) w = '<div class="warn bad">Marjin hesaptan büyük. Kaldıracı artır ya da riski küçült.</div>';
+    else if (wrongT) w = '<div class="warn bad">Hedef yanlış tarafta.</div>';
+    else if (rr < 2) w = `<div class="warn bad">R:R ${fmt(rr, 1)} &lt; 2. Kural: işlem yok.</div>`;
+    else w = `<div class="warn good">${d === 1 ? 'Long' : 'Short'} · R:R ${fmt(rr, 1)} · stop likidasyonun içinde. Kurallara uygun.</div>`;
+    out.innerHTML = O('1R (risk)', fmt(rU, 2) + ' $') + O('Stop mesafesi', '%' + fmt(dist * 100, 2)) + O('Nominal', fmt(nom, 0) + ' $') + O('Marjin', fmt(marg, 0) + ' $') + O('Hedefte kazanç', Number.isFinite(rr) && !wrongT ? '+' + fmt(rU * rr, 2) + ' $' : '–') + O('Likidasyon', fmt(liq, entry < 10 ? 4 : 2)) + w;
+    redraw(ch, true);
+  }
+  ids.forEach((k) => $('#c-' + k).addEventListener('input', calc)); calc();
+})();
+
+/* --- Risk simülasyonu --- */
+(() => {
+  const r = rng(2); const seq = Array.from({ length: 150 }, () => r() < 0.35);
+  const risks = [[1, 'up'], [2, 'ob'], [5, 'fvg'], [10, 'dn']]; const ss = []; const rows = [];
+  for (const [pc, c] of risks) { let eq = 1000, peak = 1000, dd = 0; const v = [eq];
+    for (const win of seq) { const rk = eq * pc / 100; eq += win ? rk * 2.2 : -rk; peak = Math.max(peak, eq); dd = Math.max(dd, 1 - eq / peak); v.push(eq); }
+    ss.push({ vals: v, c, name: `%${pc}: ${fmt(eq, 0)}`, w: 1.8 }); rows.push([pc, eq, dd]); }
+  let maxStreak = 0, s = 0; for (const w of seq) { s = w ? 0 : s + 1; maxStreak = Math.max(maxStreak, s); }
+  lineChart($('[data-chart="riskSim"]'), { series: ss, h: 280, log: true, yfmt: (v) => fmt(v, 0), ylab: 'Bakiye (USDT, log ölçek)' });
+  $('#simtbl').innerHTML = `<thead><tr><th class="n">Risk/işlem</th><th class="n">150 işlem sonu</th><th class="n">En büyük düşüş</th></tr></thead><tbody>${rows.map(([pc, eq, dd]) => `<tr><td class="n">%${pc}</td><td class="n">${fmt(eq, 0)}</td><td class="n ${dd > 0.3 ? 'neg' : ''}">−%${fmt(dd * 100, 0)}</td></tr>`).join('')}</tbody>`;
+  // ardışık kayıp olasılığı
+  const r2 = rng(7); let hit = 0; const N = 4000; for (let t = 0; t < N; t++) { let st = 0, mx = 0; for (let i = 0; i < 100; i++) { if (r2() < 0.4) st = 0; else { st++; mx = Math.max(mx, st); } } if (mx >= 6) hit++; }
+  $('#streak').innerHTML = `Simülasyondaki seride en uzun kayıp serisi <b>${maxStreak}</b> işlem. Kazanma oranı %40 olan bir yöntemde 100 işlemde en az bir kez <b>6 art arda kayıp</b> görme olasılığı ≈ <b>%${fmt(hit / N * 100, 0)}</b> (${N} simülasyon). Yani bu bir "kötü şans" değil, beklenen bir şey.`;
+  const rec = [10, 20, 30, 50, 70];
+  hbar($('[data-chart="recover"]'), { rows: rec.map((x) => ({ name: `−%${x} kayıp`, v: [-x / 100, x / (100 - x)] })), keys: [{ name: 'Kayıp', c: 'dn' }, { name: 'Gereken kazanç', c: 'up' }], fmtv: (v) => (v > 0 ? '+%' : '−%') + fmt(Math.abs(v) * 100, 0), lab: 100, h0: 16 });
+  hbar($('[data-chart="partial"]'), { rows: [{ name: 'Hedefe gitti', v: [3, 2] }, { name: '1R gördü, döndü', v: [-1, 0.5] }, { name: 'Direkt stop', v: [-1, -1] }], keys: [{ name: 'Tam hedef', c: 'ob' }, { name: '1R\'de yarı + BE', c: 'fvg' }], fmtv: (v) => (v > 0 ? '+' : '') + fmt(v, 1) + 'R', lab: 130 });
+  hbar($('[data-chart="hedge"]'), { rows: [{ name: 'Long + short', v: [-1, 2, 1] }, { name: 'İki long', v: [-1, -1, -2] }], keys: [{ name: '1. işlem', c: 'ob' }, { name: '2. işlem', c: 'liq' }, { name: 'Net', c: 'acc' }], fmtv: (v) => (v > 0 ? '+' : '') + fmt(v, 0) + 'R', lab: 110 });
+})();
+
+/* --- 4 Örnekler --- */
+(() => {
+  // A1 BTC long
+  const cs = series({ start: 84300, unit: 230, noise: 0.35, wick: 0.4, seed: 51, segs: [[3, 84150], [8, 80500, .3], [5, 82200], [4, 80750], [7, 83050], [6, 81420], [5, 82788], [3, 82300], [7, 83363], [6, 84150], [2, 84250]] });
+  const p = cs.piv; fix(cs); cap(cs, 84300, 80700, 0, cs.length - 1, [p[0], p[1], p[3], p[4], p[5], p[10]]);
+  cs[p[0]].h = 84362; cs[p[1]].l = 80344; cs[p[3]].l = 80622; cs[p[4]].h = 83157; cs[p[5]].l = 81354; cs[p[10]].h = 84400; cap(cs, null, 81400, p[5] + 1, cs.length - 1); cap(cs, 83100, null, p[3], p[9] - 2, [p[4]]); fix(cs);
+  mk('btcLong', { cs, h: 360, dec: 0, label: 'BTC 1H long', xl: [[p[1], '7 Eki'], [p[5], '20 Eki'], [p[10], '22 Eki']], ann: [
+    { type: 'zone', x1: 0, y1: 84360, y2: 84900, c: 'fvg', t: 'FVG 84 360–84 900', ta: 'end', tb: false },
+    { type: 'h', y: 84358, x1: 0, c: 'liq', d: true, t: 'Likidite 84 358', ta: 'start', lx: 2, below: true },
+    { type: 'fib', x1: p[1], x2: p[3], p0: 80344, p1: 84362, lv: [0.25, 0.5, 0.75], c: 'mut', la: 'start' },
+    { type: 'zone', x1: p[4], x2: p[5] + 2, y1: 81595, y2: 81158, c: 'fvg', t: 'OTE', ta: 'start', tb: true },
+    { type: 'pos', x1: p[5], x2: cs.length - 1, entry: 81354, stop: 80622, target: 84357 },
+  ] });
+  // A2-A3 BTC short
+  const cb = series({ start: 81600, unit: 200, noise: 0.35, wick: 0.4, seed: 61, segs: [[6, 82700], [3, 82150], [6, 83500], [3, 83050], [5, 84200], [3, 83700], [4, 84180], [2, 84250], [6, 82600], [4, 83100], [8, 80800], [2, 80950]] });
+  const q = cb.piv; fix(cb); cap(cb, 84300, 80900, 0, cb.length - 1, [q[4], q[6], q[7], q[10]]); cb[q[4]].h = 84350; cb[q[6]].h = 84345; cb[q[7] - 1].h = 84400; cb[q[10]].l = 80689; cap(cb, 84330, null, q[7], cb.length - 1, [q[7] - 1]); fix(cb);
+  mk('btcShort', { cs: cb, h: 360, dec: 0, label: 'BTC 1H short', xl: [[q[3], '21 Eki'], [q[7] - 1, '22 Eki'], [q[10], '24 Eki']], slots: cb.length, steps: [
+    { upto: q[6] + 1, t: '<b>Plan · 21 Ekim 13:07.</b> Yapı yükseliş ama bölge premium, kanal daralıyor. Üstte eşit tepeler (84 350) ve FVG (84 350–85 253). Senaryo: tepeler süpürülür, FVG\'de ret, aşağıdaki likiditeye (80 338) iniş. Short emri FVG alt kenarında.' },
+    { upto: cb.length - 1, t: '<b>Sonuç · 24 Ekim 09:04.</b> 22 Ekim\'de fitil 84 358\'in üstüne çıktı (süpürme, ≈ 84 400) ve sert döndü. 24 Ekim\'de 80 689: hedefe birkaç yüz dolar kaldı, kâğıt üzerinde ≈ +4R.' },
+  ], ann: [
+    { s: 0, type: 'zone', x1: q[2], y1: 84350, y2: 85253, c: 'fvg', t: 'FVG 84 350–85 253', ta: 'start' },
+    { s: 0, type: 'h', y: 84348, x1: q[4], x2: q[6] + 1, c: 'liq', d: true, t: 'Eşit tepeler', lx: (q[4] + q[6]) / 2, below: true, small: true },
+    { s: 0, type: 'line', x1: 0, y1: 81300, x2: q[6] + 1, y2: 83500, c: 'mut', d: true }, { s: 0, type: 'line', x1: 0, y1: 82900, x2: q[6] + 1, y2: 84500, c: 'mut', d: true },
+    { s: 0, type: 'h', y: 80338, x1: q[2], c: 'liq', d: true, t: 'Alt likidite 80 338', ta: 'start', lx: q[2], below: true },
+    { s: 0, type: 'pos', x1: q[6] + 2, x2: cb.length - 1, entry: 84350, stop: 85253, target: 80338, plan: true, t: 'Short' },
+    { s: 1, type: 'mark', x: q[7] - 1, y: 84400, c: 'dn', t: 'Süpürme', a: 'end', dx: -6, dy: 6 },
+    { s: 1, type: 'mark', x: q[10], y: 80689, c: 'up', t: '80 689', pos: 'b', a: 'end', dx: -6 },
+  ] });
+  // B XRP short planı
+  const cx = series({ start: 1.3062, unit: 0.0012, noise: 0.3, wick: 0.4, seed: 71, segs: [[3, 1.3050], [1, 1.2992, 0, .1], [1, 1.2905, 0, .1], [1, 1.2862], [4, 1.2815], [6, 1.2882]] });
+  const r = cx.piv; fix(cx); cx[r[0] - 1].h = 1.3070; cap(cx, null, 1.2812, r[3], cx.length - 1, [r[4]]); cx[r[4]].l = 1.2807; fix(cx);
+  mk('xrpShort', { cs: cx, h: 320, dec: 4, label: 'XRP 15m short planı', slots: cx.length + 12, ann: [
+    { type: 'zone', x1: r[0], y1: 1.2958, y2: 1.3050, c: 'fvg', t: 'FVG 1,2958–1,3050', ta: 'end' },
+    { type: 'fib', x1: r[1], x2: cx.length - 1, p0: 1.2807, p1: 1.2958, lv: [0.5], names: { 0.5: '0,5 = 1,2882' }, c: 'mut', la: 'start' },
+    { type: 'pos', x1: cx.length + 1, x2: cx.length + 11, entry: 1.2958, stop: 1.3004, target: 1.2807, plan: true, t: 'Short' },
+    { type: 'mark', x: r[4], y: 1.2807, c: 'liq', t: 'Dip 1,2807', pos: 'b' },
+  ] });
+  // AAVE
+  const ca = series({ start: 158.0, unit: 0.35, noise: 0.3, wick: 0.4, seed: 81, segs: [[2, 157.6], [9, 150.6, .3], [3, 152.3], [3, 151.1], [5, 154.0], [3, 152.6], [4, 154.85], [2, 154.2], [9, 148.8]] });
+  const a = ca.piv; fix(ca); cap(ca, 157.7, 150.9, 0, ca.length - 1, [a[0], a[1], a[3], a[4], a[6], a[8]]);
+  ca[a[0]].h = 157.98; ca[a[1]].l = 150.39; ca[a[3]].l = 150.86; ca[a[4]].h = 154.12; ca[a[6]].h = 155.06; ca[a[8]].l = 148.6; cap(ca, 154.0, null, a[4] + 1, a[6] - 1); cap(ca, 154.9, null, a[6] + 1, ca.length - 1); fix(ca);
+  mk('aave', { cs: ca, h: 320, dec: 2, label: 'AAVE fib kesişimi', ann: [
+    { type: 'line', x1: a[0], y1: 157.98, x2: a[1], y2: 150.39, c: 'mut', d: true }, { type: 'line', x1: a[3], y1: 150.86, x2: a[4], y2: 154.12, c: 'ob', d: true },
+    { type: 'label', x: a[0] + 2, y: 154.2, a: 'start', t: 'İtki', c: 'mut', small: true }, { type: 'label', x: a[3] + 2, y: 152.1, a: 'end', t: 'A', c: 'ob' },
+    { type: 'h', y: 155.08, x1: a[1], c: 'mut', thin: true, t: '0,618 = 155,08', ta: 'start', lx: a[1] + 0.5 },
+    { type: 'h', y: 155.00, x1: a[3], c: 'ob', thin: true, t: 'A × 1,272 = 155,00', ta: 'start', lx: a[3] + 0.5, below: true },
+    { type: 'pos', x1: a[6], x2: ca.length - 1, entry: 155.0, stop: 158.1, target: 148.6, t: 'Short' },
+  ] });
+  // COMP
+  const cc = series({ start: 20.55, unit: 0.07, noise: 0.3, wick: 0.4, seed: 91, segs: [[2, 20.66], [8, 21.72], [2, 21.56], [2, 21.66], [5, 21.26], [3, 21.45], [4, 21.11], [3, 21.42], [12, 23.1]] });
+  const c = cc.piv; fix(cc); cap(cc, 21.68, 21.12, c[1] + 1, c[7], [c[3], c[4], c[6]]); cc[c[0]].l = 20.61; cc[c[1]].h = 21.79; cc[c[3]].h = 21.70; cc[c[4]].l = 21.22; cc[c[6]].l = 21.07; cap(cc, null, 21.24, c[4] + 1, c[6] - 1); fix(cc);
+  mk('comp', { cs: cc, h: 320, dec: 2, label: 'COMP fib kesişimi', ann: [
+    { type: 'line', x1: c[0], y1: 20.61, x2: c[1], y2: 21.79, c: 'mut', d: true }, { type: 'line', x1: c[3], y1: 21.70, x2: c[4], y2: 21.22, c: 'ob', d: true },
+    { type: 'h', y: 21.06, x1: c[1], x2: c[8] - 6, c: 'mut', thin: true, t: '0,618 = 21,06', ta: 'start', lx: c[1], below: true },
+    { type: 'h', y: 21.08, x1: c[3], x2: c[8] - 6, c: 'ob', thin: true, t: 'A × 1,272 = 21,08', ta: 'start', lx: c[1] + 1 },
+    { type: 'mark', x: c[6], y: 21.07, c: 'up', t: 'Long', pos: 'b', dy: 14 },
+    { type: 'mark', x: c[8], y: cc[c[8]].h, c: 'up', t: '23+', a: 'end', dx: -6 },
+  ] });
+})();
+
+/* --- 5 Ölçüm --- */
+(() => {
+  hbar($('[data-chart="bt"]'), { lab: 190, rows: [
+    { name: 'Temel (ters işlemde 0,5R)', v: [-0.07, -0.10, -0.16] },
+    { name: 'Yalnız üst dilim yönünde', v: [-0.12, -0.04, -0.01] },
+    { name: 'Yalnız BTC rejimi yönünde', v: [-0.04, -0.09, -0.16] },
+    { name: '1R\'de yarı + başabaş', v: [0.02, 0.02, -0.06] },
+    { name: 'Referans: canlı 4H bot', v: [0.089, 0.082, 0.079] },
+  ], keys: [{ name: 'Eğitim', c: 'mut' }, { name: 'Doğrulama', c: 'ob' }, { name: 'Hedge\'li doğr.', c: 'fvg' }] });
+  // ısı haritası
+  const wins = [20, 25, 30, 35, 40, 45, 50, 60, 70], rrs = [1, 1.5, 2, 2.5, 3, 4];
+  const cell = (w, rr) => { const e = w / 100 * rr - (1 - w / 100); const pct = Math.min(70, Math.abs(e) * 70); const col = e >= 0 ? 'var(--up)' : 'var(--down)';
+    const mark = (w === 25 && rr === 2.5) ? ' class="mark"' : ''; return `<td${mark} style="background:color-mix(in srgb, ${col} ${pct.toFixed(0)}%, transparent)">${e >= 0 ? '+' : ''}${fmt(e, 2)}</td>`; };
+  $('#heat').innerHTML = `<thead><tr><th>Kazanma ↓ · R:R →</th>${rrs.map((r) => `<th>${fmt(r, 1)}</th>`).join('')}</tr></thead><tbody>${wins.map((w) => `<tr><th>%${w}</th>${rrs.map((r) => cell(w, r)).join('')}</tr>`).join('')}</tbody>`;
+  // beklenti hesaplayıcı
+  const ew = $('#e-win'), er = $('#e-rr');
+  const upd = () => { const w = +ew.value / 100, r = +er.value; const e = w * r - (1 - w); $('#e-win-v').textContent = ew.value; $('#e-rr-v').textContent = fmt(r, 1);
+    const be = 1 / (1 + r);
+    $('#e-out').innerHTML = `<div class="o"><div class="l">Beklenti / işlem</div><div class="v ${e >= 0 ? 'pos' : 'neg'}">${e >= 0 ? '+' : ''}${fmt(e, 2)}R</div></div><div class="o"><div class="l">100 işlemde</div><div class="v ${e >= 0 ? 'pos' : 'neg'}">${e >= 0 ? '+' : ''}${fmt(e * 100, 0)}R</div></div><div class="o"><div class="l">Başabaş kazanma</div><div class="v">%${fmt(be * 100, 0)}</div></div>`; };
+  ew.addEventListener('input', upd); er.addEventListener('input', upd); upd();
+  // şans
+  const r = rng(99); const ss = [];
+  for (let k = 0; k < 24; k++) { let s = 0; const v = [0]; for (let i = 0; i < 100; i++) { s += r() < 1 / 3 ? 2 : -1; v.push(s); } ss.push({ vals: v, c: k === 0 ? 'acc' : 'mut', w: k === 0 ? 2 : 1, op: k === 0 ? 1 : 0.55 }); }
+  ss.push({ vals: Array(101).fill(0), c: 'ink', w: 1, name: 'Beklenti 0' });
+  lineChart($('[data-chart="luck"]'), { series: ss, h: 280, vline: 30, yfmt: (v) => (v > 0 ? '+' : '') + fmt(v, 0) + 'R', ylab: 'Toplam R' });
+})();
+
+/* --- 6 Rutin --- */
+(() => {
+  const host = $('[data-chart="routine"]'); const parts = [[3, 'BTC günlük + 4H', 'ob'], [1, 'USDT.D yerine BTC 4H', 'liq'], [8, 'İzleme listesi 5–8 coin', 'fvg'], [3, 'Senaryo', 'up'], [5, 'Günlük', 'mut']];
+  const ch = register(host, (W) => { const H = 92, T = 26, bh = 34; const tot = 20; let x = 0; const sx = (W - 2) / tot; const o = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="20 dakikalık rutin">`];
+    for (const [m, t, c] of parts) { const w = m * sx; const narrow = w < 90;
+      o.push(`<g class="k-${c}"><rect class="zf" x="${x + 1}" y="${T}" width="${w - 2}" height="${bh}" rx="3"/>${narrow ? `<text class="tx s" x="${x + 4}" y="${T - 7}">${esc(t)} · ${m} dk</text>` : `<text class="tx" x="${x + 6}" y="${T + 22}">${esc(t)}</text><text class="tx s" x="${x + w - 6}" y="${T + 22}" text-anchor="end">${m} dk</text>`}</g>`); x += w; }
+    for (let m = 0; m <= 20; m += 5) o.push(`<text class="ax" x="${1 + m * sx}" y="${H - 6}" text-anchor="${m === 0 ? 'start' : m === 20 ? 'end' : 'middle'}">${m}′</text>`);
+    o.push('</svg>'); host.innerHTML = o.join(''); });
+  ro.observe(host);
+  const hc = $('[data-chart="clock"]');
+  const ch2 = register(hc, (W) => { const H = 150, L = 4, R = 4, T = 20; const X = (h) => L + h / 24 * (W - L - R); const o = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Türkiye saatiyle seanslar">`];
+    const band = (a, b, y, t, c, hh = 22) => `<g class="k-${c}"><rect class="zf" x="${X(a)}" y="${y}" width="${X(b) - X(a)}" height="${hh}" rx="2"/><text class="tx s" x="${X(a) + 4}" y="${y + 15}">${esc(t)}</text></g>`;
+    o.push(band(3, 10, T, 'Asya 03–10', 'mut'), band(10, 13, T + 28, 'Londra 10–13', 'ob'), band(15, 18, T + 56, 'New York 15–18', 'liq'));
+    o.push(band(9, 10, T + 84, 'Rutin', 'up'));
+    o.push(`<g class="k-dn"><rect class="badge" x="${X(9.75)}" y="${T - 6}" width="${X(10.5) - X(9.75)}" height="${H - T - 18}" style="opacity:.28"/><rect class="badge" x="${X(15.25)}" y="${T - 6}" width="${X(16) - X(15.25)}" height="${H - T - 18}" style="opacity:.28"/></g>`);
+    for (let h = 0; h <= 24; h += 3) o.push(`<line class="gl" x1="${X(h)}" x2="${X(h)}" y1="${T - 6}" y2="${H - 22}"/><text class="ax" x="${X(h)}" y="${H - 8}" text-anchor="${h === 0 ? 'start' : h === 24 ? 'end' : 'middle'}">${String(h).padStart(2, '0')}:00</text>`);
+    o.push('</svg>'); hc.innerHTML = o.join(''); });
+  ro.observe(hc);
+  const wk = ['Günlüğü aç: kaç senaryo yazdın, kaçı gerçekleşti, kaçını aldın, R toplamı', '"Pas geçtim ama hedefe gitti" satırları: neden pas geçtin? Kural mı sezgi mi?', '"Aldım ve stop" satırları: kontrol listesinde hangi madde eksikti?', 'Bir cümle ders yaz. Sonraki hafta yalnız o dersi uygula.', 'Denetçi ve araştırmacı raporunu oku: sistemin bulduğu senin gözleminle çelişiyor mu?'];
+  const saved = store.get('egitim-weekly', []); const box = $('#weekly');
+  box.innerHTML = wk.map((t, i) => `<label for="wk${i}"><input type="checkbox" id="wk${i}"${saved[i] ? ' checked' : ''}><span>${esc(t)}</span></label>`).join('');
+  box.addEventListener('change', () => store.set('egitim-weekly', $$('input', box).map((x) => x.checked)));
+})();
+
+/* --- 7 Alıştırma --- */
+(() => {
+  const qz = $('#quiz'); let score = 0, answered = 0; const Q = [];
+  const S = setupSeries();
+  // grafikler
+  const qSweep = series({ start: 101.6, unit: 0.35, seed: 15, segs: [[5, 103.4], [4, 102.4], [4, 103.3], [1, 103.5], [6, 101.4]] });
+  { const p = qSweep.piv; cap(qSweep, 103.7, null, 0, qSweep.length - 1, [p[0], p[3]]); qSweep[p[0]].h = 103.85; qSweep[p[3]].h = 104.3; fix(qSweep); qSweep.lvl = 103.85; }
+  const qBrk = series({ start: 101.6, unit: 0.35, seed: 25, segs: [[5, 103.4], [4, 102.4], [4, 103.5], [1, 104.4, 0, .1], [3, 104.0], [5, 105.4]] });
+  { const p = qBrk.piv; cap(qBrk, 103.7, null, 0, p[2], [p[0]]); qBrk[p[0]].h = 103.85; cap(qBrk, null, 103.92, p[3] + 1, qBrk.length - 1); fix(qBrk); }
+  const qPd = series({ start: 101, unit: 0.5, seed: 33, segs: [[3, 100.2], [10, 109.8, .4], [3, 108.0], [3, 108.8]] });
+  { const p = qPd.piv; fix(qPd); qPd[p[0]].l = 99.8; qPd[p[1]].h = 110.2; cap(qPd, 110.0, 107.6, p[1] + 1, qPd.length - 1); fix(qPd); }
+  const qF = series({ start: 100.2, unit: 0.3, noise: 0.5, wick: 0.5, seed: 21, segs: [[6, 100.4], [1, 100.75], [1, 102.3, 0, 0.1], [1, 102.8], [3, 103.3], [2, 102.9]] });
+  const qFm = qF.piv[2]; fix(qF); qF[qFm - 1].h = Math.min(qF[qFm - 1].h, 100.95); qF[qFm + 1].l = Math.max(qF[qFm + 1].l, 102.15); fix(qF); const qFf = fvgAt(qF, qFm);
+  const qR = series({ start: 105, unit: 0.35, noise: 0.25, wick: 0.35, seed: 41, segs: [[6, 105.6], [4, 101.3, .1], [6, 103.2], [10, 100.8, .3]] }); fix(qR);
+
+  const items = [
+    { q: 'Mor çizgi eski tepe. Bu hareket süpürme mi, kırılım mı?', chart: { cs: qSweep, dec: 1, ann: [{ type: 'h', y: 103.85, x1: qSweep.piv[0], c: 'liq', d: true }] }, opts: ['Süpürme', 'Kırılım'], a: 0, why: 'Fitil seviyeyi geçti ama mum seviyenin altında kapandı ve fiyat geri döndü. Stoplar alındı, kırılım olmadı.' },
+    { q: 'Peki bu?', chart: { cs: qBrk, dec: 1, ann: [{ type: 'h', y: 103.85, x1: qBrk.piv[0], c: 'liq', d: true }] }, opts: ['Süpürme', 'Kırılım'], a: 1, why: 'Gövde seviyenin üstünde kapandı, geri test seviyeyi destek yaptı ve fiyat devam etti. Bu bir BOS.' },
+    { q: 'Üst dilim yükselişte. Fiyat şu an bu bacağın neresinde ve long için uygun mu?', chart: { cs: qPd, dec: 1, ann: [{ type: 'fib', x1: qPd.piv[0], x2: qPd.piv[1] + 1, p0: 99.8, p1: 110.2, lv: [0, 0.5, 1], names: { 0: '0', 0.5: '0,5', 1: '1' }, c: 'mut', la: 'start' }] }, opts: ['Discount, long uygun', 'Premium, long uygun değil'], a: 1, why: 'Fiyat 0,5\'in çok üstünde, yani premium. Yapı yükseliş olsa bile pahalı yerden long zayıf işlemdir. Discount\'a ya da OTE\'ye geri çekilmeyi bekle.' },
+    { q: 'Süpürme oldu, fiyat range\'e geri girdi. Mor çizgi son küçük tepe. Şimdi long girilir mi?', chart: { cs: S.cs.slice(0, S.p[11] + 1), dec: 4, slots: S.cs.length - 10, range: [1.2765, 1.2960], ann: [{ type: 'h', y: S.mss, x1: S.p[10] - 0.5, c: 'liq', thin: true }, { type: 'mark', x: S.sweep.i, y: S.sweep.v, c: 'dn', pos: 'b' }] }, opts: ['Evet, süpürme yeterli', 'Hayır, MSS yok'], a: 1, why: 'Son küçük tepe kapanışla kırılmadı. Süpürme tek başına tetik değil. Kural: süpürme gördün → bekle, MSS yoksa işlem yok.' },
+    { q: 'Sarı kutu MSS\'in bıraktığı FVG. Limit emir nereye?', chart: { cs: qF, dec: 1, ann: [{ type: 'zone', x1: qFm - 1, y1: qFf.bot, y2: qFf.top, c: 'fvg' }, { type: 'label', x: qF.length - 1, y: qFf.top, dy: -4, a: 'end', t: 'A', c: 'ink' }, { type: 'label', x: qF.length - 1, y: (qFf.top + qFf.bot) / 2, dy: 4, a: 'end', t: 'B', c: 'ink' }, { type: 'label', x: qF.length - 1, y: qFf.top + 0.8, a: 'end', t: 'C', c: 'ink' }] }, opts: ['A · FVG üst kenarı', 'B · FVG %50 (CE)', 'C · şimdiki fiyat'], a: 1, why: 'Giriş CE\'dir, yani FVG\'nin %50\'si. Üst kenardan ya da kovalayarak girmek stop mesafesini uzatır, R:R\'ı düşürür.' },
+    { q: 'Long: giriş 100, stop 98, hedef (karşı likidite) 103. İşlem alınır mı?', opts: ['Evet', 'Hayır'], a: 1, why: 'Risk 2, ödül 3: R:R 1,5. Kural en az 2–2,5. Hedef yakınsa işlem yok.' },
+    { q: 'Hesap 2 000 USDT, risk %1, stop mesafesi %2. Pozisyon (nominal) ne kadar olmalı?', opts: ['400 USDT', '1 000 USDT', '2 000 USDT'], a: 1, why: '1R = 20 USDT. Nominal = 20 ÷ 0,02 = 1 000 USDT. Kaldıraç bunu değiştirmez, yalnız marjini belirler (10x → 100 USDT).' },
+    { q: 'Fiyat yeni dip yaptı, RSI daha yüksek dip yaptı. Short açmak için iyi bir yer mi?', chart: (() => { const v = rsi(qR, 9), pv = qR.piv; const mn = (a, b) => { let i = a; for (let k = a; k <= b; k++) if (v[k] != null && v[k] < v[i]) i = k; return i; }; const l1 = loOf(qR, pv[1] - 1, pv[1] + 1), l2 = loOf(qR, pv[3] - 1, pv[3]); return { cs: qR, dec: 1, h: 300, slots: qR.length + 3, osc: { vals: v, t: 'RSI(9)', lines: [{ x1: mn(pv[1] - 1, pv[1] + 1), x2: mn(pv[3] - 2, pv[3]), c: 'up' }] }, ann: [{ type: 'line', x1: l1.i, y1: l1.v, x2: l2.i, y2: l2.v, c: 'dn' }] }; })(), opts: ['Evet, trend aşağı', 'Hayır, ters uyumsuzluk var'], a: 1, why: 'Pozitif uyumsuzluk düşüşün güç kaybettiğini gösterir. Arkadaşın kuralı: alacağın yöne ters uyumsuzluk varsa işlemi almaz.' },
+    { q: 'Cumartesi akşamı, kontrol listesinin diğer sekiz maddesi tam. İşlem?', opts: ['Al', 'Alma'], a: 1, why: 'Hafta sonu hacim düşük, hareket sahte. Bizim ölçümde de hafta sonu her dilimde daha kötü. Bot da hafta sonu sinyal göndermiyor.' },
+  ];
+  qz.innerHTML = items.map((it, i) => `<div class="q" id="q${i}"><div class="qh"><span class="k">${String(i + 1).padStart(2, '0')}</span><span class="qt">${esc(it.q)}</span></div>${it.chart ? '<figure><div class="ch"></div></figure>' : ''}<div class="opts">${it.opts.map((o, j) => `<button class="opt" data-j="${j}">${esc(o)}</button>`).join('')}</div><p class="fb" hidden></p></div>`).join('') + '<div class="score" id="score" aria-live="polite">0 / 9</div>';
+  items.forEach((it, i) => {
+    const el = $('#q' + i);
+    if (it.chart) { const host = $('.ch', el); const cfg = { h: 240, ...it.chart, id: ++cid }; if (cfg.steps) { cfg.steps = null; } candleChart(host, cfg); }
+    $$('.opt', el).forEach((b) => b.onclick = () => { if (el.dataset.done) return; el.dataset.done = '1'; const j = +b.dataset.j; const ok = j === it.a; if (ok) score++; answered++;
+      b.classList.add(ok ? 'right' : 'wrong'); if (!ok) $$('.opt', el)[it.a].classList.add('right');
+      const fb = $('.fb', el); fb.hidden = false; fb.className = 'fb ' + (ok ? 'right' : 'wrong'); fb.innerHTML = `<b>${ok ? 'Doğru.' : 'Yanlış.'}</b> ${esc(it.why)}`;
+      $('#score').textContent = `${score} / ${items.length}${answered === items.length ? (score === items.length ? ' · tam puan' : ' · bitti') : ''}`; });
+  });
+})();
+
+/* ---------- sekmeler ---------- */
+const tabs = $$('.tab'); const ids = tabs.map((t) => t.dataset.t);
+function show(id, push) {
+  if (!ids.includes(id)) id = 'baslangic';
+  tabs.forEach((t) => { const on = t.dataset.t === id; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; });
+  ids.forEach((k) => { $('#p-' + k).hidden = k !== id; });
+  if (push) { try { history.replaceState(null, '', '#' + id); } catch {} store.set('egitim-tab', id); }
+  requestAnimationFrame(() => charts.forEach((c) => redraw(c)));
+}
+tabs.forEach((t, i) => { t.onclick = () => { show(t.dataset.t, true); window.scrollTo({ top: 0 }); };
+  t.onkeydown = (e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]; n.focus(); n.click(); } }; });
+show((location.hash || '').slice(1) || store.get('egitim-tab', 'baslangic'));
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+})();
+</script>
+</body>
+</html>
