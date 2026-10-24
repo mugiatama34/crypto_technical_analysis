@@ -218,6 +218,8 @@ işlemlerini ve derslerini görür; **giriş büyüklüğü, kaldıraç, piyasa/
 sert sınırları uygular (aşan istek kırpılır, günlük kayıp %15'i geçince o gün yeni pozisyon açılmaz).
 - Simülasyon: izole marjin, likidasyon fiyatı = giriş × (1 ∓ (1/kaldıraç − %0,5)), komisyon %0,05/taraf, kayma %0,05,
   TP1'de yarı kapanış + başabaş stop, aynı mumda kötü olan önce, 24 saatte dolmayan limit düşer. Funding yok.
+  İşlem kârı (pnl, R) açılış + kapanış komisyonları düşülmüş nettir; kısmi kapanışta marjin kalan miktara oranla iade
+  edilir (24.10.2026 düzeltmesi: önceki sürüm TP1 sonrası kapanışta marjinin çeyreğini iade etmiyordu, hesaplar onarıldı).
 - Öğrenme: her kapanan işlemde kısa **yansıma** (ders) yazılır; her 20 kapanan işlemde ya da 7 günde bir **gözden geçirme**
   dersleri süzer (≤ 10) ve parametreleri (risk iştahı, kaldıraç aralığı, marjin/işlem, kaçınılan TF/detektör) sınır içinde
   günceller. Hafıza sonraki her karara girer; sayfada parametre geçmişi görünür.

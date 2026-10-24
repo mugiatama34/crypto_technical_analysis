@@ -3,6 +3,24 @@
 Yeni oturumda önce bu dosya okunur (bkz. `CLAUDE.md` → "Devam edelim" protokolü). Her oturum sonunda en üste tarihli
 kısa bir giriş eklenir. Eski girişler silinmez.
 
+## 24.10.2026 (Cumartesi, akşam) — kâğıt hesap muhasebe hatası düzeltildi
+
+**Bulgu (açık iş 3 kapandı):** Agresif ajanda "ort. R ≈ 0 ama özsermaye −%12" tutarsızlığının kaynağı `bot/agent/account.js`
+`closePart`: kısmi kapanış (TP1 yarı / erken %80) sonrası ikinci kapanışta marjin payı `pos.margin × q/qty0` ile hesaplanıyordu;
+marjin zaten azaltılmış olduğu için kalan marjinin bir kısmı (TP1'de çeyreği) nakde dönmüyor, pozisyon silinince özsermayeden
+siliniyordu. İşlem pnl/R kayıtları doğruydu; yalnız nakit/özsermaye eksikti.
+| Hesap | Eski özsermaye | Kayıp marjin | Onarılmış | Not |
+|---|---|---|---|---|
+| Temkinli | 260,76 | 12,50 (JTO) | 273,26 | kalan fark ≈ açılış komisyonları |
+| Agresif | 264,08 | 29,25 (GRVT, JTO, PEPE, MEW, LA) | 293,33 | ort. R +0,01 ile artık tutarlı (−%2,2) |
+Düzeltme: marjin payı artık `pos.margin × q/pos.qty` (kalan oranı); açılış komisyonu da `realized`'a dahil (işlem pnl tam net;
+likidasyonda pnl = −marjin − açılış komisyonu). Hesap dosyalarına kayıp tutar nakde geri eklendi, nota yazıldı; eski
+maxDD/eğri ve denetçi raporlarındaki "−%12" düzeltilmedi (tarihsel). Momentum portföyü bu kodu kullanmıyor, etkilenmedi.
+Bir sonraki denetçi koşusu (Pazar 09:00 TR) özsermayeyi yeni değerden okur.
+
+**Durum:** canlı ayar değişmedi; hafta sonu sinyal yok (bugün 0 yeni sinyal, 128 eski açık). Testler 109 geçiyor.
+Sıradaki: DURUM 24.10 listesi 1, 2, 4, 5, 6 aynen geçerli.
+
 ## 24.10.2026 (Cumartesi) — son durum
 
 **Canlı (Variables):** `KNIFE_GUARD=1 LIMIT_ONLY=1 SKIP_WEEKEND=1 EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}

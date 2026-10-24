@@ -120,7 +120,7 @@ function fillPosition(acct, base, fill, now) {
   const qty = notional / fill;
   const fee = notional * (FEES.takerPct / 100);
   acct.cash = r6(acct.cash - base.margin - fee);
-  const pos = { ...base, entry: fill, qty: r6(qty), qty0: r6(qty), notional: r6(notional), fees: r6(fee), realized: 0, liq: r6(liqPrice(fill, base.leverage, base.direction)), openedAt: now, lastTime: now, lastPrice: fill, unrealized: 0, initialRisk: r6(qty * Math.abs(fill - base.stop)), tp1Done: false };
+  const pos = { ...base, entry: fill, qty: r6(qty), qty0: r6(qty), notional: r6(notional), fees: r6(fee), realized: r6(-fee) /* açılış komisyonu da işlem kârına dahil */, liq: r6(liqPrice(fill, base.leverage, base.direction)), openedAt: now, lastTime: now, lastPrice: fill, unrealized: 0, initialRisk: r6(qty * Math.abs(fill - base.stop)), tp1Done: false };
   acct.positions.push(pos);
   return pos;
 }
@@ -131,7 +131,7 @@ function closePart(acct, pos, portion, price, kind, now, events) {
   const q = portion >= 1 ? pos.qty : r6(pos.qty * portion);
   const pnl = q * (price - pos.entry) * d;
   const fee = kind === 'liq' ? 0 : q * price * (FEES.takerPct / 100);
-  const marginShare = pos.margin * (q / pos.qty0);
+  const marginShare = pos.qty > 0 ? pos.margin * (q / pos.qty) : pos.margin; // kalan marjinin kalan miktara oranı (qty0'a oranla: kısmi kapanış sonrası marjin kaybolur)
   let back = marginShare + pnl - fee;
   if (kind === 'liq') back = 0; // marjin tamamen gider
   acct.cash = r6(acct.cash + Math.max(0, back));

@@ -44,6 +44,24 @@ test('openPosition + updatePositions: TP1 yarı, başabaş, TP2; komisyonlar', (
   markToMarket(a, {}); assert.ok(a.equity > 300, `equity ${a.equity}`);
 });
 
+test('kısmi kapanış sonrası marjin tam iade: özsermaye = başlangıç + net kâr', () => {
+  const a = newAccount(P, 1000);
+  openPosition(a, req(), 1000, P.guards);
+  updatePositions(a, { BTC: [c(2000, 101, 104.5, 100.5, 104)] }, 2000); // TP1 yarı
+  updatePositions(a, { BTC: [c(3000, 104, 108.5, 103, 108)] }, 3000); // TP2 kalan
+  markToMarket(a, {});
+  assert.equal(a.positions.length, 0);
+  assert.ok(Math.abs(a.equity - (300 + a.trades[0].pnl)) < 1e-4, `equity ${a.equity} vs 300 + ${a.trades[0].pnl}`);
+  // TP1 sonrası stop (başabaş) için de aynı
+  const b = newAccount(P, 1000);
+  openPosition(b, req(), 1000, P.guards);
+  updatePositions(b, { BTC: [c(2000, 101, 104.5, 100.5, 104)] }, 2000);
+  updatePositions(b, { BTC: [c(3000, 104, 104, 99, 99.5)] }, 3000);
+  markToMarket(b, {});
+  assert.equal(b.trades[0].outcome, 'tp1_stop');
+  assert.ok(Math.abs(b.equity - (300 + b.trades[0].pnl)) < 1e-4, `equity ${b.equity} vs 300 + ${b.trades[0].pnl}`);
+});
+
 test('likidasyon: marjin tamamen gider; stop likidasyon içine çekilir', () => {
   const a = newAccount(P, 1000);
   const r = openPosition(a, req({ leverage: 10, stop: 85 }), 1000, P.guards); // 10x liq ≈ 90.5 → stop kırpılır
@@ -54,7 +72,7 @@ test('likidasyon: marjin tamamen gider; stop likidasyon içine çekilir', () => 
   const ev = updatePositions(a2, { BTC: [c(2000, 100, 100, 80, 85)] }, 2000);
   assert.equal(ev[0].type, 'liq');
   assert.equal(a2.trades[0].outcome, 'liq');
-  assert.ok(Math.abs(a2.trades[0].pnl + 50) < 1e-6, `pnl ${a2.trades[0].pnl}`);
+  assert.ok(Math.abs(a2.trades[0].pnl + 50.25) < 1e-6, `pnl ${a2.trades[0].pnl}`); // marjin 50 + açılış komisyonu 0,25
   assert.equal(a2.stats.liquidations, 1);
 });
 
