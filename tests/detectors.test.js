@@ -158,3 +158,23 @@ test('Ders 2 seviyeleri: zigzag sayımında giriş/stop/hedef sıralı; genişle
   assert.equal(f.entry, 99); assert.equal(f.tp1, 105.5); assert.ok(f.stop < 97.4);
   assert.equal(correctionLevels('flat', 'Flat (3-3-5, regular)', [P(20, 104), P(26, 99), P(32, 103.8), P(42, 98.9)], P(0, 94), 0.6), null);
 });
+
+test('Fib kesişimi (ABC): itkinin 0,618 geri çekilmesi × A\'nın B\'den 1,272 uzantısı → itki yönünde giriş bölgesi; only:cluster', async () => {
+  const { detect: detectFib, fibClusterOf } = await import('../src/detectors/fibonacci.js');
+  const k = fibClusterOf([{ price: 100 }, { price: 112 }, { price: 107 }, { price: 110.94 }], 1);
+  assert.equal(k.retr, 0.618); assert.equal(k.ext, 1.272); assert.ok(Math.abs(k.mid - 104.58) < 0.02); assert.equal(k.d, 1); assert.equal(k.tp1, 112);
+  assert.equal(fibClusterOf([{ price: 100 }, { price: 112 }, { price: 107 }, { price: 107.5 }], 1), null); // B, A'yı yeterince geri almıyor
+  assert.equal(fibClusterOf([{ price: 100 }, { price: 112 }, { price: 113 }, { price: 110 }], 1), null); // A itkiye ters değil
+  // Short ayna
+  const s = fibClusterOf([{ price: 112 }, { price: 100 }, { price: 105 }, { price: 101.06 }], 1);
+  assert.equal(s.d, -1); assert.ok(Math.abs(s.mid - 107.42) < 0.02); assert.ok(s.stop > s.mid);
+  // Seri: itki 100→112, A 107, B 110,94, C oluşuyor (108,5) → yalnız kesişim sinyali
+  const cs = build([[0, 100], [60, 100], [72, 112], [80, 107], [86, 110.94], [90, 108.5]], { spread: 0.15 });
+  const out = detectFib(ctxOf(cs, { fibonacci: { only: 'cluster' } }));
+  assert.equal(out.length, 1);
+  const g = out[0];
+  assert.match(g.name, /Fib kesişimi 0,618×1,272/); assert.equal(g.direction, 'long');
+  assert.ok(Math.abs(g.entry - 104.5) < 0.3, `giriş ${g.entry}`); assert.ok(g.stop < g.entry && g.stop > 100); assert.ok(Math.abs(g.target - 112.15) < 0.2);
+  assert.equal(g.status, 'forming');
+  assert.ok(detectFib(ctxOf(cs)).length >= 1); // only yoksa diğer fib sinyalleri de gelir
+});

@@ -8,7 +8,51 @@ export const FIB_DEFAULTS = {
   nearAtr: 0.35, // fiyat seviyeye bu × ATR içinde ise "seviyede"
   legs: 2, // kaç bacak geriye bakılır (son ve bir önceki)
   minLegAtr: 3, // bacak boyu en az bu × ATR
+  // Fib kesişimi (ABC): itkinin geri çekilmesi × A'nın B'den uzantısı (C = e × A) aynı yerde
+  clusterRetr: [0.5, 0.618, 0.786],
+  clusterExt: [1.272, 1.382, 1.618],
+  clusterTolAtr: 0.5, // iki seviye arasındaki fark en fazla bu × ATR
+  minImpulseAtr: 3, // itki boyu en az bu × ATR
+  bRetr: [0.382, 0.886], // B, A'yı bu aralıkta geri almalı
+  only: null, // 'cluster' → yalnız Fib kesişimi sinyali (preset)
 };
+
+/**
+ * Fib kesişimi (arkadaşın kuralı): P0→P1 itki, A itkiye ters, B A'yı kısmen geri alır; C'nin biteceği bölge =
+ * itkinin r geri çekilmesi (P1 − dI·r·L) ile A'nın B'den e uzantısı (B + dA·e·|A|) çakışırsa (≤ tol).
+ * points: [P0, P1, A, B] ({price}); atr: sayı. → { mid, retr, ext, diff, d, stop, tp1, tp2, invalid, L, lenA } | null
+ */
+export function fibClusterOf([P0, P1, A, B], atr, o = FIB_DEFAULTS) {
+  if (!P0 || !P1 || !A || !B || !(atr > 0)) return null;
+  const dI = P1.price > P0.price ? 1 : -1, L = Math.abs(P1.price - P0.price), lenA = Math.abs(A.price - P1.price);
+  if (L < (o.minImpulseAtr ?? 3) * atr || !(lenA > 0)) return null;
+  if (dI * (P1.price - A.price) <= 0) return null; // A itkiye ters olmalı
+  const bRet = dI * (B.price - A.price) / lenA; // B'nin A'yı geri alma oranı (itki yönünde)
+  const [bLo, bHi] = o.bRetr ?? [0.382, 0.886];
+  if (bRet < bLo || bRet > bHi) return null;
+  let best = null;
+  for (const r of o.clusterRetr ?? [0.618]) for (const e of o.clusterExt ?? [1.272]) {
+    const lr = P1.price - dI * r * L, le = B.price - dI * e * lenA; // uzantı A yönünde (= −dI)
+    const diff = Math.abs(lr - le);
+    if (diff > (o.clusterTolAtr ?? 0.5) * atr) continue;
+    const score = diff / atr + (r === 0.618 && e === 1.272 ? 0 : 0.25); // 0,618×1,272 tercih edilir
+    if (!best || score < best.score) best = { r, e, lr, le, diff, score };
+  }
+  if (!best) return null;
+  const mid = (best.lr + best.le) / 2;
+  if (dI * (A.price - mid) <= 0) return null; // bölge A'nın ötesinde olmalı (C, A'yı aşar)
+  if (dI * (mid - P0.price) <= 0) return null; // itki başını aşmamalı
+  const stop = P1.price - dI * 0.886 * L - dI * 0.2 * atr;
+  return { mid: +mid.toPrecision(8), retr: best.r, ext: best.e, diff: +(best.diff / atr).toFixed(2), d: dI, stop: +stop.toPrecision(8), tp1: P1.price, tp2: +(P1.price + dI * 0.272 * L).toPrecision(8), invalid: P0.price, L, lenA, bRet: +bRet.toFixed(3) };
+}
+
+/** Pivot listesinden (onaylı + tentative) son [P0,P1,A,B] penceresi; C oluşuyorsa tentative hariç tutulur. */
+export function clusterWindow(pivots, tentative) {
+  const pts = tentative ? [...pivots, tentative] : pivots;
+  if (pts.length < 4) return null;
+  // Son nokta tentative ise iki aday: [.., A, B=tentative] (B oluşuyor) ya da [P0,P1,A,B] onaylı + C tentative
+  return { withTent: pts.slice(-4), confirmed: pivots.length >= 4 ? pivots.slice(-4) : null };
+}
 
 /** Son `count` bacak: [{from, to, d}] (pivotlar + oluşan uç). */
 export function recentLegs(ctx, count, minLegAtr) {
@@ -26,9 +70,32 @@ export function recentLegs(ctx, count, minLegAtr) {
 export function detect(ctx) {
   const o = { ...FIB_DEFAULTS, ...ctx.opts.fibonacci };
   const out = [];
+  const price = ctx.price, tol = o.nearAtr * ctx.atrNow;
+  // 0) Fib kesişimi (ABC): her iki pencere denenir, fiyata en yakın geçerli bölge alınır
+  {
+    const { pivots, tentative } = ctx.pivots(ctx.opts.swingK);
+    const w = clusterWindow(pivots, tentative);
+    const cands = [];
+    for (const pts of [w?.confirmed, w?.withTent]) { if (!pts) continue; const c = fibClusterOf(pts, ctx.atrNow, o); if (c) cands.push({ c, pts }); }
+    const pick = cands.filter(({ c }) => c.d * (price - c.mid) >= -0.5 * ctx.atrNow && Math.abs(price - c.mid) <= 8 * ctx.atrNow).sort((a, b) => Math.abs(price - a.c.mid) - Math.abs(price - b.c.mid))[0];
+    if (pick) {
+      const { c, pts } = pick, dist = Math.abs(price - c.mid) / ctx.atrNow;
+      const golden = c.retr === 0.618 && c.ext === 1.272;
+      out.push(signal({
+        id: `fib|cluster|${pts[0].i}|${pts[3].i}`, type: 'fibonacci', group: 'fib',
+        name: `Fib kesişimi ${String(c.retr).replace('0.', '0,')}×${String(c.ext).replace('.', ',')}`, direction: c.d === 1 ? 'long' : 'short',
+        strength: (golden ? 0.75 : 0.6) * (dist <= 1 ? 1 : 0.85),
+        zone: [c.mid - 0.25 * ctx.atrNow, c.mid + 0.25 * ctx.atrNow], index: ctx.last, status: dist <= o.nearAtr ? 'active' : 'forming',
+        entry: c.mid, stop: c.stop, target: c.tp1, invalidation: c.invalid,
+        note: `İtkinin %${(c.retr * 100).toFixed(1).replace('.0', '')} geri çekilmesi ile A bacağının B'den ${c.ext} uzantısı (C = ${c.ext}×A) aynı yerde (fark ${c.diff}×ATR); yön itkinin yönü. Hedef itki ucu ${c.tp1}, sonra ${c.tp2}.`,
+        draw: [{ kind: 'hline', price: c.mid, color: '#7cc4a8', label: `Giriş ${c.retr}×${c.ext}`, style: 'solid' }, { kind: 'hline', price: c.stop, color: '#ef7d7d', label: 'Stop', style: 'dashed' }, { kind: 'hline', price: c.tp1, color: '#4cc24c', label: 'H1 (itki ucu)', style: 'dotted' }, { kind: 'hline', price: c.tp2, color: '#4cc24c', label: 'H2', style: 'dotted' }],
+        meta: { retr: c.retr, ext: c.ext, diffAtr: c.diff, target2: c.tp2, bRet: c.bRet, points: pts.map((p) => ({ i: p.i, price: p.price })) },
+      }));
+    }
+  }
+  if (o.only === 'cluster') return out;
   const legs = recentLegs(ctx, o.legs, o.minLegAtr);
   if (!legs.length) return out;
-  const price = ctx.price, tol = o.nearAtr * ctx.atrNow;
   const levelsAll = [];
   legs.forEach((leg, li) => {
     const { from, to, d, len } = leg;

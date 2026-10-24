@@ -4,6 +4,8 @@ import { simulateTrade, BT_DEFAULTS } from '../backtest/engine.js';
 import { stats } from '../backtest/report.js';
 import { regimeUp, engineWide4hLongBtc, donchian4hLongBtc, engineWide4hLong, meanrev4hLong, donchian, donchian4hLong, donchian4hLongHtf, dailyTrendAt, meanrev, meanrevLong, sweepReclaim, engineWide, STRATEGIES } from '../backtest/lab/strategies.js';
 import { runStrategy, report, robustStats, acceptance, btcBeta, attachBtc } from '../backtest/lab/run.mjs';
+import { fibClusterC, fibClusterCStrict } from '../backtest/lab/corrections.js';
+import { build } from './helpers.js';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
 const o = { ...BT_DEFAULTS, feePct: 0, slipPct: 0 };
@@ -84,7 +86,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 28);
+  assert.equal(STRATEGIES.length, 30);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -335,4 +337,19 @@ test('Ders 2 varyantları: zigzag_c_1h_short yalnız short ve 1H; expanded_flat_
   assert.ok(Math.abs(wide.stop - (97.4 - 0.6)) < 1e-6 && wide.rr1 >= 2);
   assert.equal(flatPlan(fw, c, 2.0, expandedFlatCWide.o), null); // stop çok uzak → TP1 < 2R
   assert.equal(expandedFlatCWide.prepare([{ high: 1, low: 1, close: 1 }]).o.bufferAtr, 1.0);
+});
+
+test('fib_cluster_c: itki + ABC serisinde bölgeye limit plan (giriş 0,618×1,272, stop itki içinde, TP1 itki ucu); strict yalnız 0,618×1,272', () => {
+  const cs = build([[0, 100], [60, 100], [72, 112], [80, 107], [86, 110.94], [90, 108.5]], { spread: 0.15 });
+  const pre = fibClusterC.prepare(cs);
+  let plan = null;
+  for (let i = 80; i < cs.length && !plan; i++) plan = fibClusterC.signal(i, cs, pre);
+  assert.ok(plan, 'plan yok');
+  assert.equal(plan.direction, 'long'); assert.equal(plan.inZone, false); assert.equal(plan.kind, 'fib_cluster');
+  assert.ok(Math.abs(plan.entry - 104.5) < 0.3); assert.ok(plan.stop > 100 && plan.stop < plan.entry); assert.ok(Math.abs(plan.tp1 - 112.15) < 0.2); assert.ok(plan.tp2 > plan.tp1);
+  assert.ok(plan.rr1 >= 1.5);
+  const pre2 = fibClusterCStrict.prepare(cs);
+  let p2 = null; for (let i = 80; i < cs.length && !p2; i++) p2 = fibClusterCStrict.signal(i, cs, pre2);
+  assert.ok(p2 && p2.retr === 0.618 && p2.ext === 1.272);
+  assert.equal(fibClusterC.tfs.join(), '1H,4H');
 });

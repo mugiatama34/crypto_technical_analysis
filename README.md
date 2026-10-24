@@ -120,6 +120,15 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   `byHtfTrend` (`sweep.html`); 6 ve 12 aylık koşularda "üst TF'de aynı yönde plan" filtresi kötüleştirmişti, eğilim
   filtresi ölçülmeden açılmaz.
 
+### Fib kesişimi (0,618 × 1,272)
+Bir itkiden (P0→P1) sonra ABC düzeltmesi: giriş bölgesi = itkinin **0,618 geri çekilmesi** ile düzeltmenin ilk bacağı
+**A'nın B'den ölçülen 1,272 uzantısı** (C = 1,272 × A) aynı yerdeyse (≤ 0,5 ATR); yön itkinin yönü (düzeltme biter,
+trend sürer). Stop itkinin 0,886'sının 0,2 ATR ötesi, hedef 1 itki ucu, hedef 2 itki ucu + 0,272 L. Diğer oranlar
+(0,5/0,786 × 1,382/1,618) da kabul edilir; 0,618×1,272 öncelikli. Tarayıcıda "Fib kesişimi (0,618×1,272)" preseti
+(`fibonacci.only='cluster'`) yalnız bu sinyali gösterir (giriş/stop/hedef çizgileriyle); diğer presetlerde de fib
+grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) ve `fib_cluster_c_strict` (yalnız
+0,618×1,272, tol 0,3 ATR): fiyat bölgeye gelmeden limit emir, 24 saat geçerli, half_be çıkış.
+
 ### Denetçi ve araştırmacı ajanlar (`AUDIT=1`)
 İki Claude ajanı sistemi gözetler; **hiçbiri kural değiştirmez**, yalnız öneri üretir (Variables'ı kullanıcı değiştirir).
 - **Denetçi** (`bot/review`, günlük özet anında, günde bir çağrı): sinyal geçmişi (24s/7g/30g: dolum, stop, erken kâr, ort. R,

@@ -9,6 +9,7 @@
 import * as I from '../../src/data/indicators.js';
 import { zigzag, fillAtr, pivotsAsOf } from '../../src/core/zigzag.js';
 import { analyze } from '../../src/ew/engine/analyze.js';
+import { fibClusterOf, FIB_DEFAULTS } from '../../src/detectors/fibonacci.js';
 
 export const CORR_DEFAULTS = { ks: [2, 3], ruleSet: 'course', minScore: 50, bufferAtr: 0.2, minRR: 2, cRatio: [0.8, 1.7], retrace: [0.5, 0.886], minImpulse: 1.5, recentBars: 2 };
 
@@ -122,3 +123,41 @@ export const zigzagC1hShort = mkFamily('zigzag_c_1h_short', 'Zigzag 1H yalnız s
 zigzagC1hShort.tfs = ['1H'];
 export const expandedFlatCWide = { ...mkFamily('expanded_flat_c_wide', 'Genişleyen flat 4. dalga, stop C ucu ∓ 1 ATR (TP1 = B ucu ≥ 2R)',
   (w, c, prev, a, o) => flatPlan(w, c, a, o), { tpScheme: 'half_be', maxHoldBars: 120 }), o: { ...CORR_DEFAULTS, bufferAtr: 1.0 } };
+
+// Fib kesişimi (arkadaşın kuralı): itkinin 0,618 (0,5/0,786) geri çekilmesi ile A'nın B'den 1,272 (1,382/1,618) uzantısı aynı
+// yerde → o bölgeye LİMİT emir (dönüş mumu beklenmez); stop itki 0,886'sının 0,2 ATR ötesi; TP1 itki ucu, TP2 itki ucu + 0,272 L.
+// Plan yalnız fiyat bölgeye henüz gelmemişken (C oluşuyor) verilir; motorun 24 saatlik limit kuralı ve bıçak koruması uygulanır.
+function fibClusterPlan(pts, c, atr, o) {
+  const k = fibClusterOf(pts, atr, o);
+  if (!k) return null;
+  if (k.d * (c.close - k.mid) <= 0) return null; // fiyat bölgeye gelmemiş olmalı (B tarafında)
+  if (k.d * (c.close - k.mid) > (o.maxDistAtr ?? 6) * atr) return null; // çok uzak bölgeye emir koyma
+  const risk = k.d * (k.mid - k.stop);
+  if (!(risk > 0) || k.d * (k.tp1 - k.mid) / risk < (o.minRR ?? 1.5)) return null;
+  return { ...mk(k.d, k.mid, k.stop, k.tp1, k.tp2, atr, { kind: 'fib_cluster', retr: k.retr, ext: k.ext, diffAtr: k.diff, rr1: +((k.d * (k.tp1 - k.mid)) / risk).toFixed(2) }), inZone: false, zone: [k.mid - 0.25 * atr, k.mid + 0.25 * atr], price: c.close };
+}
+const mkFib = (id, label, o) => ({
+  id, label, tfs: ['1H', '4H'], exit: { tpScheme: 'half_be', maxHoldBars: 120 }, o: { ...CORR_DEFAULTS, ...FIB_DEFAULTS, minRR: 1.5, ...o },
+  prepare(candles) { return prepareBase(candles, this.o); },
+  signal(i, candles, p) {
+    if (i < 60) return null;
+    const a = p.atr[i]; if (!a) return null;
+    const c = { ...candles[i], i };
+    for (let z = 0; z < p.zz.length; z++) {
+      const { pivots, tentative } = pivotsAsOf(p.zz[z], candles, i);
+      // C oluşuyorsa: son 4 onaylı pivot [P0,P1,A,B]; B oluşuyorsa: son 3 onaylı + tentative
+      const wins = [];
+      if (pivots.length >= 4) wins.push(pivots.slice(-4));
+      if (tentative && pivots.length >= 3) wins.push([...pivots.slice(-3), tentative]);
+      for (const w of wins) {
+        const key = `${z}:${w.map((q) => q.i).join('-')}`;
+        if (p.seen.has(key)) continue;
+        const plan = fibClusterPlan(w, c, a, p.o);
+        if (plan) { p.seen.add(key); return plan; }
+      }
+    }
+    return null;
+  },
+});
+export const fibClusterC = mkFib('fib_cluster_c', 'Fib kesişimi: itki 0,5/0,618/0,786 geri çekilmesi × A\'nın 1,272/1,382/1,618 uzantısı, limit giriş (TP1 itki ucu)', {});
+export const fibClusterCStrict = mkFib('fib_cluster_c_strict', 'Fib kesişimi yalnız 0,618×1,272 (tol 0,3 ATR), limit giriş', { clusterRetr: [0.618], clusterExt: [1.272], clusterTolAtr: 0.3 });

@@ -32,6 +32,11 @@ export const PRESETS = [
     detectorOpts: { elliott: { patterns: ['flat'], wave3: false, minScore: 50, maxCounts: 4 } },
   },
   {
+    id: 'fib_cluster', name: 'Fib kesişimi (0,618×1,272)', desc: 'İtki sonrası ABC düzeltmesi: itkinin 0,618 geri çekilmesi ile A bacağının B\'den 1,272 uzantısı aynı yerdeyse giriş bölgesi; yön itkinin yönü.',
+    detectors: ['fibonacci'], weights: { fibonacci: 2.0 }, minScore: 20,
+    detectorOpts: { fibonacci: { only: 'cluster' } },
+  },
+  {
     id: 'ew_corrections', name: 'EW düzeltmeler', desc: 'Zigzag + flat + diyagonal birlikte; fib desteğiyle.',
     detectors: ['elliott', 'fibonacci'], weights: { elliott: 1.8, fibonacci: 0.6 }, minScore: 25,
     detectorOpts: { elliott: { patterns: ['zigzag', 'flat', 'diagonal'], wave3: false, minScore: 50, maxCounts: 4 } },
