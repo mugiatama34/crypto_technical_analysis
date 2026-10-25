@@ -36,7 +36,10 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   grafikte alt araç çubuğu: kalem (çizim) · göstergeler · düzen · … · + · alarm · mum tipi · tekrar oynat (⏪) ·
   katmanlar · "…" · geri al; kaleme basınca grafiğin üstünde yüzen çizim çubuğu açılır (fib, çizgiler, kanal, ABCD,
   Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
-  Binance "… / TetherUS PERPETUAL CONTRACT".
+  Binance "… / TetherUS PERPETUAL CONTRACT". Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
+  yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
+  için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
+  işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
   **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
   Sayfalarda ve cevaplarda hep bu düzeni kullan. Kullanıcının varsayılan fib ayarı Elliott'a göre; SMC için şablon
   ("SMC Çeyrek": 0/0,25/0,5/0,75/1 · "SMC OTE": 0/0,5/0,618/0,705/0,786/1) kullanılır, varsayılan değiştirilmez.
