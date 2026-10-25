@@ -5,6 +5,11 @@ on:
   schedule:
     - cron: "20 6 * * *"
   workflow_dispatch:
+    inputs:
+      extra:
+        description: "Ek coinler (virgülle, ör. ARB,SOL) → docs/pratik/extra/<COIN>.json"
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -19,12 +24,14 @@ jobs:
         with:
           node-version: "22"
       - name: Snapshot
+        env:
+          EXTRA: ${{ inputs.extra }}
         run: node bot/practice/snapshot.mjs
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/pratik/candles.json
+          git add docs/pratik/candles.json docs/pratik/extra 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -q -m "bot: pratik mum anlık görüntüsü (run ${{ github.run_id }})"
           for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || sleep 5; done

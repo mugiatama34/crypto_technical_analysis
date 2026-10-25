@@ -16,7 +16,7 @@ güncellenir. Eğitim notları: `docs/egitim/` (SMC / price action, arkadaşın 
 sekmeli, bol grafikli hali `egitim.html` (8 sekme: SVG mum çizimleri, XRP kurulumu adım adım oynatıcı, pozisyon ve
 beklenti hesaplayıcı, risk/şans simülasyonları, 9 soruluk grafikli alıştırma; harici bağımlılık yok, yalnız Google Fonts).
 Pratik: `pratik.html` BTC/ETH gerçek grafiklerinde adım adım işaretleme (Temiz/İşaretli, cevap anahtarı). Veri
-`pratik.yml` (her sabah 06:20 UTC + elle) → `bot/practice/snapshot.mjs` → `docs/pratik/candles.json`; sayfa
+`pratik.yml` (her sabah 06:20 UTC + elle) → `bot/practice/snapshot.mjs` → `docs/pratik/candles.json` (elle tetiklerken `extra=ARB,SOL` → `docs/pratik/extra/<COIN>.json`, 1H 720 mum); sayfa
 `python3 bot/practice/build_page.py` ile şablondan (`bot/practice/pratik_template.html`) üretilir.
 
 ## Neler var
