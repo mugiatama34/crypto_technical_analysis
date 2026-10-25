@@ -25,6 +25,11 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   yönünden mi coin seçiminden mi geldiğini gösterir; çok varyant arasından seçim = iyimserlik, n < 100 = sonuçsuz;
   **ölçmeden canlıya kural konmaz**; canlı değişiklik = Variables bayrağı, varsayılan kapalı.
 - Küçük örneklem (n < 30) ile iddia yok. Günlük R dalgalanması normal.
+- **TradingView talimatı (eğitim/pratik):** Kullanıcı çoğu zaman telefondan çizer. Her TradingView talimatında
+  **hem masaüstü hem telefon uygulaması** yolunu yaz (ör. "Masaüstü: sol araç çubuğu → … · Telefon: alt menü → …").
+  Telefon menü adlarından emin değilsen öyle söyle, kullanıcıdan doğrulamasını iste ve doğrulananı buraya işle.
+  Standart ayar: sembol **OKX:BTCUSDT.P / OKX:ETHUSDT.P** (bot verisiyle aynı), **lineer** ölçek (log kapalı), saat
+  dilimi **UTC**. Çizimler hesapla eşitlenir; telefonda çizilen masaüstünde görünür. Pratik sayfası `pratik.html`.
 
 ## Mimari harita
 - Tarayıcı: `index.html` + `src/` (detectors, scan, ew, ui). Presetler `src/scan/presets.js` (ICT/SMC, EW, zigzag/flat,
