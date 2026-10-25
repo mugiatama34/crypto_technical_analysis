@@ -280,7 +280,7 @@ tr:last-child td { border-bottom: 0; }
     <p>TradingView'da <b>OKX:BTCUSDT.P</b> ve <b>OKX:ETHUSDT.P</b> grafiklerini aç (logaritmik ölçek kapalı, saat dilimi UTC). Aşağıdaki grafikleri "Temiz" modunda bırak. Şu beş soruyu kâğıda ya da bu sohbete yaz:</p>
     <ol>
       <li><b>BTC günlük:</b> Eylül tepesinden bu yana son dört tepe ve dört dip ne? Yapı yükselen mi, alçalan mı? Yapı hangi gün değişti (günlük MSS)?</li>
-      <li><b>Büyük bacak:</b> 1 Ağustos dibi → 21 Eylül tepesi bacağına fib çek. BTC ve ETH bu bacağın neresinde (0–1)? Premium mu, discount mı? Hangisi daha zayıf?</li>
+      <li><b>Büyük bacak:</b> 1 Ağustos dibinden 21 Eylül tepesine fib çek (SMC Çeyrek şablonu: 0 / 0,25 / 0,5 / 0,75 / 1). 0 tepede, 1 dipte durur. BTC ve ETH hangi seviyeye yakın? 0,5'in üstünde mi (premium), altında mı (discount)? Hangisi yükselişin daha çoğunu geri verdi?</li>
       <li><b>4H range:</b> Son iki haftada fiyat hangi aralıkta gidip geliyor? Eşit tepeler ve eşit dipler nerede? Fiyat range'in neresinde?</li>
       <li><b>24 Ekim 12:00 (UTC) mumu:</b> Hangi likidite alındı? BTC'de ve ETH'de mum seviyenin hangi tarafında kapandı?</li>
       <li><b>21 Ekim:</b> BTC ve ETH, 12–14 Ekim tepelerini aldı mı? İkisi aynı şeyi mi yaptı?</li>
@@ -291,7 +291,7 @@ tr:last-child td { border-bottom: 0; }
   <div class="concept wide">
     <div class="txt"><span class="tag">Günlük (1D) · son 90 gün</span></div>
     <div class="pair">
-      <figure><div class="ch" data-chart="btc1d"></div><figcaption><b>BTC 1D.</b> Gri kesikli çizgiler 1 Ağustos dibi → 21 Eylül tepesi bacağının çeyrekleri.</figcaption></figure>
+      <figure><div class="ch" data-chart="btc1d"></div><figcaption><b>BTC 1D.</b> Gri kesikli çizgiler 1 Ağustos dibi → 21 Eylül tepesi bacağının çeyrekleri. TradingView'daki gibi 0 tepede, 1 dipte.</figcaption></figure>
       <figure><div class="ch" data-chart="eth1d"></div><figcaption><b>ETH 1D.</b> Aynı tarihlerle aynı bacak.</figcaption></figure>
     </div>
   </div>
@@ -309,7 +309,7 @@ tr:last-child td { border-bottom: 0; }
       <button class="reveal" id="rv" aria-expanded="false">Cevapları göster</button>
       <div class="ans" id="ans" hidden>
         <p><b>1 · BTC günlük yapı alçalan.</b> Tepeler 87 374 (21 Eyl) → 87 239 (2 Eki) → 84 348 (12 Eki) → 84 876 (21 Eki). Dipler 82 501 (28 Eyl) → 80 351 (8 Eki) → 79 725 (15 Eki) → 79 168 (24 Eki). 8 Ekim günlük kapanışı (81 715) 28 Eylül dibini kırdı: <b>günlük MSS aşağı</b>. ETH'de aynı kırılım bir gün önce, 7 Ekim'de (kapanış 2 573 &lt; 2 626).</p>
-        <p><b>2 · Büyük bacak.</b> BTC 62 227 → 87 374 bacağının <b>0,74</b>'ünde: premium, ama tepeye uzak. ETH 1 821 → 2 807 bacağının <b>0,54</b>'ünde: dengenin hemen üstü. Aynı bacakta ETH yükselişin çok daha fazlasını geri verdi. <b>ETH daha zayıf.</b> Short aranacaksa ETH, long aranacaksa BTC adaydır.</p>
+        <p><b>2 · Büyük bacak.</b> BTC fiyatı (80 850) fib'in <b>0,26</b> seviyesine yakın; 0,25 çizgisi 81 087. Yükselişin yalnız dörtte birini geri vermiş, 0,5'in (74 801) çok üstünde: premium. ETH fiyatı (2 357) <b>0,46</b> civarında; 0,5 çizgisi 2 314, yani dengenin hemen üstünde. Aynı bacakta ETH yükselişin neredeyse yarısını geri verdi. <b>ETH daha zayıf.</b> Short aranacaksa ETH, long aranacaksa BTC adaydır.</p>
         <p><b>3 · 4H range.</b> BTC 15 Ekim'den beri ≈ 79 700 – 84 900 arasında. Eşit tepeler 84 116 / 84 131 / 84 348, eşit dipler 80 621 / 80 755 / 80 771. Denge (0,5) ≈ 82 020. Fiyat 80 830 ile <b>range'in alt çeyreğinde, yani discount</b>. ETH ≈ 2 281 – 2 530, eşit tepeler 2 527,6 / 2 529,9, eşit dipler 2 350 / 2 355 / 2 358, denge ≈ 2 405. Fiyat 2 360 ile discount.</p>
         <p><b>4 · 24 Ekim 12:00.</b> İki coin de <b>önceki haftanın dibini (PWL)</b> süpürdü. BTC 79 725'in altına 79 168'e indi ve 79 755'te, seviyenin hemen üstünde kapandı. Bu klasik fitil süpürmesi. ETH 2 315'in altına 2 281'e indi ve 2 305'te, seviyenin altında kapandı. Bir sonraki mum geri aldı. Arkadaşının sözü: "fitil de olur, kapanış da; önemli olan sonrası." Bonus: ETH'nin dibi büyük bacağın tam 0,5'ine (2 314) denk geldi.</p>
         <p><b>5 · 21 Ekim.</b> BTC 84 876 ile 12 Ekim tepesini (84 348) aldı. ETH ise 2 527,6'da kaldı, ne 12 Ekim tepesini (2 578) ne de 14 Ekim tepesini (2 529,9) alabildi. Biri yeni tepe yapıp diğeri yapamayınca buna <b>SMT uyumsuzluğu</b> denir. Yükseliş BTC'de bile güçsüzdü ve ardından sert düşüş geldi. Arkadaşının BTC short'u tam bu tepedeydi. 24 Ekim dibinde ise ikisi de dibi aldı, uyumsuzluk yok.</p>
@@ -559,25 +559,25 @@ const hi = (cs, i) => cs[i].h, lo = (cs, i) => cs[i].l;
 (() => {
   const cs = conv(D.coins.BTC['1D']); const a = at(cs, '2026-08-01');
   const sw = [['2026-09-21', 'HH', 1], ['2026-09-28', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
-  const ann = [{ s: 1, type: 'fib', x1: a, p0: 62227, p1: 87374.3, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 87374.3, p1: 62227, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
   for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, top ? 'dn' : 'dn', top ? -7 : 15)); }
   const m0 = at(cs, '2026-09-28'), m1 = at(cs, '2026-10-08');
   ann.push({ s: 1, type: 'h', y: 82501, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
   ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 62227, x2: at(cs, '2026-09-21'), y2: 87374.3, c: 'up', d: true });
   ann.push(L(at(cs, '2026-08-24'), 73000, 'Büyük bacak yukarı', 'up', 0, 'end'));
-  make('btc1d', { cs, h: 360, dec: 0, label: 'BTC günlük', xl: xl1d(cs), ann, note: 'İşaretli: alçalan tepeler (LH) ve alçalan dipler (LL), 8 Ekim günlük MSS. Fiyat büyük bacağın 0,74\'ünde.' });
+  make('btc1d', { cs, h: 360, dec: 0, label: 'BTC günlük', xl: xl1d(cs), ann, note: 'İşaretli: alçalan tepeler (LH) ve alçalan dipler (LL), 8 Ekim günlük MSS. Fiyat 0,26 seviyesinde: yükselişin yalnız dörtte birini geri verdi, premium.' });
 })();
 /* ETH 1D */
 (() => {
   const cs = conv(D.coins.ETH['1D']); const a = at(cs, '2026-08-01');
   const sw = [['2026-09-21', 'HH', 1], ['2026-09-24', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
-  const ann = [{ s: 1, type: 'fib', x1: a, p0: 1820.77, p1: 2806.96, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 2806.96, p1: 1820.77, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
   for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, 'dn', top ? -7 : 15)); }
   const m0 = at(cs, '2026-09-24'), m1 = at(cs, '2026-10-07');
   ann.push({ s: 1, type: 'h', y: 2626.07, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
   ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 1820.77, x2: at(cs, '2026-09-21'), y2: 2806.96, c: 'up', d: true });
   ann.push({ s: 1, type: 'mark', x: at(cs, '2026-10-24'), y: 2281.02, c: 'acc', t: 'Dip = bacağın 0,5\'i', pos: 'b', a: 'end', dx: 4, dy: 8 });
-  make('eth1d', { cs, h: 360, dec: 0, label: 'ETH günlük', xl: xl1d(cs), ann, note: 'İşaretli: aynı alçalan yapı, 7 Ekim günlük MSS. Fiyat büyük bacağın 0,54\'ünde, dengede. 24 Ekim dibi tam 0,5 seviyesinde.' });
+  make('eth1d', { cs, h: 360, dec: 0, label: 'ETH günlük', xl: xl1d(cs), ann, note: 'İşaretli: aynı alçalan yapı, 7 Ekim günlük MSS. Fiyat 0,46 seviyesinde, dengenin hemen üstünde. 24 Ekim dibi tam 0,5 seviyesinde.' });
 })();
 /* BTC 4H */
 (() => {

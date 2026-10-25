@@ -360,7 +360,7 @@ tr:last-child td { border-bottom: 0; }
     <div class="txt">
       <span class="tag">6 · Premium / discount ve OTE</span>
       <h3>Ucuzdan al, pahalıdan sat</h3>
-      <p>Bir range'in (swing dip → tepe) 0,5'i dengedir. Üstü <b>premium</b> (pahalı, short aranır), altı <b>discount</b> (ucuz, long aranır). Arkadaşın 0 / 0,25 / 0,5 / 0,75 / 1 çeyrek seviyelerini çizer.</p>
+      <p>Bir range'in (swing dip → tepe) 0,5'i dengedir. Üstü <b>premium</b> (pahalı, short aranır), altı <b>discount</b> (ucuz, long aranır). Arkadaşın 0 / 0,25 / 0,5 / 0,75 / 1 çeyrek seviyelerini çizer. TradingView'da dipten tepeye çekilen fib'te 0 tepede, 1 dipte durur; geri çekilme tepeden ölçülür.</p>
       <p><b>OTE (optimal trade entry):</b> bacağın 0,62–0,79 geri çekilmesi (0,618 / 0,705 / 0,786). BTC long girişi tam 0,705'ten yapıldı. OTE ile FVG/OB çakışması en iyi giriştir.</p>
       <p><b>Kural:</b> üst dilim yükselişteyse discount'ta long, düşüşteyse premium'da short. Premium'da long almak, yapı yükseliş olsa bile zayıf işlemdir.</p>
       <p class="ours">Bizde: <code>fibonacci</code> detektörü (OTE, fib çakışması, 0,618×1,272 kesişimi), <code>structure.dealingRange</code>.</p>
@@ -1146,7 +1146,7 @@ let cid = 0; const mk = (name, cfg) => { const host = document.querySelector(`[d
     { type: 'zone', x1: p[0], y1: lo + rgn / 2, y2: hi, c: 'dn', soft: true, t: 'PREMIUM · short aranır', ta: 'end' },
     { type: 'zone', x1: p[0], y1: lo, y2: lo + rgn / 2, c: 'up', soft: true, t: 'DISCOUNT · long aranır', ta: 'end', tb: true },
     { type: 'zone', x1: p[1], y1: ote(0.62), y2: ote(0.79), c: 'fvg', t: 'OTE 0,62–0,79', ta: 'end' },
-    { type: 'fib', x1: p[0], x2: p[1] + 1.5, p0: lo, p1: hi, lv: [0, 0.25, 0.5, 0.75, 1], names: { 0: '0 dip', 0.25: '0,25', 0.5: '0,5 denge', 0.75: '0,75', 1: '1 tepe' }, c: 'mut', la: 'start' },
+    { type: 'fib', x1: p[0], x2: p[1] + 1.5, p0: lo, p1: hi, lv: [0, 0.25, 0.5, 0.75, 1], names: { 0: '1 dip', 0.25: '0,75', 0.5: '0,5 denge', 0.75: '0,25', 1: '0 tepe' }, c: 'mut', la: 'start' },
     { type: 'mark', x: p[2], y: ote(0.705), c: 'up', t: '0,705 giriş', pos: 'b', dy: 4 },
   ] });
 })();
