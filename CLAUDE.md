@@ -30,6 +30,12 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   Telefon menü adlarından emin değilsen öyle söyle, kullanıcıdan doğrulamasını iste ve doğrulananı buraya işle.
   Standart ayar: sembol **OKX:BTCUSDT.P / OKX:ETHUSDT.P** (bot verisiyle aynı), **lineer** ölçek (log kapalı), saat
   dilimi **UTC**. Çizimler hesapla eşitlenir; telefonda çizilen masaüstünde görünür. Pratik sayfası `pratik.html`.
+  **Doğrulanmış telefon arayüzü (iOS, 25.10.2026):** alt menü İzleme Listesi / Grafik / Keşfet / Topluluk / Menü; bir
+  çizimin ayar penceresi sekmeleri **Stil / Kordinatlar / Görünürlük**, sol altta "…" düğmesi, sağ altta İptal /
+  Tamam; fib aracının adı "Fib düzeltmesi". Kordinatlar sekmesinde noktaların fiyatı elle yazılabilir.
+  **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
+  Sayfalarda ve cevaplarda hep bu düzeni kullan. Kullanıcının varsayılan fib ayarı Elliott'a göre; SMC için şablon
+  ("SMC Çeyrek": 0/0,25/0,5/0,75/1 · "SMC OTE": 0/0,5/0,618/0,705/0,786/1) kullanılır, varsayılan değiştirilmez.
 
 ## Mimari harita
 - Tarayıcı: `index.html` + `src/` (detectors, scan, ew, ui). Presetler `src/scan/presets.js` (ICT/SMC, EW, zigzag/flat,
