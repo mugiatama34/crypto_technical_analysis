@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--skeleton-end-->
+<title>BTC ETH Pratik Defteri</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Eğitimin pratik kısmı: BTC ve ETH gerçek grafiklerinde adım adım işaretleme. Önce kendin işaretle, sonra karşılaştır.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/*CSS*/
+/* pratik eklemeleri */
+.road { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.road .st { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; color: var(--ink-3); }
+.road .st b { font: 600 15px var(--cond); color: var(--ink-3); }
+.road .st.on { border-color: var(--accent); color: var(--ink-2); }
+.road .st.on b { color: var(--ink); }
+.road .st .k { font: 600 11px var(--mono); letter-spacing: .06em; }
+.road .st.on .k { color: var(--accent); }
+.task { border: 1px solid var(--accent); border-radius: 6px; padding: 16px; display: grid; gap: 10px; background: var(--panel); }
+.task ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; color: var(--ink-2); }
+.task .k { font: 600 12px var(--mono); color: var(--accent); letter-spacing: .06em; }
+.tg .dots button { width: auto; height: 34px; border-radius: 5px; padding: 0 14px; font: 600 13px var(--cond); }
+.tg .sbtn { display: none; }
+.ans { border-left: 2px solid var(--up); padding: 4px 0 4px 12px; display: grid; gap: 6px; color: var(--ink-2); }
+.ans[hidden] { display: none; }
+.reveal { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 600 14px var(--cond); padding: 0 16px; min-height: 42px; border-radius: 5px; cursor: pointer; justify-self: start; }
+.reveal:hover { border-color: var(--ink-3); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.chip { display: inline-block; font: 600 11px var(--mono); padding: 2px 7px; border-radius: 3px; border: 1px solid currentColor; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="titleblock">
+  <div>
+    <h1>BTC ETH Pratik Defteri</h1>
+    <p class="lead">Eğitimin 06 · Rutin bölümünü gerçek grafiklerde uyguluyoruz. Her adımda önce sen işaretlersin, sonra benim işaretlememle karşılaştırırsın. İşlem yok, yalnız işaretleme.</p>
+  </div>
+  <div class="meta" aria-label="Veri bilgisi">
+    <span>Veri</span><span>OKX USDT perp</span>
+    <span>Anlık</span><span id="snap">–</span>
+    <span>Adım</span><span>1 / 6</span>
+    <span>Mod</span><span>yalnız işaret</span>
+  </div>
+</header>
+
+<section class="panel" style="padding-top:22px">
+  <div class="road" aria-label="Yol haritası">
+    <div class="st on"><span class="k">ADIM 1 · BUGÜN</span><b>Yön: 1D + 4H</b><span>Yapı, range, premium/discount</span></div>
+    <div class="st"><span class="k">ADIM 2</span><b>Likidite haritası</b><span>PDH/PDL, PWH/PWL, EQH/EQL, Asya</span></div>
+    <div class="st"><span class="k">ADIM 3</span><b>Bölgeler</b><span>4H FVG ve order block</span></div>
+    <div class="st"><span class="k">ADIM 4</span><b>Senaryo cümlesi</b><span>Eğer … süpürülür ve MSS gelirse …</span></div>
+    <div class="st"><span class="k">ADIM 5</span><b>Alarm ve bekleme</b><span>15m'de MSS + FVG</span></div>
+    <div class="st"><span class="k">ADIM 6</span><b>Günlük kaydı</b><span>Ne oldu, ne öğrendim</span></div>
+  </div>
+
+  <div class="intro">
+    <span class="eyebrow">Adım 1 · Yön</span>
+    <h2>Büyük resim nereye bakıyor, fiyat ucuz mu pahalı mı?</h2>
+    <p>Bugün Pazar. Hafta sonu işlem yok, bu yüzden işaretleme için en iyi gün. Rutinin ilk 4 dakikası: BTC ve ETH'nin günlük ve 4 saatlik yapısı. Aşağıdaki grafikler gerçek veri, <span id="snap2">–</span> anlık görüntüsü.</p>
+  </div>
+
+  <div class="task">
+    <span class="k">GÖREV · ÖNCE KENDİN, 15–20 DAKİKA</span>
+    <p>TradingView'da <b>BTCUSDT.P</b> ve <b>ETHUSDT.P</b> grafiklerini aç. Aşağıdaki grafikleri "Temiz" modunda bırak. Şu beş soruyu kâğıda ya da bu sohbete yaz:</p>
+    <ol>
+      <li><b>BTC günlük:</b> Eylül tepesinden bu yana son dört tepe ve dört dip ne? Yapı yükselen mi, alçalan mı? Yapı hangi gün değişti (günlük MSS)?</li>
+      <li><b>Büyük bacak:</b> 1 Ağustos dibi → 21 Eylül tepesi bacağına fib çek. BTC ve ETH bu bacağın neresinde (0–1)? Premium mu, discount mı? Hangisi daha zayıf?</li>
+      <li><b>4H range:</b> Son iki haftada fiyat hangi aralıkta gidip geliyor? Eşit tepeler ve eşit dipler nerede? Fiyat range'in neresinde?</li>
+      <li><b>24 Ekim 12:00 (UTC) mumu:</b> Hangi likidite alındı? BTC'de ve ETH'de mum seviyenin hangi tarafında kapandı?</li>
+      <li><b>21 Ekim:</b> BTC ve ETH, 12–14 Ekim tepelerini aldı mı? İkisi aynı şeyi mi yaptı?</li>
+    </ol>
+    <p class="dim">Cevapları yazınca her grafiğin üstündeki "İşaretli" düğmesine bas ya da en alttaki cevap anahtarını aç.</p>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt"><span class="tag">Günlük (1D) · son 90 gün</span></div>
+    <div class="pair">
+      <figure><div class="ch" data-chart="btc1d"></div><figcaption><b>BTC 1D.</b> Gri kesikli çizgiler 1 Ağustos dibi → 21 Eylül tepesi bacağının çeyrekleri.</figcaption></figure>
+      <figure><div class="ch" data-chart="eth1d"></div><figcaption><b>ETH 1D.</b> Aynı tarihlerle aynı bacak.</figcaption></figure>
+    </div>
+  </div>
+  <div class="concept wide">
+    <div class="txt"><span class="tag">4 saatlik (4H) · son 20 gün</span></div>
+    <div class="pair">
+      <figure><div class="ch" data-chart="btc4h"></div><figcaption><b>BTC 4H.</b> Sarı kutu son iki haftanın range'i.</figcaption></figure>
+      <figure><div class="ch" data-chart="eth4h"></div><figcaption><b>ETH 4H.</b> Aynı dönem.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Cevap anahtarı</span>
+      <button class="reveal" id="rv" aria-expanded="false">Cevapları göster</button>
+      <div class="ans" id="ans" hidden>
+        <p><b>1 · BTC günlük yapı alçalan.</b> Tepeler 87 374 (21 Eyl) → 87 239 (2 Eki) → 84 348 (12 Eki) → 84 876 (21 Eki). Dipler 82 501 (28 Eyl) → 80 351 (8 Eki) → 79 725 (15 Eki) → 79 168 (24 Eki). 8 Ekim günlük kapanışı (81 715) 28 Eylül dibini kırdı: <b>günlük MSS aşağı</b>. ETH'de aynı kırılım bir gün önce, 7 Ekim'de (kapanış 2 573 &lt; 2 626).</p>
+        <p><b>2 · Büyük bacak.</b> BTC 62 227 → 87 374 bacağının <b>0,74</b>'ünde: premium, ama tepeye uzak. ETH 1 821 → 2 807 bacağının <b>0,54</b>'ünde: dengenin hemen üstü. Aynı bacakta ETH yükselişin çok daha fazlasını geri verdi. <b>ETH daha zayıf.</b> Short aranacaksa ETH, long aranacaksa BTC adaydır.</p>
+        <p><b>3 · 4H range.</b> BTC 15 Ekim'den beri ≈ 79 700 – 84 900 arasında. Eşit tepeler 84 116 / 84 131 / 84 348, eşit dipler 80 621 / 80 755 / 80 771. Denge (0,5) ≈ 82 020. Fiyat 80 830 ile <b>range'in alt çeyreğinde, yani discount</b>. ETH ≈ 2 281 – 2 530, eşit tepeler 2 527,6 / 2 529,9, eşit dipler 2 350 / 2 355 / 2 358, denge ≈ 2 405. Fiyat 2 360 ile discount.</p>
+        <p><b>4 · 24 Ekim 12:00.</b> İki coin de <b>önceki haftanın dibini (PWL)</b> süpürdü. BTC 79 725'in altına 79 168'e indi ve 79 755'te, seviyenin hemen üstünde kapandı. Bu klasik fitil süpürmesi. ETH 2 315'in altına 2 281'e indi ve 2 305'te, seviyenin altında kapandı. Bir sonraki mum geri aldı. Arkadaşının sözü: "fitil de olur, kapanış da; önemli olan sonrası." Bonus: ETH'nin dibi büyük bacağın tam 0,5'ine (2 314) denk geldi.</p>
+        <p><b>5 · 21 Ekim.</b> BTC 84 876 ile 12 Ekim tepesini (84 348) aldı. ETH ise 2 527,6'da kaldı, ne 12 Ekim tepesini (2 578) ne de 14 Ekim tepesini (2 529,9) alabildi. Biri yeni tepe yapıp diğeri yapamayınca buna <b>SMT uyumsuzluğu</b> denir. Yükseliş BTC'de bile güçsüzdü ve ardından sert düşüş geldi. Arkadaşının BTC short'u tam bu tepedeydi. 24 Ekim dibinde ise ikisi de dibi aldı, uyumsuzluk yok.</p>
+        <p><b>Sonuç cümlesi.</b> Günlük yön aşağı. Ama fiyat 4H range'in dibinde ve satış tarafı likidite yeni alındı. <b>Burada short kovalanmaz.</b> Doğru beklenti iki taraflı: ya fiyat range ortasına ya da premium'a (BTC 82 000–84 300, ETH 2 405–2 528) tepki verir ve orada short aranır, ya da 4H'de yukarı MSS gelir (BTC 82 048, ETH 2 417 üstünde kapanış). İkinci durumda ters işlem olduğu için yalnız 0,5R ile long düşünülür. ETH'nin alınmamış eşit tepeleri (2 528–2 530) yukarıda açık bir hedef.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Sıradaki · Adım 2</span>
+      <p>Cevaplarını sohbete yaz, birlikte farklara bakalım. Pazartesi sabahı (09:20 TR) veri kendiliğinden yenilenir. Adım 2'de aynı grafiklere likidite haritasını ekleyeceğiz: önceki günün ve haftanın tepe/dibi, Asya seansı, 1H eşit tepe/dipler.</p>
+      <p class="note">Grafiklerdeki mumlar gerçek OKX verisidir. Saatler UTC'dir; Türkiye saati = UTC + 3. Yatırım tavsiyesi değildir.</p>
+    </div>
+  </div>
+</section>
+
+<!--repo-only-->
+<nav class="links" aria-label="Diğer sayfalar"><a href="egitim.html">Eğitim</a><a href="index.html">Tarayıcı</a><a href="signals.html">Sinyal geçmişi</a><a href="agent.html">Ajan</a></nav>
+<!--/repo-only-->
+</div>
+
+<script id="pdata" type="application/json">/*DATA*/</script>
+<script>
+(() => {
+'use strict';
+/*ENGINE*/
+const D = JSON.parse(document.getElementById('pdata').textContent);
+const AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const snap = new Date(D.generatedAt); const snapTxt = `${snap.getUTCDate()} ${AY[snap.getUTCMonth()]} ${String(snap.getUTCHours()).padStart(2, '0')}:${String(snap.getUTCMinutes()).padStart(2, '0')} UTC`;
+$('#snap').textContent = snapTxt; $('#snap2').textContent = snapTxt;
+const conv = (arr) => arr.map((a) => ({ t: a[0], o: a[1], h: a[2], l: a[3], c: a[4] }));
+const at = (cs, iso) => { const t = Date.parse(iso + (iso.length <= 10 ? 'T00:00:00Z' : ':00:00Z')); const i = cs.findIndex((c) => c.t === t); if (i < 0) throw new Error('tarih yok ' + iso); return i; };
+const xl1d = (cs) => cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => [1, 15].includes(d.getUTCDate())).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]);
+const xl4h = (cs) => cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => d.getUTCHours() === 0 && d.getUTCDate() % 3 === 0).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]);
+let cidp = 0;
+function make(name, cfg) {
+  const host = document.querySelector(`[data-chart="${name}"]`); cfg.id = 'p' + (++cidp); host.classList.add('tg');
+  cfg.steps = [{ upto: cfg.cs.length - 1, t: 'Temiz grafik: önce kendin işaretle.' }, { upto: cfg.cs.length - 1, t: cfg.note }];
+  candleChart(host, cfg);
+  $$('.dots button', host).forEach((b, i) => { b.textContent = i ? 'İşaretli' : 'Temiz'; });
+}
+const L = (x, y, t, c, dy, a) => ({ s: 1, type: 'label', x, y, t, c: c || 'mut', dy: dy ?? 0, small: true, a: a || 'middle' });
+const hi = (cs, i) => cs[i].h, lo = (cs, i) => cs[i].l;
+
+/* BTC 1D */
+(() => {
+  const cs = conv(D.coins.BTC['1D']); const a = at(cs, '2026-08-01');
+  const sw = [['2026-09-21', 'HH', 1], ['2026-09-28', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 62227, p1: 87374.3, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, top ? 'dn' : 'dn', top ? -7 : 15)); }
+  const m0 = at(cs, '2026-09-28'), m1 = at(cs, '2026-10-08');
+  ann.push({ s: 1, type: 'h', y: 82501, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
+  ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 62227, x2: at(cs, '2026-09-21'), y2: 87374.3, c: 'up', d: true });
+  ann.push(L(at(cs, '2026-08-24'), 73000, 'Büyük bacak yukarı', 'up', 0, 'end'));
+  make('btc1d', { cs, h: 360, dec: 0, label: 'BTC günlük', xl: xl1d(cs), ann, note: 'İşaretli: alçalan tepeler (LH) ve alçalan dipler (LL), 8 Ekim günlük MSS. Fiyat büyük bacağın 0,74\'ünde.' });
+})();
+/* ETH 1D */
+(() => {
+  const cs = conv(D.coins.ETH['1D']); const a = at(cs, '2026-08-01');
+  const sw = [['2026-09-21', 'HH', 1], ['2026-09-24', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 1820.77, p1: 2806.96, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, 'dn', top ? -7 : 15)); }
+  const m0 = at(cs, '2026-09-24'), m1 = at(cs, '2026-10-07');
+  ann.push({ s: 1, type: 'h', y: 2626.07, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
+  ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 1820.77, x2: at(cs, '2026-09-21'), y2: 2806.96, c: 'up', d: true });
+  ann.push({ s: 1, type: 'mark', x: at(cs, '2026-10-24'), y: 2281.02, c: 'acc', t: 'Dip = bacağın 0,5\'i', pos: 'b', a: 'end', dx: 4, dy: 8 });
+  make('eth1d', { cs, h: 360, dec: 0, label: 'ETH günlük', xl: xl1d(cs), ann, note: 'İşaretli: aynı alçalan yapı, 7 Ekim günlük MSS. Fiyat büyük bacağın 0,54\'ünde, dengede. 24 Ekim dibi tam 0,5 seviyesinde.' });
+})();
+/* BTC 4H */
+(() => {
+  const cs = conv(D.coins.BTC['4H']); const r0 = at(cs, '2026-10-15T12'), sw = at(cs, '2026-10-24T12'), top = at(cs, '2026-10-21T16');
+  const ann = [
+    { s: 1, type: 'zone', x1: r0, y1: 79168, y2: 84876, c: 'fvg', t: 'Range 79 168 – 84 876', ta: 'start' },
+    { s: 1, type: 'h', y: 82022, x1: r0, c: 'fvg', d: true, thin: true, t: '0,5 denge 82 022', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 84348.2, x1: at(cs, '2026-10-12T04'), x2: top, c: 'liq', d: true, t: 'Eşit tepeler', small: true, ta: 'start', lx: at(cs, '2026-10-12T04'), below: true },
+    { s: 1, type: 'h', y: 80621.4, x1: at(cs, '2026-10-16T16'), x2: sw, c: 'liq', d: true, t: 'Eşit dipler', small: true, ta: 'start', lx: at(cs, '2026-10-16T16') },
+    { s: 1, type: 'h', y: 79725.3, x1: at(cs, '2026-10-15T12'), x2: sw + 1, c: 'liq', t: 'PWL 79 725', small: true, below: true, ta: 'start', lx: at(cs, '2026-10-15T12') + 1 },
+    { s: 1, type: 'mark', x: top, y: 84876, c: 'dn', t: 'Süpürme ↑', a: 'end', dx: -6 },
+    { s: 1, type: 'mark', x: sw, y: 79168, c: 'up', t: 'PWL süpürüldü', pos: 'b', a: 'end', dx: -6 },
+    { s: 1, type: 'h', y: 82047.6, x1: at(cs, '2026-10-23T12'), c: 'up', thin: true, t: 'MSS için 82 048', small: true },
+  ];
+  make('btc4h', { cs, h: 360, dec: 0, label: 'BTC 4H', xl: xl4h(cs), ann, note: 'İşaretli: 21 Ekim eşit tepeler süpürüldü (84 876), 24 Ekim önceki haftanın dibi süpürüldü (79 168). Fiyat range\'in alt çeyreğinde. Yukarı MSS için 82 048 üstünde 4H kapanış gerekir.' });
+})();
+/* ETH 4H */
+(() => {
+  const cs = conv(D.coins.ETH['4H']); const r0 = at(cs, '2026-10-14T08'), sw = at(cs, '2026-10-24T12'), top = at(cs, '2026-10-21T16');
+  const ann = [
+    { s: 1, type: 'zone', x1: r0, y1: 2281.02, y2: 2529.88, c: 'fvg', t: 'Range 2 281 – 2 530', ta: 'start' },
+    { s: 1, type: 'h', y: 2405.45, x1: r0, c: 'fvg', d: true, thin: true, t: '0,5 denge 2 405', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 2529.88, x1: r0, c: 'liq', d: true, t: 'Eşit tepeler 2 530 · alınmadı', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 2350.1, x1: at(cs, '2026-10-17T20'), x2: sw, c: 'liq', d: true, t: 'Eşit dipler', small: true, ta: 'start', lx: at(cs, '2026-10-17T20') },
+    { s: 1, type: 'h', y: 2315.26, x1: at(cs, '2026-10-15T00'), x2: sw + 1, c: 'liq', t: 'PWL 2 315', small: true, below: true, ta: 'start', lx: at(cs, '2026-10-15T00') + 1 },
+    { s: 1, type: 'mark', x: top, y: 2527.63, c: 'dn', t: 'Tepeyi alamadı (SMT)', a: 'end', dx: -6 },
+    { s: 1, type: 'mark', x: sw, y: 2281.02, c: 'up', t: 'PWL süpürüldü', pos: 'b', a: 'end', dx: -6 },
+    { s: 1, type: 'h', y: 2417, x1: at(cs, '2026-10-23T12'), c: 'up', thin: true, t: 'MSS için 2 417', small: true, below: true },
+  ];
+  make('eth4h', { cs, h: 360, dec: 0, label: 'ETH 4H', xl: xl4h(cs), ann, note: 'İşaretli: 21 Ekim BTC tepesini alırken ETH 2 527,6\'da kaldı (SMT uyumsuzluğu). 24 Ekim PWL süpürüldü. Eşit tepeler 2 528–2 530 hâlâ yukarıda bekliyor. Yukarı MSS için 2 417 üstünde 4H kapanış.' });
+})();
+$('#rv').onclick = () => { const a = $('#ans'); a.hidden = !a.hidden; $('#rv').setAttribute('aria-expanded', String(!a.hidden)); $('#rv').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
+})();
+</script>
+</body>
+</html>

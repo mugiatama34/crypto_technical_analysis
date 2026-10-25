@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--skeleton-end-->
+<title>BTC ETH Pratik Defteri</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Eğitimin pratik kısmı: BTC ve ETH gerçek grafiklerinde adım adım işaretleme. Önce kendin işaretle, sonra karşılaştır.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Düzen: mühendislik defteri. Üstte antet bloğu, yapışkan sekme şeridi; her kavram = metin + çizimli grafik ikilisi. */
+:root {
+  --bg: #0e1214; --panel: #151b1e; --panel-2: #1b2327; --ink: #e7ecea; --ink-2: #b4bdb8; --ink-3: #85908b;
+  --line: #2a3438; --grid: #1f282b;
+  --up: #2bb38a; --down: #e0613f; --accent: #e8b04a; --liq: #b88cf2; --ob: #5aa2ea; --fvg: #e8b04a;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cond: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f3f5f4; --panel: #ffffff; --panel-2: #eef1f0; --ink: #141a1c; --ink-2: #3e4a47; --ink-3: #66726e;
+  --line: #d3dad7; --grid: #e6ebe9;
+  --up: #0f8a63; --down: #c4462a; --accent: #9a6400; --liq: #7d4cc9; --ob: #2a6fb8; --fvg: #a86d00; color-scheme: light; } }
+:root[data-theme="light"] {
+  --bg: #f3f5f4; --panel: #ffffff; --panel-2: #eef1f0; --ink: #141a1c; --ink-2: #3e4a47; --ink-3: #66726e;
+  --line: #d3dad7; --grid: #e6ebe9;
+  --up: #0f8a63; --down: #c4462a; --accent: #9a6400; --liq: #7d4cc9; --ob: #2a6fb8; --fvg: #a86d00; color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 15px/1.6 var(--sans); }
+.page { max-width: 1120px; margin: 0 auto; padding-block: 0 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: var(--ink-2); }
+h1, h2, h3 { font-family: var(--cond); text-wrap: balance; letter-spacing: -0.005em; margin: 0; }
+h2 { font-size: 26px; line-height: 1.15; }
+h3 { font-size: 19px; line-height: 1.25; }
+p { margin: 0; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+b, strong { font-weight: 600; color: var(--ink); }
+.dim { color: var(--ink-3); }
+
+/* Antet */
+.titleblock { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 24px; align-items: end; padding: 26px 0 18px; border-bottom: 1px solid var(--line); }
+.titleblock h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.05; }
+.titleblock .lead { color: var(--ink-2); margin-top: 8px; max-width: 64ch; }
+.meta { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font: 12px/1.5 var(--mono); color: var(--ink-3); border: 1px solid var(--line); padding: 8px 12px; }
+.meta span:nth-child(odd) { text-transform: uppercase; letter-spacing: .06em; }
+.meta span:nth-child(even) { color: var(--ink-2); }
+@media (max-width: 640px) { .titleblock { grid-template-columns: 1fr; } }
+
+/* Sekmeler */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin: 0 0 22px; }
+.tabs-in { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs-in::-webkit-scrollbar { display: none; }
+.tab { flex: 0 0 auto; appearance: none; border: 0; background: none; color: var(--ink-3); font: 600 14px var(--cond); padding: 13px 12px 11px; cursor: pointer; border-bottom: 2px solid transparent; display: flex; gap: 7px; align-items: baseline; min-height: 44px; }
+.tab .n { font: 500 11px var(--mono); color: var(--ink-3); }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab[aria-selected="true"] .n { color: var(--accent); }
+.tab:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Bölümler */
+.panel > * + * { margin-top: 28px; }
+.intro { display: grid; gap: 10px; max-width: 72ch; }
+.intro .eyebrow { font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.intro p { color: var(--ink-2); }
+.concept { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px 28px; padding-top: 26px; border-top: 1px solid var(--line); }
+.concept.wide { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 880px) { .concept { grid-template-columns: minmax(0, 1fr); } }
+.concept .txt { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.concept .txt p, .concept .txt li { color: var(--ink-2); }
+.concept .txt ul, .concept .txt ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.tag { font: 600 11px var(--mono); color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; }
+.figs { display: grid; gap: 14px; min-width: 0; }
+.figs.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 700px) { .figs.two { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 10px 8px; min-width: 0; }
+figcaption { font-size: 13px; color: var(--ink-3); padding: 6px 4px 0; line-height: 1.45; }
+figcaption b { color: var(--ink-2); }
+.ch { width: 100%; min-height: 120px; }
+.ch svg { display: block; width: 100%; height: auto; }
+.ours { font-size: 13px; color: var(--ink-3); border-left: 2px solid var(--line); padding-left: 10px; }
+.ours code { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+.quote { font-style: italic; color: var(--ink); border-left: 2px solid var(--accent); padding: 2px 0 2px 12px; max-width: 70ch; }
+
+/* SVG grafik */
+.ch .gl { stroke: var(--grid); stroke-width: 1; }
+.ch .ax { fill: var(--ink-3); font: 10.5px var(--mono); }
+.ch .wk { stroke-width: 1.2; }
+.ch .up { fill: var(--up); stroke: var(--up); }
+.ch .dn { fill: var(--down); stroke: var(--down); }
+.ch .ghost { opacity: .18; }
+.k-liq { --c: var(--liq); } .k-fvg { --c: var(--fvg); } .k-ob { --c: var(--ob); } .k-up { --c: var(--up); } .k-dn { --c: var(--down); }
+.k-ink { --c: var(--ink); } .k-mut { --c: var(--ink-3); } .k-acc { --c: var(--accent); }
+.ch .ln { stroke: var(--c); stroke-width: 1.4; fill: none; }
+.ch .ln.d { stroke-dasharray: 5 4; }
+.ch .ln.thin { stroke-width: 1; }
+.ch .zf { fill: var(--c); fill-opacity: .13; stroke: var(--c); stroke-opacity: .55; stroke-width: 1; }
+.ch .zf.soft { fill-opacity: .06; stroke-opacity: 0; }
+.ch .tx { fill: var(--c); font: 600 11.5px var(--sans); paint-order: stroke; stroke: var(--panel); stroke-width: 3.5px; stroke-linejoin: round; }
+.ch .tx.s { font-size: 10.5px; font-weight: 500; }
+.ch .dot { fill: var(--panel); stroke: var(--c); stroke-width: 2; }
+.ch .badge { fill: var(--c); }
+.ch .badge-t { fill: var(--panel); font: 700 11px var(--mono); }
+.ch .tagr { fill: var(--c); }
+.ch .tagt { fill: var(--panel); font: 600 10px var(--mono); }
+.ch .past { opacity: .55; }
+.ch .osc { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+
+/* Adım oynatıcı */
+.stepper { display: grid; gap: 8px; padding: 10px 4px 2px; }
+.stepbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sbtn { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 600 13px var(--cond); padding: 0 14px; min-height: 40px; border-radius: 5px; cursor: pointer; }
+.sbtn:hover { border-color: var(--ink-3); }
+.sbtn[disabled] { opacity: .4; cursor: default; }
+.dots { display: flex; gap: 6px; }
+.dots button { appearance: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--ink-3); font: 600 12px var(--mono); cursor: pointer; padding: 0; }
+.dots button[aria-current="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.dots button.done { color: var(--ink); border-color: var(--ink-3); }
+.stepcap { color: var(--ink-2); font-size: 14.5px; min-height: 3.2em; }
+.stepcap b { color: var(--accent); font-family: var(--cond); font-size: 15.5px; }
+
+/* Tablolar, kartlar */
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); background: var(--panel); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.pos { color: var(--up); } .neg { color: var(--down); }
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 6px; align-content: start; }
+.card h3 { font-size: 16.5px; }
+.card p { color: var(--ink-2); font-size: 14px; }
+.card .k { font: 600 11px var(--mono); color: var(--accent); letter-spacing: .06em; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 14px; font-size: 14px; }
+.facts dt { color: var(--ink-3); font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+.facts dd { margin: 0; color: var(--ink-2); }
+.facts dd .num { color: var(--ink); }
+
+/* Kontrol listesi */
+.check { display: grid; gap: 2px; }
+.check label { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 10px; border-radius: 5px; cursor: pointer; color: var(--ink-2); }
+.check label:hover { background: var(--panel-2); }
+.check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--up); }
+.verdict { font: 600 15px var(--cond); padding: 10px 14px; border-radius: 5px; border: 1px solid var(--line); }
+.verdict.ok { color: var(--up); border-color: var(--up); }
+.verdict.no { color: var(--down); border-color: var(--down); }
+
+/* Hesaplayıcı */
+.calc { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; }
+@media (max-width: 820px) { .calc { grid-template-columns: minmax(0, 1fr); } }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.field { display: grid; gap: 4px; }
+.field label { font: 500 12px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+.field input { font: 500 15px var(--mono); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; min-height: 42px; width: 100%; }
+.field input[type="range"] { padding: 0; accent-color: var(--accent); background: none; border: 0; }
+.out { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-content: start; }
+.o { border-top: 1px solid var(--line); padding-top: 6px; }
+.o .l { font: 500 11.5px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+.o .v { font: 600 20px var(--mono); font-variant-numeric: tabular-nums; }
+.warn { grid-column: 1 / -1; padding: 9px 12px; border-radius: 5px; font-size: 14px; border: 1px solid var(--line); }
+.warn.bad { color: var(--down); border-color: var(--down); }
+.warn.good { color: var(--up); border-color: var(--up); }
+
+/* Isı haritası */
+.heat td { text-align: center; font: 500 12.5px var(--mono); padding: 7px 4px; border: 1px solid var(--bg); }
+.heat th { text-align: center; }
+.heat td.mark { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+/* Poster */
+.rules { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); counter-reset: r; }
+.rule { border: 1px solid var(--accent); border-radius: 6px; padding: 16px; display: grid; gap: 6px; counter-increment: r; }
+.rule::before { content: "KURAL " counter(r); font: 600 11px var(--mono); color: var(--accent); letter-spacing: .08em; }
+.rule p { font: 600 18px/1.3 var(--cond); }
+
+/* Alıştırma */
+.quiz { display: grid; gap: 18px; }
+.q { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 10px; }
+.q .qh { display: flex; gap: 10px; align-items: baseline; }
+.q .qh .k { font: 600 12px var(--mono); color: var(--accent); }
+.q .qt { font: 600 16.5px var(--cond); }
+.q figure { border: 0; padding: 0; background: none; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 500 14px var(--sans); padding: 8px 14px; min-height: 42px; border-radius: 5px; cursor: pointer; text-align: left; }
+.opt:hover { border-color: var(--ink-3); }
+.opt.right { border-color: var(--up); color: var(--up); }
+.opt.wrong { border-color: var(--down); color: var(--down); }
+.fb { font-size: 14px; color: var(--ink-2); border-left: 2px solid var(--line); padding-left: 10px; }
+.fb.right { border-color: var(--up); } .fb.wrong { border-color: var(--down); }
+.score { position: sticky; bottom: max(12px, env(safe-area-inset-bottom, 0px)); justify-self: end; background: var(--panel-2); border: 1px solid var(--line); border-radius: 20px; padding: 6px 14px; font: 600 13px var(--mono); }
+
+.note { font-size: 13px; color: var(--ink-3); max-width: 80ch; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-3); padding-top: 18px; border-top: 1px solid var(--line); margin-top: 40px; }
+@media (prefers-reduced-motion: no-preference) { .ch svg .now { animation: fadein .35s ease-out; } @keyframes fadein { from { opacity: .2; } to { opacity: 1; } } }
+
+/* pratik eklemeleri */
+.road { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.road .st { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: grid; gap: 2px; color: var(--ink-3); }
+.road .st b { font: 600 15px var(--cond); color: var(--ink-3); }
+.road .st.on { border-color: var(--accent); color: var(--ink-2); }
+.road .st.on b { color: var(--ink); }
+.road .st .k { font: 600 11px var(--mono); letter-spacing: .06em; }
+.road .st.on .k { color: var(--accent); }
+.task { border: 1px solid var(--accent); border-radius: 6px; padding: 16px; display: grid; gap: 10px; background: var(--panel); }
+.task ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; color: var(--ink-2); }
+.task .k { font: 600 12px var(--mono); color: var(--accent); letter-spacing: .06em; }
+.tg .dots button { width: auto; height: 34px; border-radius: 5px; padding: 0 14px; font: 600 13px var(--cond); }
+.tg .sbtn { display: none; }
+.ans { border-left: 2px solid var(--up); padding: 4px 0 4px 12px; display: grid; gap: 6px; color: var(--ink-2); }
+.ans[hidden] { display: none; }
+.reveal { appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: 600 14px var(--cond); padding: 0 16px; min-height: 42px; border-radius: 5px; cursor: pointer; justify-self: start; }
+.reveal:hover { border-color: var(--ink-3); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.chip { display: inline-block; font: 600 11px var(--mono); padding: 2px 7px; border-radius: 3px; border: 1px solid currentColor; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="titleblock">
+  <div>
+    <h1>BTC ETH Pratik Defteri</h1>
+    <p class="lead">Eğitimin 06 · Rutin bölümünü gerçek grafiklerde uyguluyoruz. Her adımda önce sen işaretlersin, sonra benim işaretlememle karşılaştırırsın. İşlem yok, yalnız işaretleme.</p>
+  </div>
+  <div class="meta" aria-label="Veri bilgisi">
+    <span>Veri</span><span>OKX USDT perp</span>
+    <span>Anlık</span><span id="snap">–</span>
+    <span>Adım</span><span>1 / 6</span>
+    <span>Mod</span><span>yalnız işaret</span>
+  </div>
+</header>
+
+<section class="panel" style="padding-top:22px">
+  <div class="road" aria-label="Yol haritası">
+    <div class="st on"><span class="k">ADIM 1 · BUGÜN</span><b>Yön: 1D + 4H</b><span>Yapı, range, premium/discount</span></div>
+    <div class="st"><span class="k">ADIM 2</span><b>Likidite haritası</b><span>PDH/PDL, PWH/PWL, EQH/EQL, Asya</span></div>
+    <div class="st"><span class="k">ADIM 3</span><b>Bölgeler</b><span>4H FVG ve order block</span></div>
+    <div class="st"><span class="k">ADIM 4</span><b>Senaryo cümlesi</b><span>Eğer … süpürülür ve MSS gelirse …</span></div>
+    <div class="st"><span class="k">ADIM 5</span><b>Alarm ve bekleme</b><span>15m'de MSS + FVG</span></div>
+    <div class="st"><span class="k">ADIM 6</span><b>Günlük kaydı</b><span>Ne oldu, ne öğrendim</span></div>
+  </div>
+
+  <div class="intro">
+    <span class="eyebrow">Adım 1 · Yön</span>
+    <h2>Büyük resim nereye bakıyor, fiyat ucuz mu pahalı mı?</h2>
+    <p>Bugün Pazar. Hafta sonu işlem yok, bu yüzden işaretleme için en iyi gün. Rutinin ilk 4 dakikası: BTC ve ETH'nin günlük ve 4 saatlik yapısı. Aşağıdaki grafikler gerçek veri, <span id="snap2">–</span> anlık görüntüsü.</p>
+  </div>
+
+  <div class="task">
+    <span class="k">GÖREV · ÖNCE KENDİN, 15–20 DAKİKA</span>
+    <p>TradingView'da <b>BTCUSDT.P</b> ve <b>ETHUSDT.P</b> grafiklerini aç. Aşağıdaki grafikleri "Temiz" modunda bırak. Şu beş soruyu kâğıda ya da bu sohbete yaz:</p>
+    <ol>
+      <li><b>BTC günlük:</b> Eylül tepesinden bu yana son dört tepe ve dört dip ne? Yapı yükselen mi, alçalan mı? Yapı hangi gün değişti (günlük MSS)?</li>
+      <li><b>Büyük bacak:</b> 1 Ağustos dibi → 21 Eylül tepesi bacağına fib çek. BTC ve ETH bu bacağın neresinde (0–1)? Premium mu, discount mı? Hangisi daha zayıf?</li>
+      <li><b>4H range:</b> Son iki haftada fiyat hangi aralıkta gidip geliyor? Eşit tepeler ve eşit dipler nerede? Fiyat range'in neresinde?</li>
+      <li><b>24 Ekim 12:00 (UTC) mumu:</b> Hangi likidite alındı? BTC'de ve ETH'de mum seviyenin hangi tarafında kapandı?</li>
+      <li><b>21 Ekim:</b> BTC ve ETH, 12–14 Ekim tepelerini aldı mı? İkisi aynı şeyi mi yaptı?</li>
+    </ol>
+    <p class="dim">Cevapları yazınca her grafiğin üstündeki "İşaretli" düğmesine bas ya da en alttaki cevap anahtarını aç.</p>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt"><span class="tag">Günlük (1D) · son 90 gün</span></div>
+    <div class="pair">
+      <figure><div class="ch" data-chart="btc1d"></div><figcaption><b>BTC 1D.</b> Gri kesikli çizgiler 1 Ağustos dibi → 21 Eylül tepesi bacağının çeyrekleri.</figcaption></figure>
+      <figure><div class="ch" data-chart="eth1d"></div><figcaption><b>ETH 1D.</b> Aynı tarihlerle aynı bacak.</figcaption></figure>
+    </div>
+  </div>
+  <div class="concept wide">
+    <div class="txt"><span class="tag">4 saatlik (4H) · son 20 gün</span></div>
+    <div class="pair">
+      <figure><div class="ch" data-chart="btc4h"></div><figcaption><b>BTC 4H.</b> Sarı kutu son iki haftanın range'i.</figcaption></figure>
+      <figure><div class="ch" data-chart="eth4h"></div><figcaption><b>ETH 4H.</b> Aynı dönem.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Cevap anahtarı</span>
+      <button class="reveal" id="rv" aria-expanded="false">Cevapları göster</button>
+      <div class="ans" id="ans" hidden>
+        <p><b>1 · BTC günlük yapı alçalan.</b> Tepeler 87 374 (21 Eyl) → 87 239 (2 Eki) → 84 348 (12 Eki) → 84 876 (21 Eki). Dipler 82 501 (28 Eyl) → 80 351 (8 Eki) → 79 725 (15 Eki) → 79 168 (24 Eki). 8 Ekim günlük kapanışı (81 715) 28 Eylül dibini kırdı: <b>günlük MSS aşağı</b>. ETH'de aynı kırılım bir gün önce, 7 Ekim'de (kapanış 2 573 &lt; 2 626).</p>
+        <p><b>2 · Büyük bacak.</b> BTC 62 227 → 87 374 bacağının <b>0,74</b>'ünde: premium, ama tepeye uzak. ETH 1 821 → 2 807 bacağının <b>0,54</b>'ünde: dengenin hemen üstü. Aynı bacakta ETH yükselişin çok daha fazlasını geri verdi. <b>ETH daha zayıf.</b> Short aranacaksa ETH, long aranacaksa BTC adaydır.</p>
+        <p><b>3 · 4H range.</b> BTC 15 Ekim'den beri ≈ 79 700 – 84 900 arasında. Eşit tepeler 84 116 / 84 131 / 84 348, eşit dipler 80 621 / 80 755 / 80 771. Denge (0,5) ≈ 82 020. Fiyat 80 830 ile <b>range'in alt çeyreğinde, yani discount</b>. ETH ≈ 2 281 – 2 530, eşit tepeler 2 527,6 / 2 529,9, eşit dipler 2 350 / 2 355 / 2 358, denge ≈ 2 405. Fiyat 2 360 ile discount.</p>
+        <p><b>4 · 24 Ekim 12:00.</b> İki coin de <b>önceki haftanın dibini (PWL)</b> süpürdü. BTC 79 725'in altına 79 168'e indi ve 79 755'te, seviyenin hemen üstünde kapandı. Bu klasik fitil süpürmesi. ETH 2 315'in altına 2 281'e indi ve 2 305'te, seviyenin altında kapandı. Bir sonraki mum geri aldı. Arkadaşının sözü: "fitil de olur, kapanış da; önemli olan sonrası." Bonus: ETH'nin dibi büyük bacağın tam 0,5'ine (2 314) denk geldi.</p>
+        <p><b>5 · 21 Ekim.</b> BTC 84 876 ile 12 Ekim tepesini (84 348) aldı. ETH ise 2 527,6'da kaldı, ne 12 Ekim tepesini (2 578) ne de 14 Ekim tepesini (2 529,9) alabildi. Biri yeni tepe yapıp diğeri yapamayınca buna <b>SMT uyumsuzluğu</b> denir. Yükseliş BTC'de bile güçsüzdü ve ardından sert düşüş geldi. Arkadaşının BTC short'u tam bu tepedeydi. 24 Ekim dibinde ise ikisi de dibi aldı, uyumsuzluk yok.</p>
+        <p><b>Sonuç cümlesi.</b> Günlük yön aşağı. Ama fiyat 4H range'in dibinde ve satış tarafı likidite yeni alındı. <b>Burada short kovalanmaz.</b> Doğru beklenti iki taraflı: ya fiyat range ortasına ya da premium'a (BTC 82 000–84 300, ETH 2 405–2 528) tepki verir ve orada short aranır, ya da 4H'de yukarı MSS gelir (BTC 82 048, ETH 2 417 üstünde kapanış). İkinci durumda ters işlem olduğu için yalnız 0,5R ile long düşünülür. ETH'nin alınmamış eşit tepeleri (2 528–2 530) yukarıda açık bir hedef.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Sıradaki · Adım 2</span>
+      <p>Cevaplarını sohbete yaz, birlikte farklara bakalım. Pazartesi sabahı (09:20 TR) veri kendiliğinden yenilenir. Adım 2'de aynı grafiklere likidite haritasını ekleyeceğiz: önceki günün ve haftanın tepe/dibi, Asya seansı, 1H eşit tepe/dipler.</p>
+      <p class="note">Grafiklerdeki mumlar gerçek OKX verisidir. Saatler UTC'dir; Türkiye saati = UTC + 3. Yatırım tavsiyesi değildir.</p>
+    </div>
+  </div>
+</section>
+
+<!--repo-only-->
+<nav class="links" aria-label="Diğer sayfalar"><a href="egitim.html">Eğitim</a><a href="index.html">Tarayıcı</a><a href="signals.html">Sinyal geçmişi</a><a href="agent.html">Ajan</a></nav>
+<!--/repo-only-->
+</div>
+
+<script id="pdata" type="application/json">{"generatedAt":1792904194806,"coins":{"BTC":{"1D":[[1785110400000,65379.3,65740,63566,63727.4,6076443752],[1785196800000,63727.4,64077.9,62700.1,63900.2,5222994663],[1785283200000,63900.1,64743.8,63226.5,63955.1,6719694226],[1785369600000,63955,65158,63580,64757.6,4165636138],[1785456000000,64757.6,65390.8,62410.5,62858,6439954282],[1785542400000,62858,63125.4,62227,62788.9,1853273517],[1785628800000,62788.9,63779.8,62783.4,63545.7,2998896864],[1785715200000,63545.7,64050,62268,63503.5,5599222235],[1785801600000,63503.5,64534.5,63296,64078,4584244232],[1785888000000,64078.1,65026,63840,64626.8,5000085535],[1785974400000,64626.8,64980,64144,64297.6,3380350942],[1786060800000,64297.5,65357.8,64111.1,64886,4344141852],[1786147200000,64885.9,65172.5,64791.3,64928.4,939324398],[1786233600000,64928.4,65500,64680,64870.1,1794131206],[1786320000000,64870.1,65368.9,63775.9,63947.7,4374211002],[1786406400000,63947.6,64474,63162.7,63566.1,3819322726],[1786492800000,63566,64466,63280,63461.5,4104753866],[1786579200000,63461.5,63997.8,62818,63456.8,4377073110],[1786665600000,63456.8,63600.1,62508.3,63019.5,3988746523],[1786752000000,63019.6,63164.5,62872.5,63057.5,884732708],[1786838400000,63057.4,63363.5,62685,62878.8,1193070093],[1786924800000,62878.7,64591,62726.2,64500,4651999485],[1787011200000,64500.1,65036.9,64009.5,64700.6,3620522424],[1787097600000,64700.6,70099.2,64141.9,69307.8,12133612063],[1787184000000,69307.9,73414.8,68878.4,72996.6,10690696843],[1787270400000,72996.6,79603.1,72984.5,78317.5,18703221278],[1787356800000,78317.4,78819.9,76438.5,77086.7,5342567596],[1787443200000,77086.7,78054.2,75513.2,77725.7,5322229178],[1787529600000,77725.8,79998.9,76663.6,78954,9501884794],[1787616000000,78954,81266.4,77810,78506.1,9533505189],[1787702400000,78506.1,79234.3,77554.5,78993.2,5518214607],[1787788800000,78993.3,80799.9,78504.4,80211.9,6660099058],[1787875200000,80212,81520,76847.3,77813,9325800394],[1787961600000,77812.9,78299,77350,78194.6,2060988234],[1788048000000,78194.5,79387.8,76916.6,77640.2,4016457715],[1788134400000,77640.3,79238.9,77350,78549.9,5538012896],[1788220800000,78549.9,79185.7,76385,77399.3,6542528799],[1788307200000,77399.2,77770.8,76204.5,77303.8,5830026503],[1788393600000,77303.7,82279.9,76926,81228.7,10083681664],[1788480000000,81228.6,81411.9,78610.6,79620.3,7353237585],[1788566400000,79620.2,80178,79402.9,79792.3,2085276335],[1788652800000,79792.2,80549.7,79119.6,80300.1,2638647763],[1788739200000,80300.1,80405,78619.6,79074.5,3785711720],[1788825600000,79074.4,79454,77574.3,78420.7,5138829993],[1788912000000,78420.8,79744.4,77710,78265,6236932084],[1788998400000,78265,78520,76410.1,76540,5801621676],[1789084800000,76540,79888,75866,77184.7,8729239757],[1789171200000,77184.7,77493.8,77032.9,77247,1513062036],[1789257600000,77247,77425,76434.8,76793.5,2736441845],[1789344000000,76793.4,79569,76323.3,78158.4,6403463969],[1789430400000,78158.3,78230.7,74896.6,75611.2,9480120043],[1789516800000,75611.2,76543.7,75000,76168.1,5851109584],[1789603200000,76168.1,77137,75982,76390.1,4580890247],[1789689600000,76390,81377.3,76249.6,80876.6,9192640691],[1789776000000,80876.5,81930,80806.3,81231.2,3522351680],[1789862400000,81231.1,81485.9,80100,81144.3,4386220475],[1789948800000,81144.3,87374.3,80822.4,86589.1,12420217038],[1790035200000,86589.1,86736.6,85070.2,86167.5,6527240296],[1790121600000,86167.4,87245,83439.3,84366.1,8426725013],[1790208000000,84366,84931.3,82812.5,84369.4,7738534233],[1790294400000,84369.4,85242.2,83118,84059.9,6598199810],[1790380800000,84059.9,84440.1,83748.8,84394.1,1932181427],[1790467200000,84394.1,85137.5,84088.3,84440.9,3419859341],[1790553600000,84440.8,84973.6,82501,83461,6914356085],[1790640000000,83461,84544.9,82726,83627,5613823211],[1790726400000,83627.1,85639,82918.9,83579.9,7432340353],[1790812800000,83579.8,85236.2,83123.1,84837.7,6917161455],[1790899200000,84837.7,87239,83826.4,84480,9738120616],[1790985600000,84480.1,84998,84411.6,84719.9,1739446994],[1791072000000,84719.9,86777,84675.9,86484.8,2916414650],[1791158400000,86484.8,86963.7,84937.5,85715,6325392873],[1791244800000,85715.1,86656,85090,85512.1,5110365456],[1791331200000,85512,85564.5,82700,83283.9,6930290314],[1791417600000,83283.8,83488,80351,81714.9,9282256857],[1791504000000,81714.9,83499,81569.2,82586.8,4956791958],[1791590400000,82586.8,83129.8,82499.9,82940.4,1516160708],[1791676800000,82940.5,84177.5,82752,83716,2617984222],[1791763200000,83715.9,84348.2,81710.6,81808,5550200046],[1791849600000,81808,84130.9,80961.3,83136.6,6284004535],[1791936000000,83136.6,84116.3,81400.2,81641.4,7067580713],[1792022400000,81641.4,82624.9,79725.3,82193,9257530203],[1792108800000,82192.9,82898,80770.7,81585.8,5820246038],[1792195200000,81585.7,81741.3,80754.6,81453.3,1901330709],[1792281600000,81453.3,82267.7,80621.4,82069.5,4307325534],[1792368000000,82069.6,83149.8,81682,81909.6,5246259471],[1792454400000,81909.5,83436.9,81166,82984.5,6305855365],[1792540800000,82984.6,84876,82587.5,84049.9,6694424219],[1792627200000,84049.9,84320,80900,81380.9,7545786288],[1792713600000,81380.9,82047.6,80456.6,81149.9,4607884813],[1792800000000,81149.9,81175.7,79168,80850,4859615676]],"4H":[[1791172800000,86038.7,86465,85367.6,86220.9,1337025966],[1791187200000,86220.9,86477.5,85730.5,86172.6,728893878],[1791201600000,86172.6,86686.8,85130.5,85221.6,1865615316],[1791216000000,85221.6,85769.8,84937.5,85697,878407824],[1791230400000,85697,86033.1,85610.1,85715,394285085],[1791244800000,85715.1,86108,85281.2,85486.8,579119123],[1791259200000,85486.8,85725,85090,85525.6,632167668],[1791273600000,85525.6,86369.4,85511.2,86208.4,1178867446],[1791288000000,86208.4,86656,85681.6,85681.6,1491862633],[1791302400000,85681.5,85815,85381.8,85573.3,888015912],[1791316800000,85573.3,85635.4,85300,85512.1,340332674],[1791331200000,85512,85564.5,83500,84120,2165958667],[1791345600000,84120,84344.2,84001,84087.6,514126835],[1791360000000,84087.6,84140,83355.6,83700,1221994367],[1791374400000,83700,83726.6,82700,83417.2,2010965665],[1791388800000,83417.2,83648.9,83020,83404.8,685917133],[1791403200000,83404.7,83590,83076,83283.9,331327647],[1791417600000,83283.8,83488,82592.7,82732.6,838828280],[1791432000000,82732.6,83248.6,82163,82961.7,1578214164],[1791446400000,82961.7,83140,82264.2,82463.9,872740218],[1791460800000,82463.9,82748.1,80910.4,80991.9,3305855069],[1791475200000,80991.9,81816.5,80351,81744.7,2231041652],[1791489600000,81744.7,81905,81560.8,81714.9,455577475],[1791504000000,81714.9,82398.6,81569.2,82382.8,814199877],[1791518400000,82382.8,82625,82173.3,82607.7,763702224],[1791532800000,82607.6,83499,82353.1,83207.9,1113799870],[1791547200000,83207.9,83386.5,82423,82833.9,1345490134],[1791561600000,82833.9,82979.5,82234.8,82297.6,654257861],[1791576000000,82297.5,82647,82276.1,82586.8,265341992],[1791590400000,82586.8,82728,82499.9,82563.3,258768983],[1791604800000,82563.3,82866,82563.2,82770,344424490],[1791619200000,82769.9,82908.5,82736.8,82839.8,240734267],[1791633600000,82839.7,83042.1,82734.4,83016.6,341427830],[1791648000000,83016.7,83129.8,82918.8,83039.5,219166787],[1791662400000,83039.6,83067.7,82881.3,82940.4,111638351],[1791676800000,82940.5,83113.8,82756,82766.6,222618777],[1791691200000,82766.6,83188,82752,82974.4,260808428],[1791705600000,82974.5,83165,82907.1,83116.1,181914283],[1791720000000,83116.1,83944.6,82982.6,83864.2,795326978],[1791734400000,83864.3,84177.5,83518.9,83625.2,746834066],[1791748800000,83625.2,83738.9,83222.3,83716,410481689],[1791763200000,83715.9,83999.9,83417.5,83568.8,654399193],[1791777600000,83568.8,84348.2,83450.8,83962.2,973518259],[1791792000000,83962.1,83962.1,83243.1,83358.4,842226449],[1791806400000,83358.4,83367,82348.2,82684.4,1523273583],[1791820800000,82684.3,82920.9,82250,82823.2,614147941],[1791835200000,82823.3,83119.7,81710.6,81808,942634620],[1791849600000,81808,83590.3,80961.3,83299.7,2069215189],[1791864000000,83299.7,84037.5,83213.4,83820,1010034271],[1791878400000,83820.1,84130.9,83112.2,83326.8,1206392141],[1791892800000,83326.8,83830,83049.4,83392.4,1122502156],[1791907200000,83392.4,83576.4,82907.7,83255.9,497063308],[1791921600000,83255.9,83499.9,83100,83136.6,378797470],[1791936000000,83136.6,83949.9,83126.4,83666,701285552],[1791950400000,83666,83857.8,83294.1,83537.7,529468714],[1791964800000,83537.8,84116.3,83000,83435.9,1148884371],[1791979200000,83435.9,83910,81550,81604.5,3274023895],[1791993600000,81604.5,82061.6,81452.9,81796,914148528],[1792008000000,81796,81942.3,81400.2,81641.4,499769654],[1792022400000,81641.4,81896.1,80168,80882.1,2202975168],[1792036800000,80882,81721.9,80468.3,81489.1,1391090709],[1792051200000,81489,81544.6,80800.7,80946.6,693889321],[1792065600000,80946.6,82624.9,79725.3,82383.6,3516770595],[1792080000000,82383.6,82617,81914.7,82348,955615292],[1792094400000,82348.1,82554.7,81909,82193,497189118],[1792108800000,82192.9,82492.9,81640.9,82084.5,649583804],[1792123200000,82084.5,82412.1,81903.4,82260,446945653],[1792137600000,82260,82898,81801,82600.2,957725698],[1792152000000,82600.1,82619.5,81307.2,81330,1661306668],[1792166400000,81330,81787,80770.7,81550,1671187134],[1792180800000,81550,81799.3,81482.7,81585.8,433497081],[1792195200000,81585.7,81650,81368,81530.1,239350768],[1792209600000,81530.1,81741.3,81480,81695.2,173982468],[1792224000000,81695.1,81737.6,81515.9,81549.4,223602978],[1792238400000,81549.4,81591.8,81232.1,81312.2,318505658],[1792252800000,81312.1,81620.2,81160.5,81568.3,389814906],[1792267200000,81568.3,81673,80754.6,81453.3,556073931],[1792281600000,81453.3,82049.5,81366.1,81909.8,674596538],[1792296000000,81909.7,81909.8,81581.4,81638.8,284643521],[1792310400000,81638.8,82267.7,81613.8,82024.9,588256508],[1792324800000,82025,82083.9,80958,81135.5,1123497639],[1792339200000,81135.6,81246.3,80755,80844,703665739],[1792353600000,80844,82184.1,80621.4,82069.5,932665589],[1792368000000,82069.6,82777,81957.6,82475.8,960212069],[1792382400000,82475.9,83149.8,82438.6,82690.5,852595361],[1792396800000,82690.5,83067.4,82083,82331.9,1108019525],[1792411200000,82331.9,82733.4,81720,81912.4,1444707555],[1792425600000,81912.3,82121.9,81682,81839.9,586555194],[1792440000000,81839.8,82243.4,81807,81909.6,294169767],[1792454400000,81909.5,82099,81166,82098.8,982275793],[1792468800000,82098.9,82240,81420,81514.6,605467676],[1792483200000,81514.6,81624.5,81288,81468,596611706],[1792497600000,81468,83436.9,81273,82577.3,2935332734],[1792512000000,82577.3,82899,82312,82575,643996409],[1792526400000,82575,83148.4,82486.4,82984.5,542171047],[1792540800000,82984.6,83188.8,82684.5,82694.5,604825164],[1792555200000,82694.6,83238.8,82587.5,83114,530304225],[1792569600000,83114.1,83681.8,83056,83456.7,1035905410],[1792584000000,83456.8,84799.9,83233,84502.1,2810341421],[1792598400000,84502.1,84876,84133.3,84437,1095826612],[1792612800000,84437.1,84804.2,84010.2,84049.9,617221386],[1792627200000,84049.9,84320,82650,82900.1,1797210462],[1792641600000,82900.1,82967.1,82088,82202,1140342558],[1792656000000,82202,82242.7,81588.9,81712.1,1437195962],[1792670400000,81712.2,82061.9,81257.4,81649.9,1609333534],[1792684800000,81650,81728.5,80900,81467.3,1209952130],[1792699200000,81467.4,81535.9,81160,81380.9,351751641],[1792713600000,81380.9,82010.8,81088,81857,865938964],[1792728000000,81857,81950.7,81500.5,81546.3,496954942],[1792742400000,81546.3,81887,81509.7,81701.1,463005665],[1792756800000,81701,82047.6,81050,81651.1,1350474786],[1792771200000,81651.2,81819.9,81222.2,81260.5,510385923],[1792785600000,81260.6,81471.8,80456.6,81149.9,921124533],[1792800000000,81149.9,81175.7,80559.8,80930.6,719331682],[1792814400000,80930.6,81061.4,80650.5,80699.9,335423879],[1792828800000,80700,80790,80390.5,80563.3,392621731],[1792843200000,80563.2,80817.8,79168,79755.1,2151099884],[1792857600000,79755,80600,79526.9,80443.8,867933862],[1792872000000,80443.8,80897.6,80260,80850,393204638],[1792886400000,80850.1,81008,80732.6,80826.6,388404973]]},"ETH":{"1D":[[1785110400000,1953.76,1982.29,1880.7,1891.55,8682048808],[1785196800000,1891.55,1929.96,1855.75,1921.15,7603467189],[1785283200000,1921.15,1936.6,1872,1909.77,7861700832],[1785369600000,1909.77,1936.33,1892.65,1917.53,4721057392],[1785456000000,1917.53,1935.44,1847.56,1861.69,6142898017],[1785542400000,1861.69,1874.44,1820.77,1844.06,2945084842],[1785628800000,1844.06,1898,1843.13,1884.16,4261335606],[1785715200000,1884.16,1884.93,1826.88,1859.77,5663437860],[1785801600000,1859.77,1881.62,1847.25,1868.76,4469296529],[1785888000000,1868.76,1927.76,1855,1907.99,6472687580],[1785974400000,1907.99,1921.18,1891.21,1903.35,4129822908],[1786060800000,1903.35,1944,1893.5,1912.97,4648049409],[1786147200000,1912.96,1925.71,1911.36,1916.29,1053818611],[1786233600000,1916.3,1937.91,1906.34,1910.01,2075141441],[1786320000000,1910,1931.92,1867.05,1872.29,4961773578],[1786406400000,1872.29,1897.55,1852.37,1881.7,3698872722],[1786492800000,1881.69,1927,1872.19,1878.99,4608816911],[1786579200000,1878.99,1899.48,1862.41,1885.38,4130368439],[1786665600000,1885.39,1890.71,1863.03,1881.26,2799718138],[1786752000000,1881.26,1885.75,1874.26,1881.98,998233227],[1786838400000,1881.98,1891.9,1868,1875.32,1234871678],[1786924800000,1875.32,1917.99,1871.71,1912.81,4029716434],[1787011200000,1912.81,1922.25,1884.78,1916.94,3581405480],[1787097600000,1916.94,2342.14,1905.04,2252.09,15242256830],[1787184000000,2252.1,2361.43,2220.88,2326.16,11780689116],[1787270400000,2326.15,2549.34,2324.3,2515.9,15038883773],[1787356800000,2515.91,2529.77,2380.25,2421.74,7435616741],[1787443200000,2421.73,2485.35,2355.06,2462.67,8018646513],[1787529600000,2462.66,2533.32,2423,2481.08,10174386874],[1787616000000,2481.08,2532.45,2413.56,2441.9,7871822750],[1787702400000,2441.9,2514.37,2431.01,2505.65,6468945921],[1787788800000,2505.66,2566.26,2480.56,2509.78,8285922797],[1787875200000,2509.79,2535.35,2405.17,2441.89,8799493705],[1787961600000,2441.89,2459.39,2428.76,2456.4,1888675766],[1788048000000,2456.41,2534.48,2386,2415.7,6355969224],[1788134400000,2415.7,2489.76,2400.63,2466.54,6515826341],[1788220800000,2466.52,2484.7,2382.19,2417.5,6683208562],[1788307200000,2417.51,2429,2355.56,2390.96,7863386948],[1788393600000,2390.96,2530.5,2368.73,2506.23,9032190583],[1788480000000,2506.23,2548.37,2428.03,2454.98,7760090257],[1788566400000,2454.98,2493.38,2443.61,2479.07,2330939636],[1788652800000,2479.07,2525.64,2457.38,2513.22,4661090688],[1788739200000,2513.22,2536.88,2463.56,2488.99,5233706939],[1788825600000,2489,2507.57,2440.43,2484.11,6249979461],[1788912000000,2484.11,2523,2441.98,2467.02,7091370494],[1788998400000,2467.01,2483.67,2404.03,2437.25,6700695717],[1789084800000,2437.25,2667.35,2432.25,2515.45,13078505009],[1789171200000,2515.45,2546.5,2507.45,2524.86,2923160250],[1789257600000,2524.86,2526.68,2460.01,2475.66,4974851723],[1789344000000,2475.65,2615,2462.42,2514.19,8355815912],[1789430400000,2514.18,2518.73,2356.18,2397.08,10727430705],[1789516800000,2397.08,2429.99,2366.01,2417.38,7831688425],[1789603200000,2417.38,2482.97,2412.45,2446.27,6302838525],[1789689600000,2446.27,2646,2435.55,2611.05,10246632818],[1789776000000,2611.04,2672.54,2601,2631.46,4461724322],[1789862400000,2631.46,2649,2563,2643.36,6155093943],[1789948800000,2643.36,2806.96,2642.08,2774.62,11659052039],[1790035200000,2774.62,2776.8,2714.02,2752.68,7308348860],[1790121600000,2752.68,2787.83,2633.33,2683.52,8911996958],[1790208000000,2683.52,2706.45,2626.07,2686.69,7417969500],[1790294400000,2686.68,2742.95,2665.51,2690.29,6750793477],[1790380800000,2690.29,2696.87,2662.22,2694.85,2213033601],[1790467200000,2694.86,2724.2,2668,2687.29,3584809805],[1790553600000,2687.28,2720,2633.8,2687.78,7208871557],[1790640000000,2687.78,2748.53,2650.69,2676.8,7576266896],[1790726400000,2676.8,2737.9,2656.57,2684.73,6776674857],[1790812800000,2684.73,2720.99,2672,2705,6252467810],[1790899200000,2705,2777.7,2646.9,2667.55,9151809509],[1790985600000,2667.56,2689.02,2664.47,2686.14,1883583966],[1791072000000,2686.15,2739.43,2685.47,2725.97,2714980670],[1791158400000,2725.97,2736.84,2678.12,2708.96,5398560658],[1791244800000,2708.97,2724.41,2682.56,2696.67,4151110944],[1791331200000,2696.66,2699,2532.55,2572.82,7793966689],[1791417600000,2572.82,2586,2405.03,2473.68,10930552479],[1791504000000,2473.68,2520.77,2468.55,2486.36,4256923660],[1791590400000,2486.36,2518.31,2484.79,2504.76,1518676660],[1791676800000,2504.76,2554,2496.2,2535.64,2896481531],[1791763200000,2535.63,2578.44,2441.7,2446,6027386180],[1791849600000,2446,2537.8,2407.5,2497.04,7085352040],[1791936000000,2497.03,2529.88,2402,2420.65,7747599278],[1792022400000,2420.66,2466.98,2315.26,2440.69,10019056854],[1792108800000,2440.69,2492.97,2391.72,2422.62,6516642788],[1792195200000,2422.63,2441.38,2355,2401.68,2905628740],[1792281600000,2401.68,2430,2328,2409.39,5015587798],[1792368000000,2409.39,2446,2383.98,2407.06,4984982299],[1792454400000,2407.06,2477.75,2369.03,2448.07,6617426456],[1792540800000,2448.06,2527.63,2435.51,2472.97,6157796959],[1792627200000,2472.97,2481.4,2358,2388.26,6644182154],[1792713600000,2388.27,2417,2350.1,2386.54,4878703656],[1792800000000,2386.53,2389.67,2281.02,2357.4,5309360662]],"4H":[[1791172800000,2715.01,2730,2693.06,2724.96,1356290072],[1791187200000,2724.96,2733.96,2709.38,2717,662591757],[1791201600000,2717,2729.76,2694.01,2696,1277557042],[1791216000000,2696.01,2711.8,2678.12,2707.93,897609642],[1791230400000,2707.92,2721.76,2705.2,2708.96,307958000],[1791244800000,2708.97,2722.91,2691.43,2698.29,521450825],[1791259200000,2698.29,2709.03,2688.42,2706.43,532551139],[1791273600000,2706.43,2720,2692.33,2713.03,980027974],[1791288000000,2713.03,2724.41,2700.01,2700.69,1084189610],[1791302400000,2700.68,2706.62,2682.56,2691.19,831031977],[1791316800000,2691.19,2699.51,2690.23,2696.67,201859420],[1791331200000,2696.66,2699,2587.61,2609.99,2451415705],[1791345600000,2610,2622.8,2604.19,2614.75,564534616],[1791360000000,2614.75,2617.91,2560.01,2577.3,1654862375],[1791374400000,2577.3,2583.55,2549.83,2569.66,1677832251],[1791388800000,2569.66,2578.45,2532.55,2569.46,1140918380],[1791403200000,2569.46,2577.65,2563.66,2572.82,304403360],[1791417600000,2572.82,2586,2562.28,2563.4,595301281],[1791432000000,2563.41,2576.46,2542.77,2566.64,1085577147],[1791446400000,2566.65,2569.33,2525.61,2536.42,1309053585],[1791460800000,2536.43,2541,2428,2434.34,4706773645],[1791475200000,2434.34,2464.6,2405.03,2463.2,2593662136],[1791489600000,2463.21,2483.06,2462.97,2473.68,640184685],[1791504000000,2473.68,2498.97,2468.55,2491.93,767804115],[1791518400000,2491.93,2504.57,2482.2,2502.8,714863747],[1791532800000,2502.79,2520.77,2486.13,2505.06,968183301],[1791547200000,2505.05,2509.72,2475.2,2487.57,1142135896],[1791561600000,2487.57,2498.11,2473,2476.45,463770579],[1791576000000,2476.45,2489.58,2474.62,2486.36,200166022],[1791590400000,2486.36,2495.36,2484.79,2490.34,220471098],[1791604800000,2490.33,2498.43,2490.31,2494.17,222796198],[1791619200000,2494.18,2497.69,2491.76,2496,166726729],[1791633600000,2496.01,2516.76,2494.36,2510.74,473223775],[1791648000000,2510.74,2518.31,2502.97,2512.07,261058008],[1791662400000,2512.07,2513.24,2502.51,2504.76,174400852],[1791676800000,2504.76,2512.07,2497.2,2497.68,294919273],[1791691200000,2497.69,2508.61,2497.2,2499.59,259389384],[1791705600000,2499.58,2506.92,2496.2,2504.99,217838993],[1791720000000,2504.99,2539.52,2499.61,2534.39,833137264],[1791734400000,2534.38,2554,2526.82,2535.31,918248804],[1791748800000,2535.31,2538.4,2513.39,2535.64,372947813],[1791763200000,2535.63,2563.99,2532.38,2545.5,778641956],[1791777600000,2545.5,2578.44,2541.11,2563.29,1137546124],[1791792000000,2563.28,2563.61,2538.78,2545.14,759130947],[1791806400000,2545.15,2545.29,2512,2528.91,1349047860],[1791820800000,2528.91,2533.86,2502.25,2520.34,674026335],[1791835200000,2520.33,2526.28,2441.7,2446,1328992957],[1791849600000,2446,2513.71,2407.5,2507.77,2462434126],[1791864000000,2507.76,2537.8,2505.69,2527.95,1101193464],[1791878400000,2527.94,2536.56,2487.35,2499.49,1415773001],[1791892800000,2499.49,2527.73,2492.12,2515.38,1233155716],[1791907200000,2515.39,2522.2,2494.07,2507.44,584813802],[1791921600000,2507.45,2514.72,2496.11,2497.04,287981931],[1791936000000,2497.03,2521.58,2497.03,2512.54,599634066],[1791950400000,2512.54,2516.9,2498.72,2510.13,458435069],[1791964800000,2510.12,2529.88,2475.23,2503.51,1183078398],[1791979200000,2503.5,2520,2416,2429.01,3436517221],[1791993600000,2429.01,2452.73,2420.42,2429.94,962913607],[1792008000000,2429.94,2434.3,2402,2420.65,1107020916],[1792022400000,2420.66,2428.66,2315.26,2358.49,2847797112],[1792036800000,2358.48,2387.79,2342.27,2378.9,1398566787],[1792051200000,2378.9,2380.45,2358.25,2362.39,587132961],[1792065600000,2362.39,2448.23,2322.6,2439.68,3459059324],[1792080000000,2439.68,2462.09,2422.11,2451.87,1098393103],[1792094400000,2451.87,2466.98,2437.57,2440.69,628107566],[1792108800000,2440.69,2446.33,2422.7,2438.87,671762632],[1792123200000,2438.87,2458.45,2434.16,2454.28,587884697],[1792137600000,2454.28,2492.97,2443.68,2476.39,1212095922],[1792152000000,2476.38,2479.61,2428.84,2430.07,1732985088],[1792166400000,2430.07,2444.7,2391.72,2412.31,1996990355],[1792180800000,2412.3,2427.12,2406.67,2422.62,314924094],[1792195200000,2422.63,2432,2416.61,2426.82,300471067],[1792209600000,2426.82,2437.9,2424.16,2433.74,250066531],[1792224000000,2433.74,2441.38,2432.14,2433.19,275212259],[1792238400000,2433.18,2434.44,2406.25,2409.42,608851681],[1792252800000,2409.43,2420.47,2397.45,2417.85,523827859],[1792267200000,2417.84,2424.17,2355,2401.68,947199342],[1792281600000,2401.68,2430,2396.92,2424.42,644120125],[1792296000000,2424.42,2425.89,2405.42,2407.76,387098286],[1792310400000,2407.77,2428.91,2405.9,2417.22,553279939],[1792324800000,2417.22,2420.25,2366.66,2378.25,1279175894],[1792339200000,2378.25,2378.26,2328,2337.38,1104065722],[1792353600000,2337.38,2413.68,2333.33,2409.39,1047847832],[1792368000000,2409.39,2437.78,2402.15,2423.17,772881214],[1792382400000,2423.18,2446,2419.1,2429.32,565759768],[1792396800000,2429.32,2445.41,2411.02,2418.86,942875301],[1792411200000,2418.85,2428.99,2383.98,2393.35,1738139428],[1792425600000,2393.35,2407.59,2386.52,2394.03,647836725],[1792440000000,2394.01,2417.27,2392.95,2407.06,317489863],[1792454400000,2407.06,2414.75,2369.03,2413.99,991200436],[1792468800000,2413.99,2416.82,2385.61,2389.83,623887496],[1792483200000,2389.83,2391.31,2375.4,2383.53,634160999],[1792497600000,2383.54,2477.75,2380.43,2440.12,3162940432],[1792512000000,2440.12,2455.85,2424.35,2436.99,729966646],[1792526400000,2437,2464.48,2433.19,2448.07,475270447],[1792540800000,2448.06,2464.49,2441.29,2443.31,543080276],[1792555200000,2443.32,2458.71,2435.51,2455.48,520732096],[1792569600000,2455.48,2472.96,2445.02,2468.12,912063799],[1792584000000,2468.11,2514.49,2456.6,2511.19,2453712114],[1792598400000,2511.2,2527.63,2482.5,2493.31,1152905919],[1792612800000,2493.32,2500.95,2469.01,2472.97,575302754],[1792627200000,2472.97,2481.4,2433.03,2443.85,1236975257],[1792641600000,2443.86,2447.29,2425,2428.6,772003767],[1792656000000,2428.59,2429.3,2393.35,2399.17,1458477557],[1792670400000,2399.17,2417.27,2384,2397.58,1564480842],[1792684800000,2397.58,2401.78,2358,2385.83,1213454659],[1792699200000,2385.84,2401.92,2376.5,2388.26,398790073],[1792713600000,2388.27,2416.68,2380.2,2409.92,920174829],[1792728000000,2409.92,2411.82,2390.56,2399.88,632020012],[1792742400000,2399.87,2412.61,2390.02,2401.81,525227151],[1792756800000,2401.81,2417,2377.27,2406.51,1378976272],[1792771200000,2406.51,2412.98,2392.17,2393.47,433775940],[1792785600000,2393.47,2404.77,2350.1,2386.54,988529452],[1792800000000,2386.53,2389.67,2368.44,2381.64,483636040],[1792814400000,2381.64,2385.3,2372.18,2373.87,296648326],[1792828800000,2373.86,2375.8,2356.12,2364.62,515199565],[1792843200000,2364.62,2372.35,2281.02,2304.73,2644410931],[1792857600000,2304.72,2341.7,2293,2338.42,922384225],[1792872000000,2338.43,2361,2333.01,2357.4,447081575],[1792886400000,2357.41,2370.96,2354,2361.57,469241299]]}}}</script>
+<script>
+(() => {
+'use strict';
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const fmt = (x, d = 2) => Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–';
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* Mum serisi: segs = [[mum sayısı, hedef kapanış, gürültü?, fitil?], ...]. Her segment sonu = pivot. */
+function series({ start, unit, segs, noise = 0.35, wick = 0.45, seed = 7 }) {
+  const r = rng(seed); const cs = []; let p = start; const piv = [];
+  for (const [n, to, nz = noise, wk = wick] of segs) {
+    const from = p;
+    for (let k = 1; k <= n; k++) {
+      const base = from + (to - from) * k / n;
+      const c = k === n ? to : base + (r() - 0.5) * 2 * nz * unit;
+      const o = cs.length ? cs[cs.length - 1].c : start;
+      cs.push({ o, c, h: Math.max(o, c) + r() * wk * unit, l: Math.min(o, c) - r() * wk * unit });
+    }
+    p = to; piv.push(cs.length - 1);
+  }
+  cs.piv = piv; return cs;
+}
+function fix(cs) { for (let i = 0; i < cs.length; i++) { const x = cs[i]; if (i > 0) x.o = cs[i - 1].c; x.h = Math.max(x.h, x.o, x.c); x.l = Math.min(x.l, x.o, x.c); } return cs; }
+function cap(cs, hiCap, loCap, a = 0, b = cs.length - 1, keep = []) {
+  for (let i = a; i <= b; i++) { if (keep.includes(i)) continue; const x = cs[i];
+    if (hiCap != null) x.h = Math.max(Math.min(x.h, hiCap), x.o, x.c);
+    if (loCap != null) x.l = Math.min(Math.max(x.l, loCap), x.o, x.c); }
+}
+const hiOf = (cs, a, b) => { let v = -Infinity, i = a; for (let k = Math.max(0, a); k <= Math.min(b, cs.length - 1); k++) if (cs[k].h > v) { v = cs[k].h; i = k; } return { i, v }; };
+const loOf = (cs, a, b) => { let v = Infinity, i = a; for (let k = Math.max(0, a); k <= Math.min(b, cs.length - 1); k++) if (cs[k].l < v) { v = cs[k].l; i = k; } return { i, v }; };
+function fvgAt(cs, i) { const a = cs[i - 1], c = cs[i + 1]; if (!a || !c) return null;
+  if (c.l > a.h) return { dir: 1, top: c.l, bot: a.h, i }; if (c.h < a.l) return { dir: -1, top: a.l, bot: c.h, i }; return null; }
+function rsi(cs, n = 9) { const out = Array(cs.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i < cs.length; i++) { const d = cs[i].c - cs[i - 1].c; const up = Math.max(d, 0), dn = Math.max(-d, 0);
+    if (i <= n) { g += up / n; l += dn / n; if (i === n) out[i] = 100 - 100 / (1 + g / (l || 1e-9)); }
+    else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; out[i] = 100 - 100 / (1 + g / (l || 1e-9)); } }
+  return out; }
+function niceStep(span, n = 5) { const raw = span / n; const p = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+
+/* ---------- mum grafiği ---------- */
+const charts = [];
+function register(host, draw) { const c = { host, draw, w: 0 }; charts.push(c); return c; }
+function redraw(c, force) { const w = Math.round(c.host.clientWidth); if (!w) return; if (!force && w === c.w) return; c.w = w; c.draw(Math.max(300, w)); }
+const ro = new ResizeObserver((ents) => { for (const e of ents) { const c = charts.find((x) => x.host === e.target); if (c) redraw(c); } });
+
+function candleChart(host, cfg) {
+  const cs = cfg.cs; const steps = cfg.steps; let cur = steps ? 0 : null;
+  const svgBox = document.createElement('div'); host.appendChild(svgBox);
+  let capEl, dotsEl, prevB, nextB;
+  if (steps) {
+    const st = document.createElement('div'); st.className = 'stepper';
+    st.innerHTML = `<div class="stepbar"><button class="sbtn" data-a="prev" aria-label="Önceki adım">◀ Geri</button><div class="dots"></div><button class="sbtn" data-a="next" aria-label="Sonraki adım">İleri ▶</button></div><p class="stepcap" aria-live="polite"></p>`;
+    host.appendChild(st); capEl = $('.stepcap', st); dotsEl = $('.dots', st); prevB = $('[data-a=prev]', st); nextB = $('[data-a=next]', st);
+    dotsEl.innerHTML = steps.map((s, i) => `<button aria-label="Adım ${i + 1}">${i + 1}</button>`).join('');
+    $$('button', dotsEl).forEach((b, i) => b.onclick = () => go(i));
+    prevB.onclick = () => go(cur - 1); nextB.onclick = () => go(cur + 1);
+  }
+  const ch = register(host, (W) => render(W));
+  function go(i) { cur = Math.max(0, Math.min(steps.length - 1, i)); render(ch.w ? Math.max(300, ch.w) : 720); }
+  function render(W) {
+    const dec = cfg.dec ?? 2; const H = cfg.h || 300; const oscH = cfg.osc ? 96 : 0;
+    const L = 6, R = 64, T = 14, B = cfg.xl ? 24 : 10; const mainH = H - T - B - oscH;
+    const n = cfg.slots || cs.length;
+    let lo = Infinity, hi = -Infinity;
+    for (const c of cs) { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); }
+    for (const a of cfg.ann || []) {
+      for (const k of ['y', 'y1', 'y2', 'entry', 'stop', 'target']) if (typeof a[k] === 'number' && !a.noScale) { lo = Math.min(lo, a[k]); hi = Math.max(hi, a[k]); }
+      if (a.type === 'fib') for (const q of a.lv) { const v = a.p0 + (a.p1 - a.p0) * q; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    }
+    if (cfg.range) { lo = Math.min(lo, cfg.range[0]); hi = Math.max(hi, cfg.range[1]); }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const slot = (W - L - R) / n; const X = (i) => L + slot * (i + 0.5); const Y = (p) => T + (hi - p) / (hi - lo) * mainH;
+    const upto = steps ? steps[cur].upto : cs.length - 1;
+    const o = [];
+    o.push(`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(cfg.label || 'Mum grafiği')}"><defs><marker id="ah${cfg.id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>`);
+    const st = niceStep(hi - lo, mainH < 200 ? 4 : 5);
+    for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) { const y = Y(v); o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${W - R + 6}" y="${y + 3.5}">${fmt(v, dec)}</text>`); }
+    if (cfg.xl) for (const [i, t] of cfg.xl) o.push(`<text class="ax" x="${X(i)}" y="${H - 7}" text-anchor="middle">${esc(t)}</text>`);
+    // dikey bantlar önce
+    const anns = (cfg.ann || []).filter((a) => !steps || (a.s ?? 0) <= cur);
+    const cls = (a) => `k-${a.c || 'acc'}${steps && (a.s ?? 0) < cur ? ' past' : ''}${steps && (a.s ?? 0) === cur ? ' now' : ''}`;
+    for (const a of anns.filter((a) => a.type === 'vband')) {
+      o.push(`<g class="${cls(a)}"><rect class="zf soft" x="${X(a.x1) - slot / 2}" y="${T}" width="${(a.x2 - a.x1 + 1) * slot}" height="${mainH}" style="fill-opacity:.08"/><text class="tx s" x="${X(a.x1) - slot / 2 + 3}" y="${T + 11}">${esc(a.t)}</text></g>`);
+    }
+    for (const a of anns.filter((a) => a.type === 'zone')) {
+      const x1 = X(a.x1 ?? 0) - slot / 2, x2 = X(a.x2 ?? n - 1) + slot / 2; const y1 = Y(Math.max(a.y1, a.y2)), y2 = Y(Math.min(a.y1, a.y2));
+      o.push(`<g class="${cls(a)}"><rect class="zf${a.soft ? ' soft' : ''}" x="${x1}" y="${y1}" width="${Math.max(1, x2 - x1)}" height="${Math.max(1, y2 - y1)}"/>${a.t ? `<text class="tx s" x="${a.ta === 'end' ? x2 - 4 : x1 + 4}" y="${a.tb ? y2 - 4 : y1 + 12}" text-anchor="${a.ta || 'start'}">${esc(a.t)}</text>` : ''}</g>`);
+    }
+    // mumlar
+    const bw = Math.max(1.5, slot * 0.62);
+    for (let i = 0; i < cs.length; i++) {
+      if (i > upto) break; const c = cs[i]; const up = c.c >= c.o; const yb = Y(Math.max(c.o, c.c)), yb2 = Y(Math.min(c.o, c.c));
+      const gh = cfg.ghost && (i < cfg.ghost[0] || i > cfg.ghost[1]) ? ' ghost' : '';
+      o.push(`<g class="${up ? 'up' : 'dn'}${gh}"><line class="wk" x1="${X(i)}" x2="${X(i)}" y1="${Y(c.h)}" y2="${Y(c.l)}"/><rect x="${X(i) - bw / 2}" y="${yb}" width="${bw}" height="${Math.max(1, yb2 - yb)}"/></g>`);
+    }
+    for (const a of anns) {
+      const k = cls(a);
+      if (a.type === 'h') {
+        const x1 = X(a.x1 ?? 0) - (a.x1 == null ? slot / 2 : 0), x2 = a.x2 == null ? W - R : X(a.x2); const y = Y(a.y);
+        let s = `<g class="${k}"><line class="ln${a.d ? ' d' : ''}${a.thin ? ' thin' : ''}" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/>`;
+        if (a.t) { const tx = a.lx != null ? X(a.lx) : (a.ta === 'start' ? x1 + 2 : x2 - 2); s += `<text class="tx${a.small ? ' s' : ''}" x="${tx}" y="${a.below ? y + 13 : y - 5}" text-anchor="${a.ta || (a.lx != null ? 'middle' : 'end')}">${esc(a.t)}</text>`; }
+        if (a.tag) s += `<rect class="tagr" x="${W - R + 1}" y="${y - 8}" width="${R - 2}" height="16" rx="2"/><text class="tagt" x="${W - R + 5}" y="${y + 3.5}">${fmt(a.y, dec)}</text>`;
+        o.push(s + '</g>');
+      } else if (a.type === 'line') {
+        o.push(`<g class="${k}"><line class="ln${a.d ? ' d' : ''}" x1="${X(a.x1)}" y1="${Y(a.y1)}" x2="${X(a.x2)}" y2="${Y(a.y2)}"/></g>`);
+      } else if (a.type === 'arrow') {
+        o.push(`<g class="${k}"><line class="ln" x1="${X(a.x1)}" y1="${Y(a.y1)}" x2="${X(a.x2)}" y2="${Y(a.y2)}" marker-end="url(#ah${cfg.id})"/></g>`);
+      } else if (a.type === 'mark') {
+        const x = X(a.x), y = Y(a.y); const below = a.pos === 'b'; const dy = a.dy ?? 0;
+        o.push(`<g class="${k}"><circle class="dot" cx="${x}" cy="${y}" r="5"/>${a.t ? `<text class="tx" x="${x + (a.dx || 0)}" y="${below ? y + 19 + dy : y - 11 - dy}" text-anchor="${a.a || 'middle'}">${esc(a.t)}</text>` : ''}</g>`);
+      } else if (a.type === 'label') {
+        o.push(`<g class="${k}"><text class="tx${a.small ? ' s' : ''}" x="${X(a.x)}" y="${Y(a.y) + (a.dy || 0)}" text-anchor="${a.a || 'middle'}">${esc(a.t)}</text></g>`);
+      } else if (a.type === 'num') {
+        const x = X(a.x), y = Y(a.y) + (a.dy || 0);
+        o.push(`<g class="${k}"><circle class="badge" cx="${x}" cy="${y}" r="8.5"/><text class="badge-t" x="${x}" y="${y + 4}" text-anchor="middle">${esc(a.n)}</text></g>`);
+      } else if (a.type === 'fib') {
+        const x1 = X(a.x1), x2 = a.x2 == null ? W - R : X(a.x2);
+        let s = `<g class="${k}">`;
+        for (const q of a.lv) { const v = a.p0 + (a.p1 - a.p0) * q; const y = Y(v); const nm = a.names?.[q] ?? fmt(q, q === 0 || q === 1 ? 0 : (String(q).length > 4 ? 3 : 2));
+          s += `<line class="ln d thin" x1="${x1}" x2="${x2}" y1="${y}" y2="${y}"/><text class="tx s" x="${a.la === 'start' ? x1 + 2 : x2 - 2}" y="${y - 3}" text-anchor="${a.la || 'end'}">${esc(nm)}${a.price ? ' · ' + fmt(v, dec) : ''}</text>`; }
+        o.push(s + '</g>');
+      } else if (a.type === 'pos') {
+        const x1 = X(a.x1) - slot / 2, x2 = a.x2 == null ? W - R : X(a.x2) + slot / 2; const ye = Y(a.entry), ys = Y(a.stop), yt = Y(a.target);
+        const rr = Math.abs(a.target - a.entry) / Math.abs(a.entry - a.stop); const dash = a.plan ? ' style="stroke-dasharray:4 3"' : '';
+        const tx = x2 - 4;
+        o.push(`<g class="${k}"><g class="k-up"><rect class="zf" x="${x1}" y="${Math.min(ye, yt)}" width="${x2 - x1}" height="${Math.abs(yt - ye)}"${dash}/><text class="tx s" x="${tx}" y="${yt + (yt < ye ? 13 : -5)}" text-anchor="end">Hedef ${fmt(a.target, dec)} · ${fmt(rr, 1)}R</text></g>`
+          + `<g class="k-dn"><rect class="zf" x="${x1}" y="${Math.min(ye, ys)}" width="${x2 - x1}" height="${Math.abs(ys - ye)}"${dash}/><text class="tx s" x="${tx}" y="${ys + (ys > ye ? -4 : 12)}" text-anchor="end">Stop ${fmt(a.stop, dec)}</text></g>`
+          + `<g class="k-ink"><line class="ln" x1="${x1}" x2="${x2}" y1="${ye}" y2="${ye}"/><text class="tx s" x="${x1 + 3}" y="${ye + (ys > ye ? -5 : 13)}">${esc(a.t || 'Giriş')} ${fmt(a.entry, dec)}</text></g></g>`);
+      }
+    }
+    if (cfg.osc) {
+      const vals = cfg.osc.vals; const top = T + mainH + 14, oh = oscH - 18; const OY = (v) => top + (100 - v) / 100 * oh;
+      o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${top - 6}" y2="${top - 6}"/>`);
+      for (const lv of [30, 50, 70]) o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${OY(lv)}" y2="${OY(lv)}"/><text class="ax" x="${W - R + 6}" y="${OY(lv) + 3.5}">${lv}</text>`);
+      let d = ''; vals.forEach((v, i) => { if (v == null || i > upto) return; d += (d ? 'L' : 'M') + X(i).toFixed(1) + ' ' + OY(v).toFixed(1); });
+      o.push(`<path class="osc" d="${d}"/><text class="ax" x="${L + 2}" y="${top + 6}">${esc(cfg.osc.t || 'RSI')}</text>`);
+      for (const ln of cfg.osc.lines || []) o.push(`<g class="k-${ln.c || 'acc'}"><line class="ln" x1="${X(ln.x1)}" y1="${OY(vals[ln.x1])}" x2="${X(ln.x2)}" y2="${OY(vals[ln.x2])}"/><circle class="dot" cx="${X(ln.x1)}" cy="${OY(vals[ln.x1])}" r="3.5"/><circle class="dot" cx="${X(ln.x2)}" cy="${OY(vals[ln.x2])}" r="3.5"/>${ln.t ? `<text class="tx s" x="${X(ln.x2) + 8}" y="${OY(vals[ln.x2]) + 4}">${esc(ln.t)}</text>` : ''}</g>`);
+    }
+    o.push('</svg>');
+    svgBox.innerHTML = o.join('');
+    if (steps) {
+      capEl.innerHTML = steps[cur].t; prevB.disabled = cur === 0; nextB.disabled = cur === steps.length - 1;
+      $$('button', dotsEl).forEach((b, i) => { b.setAttribute('aria-current', i === cur ? 'true' : 'false'); b.classList.toggle('done', i < cur); });
+    }
+  }
+  ro.observe(host);
+  return ch;
+}
+
+/* ---------- çizgi ve çubuk grafikleri ---------- */
+function lineChart(host, { series: ss, h = 260, yfmt = (v) => fmt(v, 0), vline, xmax, ylab, log }) {
+  const ch = register(host, (W) => {
+    const L = 8, R = 104, T = 22, B = 24; const ph = h - T - B;
+    let lo = Infinity, hi = -Infinity, nmax = 0;
+    for (const s of ss) { for (const v of s.vals) { lo = Math.min(lo, v); hi = Math.max(hi, v); } nmax = Math.max(nmax, s.vals.length - 1); }
+    nmax = xmax || nmax; const tr = log ? Math.log10 : (v) => v; const lo2 = tr(lo), hi2 = tr(hi); const pad = (hi2 - lo2) * 0.06;
+    const Y = (v) => T + (hi2 + pad - tr(v)) / (hi2 - lo2 + 2 * pad) * ph; const X = (i) => L + i / nmax * (W - L - R);
+    const o = [`<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="Çizgi grafiği">`];
+    const ticks = log ? [100, 200, 300, 500, 700, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 50000].filter((v) => v >= lo * 0.9 && v <= hi * 1.1) : (() => { const st = niceStep(hi - lo, 5); const a = []; for (let v = Math.ceil(lo / st) * st; v <= hi; v += st) a.push(v); return a; })();
+    for (const v of ticks) o.push(`<line class="gl" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${L + 2}" y="${Y(v) - 3}">${yfmt(v)}</text>`);
+    const xs = niceStep(nmax, 5); for (let i = 0; i <= nmax; i += xs) o.push(`<text class="ax" x="${X(i)}" y="${h - 7}" text-anchor="middle">${i}</text>`);
+    if (vline != null) o.push(`<line class="gl" style="stroke:var(--ink-3);stroke-dasharray:3 3" x1="${X(vline)}" x2="${X(vline)}" y1="${T}" y2="${h - B}"/>`);
+    const labs = [];
+    for (const s of ss) {
+      const d = s.vals.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join('');
+      o.push(`<g class="k-${s.c || 'acc'}"><path class="ln" d="${d}" style="stroke-width:${s.w || 1.6};${s.op ? 'opacity:' + s.op : ''}"/></g>`);
+      if (s.name) labs.push({ y: Y(s.vals[s.vals.length - 1]), s });
+    }
+    labs.sort((a, b) => a.y - b.y); for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 13) labs[i].y = labs[i - 1].y + 13;
+    for (const l of labs) o.push(`<g class="k-${l.s.c || 'acc'}"><text class="tx s" x="${W - R + 6}" y="${l.y + 3.5}" style="font-weight:600">${esc(l.s.name)}</text></g>`);
+    if (ylab) o.push(`<text class="ax" x="${W - R}" y="12" text-anchor="end">${esc(ylab)}</text>`);
+    o.push('</svg>'); host.innerHTML = o.join('');
+  });
+  ro.observe(host); return ch;
+}
+
+function hbar(host, { rows, keys, fmtv = (v) => (v > 0 ? '+' : '') + fmt(v, 2), lab = 150, h0 = 18 }) {
+  const ch = register(host, (W) => {
+    const lw = Math.min(lab, W * 0.36); const R = 46; const bh = h0, gap = 4, gg = 14; const T = 26;
+    const H = T + rows.length * (keys.length * (bh + gap) + gg) + 4;
+    let lo = 0, hi = 0; for (const r of rows) for (const v of r.v) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    lo -= 0.02; hi += 0.02; const X = (v) => lw + (v - lo) / (hi - lo) * (W - lw - R);
+    const o = [`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Çubuk grafiği">`];
+    keys.forEach((k, i) => o.push(`<g class="k-${k.c}"><rect class="badge" x="${lw + i * 112}" y="6" width="10" height="10" rx="2"/><text class="tx s" x="${lw + 14 + i * 112}" y="15">${esc(k.name)}</text></g>`));
+    o.push(`<line class="gl" style="stroke:var(--ink-3)" x1="${X(0)}" x2="${X(0)}" y1="${T - 4}" y2="${H - 2}"/>`);
+    let y = T;
+    for (const r of rows) {
+      o.push(`<text class="ax" style="fill:var(--ink-2);font-family:var(--sans);font-size:11.5px" x="0" y="${y + (keys.length * (bh + gap)) / 2 + 3}">${esc(r.name)}</text>`);
+      r.v.forEach((v, i) => { const x0 = X(Math.min(0, v)), x1 = X(Math.max(0, v));
+        o.push(`<g class="k-${keys[i].c}"><rect class="badge" x="${x0}" y="${y}" width="${Math.max(1, x1 - x0)}" height="${bh}" rx="2" style="opacity:.85"/><text class="tx s" x="${v < 0 ? x0 - 4 : x1 + 4}" y="${y + bh - 5}" text-anchor="${v < 0 ? 'end' : 'start'}">${fmtv(v)}</text></g>`);
+        y += bh + gap; });
+      y += gg;
+    }
+    o.push('</svg>'); host.innerHTML = o.join('');
+  });
+  ro.observe(host); return ch;
+}
+
+
+const D = JSON.parse(document.getElementById('pdata').textContent);
+const AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const snap = new Date(D.generatedAt); const snapTxt = `${snap.getUTCDate()} ${AY[snap.getUTCMonth()]} ${String(snap.getUTCHours()).padStart(2, '0')}:${String(snap.getUTCMinutes()).padStart(2, '0')} UTC`;
+$('#snap').textContent = snapTxt; $('#snap2').textContent = snapTxt;
+const conv = (arr) => arr.map((a) => ({ t: a[0], o: a[1], h: a[2], l: a[3], c: a[4] }));
+const at = (cs, iso) => { const t = Date.parse(iso + (iso.length <= 10 ? 'T00:00:00Z' : ':00:00Z')); const i = cs.findIndex((c) => c.t === t); if (i < 0) throw new Error('tarih yok ' + iso); return i; };
+const xl1d = (cs) => cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => [1, 15].includes(d.getUTCDate())).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]);
+const xl4h = (cs) => cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => d.getUTCHours() === 0 && d.getUTCDate() % 3 === 0).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]);
+let cidp = 0;
+function make(name, cfg) {
+  const host = document.querySelector(`[data-chart="${name}"]`); cfg.id = 'p' + (++cidp); host.classList.add('tg');
+  cfg.steps = [{ upto: cfg.cs.length - 1, t: 'Temiz grafik: önce kendin işaretle.' }, { upto: cfg.cs.length - 1, t: cfg.note }];
+  candleChart(host, cfg);
+  $$('.dots button', host).forEach((b, i) => { b.textContent = i ? 'İşaretli' : 'Temiz'; });
+}
+const L = (x, y, t, c, dy, a) => ({ s: 1, type: 'label', x, y, t, c: c || 'mut', dy: dy ?? 0, small: true, a: a || 'middle' });
+const hi = (cs, i) => cs[i].h, lo = (cs, i) => cs[i].l;
+
+/* BTC 1D */
+(() => {
+  const cs = conv(D.coins.BTC['1D']); const a = at(cs, '2026-08-01');
+  const sw = [['2026-09-21', 'HH', 1], ['2026-09-28', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 62227, p1: 87374.3, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, top ? 'dn' : 'dn', top ? -7 : 15)); }
+  const m0 = at(cs, '2026-09-28'), m1 = at(cs, '2026-10-08');
+  ann.push({ s: 1, type: 'h', y: 82501, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
+  ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 62227, x2: at(cs, '2026-09-21'), y2: 87374.3, c: 'up', d: true });
+  ann.push(L(at(cs, '2026-08-24'), 73000, 'Büyük bacak yukarı', 'up', 0, 'end'));
+  make('btc1d', { cs, h: 360, dec: 0, label: 'BTC günlük', xl: xl1d(cs), ann, note: 'İşaretli: alçalan tepeler (LH) ve alçalan dipler (LL), 8 Ekim günlük MSS. Fiyat büyük bacağın 0,74\'ünde.' });
+})();
+/* ETH 1D */
+(() => {
+  const cs = conv(D.coins.ETH['1D']); const a = at(cs, '2026-08-01');
+  const sw = [['2026-09-21', 'HH', 1], ['2026-09-24', 'L', 0], ['2026-10-02', 'LH', 1], ['2026-10-08', 'LL', 0], ['2026-10-12', 'LH', 1], ['2026-10-15', 'LL', 0], ['2026-10-21', 'LH', 1], ['2026-10-24', 'LL', 0]];
+  const ann = [{ s: 1, type: 'fib', x1: a, p0: 1820.77, p1: 2806.96, lv: [0, 0.25, 0.5, 0.75, 1], c: 'mut', la: 'start', price: true }];
+  for (const [d, t, top] of sw) { const i = at(cs, d); ann.push(L(i, top ? hi(cs, i) : lo(cs, i), t, 'dn', top ? -7 : 15)); }
+  const m0 = at(cs, '2026-09-24'), m1 = at(cs, '2026-10-07');
+  ann.push({ s: 1, type: 'h', y: 2626.07, x1: m0, x2: m1, c: 'dn', t: 'Günlük MSS', ta: 'end', lx: m0 - 0.5, small: true });
+  ann.push({ s: 1, type: 'line', x1: at(cs, '2026-08-01'), y1: 1820.77, x2: at(cs, '2026-09-21'), y2: 2806.96, c: 'up', d: true });
+  ann.push({ s: 1, type: 'mark', x: at(cs, '2026-10-24'), y: 2281.02, c: 'acc', t: 'Dip = bacağın 0,5\'i', pos: 'b', a: 'end', dx: 4, dy: 8 });
+  make('eth1d', { cs, h: 360, dec: 0, label: 'ETH günlük', xl: xl1d(cs), ann, note: 'İşaretli: aynı alçalan yapı, 7 Ekim günlük MSS. Fiyat büyük bacağın 0,54\'ünde, dengede. 24 Ekim dibi tam 0,5 seviyesinde.' });
+})();
+/* BTC 4H */
+(() => {
+  const cs = conv(D.coins.BTC['4H']); const r0 = at(cs, '2026-10-15T12'), sw = at(cs, '2026-10-24T12'), top = at(cs, '2026-10-21T16');
+  const ann = [
+    { s: 1, type: 'zone', x1: r0, y1: 79168, y2: 84876, c: 'fvg', t: 'Range 79 168 – 84 876', ta: 'start' },
+    { s: 1, type: 'h', y: 82022, x1: r0, c: 'fvg', d: true, thin: true, t: '0,5 denge 82 022', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 84348.2, x1: at(cs, '2026-10-12T04'), x2: top, c: 'liq', d: true, t: 'Eşit tepeler', small: true, ta: 'start', lx: at(cs, '2026-10-12T04'), below: true },
+    { s: 1, type: 'h', y: 80621.4, x1: at(cs, '2026-10-16T16'), x2: sw, c: 'liq', d: true, t: 'Eşit dipler', small: true, ta: 'start', lx: at(cs, '2026-10-16T16') },
+    { s: 1, type: 'h', y: 79725.3, x1: at(cs, '2026-10-15T12'), x2: sw + 1, c: 'liq', t: 'PWL 79 725', small: true, below: true, ta: 'start', lx: at(cs, '2026-10-15T12') + 1 },
+    { s: 1, type: 'mark', x: top, y: 84876, c: 'dn', t: 'Süpürme ↑', a: 'end', dx: -6 },
+    { s: 1, type: 'mark', x: sw, y: 79168, c: 'up', t: 'PWL süpürüldü', pos: 'b', a: 'end', dx: -6 },
+    { s: 1, type: 'h', y: 82047.6, x1: at(cs, '2026-10-23T12'), c: 'up', thin: true, t: 'MSS için 82 048', small: true },
+  ];
+  make('btc4h', { cs, h: 360, dec: 0, label: 'BTC 4H', xl: xl4h(cs), ann, note: 'İşaretli: 21 Ekim eşit tepeler süpürüldü (84 876), 24 Ekim önceki haftanın dibi süpürüldü (79 168). Fiyat range\'in alt çeyreğinde. Yukarı MSS için 82 048 üstünde 4H kapanış gerekir.' });
+})();
+/* ETH 4H */
+(() => {
+  const cs = conv(D.coins.ETH['4H']); const r0 = at(cs, '2026-10-14T08'), sw = at(cs, '2026-10-24T12'), top = at(cs, '2026-10-21T16');
+  const ann = [
+    { s: 1, type: 'zone', x1: r0, y1: 2281.02, y2: 2529.88, c: 'fvg', t: 'Range 2 281 – 2 530', ta: 'start' },
+    { s: 1, type: 'h', y: 2405.45, x1: r0, c: 'fvg', d: true, thin: true, t: '0,5 denge 2 405', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 2529.88, x1: r0, c: 'liq', d: true, t: 'Eşit tepeler 2 530 · alınmadı', small: true, ta: 'start', lx: r0 + 0.5 },
+    { s: 1, type: 'h', y: 2350.1, x1: at(cs, '2026-10-17T20'), x2: sw, c: 'liq', d: true, t: 'Eşit dipler', small: true, ta: 'start', lx: at(cs, '2026-10-17T20') },
+    { s: 1, type: 'h', y: 2315.26, x1: at(cs, '2026-10-15T00'), x2: sw + 1, c: 'liq', t: 'PWL 2 315', small: true, below: true, ta: 'start', lx: at(cs, '2026-10-15T00') + 1 },
+    { s: 1, type: 'mark', x: top, y: 2527.63, c: 'dn', t: 'Tepeyi alamadı (SMT)', a: 'end', dx: -6 },
+    { s: 1, type: 'mark', x: sw, y: 2281.02, c: 'up', t: 'PWL süpürüldü', pos: 'b', a: 'end', dx: -6 },
+    { s: 1, type: 'h', y: 2417, x1: at(cs, '2026-10-23T12'), c: 'up', thin: true, t: 'MSS için 2 417', small: true, below: true },
+  ];
+  make('eth4h', { cs, h: 360, dec: 0, label: 'ETH 4H', xl: xl4h(cs), ann, note: 'İşaretli: 21 Ekim BTC tepesini alırken ETH 2 527,6\'da kaldı (SMT uyumsuzluğu). 24 Ekim PWL süpürüldü. Eşit tepeler 2 528–2 530 hâlâ yukarıda bekliyor. Yukarı MSS için 2 417 üstünde 4H kapanış.' });
+})();
+$('#rv').onclick = () => { const a = $('#ans'); a.hidden = !a.hidden; $('#rv').setAttribute('aria-expanded', String(!a.hidden)); $('#rv').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
+})();
+</script>
+</body>
+</html>
