@@ -36,7 +36,8 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   grafikte alt araç çubuğu: kalem (çizim) · göstergeler · düzen · … · + · alarm · mum tipi · tekrar oynat (⏪) ·
   katmanlar · "…" · geri al; kaleme basınca grafiğin üstünde yüzen çizim çubuğu açılır (fib, çizgiler, kanal, ABCD,
   Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
-  Binance "… / TetherUS PERPETUAL CONTRACT". Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
+  Binance "… / TetherUS PERPETUAL CONTRACT", Bybit "…USDT Perpetual Contract" (fitiller OKX'ten birkaç pip farklı;
+  ör. ARB 8 Eki dibi OKX 0,16142 / Bybit 0,16164 / Binance 0,15979). Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
   yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
   için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
   işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
