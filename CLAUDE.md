@@ -32,7 +32,11 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   dilimi **UTC**. Çizimler hesapla eşitlenir; telefonda çizilen masaüstünde görünür. Pratik sayfası `pratik.html`.
   **Doğrulanmış telefon arayüzü (iOS, 25.10.2026):** alt menü İzleme Listesi / Grafik / Keşfet / Topluluk / Menü; bir
   çizimin ayar penceresi sekmeleri **Stil / Kordinatlar / Görünürlük**, sol altta "…" düğmesi, sağ altta İptal /
-  Tamam; fib aracının adı "Fib düzeltmesi". Kordinatlar sekmesinde noktaların fiyatı elle yazılabilir.
+  Tamam; fib aracının adı "Fib düzeltmesi". Kordinatlar sekmesinde noktaların fiyatı elle yazılabilir. Yatay
+  grafikte alt araç çubuğu: kalem (çizim) · göstergeler · düzen · … · + · alarm · mum tipi · tekrar oynat (⏪) ·
+  katmanlar · "…" · geri al; kaleme basınca grafiğin üstünde yüzen çizim çubuğu açılır (fib, çizgiler, kanal, ABCD,
+  Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
+  Binance "… / TetherUS PERPETUAL CONTRACT".
   **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
   Sayfalarda ve cevaplarda hep bu düzeni kullan. Kullanıcının varsayılan fib ayarı Elliott'a göre; SMC için şablon
   ("SMC Çeyrek": 0/0,25/0,5/0,75/1 · "SMC OTE": 0/0,5/0,618/0,705/0,786/1) kullanılır, varsayılan değiştirilmez.
