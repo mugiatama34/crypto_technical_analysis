@@ -57,6 +57,10 @@ jobs:
           ACCOUNT_USDT: ${{ secrets.ACCOUNT_USDT }}
           SCAN_TFS: ${{ vars.SCAN_TFS }}
           TOP_N: ${{ vars.TOP_N }}
+          FIB_ALERT: ${{ vars.FIB_ALERT }}
+          FIB_ALERT_TFS: ${{ vars.FIB_ALERT_TFS }}
+          FIB_ALERT_MAX: ${{ vars.FIB_ALERT_MAX }}
+          FIB_ALERT_TOP: ${{ vars.FIB_ALERT_TOP }}
           MIN_SCORE: ${{ vars.MIN_SCORE }}
           REQUIRE_MTF: ${{ vars.REQUIRE_MTF }}
           MAX_EVAL: ${{ vars.MAX_EVAL }}

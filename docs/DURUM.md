@@ -3,6 +3,17 @@
 Yeni oturumda önce bu dosya okunur (bkz. `CLAUDE.md` → "Devam edelim" protokolü). Her oturum sonunda en üste tarihli
 kısa bir giriş eklenir. Eski girişler silinmez.
 
+## 26.10.2026 (Pazartesi öğle) — Fib kesişimi: tarayıcı hatası düzeltildi, Telegram izleme uyarısı eklendi
+
+Arkadaşın XRP 15m 0,618×1,272 long'u (bölge ≈ 1,2767, 26 Eki 03:00 UTC dokundu). Tekrar oynatma: detektör 1H'de
+25 Eki 16:00 UTC'den beri aynı bölgeyi (1,2767) görüyordu; bize ulaşmadı çünkü (1) bot yalnız 4H gönderiyor, (2) Pazar,
+(3) fib kesişimi bot sinyali değil, yalnız tarayıcı preseti — ve presetin minScore'u 20 iken tek sinyal oluşurken 6–16
+puan alıyordu → liste hep boş (bölgeye 0,35 ATR yaklaşınca ≈ 28). 15m'de son 4 pivot penceresi gürültüyle kayıyordu.
+Düzeltme: `fibonacci.clusterKs` (varsayılan null = eski davranış; preset ve uyarı [2,3,4]), preset minScore 5,
+`bot/fibalert.js` (FIB_ALERT=1, yalnız 0,618×1,272, "yeni"/"bölgede", itki başına ≤ 2, tur özeti tek mesaj, ilk 30
+coin). Hacim tahmini: 4 coin 60 saatte 6 kurulum → 30 coinde günde ≈ 15–20 kurulum. **Kullanıcının Variables'a
+`FIB_ALERT=1` eklemesi gerekiyor** (SCAN_TFS 15m,1H,4H içermeli). Testler 117.
+
 ## 26.10.2026 (Pazartesi sabah) — pratik Adım 2 (likidite haritası) başladı; kullanıcının ARB işlemi açık
 
 Kullanıcı ARB'de Bybit'te gerçek (küçük) long açtı: limit 0,16659 (gece doldu), 96 ARB, 10x izole, SL 0,1614 (Bybit 8 Eki

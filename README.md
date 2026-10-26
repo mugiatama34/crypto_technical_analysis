@@ -18,6 +18,11 @@ beklenti hesaplayıcı, risk/şans simülasyonları, 9 soruluk grafikli alışt�
 Pratik: `pratik.html` BTC/ETH gerçek grafiklerinde adım adım işaretleme (Temiz/İşaretli, cevap anahtarı). Veri
 `pratik.yml` (her sabah 06:20 UTC + elle) → `bot/practice/snapshot.mjs` → `docs/pratik/candles.json` (elle tetiklerken `extra=ARB,SOL` → `docs/pratik/extra/<COIN>.json`, 1H 720 mum); sayfa
 `python3 bot/practice/build_page.py` ile şablondan (`bot/practice/pratik_template.html`) üretilir.
+**Fib kesişimi izleme uyarısı** (`bot/fibalert.js`, Variables `FIB_ALERT=1`): botun taradığı 15m/1H/4H mumlarında
+0,618 × 1,272 kesişimi (birden çok ZigZag eşiği, `clusterKs` [2,3,4]) oluşunca "yeni" (bölgeye ≤ 4 ATR) ve fiyat bölgeye
+gelince "bölgede" mesajı; itki başına en fazla iki, tur başına tek özet mesaj, hacme göre ilk `FIB_ALERT_TOP` (30) coin,
+`FIB_ALERT_TFS` (15m,1H,4H), `FIB_ALERT_MAX` (6). İşlem sinyali değildir (ölçümde kenar yok); hafta sonu da çalışır.
+Tarayıcıdaki "Fib kesişimi" preseti min puan 20 → 5 (tek sinyal oluşurken 6–16 puan aldığı için liste hep boştu).
 
 ## Neler var
 

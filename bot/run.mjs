@@ -28,6 +28,7 @@ import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegr
 import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
+import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
 import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
@@ -56,6 +57,11 @@ const CFG = {
   dry: env('DRY', '') === '1' || process.argv.includes('--dry'),
   account: +env('ACCOUNT_USDT', 0),
   tg: { token: env('TELEGRAM_BOT_TOKEN', ''), chatId: env('TELEGRAM_CHAT_ID', '') },
+  // Fib kesişimi izleme uyarısı (0,618×1,272; işlem sinyali değil). FIB_ALERT=1 açar; TF'ler SCAN_TFS içinde olmalı.
+  fibAlert: env('FIB_ALERT', '0') === '1',
+  fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
+  fibAlertMax: +env('FIB_ALERT_MAX', 6),
+  fibAlertTop: +env('FIB_ALERT_TOP', 30), // hacme göre ilk N coin (gürültü sınırı)
   apiKey: env('ANTHROPIC_API_KEY', ''),
   agent: env('AGENT', '1') === '1',
   agentModel: env('AGENT_MODEL', 'claude-opus-5-5'),
@@ -164,6 +170,19 @@ async function main() {
   const read = marketRead({ daily: btcDaily, h4: btcRow('4H'), h1: btcRow('1H'), now });
   const regime = read.daily; // günlük rejim (geriye uyumlu alan)
   log(read.summary + ` → 15m/1H rejimi: ${regimeFor('1H', read) || 'yok (yatay)'}, 4H rejimi: ${regimeFor('4H', read) || 'yok'}`);
+
+  // 0) Fib kesişimi izleme uyarısı (ana sinyal kurallarından bağımsız; hafta sonu da çalışır)
+  if (CFG.fibAlert) {
+    try {
+      const missing = CFG.fibAlertTfs.filter((tf) => !CFG.tfs.includes(tf));
+      if (missing.length) log(`Fib uyarısı: ${missing.join(',')} SCAN_TFS içinde değil, atlanıyor`);
+      const top = new Set((res.coins || []).slice(0, CFG.fibAlertTop).map((c) => c.coin));
+      const alerts = fibAlerts(res.rows.filter((r) => !top.size || top.has(r.coin)), state, now, { tfs: CFG.fibAlertTfs, max: CFG.fibAlertMax });
+      log(`Fib uyarısı (ilk ${CFG.fibAlertTop} coin): ${alerts.length} kurulum${alerts.length ? ' (' + alerts.map((a) => `${a.coin} ${a.tf} ${a.stage}`).join(', ') + ')' : ''}`);
+      const msg = fibDigest(alerts);
+      if (msg) await notify(msg, state);
+    } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); }
+  }
 
   // 1) Açık planları güncelle
   for (const p of state.sent) {

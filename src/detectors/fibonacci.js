@@ -15,6 +15,7 @@ export const FIB_DEFAULTS = {
   minImpulseAtr: 3, // itki boyu en az bu × ATR
   bRetr: [0.382, 0.886], // B, A'yı bu aralıkta geri almalı
   only: null, // 'cluster' → yalnız Fib kesişimi sinyali (preset)
+  clusterKs: null, // kesişim için denenecek ZigZag eşikleri (× ATR); null → yalnız swingK. Küçük TF'de [2,3,4] gürültüyü aşar
 };
 
 /**
@@ -73,10 +74,12 @@ export function detect(ctx) {
   const price = ctx.price, tol = o.nearAtr * ctx.atrNow;
   // 0) Fib kesişimi (ABC): her iki pencere denenir, fiyata en yakın geçerli bölge alınır
   {
-    const { pivots, tentative } = ctx.pivots(ctx.opts.swingK);
-    const w = clusterWindow(pivots, tentative);
     const cands = [];
-    for (const pts of [w?.confirmed, w?.withTent]) { if (!pts) continue; const c = fibClusterOf(pts, ctx.atrNow, o); if (c) cands.push({ c, pts }); }
+    for (const k of o.clusterKs?.length ? o.clusterKs : [ctx.opts.swingK]) {
+      const { pivots, tentative } = ctx.pivots(k);
+      const w = clusterWindow(pivots, tentative);
+      for (const pts of [w?.confirmed, w?.withTent]) { if (!pts) continue; const c = fibClusterOf(pts, ctx.atrNow, o); if (c) cands.push({ c, pts, k }); }
+    }
     const pick = cands.filter(({ c }) => c.d * (price - c.mid) >= -0.5 * ctx.atrNow && Math.abs(price - c.mid) <= 8 * ctx.atrNow).sort((a, b) => Math.abs(price - a.c.mid) - Math.abs(price - b.c.mid))[0];
     if (pick) {
       const { c, pts } = pick, dist = Math.abs(price - c.mid) / ctx.atrNow;
