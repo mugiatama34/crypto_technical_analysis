@@ -41,7 +41,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Telefon grafik ayarları → **Sembol** sayfası:
   MUMLAR = Temel hat / Kenarlar / Fitil, her birinde iki kutu (sol yükselen, sağ düşen); renk seçici hex almaz:
   10 sütun × 8 satır tablo (1. satır griler, 2. satır canlı renkler, altı açık→koyu tonlar), altında "+" (özel renk)
-  ve Şeffaflık kaydırıcısı. Renk tarifini "satır/sütun" ile ver. Önerilen palet: yükselen 2/5 turkuaz, düşen 2/1
+  ve Şeffaflık kaydırıcısı. Renk tarifini "satır/sütun" ile ver. Standart palet (26.10'da uygulandı, okunaklı): yükselen 2/5 turkuaz, düşen 2/1
   kırmızı, likidite 4/8 lavanta %80, kutular/fib 1/5 gri; arka plan ≈ #131722 (yoksa 1/8). Kullanıcı karanlık mod sever. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
   için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
   işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
