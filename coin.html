@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Coin analizi</title>
+<meta name="description" content="Tek coin teknik analizi: 1D/4H/1H/15m, seçilebilir analiz aileleri (PA/SMC, Elliott, Fibonacci, formasyon, harmonik, momentum, Wyckoff), BTC ilişkisi ve yazılı yorum.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<style>
+  .ctl { display: grid; gap: 12px; margin-top: 6px; }
+  .coinrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  .coinrow input { min-height: var(--touch); width: 180px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--hair); background: var(--surface-2); color: var(--ink); font: 600 15px var(--font); text-transform: uppercase; }
+  .lbl { color: var(--ink-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: 16px 0 4px; }
+  .head h2 { font-size: 22px; margin: 0; }
+  .head .px { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .headline { color: var(--ink-2); font-size: 13.5px; margin: 0 0 10px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--hair); border-radius: 8px; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th, table.grid td { padding: 7px 9px; text-align: left; white-space: nowrap; border-top: 1px solid var(--grid); vertical-align: top; font-variant-numeric: tabular-nums; }
+  table.grid th { color: var(--ink-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; border-top: 0; background: var(--surface); }
+  .up { color: #4cc24c; } .down { color: #ef7d7d; } .flat { color: var(--ink-dim); }
+  .tfbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 8px; }
+  .cl { border: 1px solid var(--hair); border-radius: 8px; padding: 9px 11px; margin-top: 8px; background: var(--surface); }
+  .cl .t { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-size: 13px; }
+  .cl .t b { font-size: 13.5px; }
+  .dir { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+  .dir.long { background: rgba(57,135,229,.18); color: #5ea3f0; } .dir.short { background: rgba(217,89,38,.18); color: #f0813f; }
+  .comment { border: 1px solid var(--hair); border-radius: var(--radius); background: var(--surface); padding: 12px 14px; margin-top: 16px; }
+  .comment h3 { margin: 0 0 8px; font-size: 15px; }
+  .comment ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+  .verdict { margin: 12px 0 4px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--hair); font-size: 13.5px; line-height: 1.5; }
+  .verdict.long { border-color: rgba(57,135,229,.6); } .verdict.short { border-color: rgba(217,89,38,.6); } .verdict.wait { border-color: var(--axis); }
+  .allsig { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div><h1>Coin analizi</h1><p class="sub">Bir coin seç; 1G, 4H, 1H ve 15m'de seçtiğin analizlerle bölgeler, BTC ilişkisi ve yazılı yorum.</p></div>
+    <nav class="nav"><a href="index.html">Tarayıcı</a><a href="signals.html">Sinyaller</a><a href="pratik.html">Pratik</a><a href="egitim.html">Eğitim</a></nav>
+  </header>
+
+  <section class="ctl" aria-label="Analiz ayarları">
+    <div>
+      <div class="lbl">Coin</div>
+      <div class="coinrow">
+        <input id="coin" list="coins" placeholder="ör. ARB" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Coin sembolü">
+        <datalist id="coins"></datalist>
+        <button class="btn primary" id="go">Analiz et</button>
+      </div>
+    </div>
+    <div><div class="lbl">Hızlı seçim (hacme göre)</div><div class="chips" id="quick"></div></div>
+    <div><div class="lbl">Zaman dilimleri</div><div class="chips" id="tfs"></div></div>
+    <div><div class="lbl">Analiz türleri</div><div class="chips" id="fams"></div></div>
+  </section>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="out" hidden>
+    <div class="head"><h2 id="h-coin"></h2><span class="px" id="h-px"></span><span id="h-chg"></span></div>
+    <p class="headline" id="headline"></p>
+    <div class="tablewrap"><table class="grid" id="tftable"></table></div>
+    <div class="tfbar"><div class="chips" id="tftabs"></div><label class="allsig"><input type="checkbox" id="allsig"> tüm sinyaller</label></div>
+    <div class="chart" id="chart"></div>
+    <div id="clusters"></div>
+    <div class="comment">
+      <h3>Yorum</h3>
+      <ul id="bullets"></ul>
+      <p class="verdict" id="verdict"></p>
+      <p class="note">Yorum kurallara dayalıdır ve seçtiğin analiz türlerine göre değişir. Mekanik kurallar backtestte tek başına kenar vermedi; bölge = bakılacak yer, sinyal değil. Yatırım tavsiyesi değildir.</p>
+    </div>
+  </section>
+  <footer><strong>Veri: OKX USDT perp.</strong> Yatırım tavsiyesi değildir.</footer>
+</div>
+<script src="lib/lightweight-charts.standalone.production.js"></script>
+<script type="module" src="src/ui/coin.js"></script>
+</body>
+</html>

@@ -3,6 +3,16 @@
 Yeni oturumda önce bu dosya okunur (bkz. `CLAUDE.md` → "Devam edelim" protokolü). Her oturum sonunda en üste tarihli
 kısa bir giriş eklenir. Eski girişler silinmez.
 
+## 26.10.2026 (Pazartesi öğleden sonra) — Coin analizi sayfası (coin.html)
+
+Kullanıcı isteği: tek coin için 1G/4H/1H/15m teknik analiz, seçilebilir aileler, BTC karşılaştırması ve yazılı yorum.
+`src/scan/coin.js` (saf çekirdek: analyzeTf/analyzeCoin, structureBias, dealingRange, btcCorr, commentary) +
+`src/ui/coin.js` + `coin.html` (tarayıcı menüsünde). Bölge = kümenin tohum sinyalinin bölgesi (birleşik küme çok
+genişliyordu); > 3 ATR "geniş" sayılır, yorumda bölgede/yaklaşıyor için kullanılmaz; yaklaşıyor = ≤ 1,5 ATR ve ≤ %3.
+Karar notu: bölge (puan ≥ 35, içinde ya da ≤ 1 ATR) üst dilim (4H, yoksa günlük) yönüyle uyumlu → teyitle %1; ters →
+%0,5; BTC güçlü bağlantılı (r ≥ 0,6) ve ters → uyarı; hafta sonu notu. Yorum kural tabanlı (Claude çağrısı yok).
+Fib kesişimi çiziminde itki/A bacağı/0,618/1,272 seviyeleri ve işaretleri. Testler 121.
+
 ## 26.10.2026 (Pazartesi öğle) — Fib kesişimi: tarayıcı hatası düzeltildi, Telegram izleme uyarısı eklendi
 
 Arkadaşın XRP 15m 0,618×1,272 long'u (bölge ≈ 1,2767, 26 Eki 03:00 UTC dokundu). Tekrar oynatma: detektör 1H'de
