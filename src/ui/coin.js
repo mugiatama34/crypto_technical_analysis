@@ -12,7 +12,7 @@ const provider = window.__COIN_PROVIDER__ || {
   topCoins: (n) => getTopCoins(n),
 };
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* yok */ } } };
-const S = { tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
+const S = { focus: 0, tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
 const clean = (s) => String(s || '').toUpperCase().replace(/USDT.*$/, '').replace(/[^A-Z0-9]/g, '').slice(0, 15);
 
 function chip(label, pressed, onClick, small = false) {
@@ -80,7 +80,7 @@ function render() {
   }).join('');
   $('#tftable').innerHTML = `<thead><tr><th>Dilim</th><th>Eğilim</th><th>Yapı</th><th>Range konumu</th><th>RSI</th><th>BTC r</th><th>BTC'ye göre</th><th>En iyi long</th><th>En iyi short</th></tr></thead><tbody>${rows}</tbody>`;
   const tabs = $('#tftabs'); tabs.innerHTML = '';
-  for (const tf of r.tfs) tabs.append(chip(tf === '1D' ? '1G' : tf, tf === S.view, () => { S.view = tf; render(); }));
+  for (const tf of r.tfs) tabs.append(chip(tf === '1D' ? '1G' : tf, tf === S.view, () => { S.view = tf; S.focus = 0; render(); }));
   renderTf();
   $('#bullets').innerHTML = r.comment.bullets.map((b) => `<li>${b}</li>`).join('');
   const v = $('#verdict'); v.className = 'verdict ' + r.comment.tone; v.innerHTML = `<b>Karar notu:</b> ${r.comment.verdict}`;
@@ -89,12 +89,25 @@ function render() {
 function renderTf() {
   const x = S.result.res[S.view], ref = x.price;
   const top = x.clusters.slice(0, 4);
-  const sigs = $('#allsig').checked ? x.signals : [...new Map([x.bestLong, x.bestShort].filter(Boolean).flatMap((z) => z.signals).map((s) => [s.id, s])).values()];
-  requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref));
-  $('#clusters').innerHTML = top.length ? top.map((c) => {
+  const all = $('#allsig').checked;
+  if (S.focus >= top.length) S.focus = 0;
+  // Odak modu: grafikte yalnız seçili küme (kartına dokunarak değişir); "tüm sinyaller" her şeyi çizer
+  const sigs = all ? x.signals : [...(top[S.focus]?.signals || [])].sort((a, b) => b.strength - a.strength).slice(0, 3); // odak: en güçlü 3 sinyal
+  requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref, { clean: true, onLegend: (items) => renderLegend(items, ref) }));
+  $('#clusters').innerHTML = top.length ? top.map((c, i) => {
     const core = c.signals[0]?.zone || c.zone;
-    return `<div class="cl"><div class="t"><span class="dir ${c.direction}">${c.direction === 'long' ? 'LONG' : 'SHORT'}</span><b>${fmtPrice(core[0], ref)} – ${fmtPrice(core[1], ref)}</b><span class="flat">puan ${c.score} · ${c.signals.length} sinyal</span></div><div class="badges">${[...new Set(c.signals.map((s) => `${s.name}${s.status && s.status !== 'active' ? ` · ${s.status === 'forming' ? 'oluşuyor' : s.status}` : ''}`))].slice(0, 8).map((n) => `<span class="badge">${esc(n)}</span>`).join('')}</div></div>`;
+    return `<div class="cl${!all && i === S.focus ? ' on' : ''}" data-i="${i}" role="button" tabindex="0" aria-pressed="${!all && i === S.focus}"><div class="t"><span class="dir ${c.direction}">${c.direction === 'long' ? 'LONG' : 'SHORT'}</span><b>${fmtPrice(core[0], ref)} – ${fmtPrice(core[1], ref)}</b><span class="flat">puan ${c.score} · ${c.signals.length} sinyal${c.signals.length > 3 ? ` (grafikte en güçlü 3)` : ''}</span></div><div class="badges">${[...new Set(c.signals.map((s) => `${s.name}${s.status && s.status !== 'active' ? ` · ${s.status === 'forming' ? 'oluşuyor' : s.status}` : ''}`))].slice(0, 8).map((n) => `<span class="badge">${esc(n)}</span>`).join('')}</div></div>`;
   }).join('') : '<p class="empty">Bu dilimde seçili analizlerle küme yok.</p>';
+  for (const el of document.querySelectorAll('#clusters .cl')) {
+    const pick = () => { S.focus = +el.dataset.i; $('#allsig').checked = false; renderTf(); $('#chart').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    el.addEventListener('click', pick); el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+  }
+}
+
+/** Grafiğin altında: çizilen seviyeler/bölgeler (renk, ad, fiyat), fiyata göre sıralı. */
+function renderLegend(items, ref) {
+  const rows = items.map((it) => ({ ...it, p: it.price ?? (it.lo + it.hi) / 2 })).sort((a, b) => b.p - a.p);
+  $('#legend').innerHTML = rows.length ? rows.map((it) => `<span class="lg${it.key ? ' key' : ''}"><i style="background:${esc(it.color)}"></i>${esc(it.text)} <b>${it.price != null ? fmtPrice(it.price, ref) : `${fmtPrice(it.lo, ref)}–${fmtPrice(it.hi, ref)}`}</b></span>`).join('') : '';
 }
 
 $('#go').addEventListener('click', run);

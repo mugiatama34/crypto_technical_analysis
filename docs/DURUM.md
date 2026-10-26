@@ -129,3 +129,8 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 6. Eğitim: `docs/egitim/` okunup pratik rutinine başlanır; kişisel işlem günlüğü (05-olcum.md şablonu).
 
 **Testler:** 108 geçiyor. Son commit: eğitim + CLAUDE.md + DURUM.md.
+
+## 26.10.2026 — coin.html grafik sadeleştirme
+- Odak modu: grafikte yalnız seçili küme (en güçlü 3 sinyal); küme kartına dokununca değişir. "Tüm sinyaller" isteğe bağlı.
+- Y ekseni temiz: yalnız Giriş/Stop/H1/H2 eksende; diğer seviyeler çizgi ucunda küçük etiket + grafik altı lejant. Kutular ince çerçeve, sağda 14 mum boşluk.
+- Bekleyen: lab koşusu 40318035445 (fib_cluster_g / g_p0 karşılaştırması). Testler: 121 geçiyor.

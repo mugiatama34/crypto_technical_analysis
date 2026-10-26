@@ -27,6 +27,7 @@ seçilebilir aileler (PA/SMC, Elliott, Fibonacci + kesişim, formasyon, harmonik
 yapı HH/HL–LH/LL, range konumu, RSI, BTC korelasyonu, BTC'ye göre güç, en iyi long/short çekirdek bölgesi), grafik ve
 kurallara dayalı yorum (yön, BTC ilişkisi, konum, bölgede/yaklaşıyor, fib kesişimi, Elliott, momentum, karar notu).
 Adres `coin.html#ARB` ile doğrudan açılır. 5m isteğe bağlı (varsayılan kapalı; Telegram uyarısında yok).
+Grafik **odak modu**: yalnız seçili kümenin en güçlü 3 sinyali çizilir (kart dokununca değişir); fiyat ekseninde yalnız Giriş/Stop/Hedef etiketi kalır, diğer seviye adları çizginin sağ ucunda ve grafiğin altındaki lejantta. "Tüm sinyaller" kutusu her şeyi çizer.
 Fib kesişimi (uyarı, preset, coin sayfası) B'nin A'yı geri alma sınırı %88,6 → %100 (çift tepeye yakın düzeltmeler,
 MORPHO 26.10); canlı botun 4H puanlamasındaki varsayılan değişmedi. Lab: `fib_cluster_g` (aynı ayar, 15m/1H/4H) ve
 `fib_cluster_g_p0` (stop itki başı, TP2 −0,236).
