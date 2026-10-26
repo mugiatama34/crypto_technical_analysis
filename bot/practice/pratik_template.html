@@ -71,7 +71,7 @@
       <li><b>PDH / PDL:</b> dünün (25 Ekim Pazar) günlük mumunun tepe ve dibi. Günlük grafikte mumun Y ve D değerlerini oku. Bu sabah hangisi alındı?</li>
       <li><b>PWH / PWL:</b> geçen haftanın (19–25 Ekim) tepe ve dibi. Haftalık grafikte (1 hafta) geçen haftanın mumunu oku. Hangisi hâlâ alınmadı, fiyata ne kadar uzak?</li>
       <li><b>1H eşit tepeler / dipler:</b> son iki günde aynı yere iki kez gelen tepe ya da dip var mı? Hangi seviyeyle çakışıyor?</li>
-      <li><b>Asya kutusu:</b> 00:00–07:00 UTC (03:00–10:00 TR) arası açık gri bir dikdörtgen, tepesi ve dibi seansın en yüksek ve en düşük fitili. Seans 10:00 TR'de bitiyor; kutuyu o zaman tamamla.</li>
+      <li><b>Asya kutusu:</b> grafik UTC'de olduğu için kutu 00:00'da başlar, 07:00'de biter (Türkiye saatiyle 03:00–10:00). Açık gri bir dikdörtgen, tepesi ve dibi seansın en yüksek ve en düşük fitili. Seans 10:00 TR'de bitiyor; kutuyu o zaman tamamla.</li>
       <li><b>Londra (10:00–13:00 TR), yalnız izle:</b> Asya kutusunun hangi tarafı süpürüldü? Süpürmeden sonra 15m'de ters yöne MSS geldi mi? İşlem yok; sadece ne olduğunu yaz.</li>
     </ol>
   </div>
@@ -266,7 +266,7 @@ function liq1h(coin, L) {
   const cs = conv(D.coins[coin]['1H']); const s0 = at(cs, '2026-10-25T00'), s1 = at(cs, '2026-10-25T06'), m0 = at(cs, '2026-10-26T00'), nw = cs.length - 1;
   const ann = [
     { s: 1, type: 'vband', x1: s0, x2: s1, t: 'Asya Paz', c: 'mut' },
-    { s: 1, type: 'vband', x1: m0, x2: nw, t: 'Asya Pzt', c: 'mut' },
+    { s: 1, type: 'vband', x1: m0, x2: Math.min(nw, m0 + 6), t: 'Asya Pzt', c: 'mut' },
     { s: 1, type: 'h', y: L.pdh, x1: s0, x2: nw + 3, c: 'liq', d: true, t: 'PDH + EQH ' + L.pdhT, small: true, ta: 'start', lx: s0 + 0.5 },
     { s: 1, type: 'h', y: L.pdl, x1: at(cs, L.pdlAt), x2: L.pdlSw, c: 'liq', t: 'PDL ' + L.pdlT + ' · alındı', small: true, ta: 'start', lx: at(cs, L.pdlAt) + 0.5, below: true },
     { s: 1, type: 'h', y: L.pwl, x1: at(cs, '2026-10-24T15'), x2: nw + 3, c: 'liq', d: true, t: 'PWL ' + L.pwlT + ' · alınmadı', small: true, ta: 'start', lx: at(cs, '2026-10-24T15') + 1, below: true },
@@ -277,8 +277,8 @@ function liq1h(coin, L) {
   ann.push({ s: 1, type: 'mark', x: li, y: cs[li].l, c: 'dn', t: 'Asya dibi', pos: 'b', a: 'end', dx: -4 });
   make(coin.toLowerCase() + '1h', { cs, h: 380, dec: L.dec, label: coin + ' 1H', xl: cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => d.getUTCHours() === 0).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]), slots: cs.length + 4, ann, note: L.note });
 }
-liq1h('BTC', { dec: 0, pdh: 81008, pdhT: '81 008', pdl: 79773.1, pdlT: '79 773', pdlAt: '2026-10-25T09', pdlSw: at(conv(D.coins.BTC['1H']), '2026-10-26T01'), pwl: 79168, pwlT: '79 168', mss: 82047.6, mssT: '82 048', eq1: '2026-10-25T03', eq1v: 81008, eq2: '2026-10-25T17', eq2v: 80919, note: 'İşaretli: Asya PDL\'yi (79 773) süpürdü, PWL (79 168) 155 $ aşağıda bekliyor. Yukarıda PDH ve Pazar eşit tepeleri ≈ 81 000.' });
-liq1h('ETH', { dec: 2, pdh: 2370.96, pdhT: '2 371', pdl: 2308.04, pdlT: '2 308', pdlAt: '2026-10-25T09', pdlSw: at(conv(D.coins.ETH['1H']), '2026-10-26T01'), pwl: 2281.02, pwlT: '2 281', mss: 2417, mssT: '2 417', eq1: '2026-10-25T02', eq1v: 2370.96, eq2: '2026-10-25T17', eq2v: 2364.7, note: 'İşaretli: Asya PDL\'yi (2 308) süpürdü, PWL (2 281) yalnız 11 $ aşağıda. Yukarıda PDH ve eşit tepeler 2 365–2 371.' });
+liq1h('BTC', { dec: 0, pdh: 81008, pdhT: '81 008', pdl: 79773.1, pdlT: '79 773', pdlAt: '2026-10-25T23', pdlSw: at(conv(D.coins.BTC['1H']), '2026-10-26T01'), pwl: 79168, pwlT: '79 168', mss: 82047.6, mssT: '82 048', eq1: '2026-10-25T03', eq1v: 81008, eq2: '2026-10-25T17', eq2v: 80919, note: 'İşaretli: Asya PDL\'yi (79 773) süpürdü, PWL (79 168) 155 $ aşağıda bekliyor. Yukarıda PDH ve Pazar eşit tepeleri ≈ 81 000.' });
+liq1h('ETH', { dec: 2, pdh: 2370.96, pdhT: '2 371', pdl: 2308.04, pdlT: '2 308', pdlAt: '2026-10-25T23', pdlSw: at(conv(D.coins.ETH['1H']), '2026-10-26T01'), pwl: 2281.02, pwlT: '2 281', mss: 2417, mssT: '2 417', eq1: '2026-10-25T02', eq1v: 2370.96, eq2: '2026-10-25T17', eq2v: 2364.7, note: 'İşaretli: Asya PDL\'yi (2 308) süpürdü, PWL (2 281) yalnız 11 $ aşağıda. Yukarıda PDH ve eşit tepeler 2 365–2 371.' });
 $('#rv2').onclick = () => { const a = $('#ans2'); a.hidden = !a.hidden; $('#rv2').setAttribute('aria-expanded', String(!a.hidden)); $('#rv2').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
 $('#rv').onclick = () => { const a = $('#ans'); a.hidden = !a.hidden; $('#rv').setAttribute('aria-expanded', String(!a.hidden)); $('#rv').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
 })();
