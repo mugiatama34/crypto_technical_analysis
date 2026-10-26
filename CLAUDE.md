@@ -38,7 +38,11 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
   Binance "… / TetherUS PERPETUAL CONTRACT", Bybit "…USDT Perpetual Contract" (fitiller OKX'ten birkaç pip farklı;
   ör. ARB 8 Eki dibi OKX 0,16142 / Bybit 0,16164 / Binance 0,15979). Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
-  yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
+  yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Telefon grafik ayarları → **Sembol** sayfası:
+  MUMLAR = Temel hat / Kenarlar / Fitil, her birinde iki kutu (sol yükselen, sağ düşen); renk seçici hex almaz:
+  10 sütun × 8 satır tablo (1. satır griler, 2. satır canlı renkler, altı açık→koyu tonlar), altında "+" (özel renk)
+  ve Şeffaflık kaydırıcısı. Renk tarifini "satır/sütun" ile ver. Önerilen palet: yükselen 2/5 turkuaz, düşen 2/1
+  kırmızı, likidite 4/8 lavanta %80, kutular/fib 1/5 gri; arka plan ≈ #131722 (yoksa 1/8). Kullanıcı karanlık mod sever. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
   için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
   işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
   **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
