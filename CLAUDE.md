@@ -45,7 +45,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   kırmızı, likidite 4/8 lavanta %80, kutular/fib 1/5 gri; arka plan ≈ #131722 (yoksa 1/8). Kullanıcı karanlık mod sever.
   Telefon grafik ayarları → **Alarmlar**: "Grafik çizgisi görünürlüğü" → "Alarm çizgileri" kutusu (+ renk) ve
   "Yalnızca etkin alarmları"; "Bildirimler" → "Tost bildirimleri otomatik olarak gizle". Kullanıcı alarm çizgilerini
-  kapattı (alarmlar çalışır). Alarm kurma: alt araç çubuğu → alarm simgesi. Kullanıcı işlemleri Bybit'te açar; Bybit grafiği
+  kapattı (alarmlar çalışır). Alarm kurma: alt araç çubuğu → alarm simgesi. Kullanıcı işlemleri Bybit'te açar (uygulama İngilizce; doğrulandı 26.10: Futures → pozisyon → **TP/SL** penceresi, sekmeler **Entire Position / Partial Position**; Partial'da Qty/Proportion, TP ve SL Trigger Price (Last), "Exit at Market", **"Set SL at entry price after TP is filled"** kutusu = otomatik başa baş; kademeli çıkış: Entire'da TP2+SL, Partial'da TP1 adedi); Bybit grafiği
   için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
   işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
   **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
