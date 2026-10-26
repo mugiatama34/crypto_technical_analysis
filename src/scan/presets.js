@@ -35,7 +35,7 @@ export const PRESETS = [
     id: 'fib_cluster', name: 'Fib kesişimi (0,618×1,272)', desc: 'İtki sonrası ABC düzeltmesi: itkinin 0,618 geri çekilmesi ile A bacağının B\'den 1,272 uzantısı aynı yerdeyse giriş bölgesi; yön itkinin yönü.',
     // Tek sinyal: oluşurken puan ≈ 6–16, bölgede ≈ 28 → minScore 5 (20 iken liste hep boş kalıyordu). Üç ZigZag eşiği (15m gürültüsü).
     detectors: ['fibonacci'], weights: { fibonacci: 2.0 }, minScore: 5,
-    detectorOpts: { fibonacci: { only: 'cluster', clusterKs: [2, 3, 4] } },
+    detectorOpts: { fibonacci: { only: 'cluster', clusterKs: [2, 3, 4], bRetr: [0.382, 1.0] } },
   },
   {
     id: 'ew_corrections', name: 'EW düzeltmeler', desc: 'Zigzag + flat + diyagonal birlikte; fib desteğiyle.',

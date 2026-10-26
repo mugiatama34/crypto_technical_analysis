@@ -26,7 +26,10 @@ gelince "bölgede" mesajı; itki başına en fazla iki, tur başına tek özet m
 seçilebilir aileler (PA/SMC, Elliott, Fibonacci + kesişim, formasyon, harmonik, momentum, Wyckoff), dilim tablosu (eğilim,
 yapı HH/HL–LH/LL, range konumu, RSI, BTC korelasyonu, BTC'ye göre güç, en iyi long/short çekirdek bölgesi), grafik ve
 kurallara dayalı yorum (yön, BTC ilişkisi, konum, bölgede/yaklaşıyor, fib kesişimi, Elliott, momentum, karar notu).
-Adres `coin.html#ARB` ile doğrudan açılır.
+Adres `coin.html#ARB` ile doğrudan açılır. 5m isteğe bağlı (varsayılan kapalı; Telegram uyarısında yok).
+Fib kesişimi (uyarı, preset, coin sayfası) B'nin A'yı geri alma sınırı %88,6 → %100 (çift tepeye yakın düzeltmeler,
+MORPHO 26.10); canlı botun 4H puanlamasındaki varsayılan değişmedi. Lab: `fib_cluster_g` (aynı ayar, 15m/1H/4H) ve
+`fib_cluster_g_p0` (stop itki başı, TP2 −0,236).
 Tarayıcıdaki "Fib kesişimi" preseti min puan 20 → 5 (tek sinyal oluşurken 6–16 puan aldığı için liste hep boştu). Grafikte kesişimin nedeni çizilir: itki (gri, "İtki ucu · 0,618 → fiyat"), A bacağı
 (mavi, "B · 1,272×A → fiyat") ve iki seviye noktalı çizgi olarak.
 

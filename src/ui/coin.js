@@ -1,7 +1,7 @@
 // coin.html: tek coin analizi arayüzü. Veri OKX'ten (tarayıcı), analiz src/scan/coin.js, grafik src/ui/chart.js.
 import { getCandles, getTopCoins, instIdOf, TIMEFRAMES } from '../data/okx.js';
 import { barsFor } from '../scan/scanner.js';
-import { analyzeCoin, COIN_TFS, FAMILIES } from '../scan/coin.js';
+import { analyzeCoin, COIN_TFS, DEFAULT_TFS, FAMILIES } from '../scan/coin.js';
 import { drawRow } from './chart.js';
 import { fmtPrice, esc } from './format.js';
 
@@ -12,7 +12,7 @@ const provider = window.__COIN_PROVIDER__ || {
   topCoins: (n) => getTopCoins(n),
 };
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* yok */ } } };
-const S = { tfs: new Set(store.get('coin.tfs', COIN_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
+const S = { tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
 const clean = (s) => String(s || '').toUpperCase().replace(/USDT.*$/, '').replace(/[^A-Z0-9]/g, '').slice(0, 15);
 
 function chip(label, pressed, onClick, small = false) {

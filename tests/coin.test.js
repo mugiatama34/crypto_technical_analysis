@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { analyzeCoin, btcCorr, detectorsFor, FAMILIES, COIN_TFS } from '../src/scan/coin.js';
+import { analyzeCoin, btcCorr, detectorsFor, FAMILIES, DEFAULT_TFS } from '../src/scan/coin.js';
 
 const fx = JSON.parse(fs.readFileSync(new URL('./fixtures/coin-arb.json', import.meta.url)));
 const toC = (a) => ({ time: a[0], open: a[1], high: a[2], low: a[3], close: a[4], volume: a[5] ?? 0 });
@@ -10,7 +10,7 @@ const ARB = conv(fx.ARB), BTC = conv(fx.BTC);
 
 test('coin analizi: dört dilim, tablo alanları ve yorum', () => {
   const r = analyzeCoin({ coin: 'ARB', perTf: ARB, btcPerTf: BTC, now: Date.UTC(2026, 9, 26, 12) });
-  assert.deepEqual(r.tfs, COIN_TFS);
+  assert.deepEqual(r.tfs, DEFAULT_TFS);
   for (const tf of r.tfs) {
     const x = r.res[tf];
     assert.ok(x.price > 0 && x.atr > 0);

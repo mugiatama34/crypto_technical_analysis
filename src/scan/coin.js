@@ -7,7 +7,8 @@ import { horizonTrend } from './regime.js';
 import { relativeStrength } from './relative.js';
 import { inZone } from '../core/signal.js';
 
-export const COIN_TFS = ['1D', '4H', '1H', '15m'];
+export const COIN_TFS = ['1D', '4H', '1H', '15m', '5m'];
+export const DEFAULT_TFS = ['1D', '4H', '1H', '15m']; // 5m isteğe bağlı (varsayılan kapalı)
 export const FAMILIES = [
   { id: 'pa', label: 'Price action / SMC', detectors: ['structure', 'fvg', 'orderblock', 'liquidity', 'candlesticks'] },
   { id: 'elliott', label: 'Elliott', detectors: ['elliott'] },
@@ -18,8 +19,8 @@ export const FAMILIES = [
   { id: 'wyckoff', label: 'Wyckoff', detectors: ['wyckoff'] },
 ];
 export const detectorsFor = (familyIds) => [...new Set(FAMILIES.filter((f) => familyIds.includes(f.id)).flatMap((f) => f.detectors))];
-const DET_OPTS = { fibonacci: { clusterKs: [2, 3, 4] } };
-const TF_W = { '1D': 3, '4H': 2, '1H': 1, '15m': 0.5 };
+const DET_OPTS = { fibonacci: { clusterKs: [2, 3, 4], bRetr: [0.382, 1.0] } };
+const TF_W = { '1D': 3, '4H': 2, '1H': 1, '15m': 0.5, '5m': 0.25 };
 
 /** Son iki tepe ve iki dibe göre yapı: up (HH+HL), down (LH+LL), mixed. Fiyat son dibin altına/tepenin üstüne çıktıysa kırılım. */
 export function structureBias(ctx, k = 2) {
@@ -116,7 +117,7 @@ export function analyzeCoin({ coin, perTf, btcPerTf = {}, families = FAMILIES.ma
 
 const TR_TREND = { up: 'yükseliş', down: 'düşüş', flat: 'yatay' };
 const TR_BIAS = { up: 'yükselen tepe/dip', down: 'alçalan tepe/dip', mixed: 'karışık' };
-const TFN = { '1D': 'günlük', '4H': '4H', '1H': '1H', '15m': '15m' };
+const TFN = { '1D': 'günlük', '4H': '4H', '1H': '1H', '15m': '15m', '5m': '5m' };
 const pct = (x, d = 1) => `%${(x * 100).toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const num = (x, d = 1) => x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const fp = (p, ref = p) => { const a = Math.abs(ref), d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return p.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }); };

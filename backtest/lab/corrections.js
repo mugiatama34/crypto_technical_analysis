@@ -132,6 +132,8 @@ function fibClusterPlan(pts, c, atr, o) {
   if (!k) return null;
   if (k.d * (c.close - k.mid) <= 0) return null; // fiyat bölgeye gelmemiş olmalı (B tarafında)
   if (k.d * (c.close - k.mid) > (o.maxDistAtr ?? 6) * atr) return null; // çok uzak bölgeye emir koyma
+  // stopAt 'p0' (arkadaşın yönetimi): stop itki başının 0,2 ATR ötesi, TP2 itki ucu + 0,236 L (−0,236 uzantısı)
+  if (o.stopAt === 'p0') { k.stop = pts[0].price - k.d * (o.bufferAtr ?? 0.2) * atr; k.tp2 = k.tp1 + k.d * 0.236 * k.L; }
   const risk = k.d * (k.mid - k.stop);
   if (!(risk > 0) || k.d * (k.tp1 - k.mid) / risk < (o.minRR ?? 1.5)) return null;
   return { ...mk(k.d, k.mid, k.stop, k.tp1, k.tp2, atr, { kind: 'fib_cluster', retr: k.retr, ext: k.ext, diffAtr: k.diff, rr1: +((k.d * (k.tp1 - k.mid)) / risk).toFixed(2) }), inZone: false, zone: [k.mid - 0.25 * atr, k.mid + 0.25 * atr], price: c.close };
@@ -161,3 +163,8 @@ const mkFib = (id, label, o) => ({
 });
 export const fibClusterC = mkFib('fib_cluster_c', 'Fib kesişimi: itki 0,5/0,618/0,786 geri çekilmesi × A\'nın 1,272/1,382/1,618 uzantısı, limit giriş (TP1 itki ucu)', {});
 export const fibClusterCStrict = mkFib('fib_cluster_c_strict', 'Fib kesişimi yalnız 0,618×1,272 (tol 0,3 ATR), limit giriş', { clusterRetr: [0.618], clusterExt: [1.272], clusterTolAtr: 0.3 });
+// 26.10.2026 ayarı (uyarı/tarayıcı/coin sayfasıyla aynı): yalnız 0,618×1,272, tol 0,5 ATR, B ≤ %100 (MORPHO gibi çift tepeye
+// yakın B'ler), ZigZag 2/3/4, 15m dahil. İki yönetim: itki 0,886 stop (varsayılan) ve arkadaşınki (stop itki başı, TP2 −0,236).
+const G = { clusterRetr: [0.618], clusterExt: [1.272], clusterTolAtr: 0.5, bRetr: [0.382, 1.0], ks: [2, 3, 4] };
+export const fibClusterG = { ...mkFib('fib_cluster_g', 'Fib kesişimi 0,618×1,272, B ≤ %100, ZigZag 2/3/4, stop itki 0,886 (limit giriş)', G), tfs: ['15m', '1H', '4H'] };
+export const fibClusterGP0 = { ...mkFib('fib_cluster_g_p0', 'Fib kesişimi 0,618×1,272, B ≤ %100, stop itki başı, TP1 itki ucu, TP2 −0,236 (arkadaşın yönetimi)', { ...G, stopAt: 'p0' }), tfs: ['15m', '1H', '4H'] };

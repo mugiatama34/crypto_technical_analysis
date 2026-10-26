@@ -12,6 +12,7 @@ export const FIB_ALERT_DEFAULTS = {
   max: 6, // tur başına en fazla mesaj
   keepHours: 72, // durum kaydı ömrü
   ks: [2, 3, 4], // ZigZag eşikleri (15m gürültüsü için birden çok)
+  bRetr: [0.382, 1.0], // B, A'yı en fazla %100 geri alabilir (çift tepeye yakın düzeltmeler; MORPHO 26.10)
 };
 const TF_RANK = { '15m': 1, '1H': 2, '4H': 3 };
 
@@ -23,7 +24,7 @@ const fmtP = (p) => {
 
 /** Bir satırın (coin × TF) 0,618×1,272 kesişimleri: [{ key, sig, dist, pts }]. */
 export function clustersOf(row, o = FIB_ALERT_DEFAULTS) {
-  const ctx = makeContext({ candles: row.candles, live: row.live || null, tf: row.tf, symbol: row.coin, opts: { fibonacci: { only: 'cluster', clusterKs: o.ks, clusterRetr: [0.618], clusterExt: [1.272] } } });
+  const ctx = makeContext({ candles: row.candles, live: row.live || null, tf: row.tf, symbol: row.coin, opts: { fibonacci: { only: 'cluster', clusterKs: o.ks, clusterRetr: [0.618], clusterExt: [1.272], bRetr: o.bRetr } } });
   if (ctx.n < 50 || !(ctx.atrNow > 0)) return [];
   return detect(ctx).filter((s) => s.id.startsWith('fib|cluster')).map((s) => {
     const pts = s.meta.points.map((p) => ({ price: p.price, time: ctx.candles[p.i]?.time }));
