@@ -43,15 +43,15 @@
   <div class="meta" aria-label="Veri bilgisi">
     <span>Veri</span><span>OKX USDT perp</span>
     <span>Anlık</span><span id="snap">–</span>
-    <span>Adım</span><span>1 / 6</span>
+    <span>Adım</span><span>2 / 6</span>
     <span>Mod</span><span>yalnız işaret</span>
   </div>
 </header>
 
 <section class="panel" style="padding-top:22px">
   <div class="road" aria-label="Yol haritası">
-    <div class="st on"><span class="k">ADIM 1 · BUGÜN</span><b>Yön: 1D + 4H</b><span>Yapı, range, premium/discount</span></div>
-    <div class="st"><span class="k">ADIM 2</span><b>Likidite haritası</b><span>PDH/PDL, PWH/PWL, EQH/EQL, Asya</span></div>
+    <div class="st"><span class="k">ADIM 1 · 25 EKİM ✓</span><b>Yön: 1D + 4H</b><span>Yapı, range, premium/discount</span></div>
+    <div class="st on"><span class="k">ADIM 2 · BUGÜN</span><b>Likidite haritası</b><span>PDH/PDL, PWH/PWL, EQH/EQL, Asya</span></div>
     <div class="st"><span class="k">ADIM 3</span><b>Bölgeler</b><span>4H FVG ve order block</span></div>
     <div class="st"><span class="k">ADIM 4</span><b>Senaryo cümlesi</b><span>Eğer … süpürülür ve MSS gelirse …</span></div>
     <div class="st"><span class="k">ADIM 5</span><b>Alarm ve bekleme</b><span>15m'de MSS + FVG</span></div>
@@ -59,9 +59,49 @@
   </div>
 
   <div class="intro">
-    <span class="eyebrow">Adım 1 · Yön</span>
+    <span class="eyebrow">Adım 2 · Likidite haritası · 26 Ekim Pazartesi</span>
+    <h2>Stoplar nerede bekliyor, bu sabah hangileri alındı?</h2>
+    <p>Adım 1 yönü verdi: günlük aşağı, 4H range'in dibindeyiz. Adım 2, fiyatın gün içinde çekileceği seviyeleri işaretler: önceki günün ve haftanın tepe/dibi, Asya seansı ve 1 saatlik eşit tepe/dipler. Hedefler ve tuzaklar bunlar.</p>
+  </div>
+
+  <div class="task">
+    <span class="k">GÖREV · 1 SAATLİK GRAFİK, 15 DAKİKA</span>
+    <p>Adım 1 çizimlerini 1H'de gizle (çizime dokun → ayarlar → Görünürlük). Sonra 1H'de şunları mor yatay ışınla işaretle ve yaz:</p>
+    <ol>
+      <li><b>PDH / PDL:</b> dünün (25 Ekim Pazar) günlük mumunun tepe ve dibi. Günlük grafikte mumun Y ve D değerlerini oku. Bu sabah hangisi alındı?</li>
+      <li><b>PWH / PWL:</b> geçen haftanın (19–25 Ekim) tepe ve dibi. Haftalık grafikte (1 hafta) geçen haftanın mumunu oku. Hangisi hâlâ alınmadı, fiyata ne kadar uzak?</li>
+      <li><b>1H eşit tepeler / dipler:</b> son iki günde aynı yere iki kez gelen tepe ya da dip var mı? Hangi seviyeyle çakışıyor?</li>
+      <li><b>Asya kutusu:</b> 00:00–07:00 UTC (03:00–10:00 TR) arası açık gri bir dikdörtgen, tepesi ve dibi seansın en yüksek ve en düşük fitili. Seans 10:00 TR'de bitiyor; kutuyu o zaman tamamla.</li>
+      <li><b>Londra (10:00–13:00 TR), yalnız izle:</b> Asya kutusunun hangi tarafı süpürüldü? Süpürmeden sonra 15m'de ters yöne MSS geldi mi? İşlem yok; sadece ne olduğunu yaz.</li>
+    </ol>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt"><span class="tag">1 saatlik (1H) · son 80 saat</span></div>
+    <div class="pair">
+      <figure><div class="ch" data-chart="btc1h"></div><figcaption><b>BTC 1H.</b> Gri bantlar Asya seansları. Mor çizgiler likidite: kesikli olanlar alınmadı.</figcaption></figure>
+      <figure><div class="ch" data-chart="eth1h"></div><figcaption><b>ETH 1H.</b> Aynı dönem.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="concept wide">
+    <div class="txt">
+      <span class="tag">Cevap anahtarı · Adım 2</span>
+      <button class="reveal" id="rv2" aria-expanded="false">Cevapları göster</button>
+      <div class="ans" id="ans2" hidden>
+        <p><b>1 · PDH / PDL.</b> BTC 81 008 / 79 773, ETH 2 370,96 / 2 308,04. Bu sabah Asya'da ikisinde de <b>PDL alındı</b>: BTC 79 323'e, ETH 2 291,72'ye indi.</p>
+        <p><b>2 · PWH / PWL.</b> BTC 84 876 / 79 168, ETH 2 527,63 / 2 281,02. PWH uzakta ve 21 Ekim'de oluştu. <b>PWL alınmadı</b> ve çok yakın: BTC'de Asya dibinin 155 $, ETH'de 11 $ altında. Haftanın en belirgin satış tarafı likiditesi bu.</p>
+        <p><b>3 · 1H eşit tepeler.</b> BTC'de Pazar tepeleri 81 008 ve 80 919: eşit tepeler PDH ile çakışıyor, ≈ 81 000'de alış tarafı likidite. ETH'de 2 370,96 ve 2 364,7: yine PDH ile çakışık. Eşit dipler belirgin değil; dipler zaten süpürüldü.</p>
+        <p><b>4 · Asya.</b> 08:00 TR itibarıyla BTC 79 323 – 80 350, ETH 2 291,7 – 2 337,8. 10:00'a kadar değişebilir.</p>
+        <p><b>Senaryo.</b> İki taraf da belli. Aşağıda PWL (BTC 79 168, ETH 2 281) çok yakın; Londra açılışında onu süpürüp yukarı MSS yapmak klasik bir tuzak olur. Bu, 4H range'in dibinde, discount'ta bir long kurulumu demektir. Yukarıda Asya tepesi ve PDH / eşit tepeler (BTC ≈ 81 000, ETH ≈ 2 365–2 371) ilk hedef. Ama fiyat PWL'nin <b>altında kapanıp orada kalırsa</b> range aşağı kırılır ve günlük düşüş trendi devam eder; o zaman long yok.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="intro">
+    <span class="eyebrow">Adım 1 · Yön · 25 Ekim</span>
     <h2>Büyük resim nereye bakıyor, fiyat ucuz mu pahalı mı?</h2>
-    <p>Bugün Pazar. Hafta sonu işlem yok, bu yüzden işaretleme için en iyi gün. Rutinin ilk 4 dakikası: BTC ve ETH'nin günlük ve 4 saatlik yapısı. Aşağıdaki grafikler gerçek veri, <span id="snap2">–</span> anlık görüntüsü.</p>
+    <p>25 Ekim Pazar. Hafta sonu işlem yok, bu yüzden işaretleme için en iyi gündü. Rutinin ilk 4 dakikası: BTC ve ETH'nin günlük ve 4 saatlik yapısı. Aşağıdaki grafikler gerçek veri, <span id="snap2">–</span> anlık görüntüsü.</p>
   </div>
 
   <div class="concept wide">
@@ -221,6 +261,25 @@ const hi = (cs, i) => cs[i].h, lo = (cs, i) => cs[i].l;
   ];
   make('eth4h', { cs, h: 360, dec: 0, label: 'ETH 4H', xl: xl4h(cs), ann, note: 'İşaretli: 21 Ekim BTC tepesini alırken ETH 2 527,6\'da kaldı (SMT uyumsuzluğu). 24 Ekim PWL süpürüldü. Eşit tepeler 2 528–2 530 hâlâ yukarıda bekliyor. Yukarı MSS için 2 417 üstünde 4H kapanış.' });
 })();
+/* Adım 2: 1H likidite */
+function liq1h(coin, L) {
+  const cs = conv(D.coins[coin]['1H']); const s0 = at(cs, '2026-10-25T00'), s1 = at(cs, '2026-10-25T06'), m0 = at(cs, '2026-10-26T00'), nw = cs.length - 1;
+  const ann = [
+    { s: 1, type: 'vband', x1: s0, x2: s1, t: 'Asya Paz', c: 'mut' },
+    { s: 1, type: 'vband', x1: m0, x2: nw, t: 'Asya Pzt', c: 'mut' },
+    { s: 1, type: 'h', y: L.pdh, x1: s0, x2: nw + 3, c: 'liq', d: true, t: 'PDH + EQH ' + L.pdhT, small: true, ta: 'start', lx: s0 + 0.5 },
+    { s: 1, type: 'h', y: L.pdl, x1: at(cs, L.pdlAt), x2: L.pdlSw, c: 'liq', t: 'PDL ' + L.pdlT + ' · alındı', small: true, ta: 'start', lx: at(cs, L.pdlAt) + 0.5, below: true },
+    { s: 1, type: 'h', y: L.pwl, x1: at(cs, '2026-10-24T15'), x2: nw + 3, c: 'liq', d: true, t: 'PWL ' + L.pwlT + ' · alınmadı', small: true, ta: 'start', lx: at(cs, '2026-10-24T15') + 1, below: true },
+    { s: 1, type: 'h', y: L.mss, x1: at(cs, '2026-10-23T12'), x2: nw + 3, c: 'up', thin: true, t: '4H MSS ' + L.mssT, small: true, ta: 'start', lx: at(cs, '2026-10-23T12') + 1 },
+    { s: 1, type: 'mark', x: at(cs, L.eq1), y: L.eq1v, c: 'liq' }, { s: 1, type: 'mark', x: at(cs, L.eq2), y: L.eq2v, c: 'liq' },
+  ];
+  const li = cs.reduce((b, c, i) => (i >= m0 && c.l < cs[b].l ? i : b), m0);
+  ann.push({ s: 1, type: 'mark', x: li, y: cs[li].l, c: 'dn', t: 'Asya dibi', pos: 'b', a: 'end', dx: -4 });
+  make(coin.toLowerCase() + '1h', { cs, h: 380, dec: L.dec, label: coin + ' 1H', xl: cs.map((c, i) => [i, new Date(c.t)]).filter(([, d]) => d.getUTCHours() === 0).map(([i, d]) => [i, `${d.getUTCDate()} ${AY[d.getUTCMonth()]}`]), slots: cs.length + 4, ann, note: L.note });
+}
+liq1h('BTC', { dec: 0, pdh: 81008, pdhT: '81 008', pdl: 79773.1, pdlT: '79 773', pdlAt: '2026-10-25T09', pdlSw: at(conv(D.coins.BTC['1H']), '2026-10-26T01'), pwl: 79168, pwlT: '79 168', mss: 82047.6, mssT: '82 048', eq1: '2026-10-25T03', eq1v: 81008, eq2: '2026-10-25T17', eq2v: 80919, note: 'İşaretli: Asya PDL\'yi (79 773) süpürdü, PWL (79 168) 155 $ aşağıda bekliyor. Yukarıda PDH ve Pazar eşit tepeleri ≈ 81 000.' });
+liq1h('ETH', { dec: 2, pdh: 2370.96, pdhT: '2 371', pdl: 2308.04, pdlT: '2 308', pdlAt: '2026-10-25T09', pdlSw: at(conv(D.coins.ETH['1H']), '2026-10-26T01'), pwl: 2281.02, pwlT: '2 281', mss: 2417, mssT: '2 417', eq1: '2026-10-25T02', eq1v: 2370.96, eq2: '2026-10-25T17', eq2v: 2364.7, note: 'İşaretli: Asya PDL\'yi (2 308) süpürdü, PWL (2 281) yalnız 11 $ aşağıda. Yukarıda PDH ve eşit tepeler 2 365–2 371.' });
+$('#rv2').onclick = () => { const a = $('#ans2'); a.hidden = !a.hidden; $('#rv2').setAttribute('aria-expanded', String(!a.hidden)); $('#rv2').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
 $('#rv').onclick = () => { const a = $('#ans'); a.hidden = !a.hidden; $('#rv').setAttribute('aria-expanded', String(!a.hidden)); $('#rv').textContent = a.hidden ? 'Cevapları göster' : 'Cevapları gizle'; };
 })();
 </script>

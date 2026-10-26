@@ -3,6 +3,15 @@
 Yeni oturumda önce bu dosya okunur (bkz. `CLAUDE.md` → "Devam edelim" protokolü). Her oturum sonunda en üste tarihli
 kısa bir giriş eklenir. Eski girişler silinmez.
 
+## 26.10.2026 (Pazartesi sabah) — pratik Adım 2 (likidite haritası) başladı; kullanıcının ARB işlemi açık
+
+Kullanıcı ARB'de Bybit'te gerçek (küçük) long açtı: limit 0,16659 (gece doldu), 96 ARB, 10x izole, SL 0,1614 (Bybit 8 Eki
+dibi 0,16164 altı), TP 0,2022, risk ≈ 0,50 $ (%0,5), 1R 0,1718. pratik.html'e Adım 2 eklendi (BTC/ETH 1H, Temiz/İşaretli,
+5 görev + cevap anahtarı). Asya (Pzt) iki coinde PDL'yi süpürdü (BTC 79 323 < 79 773, ETH 2 291,7 < 2 308), PWL alınmadı
+(BTC 79 168, ETH 2 281,02). Yukarıda PDH = 1H EQH (BTC ≈ 81 000, ETH 2 365–2 371). Senaryo: Londra'da PWL süpürme + MSS
+→ discount long; PWL altında kapanış/kabul → range kırılır, günlük düşüş devam. Bekleniyor: kullanıcının Adım 2 çizimleri
+ve Londra gözlemi; sonra Adım 3 (4H FVG/OB).
+
 ## 25.10.2026 (Pazar, akşam) — ARB likidite haritası (arkadaşın 14R Elliott long'u)
 
 `pratik.yml` artık `extra=ARB,…` girişiyle ek coin çekiyor (`docs/pratik/extra/<COIN>.json`, 1H 720 mum). ARB (OKX):
