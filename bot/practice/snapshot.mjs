@@ -6,7 +6,7 @@ import { getCandles, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
 export const COINS = ['BTC', 'ETH'];
 export const PLAN = { '1D': 220, '4H': 300, '1H': 300, '15m': 300 };
 // Ek coinler (EXTRA=ARB,SOL): pratikte bakılan altcoinler, daha uzun 1H geçmişiyle docs/pratik/extra/<COIN>.json'a.
-export const EXTRA_PLAN = { '1D': 300, '4H': 300, '1H': 720, '15m': 300 };
+export const EXTRA_PLAN = { '1D': 300, '4H': 300, '1H': 720, '15m': 300, '5m': 300 };
 /** "arb, sol ,ARB" → ['ARB','SOL'] (büyük harf, tekil, yalnız harf/rakam). */
 export const parseCoins = (s) => [...new Set(String(s || '').split(',').map((x) => x.trim().toUpperCase()).filter((x) => /^[A-Z0-9]{2,15}$/.test(x)))];
 
