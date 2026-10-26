@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#121822}#c{width:1000px;height:520px}</style></head><body><div id="c"></div>
+<script src="lib/lightweight-charts.standalone.production.js"></script>
+<script type="module">
+import { drawRow } from './src/ui/chart.js';
+import { makeContext } from './src/scan/context.js';
+import { detect } from './src/detectors/fibonacci.js';
+const fx = await (await fetch('tests/fixtures/xrp-1h-fib.json')).json();
+const cs = [...fx.base, ...fx.next.slice(0,6)].map(a=>({time:a[0],open:a[1],high:a[2],low:a[3],close:a[4],volume:a[5]||0}));
+const ctx = makeContext({ candles: cs, tf: '1H', symbol: 'XRP', opts: { fibonacci: { only: 'cluster', clusterKs: [2,3,4] } } });
+drawRow(document.getElementById('c'), cs, null, detect(ctx), ctx.price);
+window.done = true;
+</script></body></html>

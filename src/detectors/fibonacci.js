@@ -44,7 +44,28 @@ export function fibClusterOf([P0, P1, A, B], atr, o = FIB_DEFAULTS) {
   if (dI * (A.price - mid) <= 0) return null; // bölge A'nın ötesinde olmalı (C, A'yı aşar)
   if (dI * (mid - P0.price) <= 0) return null; // itki başını aşmamalı
   const stop = P1.price - dI * 0.886 * L - dI * 0.2 * atr;
-  return { mid: +mid.toPrecision(8), retr: best.r, ext: best.e, diff: +(best.diff / atr).toFixed(2), d: dI, stop: +stop.toPrecision(8), tp1: P1.price, tp2: +(P1.price + dI * 0.272 * L).toPrecision(8), invalid: P0.price, L, lenA, bRet: +bRet.toFixed(3) };
+  return { lr: +best.lr.toPrecision(8), le: +best.le.toPrecision(8), mid: +mid.toPrecision(8), retr: best.r, ext: best.e, diff: +(best.diff / atr).toFixed(2), d: dI, stop: +stop.toPrecision(8), tp1: P1.price, tp2: +(P1.price + dI * 0.272 * L).toPrecision(8), invalid: P0.price, L, lenA, bRet: +bRet.toFixed(3) };
+}
+
+const trNum = (x, ref) => { const a = Math.abs(ref), d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }); };
+const fibTxt = (x) => String(x).replace('.', ',');
+/**
+ * Kesişimin "neden orada" çizimi: itki (P0→P1, gri), A bacağı (P1→A, mavi), iki seviye (oran gri noktalı, uzantı mavi noktalı),
+ * noktalarda hangi oranın hangi fiyata düştüğünü yazan işaretler. pts: [P0,P1,A,B] ({i, price}); last: son mum indeksi.
+ */
+export function clusterDraw([P0, P1, A, B], c, last) {
+  const up = c.d === 1, imp = '#9aa4b2', leg = '#5ea3f0';
+  const pos = (isHigh) => (isHigh ? 'aboveBar' : 'belowBar');
+  return [
+    { kind: 'line', points: [{ i: P0.i, price: P0.price }, { i: P1.i, price: P1.price }], color: imp, style: 'solid' },
+    { kind: 'line', points: [{ i: P1.i, price: P1.price }, { i: A.i, price: A.price }], color: leg, style: 'solid' },
+    { kind: 'line', points: [{ i: P1.i, price: c.lr }, { i: last, price: c.lr }], color: imp, style: 'dotted' }, // itkinin oranı (ör. 0,618)
+    { kind: 'line', points: [{ i: A.i, price: c.le }, { i: last, price: c.le }], color: leg, style: 'dotted' }, // B'den e×A uzantısı (ör. 1,272)
+    { kind: 'marker', i: P0.i, position: pos(!up), shape: up ? 'arrowUp' : 'arrowDown', color: imp, text: 'İtki başı' },
+    { kind: 'marker', i: P1.i, position: pos(up), shape: 'circle', color: imp, text: `İtki ucu · ${fibTxt(c.retr)} → ${trNum(c.lr, c.lr)}` },
+    { kind: 'marker', i: A.i, position: pos(!up), shape: 'circle', color: leg, text: 'A' },
+    { kind: 'marker', i: B.i, position: pos(up), shape: 'circle', color: leg, text: `B · ${fibTxt(c.ext)}×A → ${trNum(c.le, c.le)}` },
+  ];
 }
 
 /** Pivot listesinden (onaylı + tentative) son [P0,P1,A,B] penceresi; C oluşuyorsa tentative hariç tutulur. */
@@ -90,8 +111,9 @@ export function detect(ctx) {
         strength: (golden ? 0.75 : 0.6) * (dist <= 1 ? 1 : 0.85),
         zone: [c.mid - 0.25 * ctx.atrNow, c.mid + 0.25 * ctx.atrNow], index: ctx.last, status: dist <= o.nearAtr ? 'active' : 'forming',
         entry: c.mid, stop: c.stop, target: c.tp1, invalidation: c.invalid,
-        note: `İtkinin %${(c.retr * 100).toFixed(1).replace('.0', '')} geri çekilmesi ile A bacağının B'den ${c.ext} uzantısı (C = ${c.ext}×A) aynı yerde (fark ${c.diff}×ATR); yön itkinin yönü. Hedef itki ucu ${c.tp1}, sonra ${c.tp2}.`,
-        draw: [{ kind: 'hline', price: c.mid, color: '#7cc4a8', label: `Giriş ${c.retr}×${c.ext}`, style: 'solid' }, { kind: 'hline', price: c.stop, color: '#ef7d7d', label: 'Stop', style: 'dashed' }, { kind: 'hline', price: c.tp1, color: '#4cc24c', label: 'H1 (itki ucu)', style: 'dotted' }, { kind: 'hline', price: c.tp2, color: '#4cc24c', label: 'H2', style: 'dotted' }],
+        note: `İtki ${trNum(pts[0].price, c.mid)} → ${trNum(pts[1].price, c.mid)}: %${(c.retr * 100).toFixed(1).replace('.0', '').replace('.', ',')} geri çekilmesi ${trNum(c.lr, c.mid)}. A bacağı ${trNum(pts[1].price, c.mid)} → ${trNum(pts[2].price, c.mid)}, B ${trNum(pts[3].price, c.mid)}: C = B ${c.d === 1 ? '−' : '+'} ${fibTxt(c.ext)}×A → ${trNum(c.le, c.mid)}. İkisi aynı yerde (fark ${String(c.diff).replace('.', ',')}×ATR); yön itkinin yönü. Hedef itki ucu ${trNum(c.tp1, c.mid)}, sonra ${trNum(c.tp2, c.mid)}.`,
+        draw: [{ kind: 'hline', price: c.mid, color: '#7cc4a8', label: `Giriş ${c.retr}×${c.ext}`, style: 'solid' }, { kind: 'hline', price: c.stop, color: '#ef7d7d', label: 'Stop', style: 'dashed' }, { kind: 'hline', price: c.tp1, color: '#4cc24c', label: 'H1 (itki ucu)', style: 'dotted' }, { kind: 'hline', price: c.tp2, color: '#4cc24c', label: 'H2', style: 'dotted' },
+          ...clusterDraw(pts, c, ctx.last)],
         meta: { retr: c.retr, ext: c.ext, diffAtr: c.diff, target2: c.tp2, bRet: c.bRet, points: pts.map((p) => ({ i: p.i, price: p.price })) },
       }));
     }

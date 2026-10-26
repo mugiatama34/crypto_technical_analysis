@@ -68,3 +68,15 @@ test('fib detektörü: clusterKs verilmezse varsayılan davranış aynı (yalnı
   const b = detect(ctx2).filter((s) => s.id.startsWith('fib|cluster'));
   assert.deepEqual(a.map((s) => s.entry), b.map((s) => s.entry));
 });
+
+test('fib kesişimi çizimi: itki, A bacağı, iki seviye ve açıklamalı işaretler', () => {
+  const ctx = makeContext({ candles: base, tf: '1H', symbol: 'XRP', opts: { fibonacci: { only: 'cluster', clusterKs: [2, 3, 4] } } });
+  const s = detect(ctx)[0];
+  const lines = s.draw.filter((d) => d.kind === 'line'), marks = s.draw.filter((d) => d.kind === 'marker').map((d) => d.text);
+  assert.equal(lines.length, 4);
+  assert.deepEqual(marks.slice(0, 1), ['İtki başı']);
+  assert.match(marks[1], /^İtki ucu · 0,618 → 1,27\d\d$/);
+  assert.match(marks[3], /^B · 1,272×A → 1,27\d\d$/);
+  assert.match(s.note, /C = B − 1,272×A/);
+  assert.match(s.note, /%61,8 geri çekilmesi/);
+});
