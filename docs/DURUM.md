@@ -134,3 +134,13 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - Odak modu: grafikte yalnız seçili küme (en güçlü 3 sinyal); küme kartına dokununca değişir. "Tüm sinyaller" isteğe bağlı.
 - Y ekseni temiz: yalnız Giriş/Stop/H1/H2 eksende; diğer seviyeler çizgi ucunda küçük etiket + grafik altı lejant. Kutular ince çerçeve, sağda 14 mum boşluk.
 - Bekleyen: lab koşusu 40318035445 (fib_cluster_g / g_p0 karşılaştırması). Testler: 121 geçiyor.
+
+## 26.10.2026 — Fib kesişimi backtest (lab, 24 ay, top 50, koşu 40318035445)
+| Varyant | Eğitim R / PF | Doğr. R / PF | Hedge'li eğ / doğr | n |
+|---|---|---|---|---|
+| c_strict (1H/4H, tol 0,3) | −0,03 / 0,95 | +0,05 / 1,08 | −0,07 / +0,09 | 291 |
+| g (B≤%100, k 2/3/4, 15m/1H/4H) | −0,08 / 0,89 | −0,06 / 0,92 | −0,17 / −0,14 | 4730 |
+| g_p0 (arkadaşın yönetimi: stop P0) | −0,06 / 0,91 | −0,07 / 0,89 | −0,14 / −0,11 | 3379 |
+- Hiçbiri sıkı ölçütü geçmedi. Gevşetme (B ≤ %100, ince k, 15m) sinyali 16 kat artırdı, kaliteyi düşürdü; 15m n 3852 R −0,08.
+- Arkadaşın yönetimi (stop itki başı) kazanma oranını %34→%40 çıkarıyor ama R'yi kurtarmıyor. Kazanç BTC yönünden (β 0,4–0,5).
+- Karar: Fib uyarısı Telegram'da "bakılacak yer" olarak kalır; işlem kuralı/canlı filtre olmaz. INJ diyagonal sorusu: iii > i → daralan diyagonal kuralı bozuk (DIA-R5), sistem göstermiyor.
