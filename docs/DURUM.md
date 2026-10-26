@@ -144,3 +144,8 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - Hiçbiri sıkı ölçütü geçmedi. Gevşetme (B ≤ %100, ince k, 15m) sinyali 16 kat artırdı, kaliteyi düşürdü; 15m n 3852 R −0,08.
 - Arkadaşın yönetimi (stop itki başı) kazanma oranını %34→%40 çıkarıyor ama R'yi kurtarmıyor. Kazanç BTC yönünden (β 0,4–0,5).
 - Karar: Fib uyarısı Telegram'da "bakılacak yer" olarak kalır; işlem kuralı/canlı filtre olmaz. INJ diyagonal sorusu: iii > i → daralan diyagonal kuralı bozuk (DIA-R5), sistem göstermiyor.
+
+## 26.10.2026 akşam — kullanıcının gerçek işlemleri (Bybit, kâğıt değil; yalnız kayıt)
+- DOGE 4H short (bot sinyali): giriş 0,07749, 943 adet, SL 0,07852 (risk $0,97), TP1 0,07653 ×755 (sonra SL girişe, otomatik), TP2 0,07469.
+- ARB long: 96 adet, giriş 0,16659, SL girişe çekildi (risksiz), TP1 0,1745 ×48, TP2 0,2022.
+- Pratik: BTC/ETH 26.10 Londra/NY analizi yapıldı (BTC Asya tepesi süpürme + ETH SMT; NY PDL süpürdü). Sıradaki: Adım 3 (4H FVG/OB) sayfaya eklenecek.
