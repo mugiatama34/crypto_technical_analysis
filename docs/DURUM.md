@@ -154,3 +154,4 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - `pratik.html` Adım 3: günlük güncelleme (PDH/PDL 26 Eki) + 4H bölge görevi + BTC/ETH 4H grafik + gizli cevap anahtarı. BTC premium yığını 81 008 likidite → FVG 81 176–81 222 → OB 81 510–81 887 (bozulma 82 048); ETH 2 371 → OB 2 377–2 417 (FVG 2 390–2 392). Altta geçerli yükseliş bölgesi yok.
 - Şablonda `at()` pencere dışı tarihi kenara sabitler; 1H penceresi 110 mum (Adım 2 grafikleri yeni veriyle bozulmasın).
 - Gerçek işlemler: DOGE açık (TP1 bekliyor); ARB girişteki stoptan kapandı (≈0R, komisyon kadar eksi).
+- 27.10 SUI long (kullanıcının kendi kurulumu, Bybit): genişleyen formasyonun alt çizgisinden long, giriş 0,9019, stop 0,8988 (%0,34), hedef 0,9155 = üst çizgi (R/Ö 4,39); 10:55 UTC sonrası hedefte kapandı (+4,39R planlanan). Adet/gerçek K&Z kullanıcıdan bekleniyor.
