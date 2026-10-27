@@ -149,3 +149,8 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - DOGE 4H short (bot sinyali): giriş 0,07749, 943 adet, SL 0,07852 (risk $0,97), TP1 0,07653 ×755 (sonra SL girişe, otomatik), TP2 0,07469.
 - ARB long: 96 adet, giriş 0,16659, SL girişe çekildi (risksiz), TP1 0,1745 ×48, TP2 0,2022.
 - Pratik: BTC/ETH 26.10 Londra/NY analizi yapıldı (BTC Asya tepesi süpürme + ETH SMT; NY PDL süpürdü). Sıradaki: Adım 3 (4H FVG/OB) sayfaya eklenecek.
+
+## 27.10.2026 — Pratik Adım 3 (4H FVG/OB) sayfada
+- `pratik.html` Adım 3: günlük güncelleme (PDH/PDL 26 Eki) + 4H bölge görevi + BTC/ETH 4H grafik + gizli cevap anahtarı. BTC premium yığını 81 008 likidite → FVG 81 176–81 222 → OB 81 510–81 887 (bozulma 82 048); ETH 2 371 → OB 2 377–2 417 (FVG 2 390–2 392). Altta geçerli yükseliş bölgesi yok.
+- Şablonda `at()` pencere dışı tarihi kenara sabitler; 1H penceresi 110 mum (Adım 2 grafikleri yeni veriyle bozulmasın).
+- Gerçek işlemler: DOGE açık (TP1 bekliyor); ARB girişteki stoptan kapandı (≈0R, komisyon kadar eksi).
