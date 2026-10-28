@@ -221,3 +221,11 @@ Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön
 - **Karar:** canlıya kural yok (Variables değişmez). Gerçek parada kişisel risk kuralı olarak "aynı yönde ≤ 3 açık işlem" mantıklı
   (toplam risk sınırı), ama bu kenar artırmaz, yalnız kötü haftayı yumuşatır.
 - Not: tavansız 4H satırı n 257 (24.10 taramasında 293) — aradaki tam koşuyla planlar yenilenmiş; karşılaştırma aynı koşu içinde.
+
+## 28.10.2026 — Arkadaşın tarayıcısı (klonnist/ew-setup-scanner) karşılaştırması
+- Bizdeki `src/scan/wave3.js` ~24–25.10 kopyası; `src/ew` motoru aynı. Onda sonradan gelenler: C uzaması/C alt derecede bitti
+  düzeltmeleri (kurulum listeden düşmüyor), "ders kitabı şekli" x/4 (kendi notu: 4/4 en zayıf grup), SMT etiketi (yalnız dalga-3 limit
+  bölge long; iddia 1 yıl 4H ilk 20: +53R, n 151, PF 1,68, iki yarıda kârlı — hedge'li R yok), çelişen sayım chip'i, running üçgen
+  (ABCDE) ve diagonal dalga 4→5 modları, tarayıcıda ★ takip listesi, backtest para simülasyonu (kaldıraç/tasfiye), hedef seçimi, CSV.
+- Öneri sırası: (1) wave3 düzeltmelerini taşı, (2) lab'de SMT + ders kitabı etiketini sıkı ölçüt + hedge'li R ile ölç, (3) ★ takip listesi.
+  Kullanıcı kararı bekleniyor.
