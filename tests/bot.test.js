@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule, earlyTpOf, earlyPriceOf } from '../bot/plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule, earlyTpOf, earlyPriceOf, orphansOf } from '../bot/plan.js';
 import { validateDecision, buildPrompt, SCHEMA, askBrain } from '../bot/brain.js';
 import { formatSetup, formatUpdate, formatSummary, esc } from '../bot/telegram.js';
 
@@ -279,4 +279,14 @@ test('erken kâr al: earlyTpOf/earlyPriceOf; trackPlan active → early → done
   const p2 = { ...base, ...r.patch, status: r.status };
   assert.equal(p2.status, 'early');
   assert.equal(trackPlan(p2, [k(1, 99.9, 100.5), k(2, 100.3, 101.5), k(3, 100.5, 102)], 9 * H).status, 'early');
+});
+
+test('orphansOf: durumda olmayan açık geçmiş kayıtları yeniden takibe; mumsuz bekleyen süre dolunca düşer', () => {
+  const p = (key, sentAt, status) => ({ key, sentAt, status, coin: 'X', tf: '4H', d: 1, entry: 100, stop: 98, tp1: 103, tp2: 105 });
+  const items = [{ id: 'a|1', ...p('a', 1, 'waiting') }, { id: 'b|2', ...p('b', 2, 'active') }, { id: 'c|3', ...p('c', 3, 'stopped') }];
+  const o = orphansOf(items, [p('b', 2, 'active')]);
+  assert.equal(o.length, 1);
+  assert.equal(o[0].key, 'a'); assert.equal(o[0].orphan, true); assert.equal(o[0].id, undefined);
+  const r = trackPlan(o[0], [], 1 + 25 * 3600e3);
+  assert.equal(r.status, 'expired');
 });

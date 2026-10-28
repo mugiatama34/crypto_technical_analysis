@@ -276,6 +276,15 @@ export const isWeekendUtc = (ms) => { const d = new Date(ms).getUTCDay(); return
 
 export const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout', 'be']);
 
+/**
+ * Sahipsiz kayıtlar: geçmişte açık görünen ama bot durumunda (state.sent) olmayan planlar. Durum önbelleği
+ * kaybolunca/sıfırlanınca bu kayıtlar hiç güncellenmez (süre dolumu dahil); yeniden takibe alınmaları için kopyaları.
+ */
+export function orphansOf(items, sent) {
+  const ids = new Set(sent.map((p) => `${p.key}|${p.sentAt}`));
+  return items.filter((x) => x.status && !CLOSED.has(x.status) && !ids.has(`${x.key}|${x.sentAt}`)).map(({ id, ...p }) => ({ ...p, orphan: true }));
+}
+
 /** Aynı anahtar ya da aynı coin+yön son `cooldownHours` içinde gönderilmiş mi? */
 export function onCooldown(plan, sent, now, cooldownHours) {
   const since = now - cooldownHours * 3600e3;

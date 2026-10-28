@@ -22,7 +22,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -132,7 +132,7 @@ function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { if (!h.items.some((x) => x.id === histId(p))) h.items.push({ id: histId(p), ...p, ...extra }); }
-function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}) }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}) }); }
 
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
@@ -184,19 +184,21 @@ async function main() {
     } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); }
   }
 
-  // 1) Açık planları güncelle
+  // 1) Açık planları güncelle. Durumda olmayan açık geçmiş kayıtları (önbellek kaybı) sessizce yeniden takibe alınır.
+  const orphans = orphansOf(history.items, state.sent);
+  if (orphans.length) { state.sent.push(...orphans); log(`Sahipsiz ${orphans.length} açık kayıt yeniden takibe alındı (bildirim yok)`); }
   for (const p of state.sent) {
     if (CLOSED.has(p.status)) continue;
     const row = byKey.get(`${p.coin}|${p.tf}`);
-    if (!row || row.error) continue;
-    const candles = row.live ? [...row.candles, row.live] : row.candles;
+    // Mum yoksa (TF taranmıyor, coin listeden çıktı) yalnız süre dolumu denetlenir
+    const candles = !row || row.error ? [] : row.live ? [...row.candles, row.live] : row.candles;
     const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
     if (events.length) {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
       for (const ev of events) {
-        state.stats[ev] = (state.stats[ev] || 0) + 1;
+        if (!p.orphan) state.stats[ev] = (state.stats[ev] || 0) + 1;
         if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = now;
-        await notify(formatUpdate(p, ev, row.price), state);
+        if (!p.orphan) await notify(formatUpdate(p, ev, row?.price), state);
       }
       if (CLOSED.has(p.status) && btcPrice) p.btcAtClose = btcPrice;
       historyUpdate(history, p);
