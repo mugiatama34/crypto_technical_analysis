@@ -255,3 +255,6 @@ Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön
   güncelleme, bildirim). Testler 147.
 - CLAUDE.md: kullanıcı isteği mantıksız/eksik/ölçümle çelişiyorsa uygulamadan önce söyle ve sorgula.
 - Bekleyen: işlem check list'i (10 madde) — öneri kullanıcı onayında.
+- **Check list (10 madde, onaylandı; stop eşiği %0,8):** ayrıntıda ✓/✗/? + ölçüldü/ölçülmedi etiketi; takibe alınana dondurulur.
+  Maddeler 1–6 ölçülmüş filtreler, 7 kural, 8–10 ölçülmedi. Öneri: "≥ N madde" kesitini sweep'te ölç (karar aracı değil, kontrol
+  aracı). Testler 150.

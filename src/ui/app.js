@@ -1,5 +1,10 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
 import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
+import { checklistOf } from '../scan/checklist.js';
+import { makeContext } from '../scan/context.js';
+import { runDetectors } from '../scan/registry.js';
+import { UP_TF } from '../scan/regime.js';
+import { buildPlan } from '../../bot/plan.js';
 import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL } from '../watch/watch.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
@@ -242,6 +247,7 @@ function renderDetail(r) {
     <div class="chart" id="chart"></div>
     <div class="legend">${[...new Set(shown.map((s) => s.group))].map((g) => `<span><i style="background:${GROUPS[g].color}"></i>${esc(GROUPS[g].label)}</span>`).join('')}</div>
     <div class="stat-strip">${stats.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
+    <div id="checklist" class="checklist"><p class="note">Check list hesaplanıyor…</p></div>
     <h2>${state.showAllSignals ? `Tüm sinyaller (${r.signals.length})` : `En iyi küme (${b.signals.length} sinyal, bölge ${fmtPrice(b.zone[0], r.price)} – ${fmtPrice(b.zone[1], r.price)})`}</h2>
     <div class="sig-list">${(state.showAllSignals ? r.signals : b.signals).map((s) => sigCard(s, r)).join('')}</div>
     ${others.length ? `<h2 style="margin-top:12px">Diğer kümeler</h2><div class="sig-list">${others.map((c) => `<div class="sig"><div class="sig-head"><span class="dir ${c.direction}">${c.direction.toUpperCase()}</span><span class="sig-name">Puan ${c.score}</span><span class="sig-str">${fmtPrice(c.zone[0], r.price)} – ${fmtPrice(c.zone[1], r.price)}</span></div><div class="sig-note">${c.signals.map((s) => esc(s.name)).join(' · ')}</div></div>`).join('')}</div>` : ''}
@@ -249,6 +255,7 @@ function renderDetail(r) {
   drawRow($('#chart'), r.candles, r.live, shown, r.price);
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
+  checklistFor(r).then((cl) => { if (state.selected === rowKey(r)) renderChecklist(cl); });
   $('#detail').querySelectorAll('[data-sig]').forEach((cb) => cb.addEventListener('change', (e) => {
     if (e.target.checked) state.hiddenSignals.delete(e.target.dataset.sig); else state.hiddenSignals.add(e.target.dataset.sig);
     const show = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));
@@ -312,10 +319,44 @@ function bindScreenshot() {
   });
 }
 
+// ------------------------------------------------------------------ check list
+/** Mumlar (tarama önbelleği tazeyse ondan, değilse indir). */
+async function candlesOf(instId, tf, count) {
+  const key = `${instId}|${tf}`, now = Date.now();
+  let data = state.cache.get(key);
+  if (!data || now - data.at > TIMEFRAMES[tf].ms / 4) {
+    const provider = FIXTURE ? fixtureProvider : okxProvider;
+    const r = await provider.candles(instId, tf, count || barsFor(tf)); data = { candles: r.candles, live: r.live, at: now }; state.cache.set(key, data);
+  }
+  return data;
+}
+
+/** Satırın check list'i: plan (botun buildPlan'ı, gevşek), BTC 1D, coin'in üst TF'si, FVG/OB/likidite (preset'ten bağımsız). */
+async function checklistFor(r) {
+  const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 });
+  if (!plan.ok) return { error: plan.reason };
+  const safe = (p) => p.catch(() => null);
+  const up = UP_TF[r.tf];
+  const [btc, upData] = await Promise.all([safe(candlesOf('BTC-USDT-SWAP', '1D', 120)), up ? safe(candlesOf(r.instId, up, up === '1D' ? 120 : barsFor(up))) : null]);
+  const ctx = makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} });
+  let smc = [];
+  try { smc = runDetectors(ctx, ['fvg', 'orderblock', 'liquidity']); } catch { smc = []; }
+  return checklistOf({ plan, candles: r.live ? [...r.candles, r.live] : r.candles, btcDaily: btc?.candles || null, upCandles: upData?.candles || null, smc, coin: r.coin });
+}
+
+function renderChecklist(cl) {
+  const el = $('#checklist'); if (!el) return;
+  if (cl.error) { el.innerHTML = `<p class="note">Check list yok: ${esc(cl.error)}</p>`; return; }
+  el.innerHTML = `<h2>Check list <b>${cl.n}/${cl.of}</b>${cl.known < cl.of ? ` <small>(${cl.of - cl.known} madde verisiz)</small>` : ''}</h2>
+    <p class="note">Madde sayısı başarı olasılığı değildir; maddeler eşit ağırlıkta değil (kazancın çoğu BTC yönünden). "ölçülmedi" maddeler görüş.</p>
+    <ul class="cl">${cl.items.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev ${x.ev === 'ölçüldü' ? 'm' : ''}">${esc(x.ev)}</small><br><small>${esc(x.detail || '')}</small></span></li>`).join('')}</ul>`;
+}
+
 // ------------------------------------------------------------------ ★ takip listesi
-function addWatch(r) {
+async function addWatch(r) {
   const w = makeWatch(r);
   if (w.error) { banner(`Takibe alınamadı: ${w.error}`, 'err'); return; }
+  try { const cl = await checklistFor(r); if (!cl.error) w.checklist = { n: cl.n, of: cl.of, items: cl.items.map((x) => ({ id: x.id, ok: x.ok })) }; } catch { /* check list'siz */ }
   state.watch = [w, ...state.watch]; saveWatch(state.watch); $('#watchPanel').open = true;
   banner(`★ ${r.coin} ${r.tf} ${r.direction.toUpperCase()} takipte: giriş ${fmtPrice(w.entry)}, stop ${fmtPrice(w.stop)}, TP1 ${fmtPrice(w.tp1)}, TP2 ${fmtPrice(w.tp2)}.`);
   try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch { /* yok */ }
@@ -361,7 +402,7 @@ function renderWatch() {
     const st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
     return `<article class="watch ${isOpen(w) ? '' : 'closed'}" data-id="${esc(w.id)}">
       <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
-        <span class="badge">${esc(st)}</span>${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
+        <span class="badge">${esc(st)}</span>${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
         <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
       <div class="row-grid">
         <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>

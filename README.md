@@ -77,6 +77,14 @@ gevşek) ve botun `trackPlan`'ı ile izlenir: Bekliyor → Girildi (anlık R) �
 başa baş) | Süre doldu (24 saat) | Kaçtı. Her taramada, "Güncelle" ile ve sayfa açıkken 5 dakikada bir güncellenir; durum
 değişince bildirim. Not alanı, ✕, "Kapananları sil", JSON dışa/içe aktar. Liste yalnız bu tarayıcıda (`src/watch/watch.js`).
 
+### İşlem check list'i (10 madde)
+Ayrıntıda grafiğin altında **Check list x/10** (`src/scan/checklist.js`, kullanıcı onayı 28.10): BTC günlük rejimi aynı yön ·
+coin'in üst TF trendi aynı yön · BTC'ye göre güç işlem yönünde · limit giriş · bölgeye yavaş yaklaşma (düşen bıçak değil) ·
+hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok · hedef yakınında likidite (±1 ATR ya da TP1–TP2 arası) · kümede
+≥ 2 yöntem (mum/indikatör sayılmaz). Her madde ✓ / ✗ / ? ve **ölçüldü / ölçülmedi / kural** etiketi; FVG/OB/likidite
+detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı olasılık değildir (eşit ağırlık değil). ★ Takibe alınan kayda o
+anki check list dondurulur (kartta ✓ n/10).
+
 ### Presetler
 **Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
 **Harmonik PRZ**, **Kırılım**, **Dönüş**. "Detektörler ve ağırlıklar" panelinden her detektör ayrı ayrı açılıp
