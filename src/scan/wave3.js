@@ -37,7 +37,45 @@ export const DEFAULTS = {
   minRiskPct: 0, // giriş-stop mesafesi fiyatın bu %'sinden azsa plan aktif sayılmaz (0 = kapalı)
   feePct: 0.1, // komisyon tahmini (% / işlem tarafı) — dar stop uyarısı için
   zoneTime: 'require', // 'require': limit emir süre(2) > minTimeRatio × süre(1) olunca aktif | 'ignore'
+  // C uzaması (klonnist/ew-setup-scanner 25–26.10): C uzayınca ya da alt derecede bitince kurulum düşmez. Bot için kapalı
+  // (ölçülmeden canlı değişmez; eski davranış = yalnız iki iç pivot + oluşan C); tarayıcı ayarı açar.
+  cExtend: false,
+  textbook: false, // yalnızca ders kitabı şekli (şablon şartlarından en az textbookMin tanesi)
+  textbookMin: 3, // 3: en az üç şart (4/4'ler de dahil) | 4: yalnızca dört şart da (backtestte 4/4'ler en zayıf grup)
+  cleanW1Er: 0.35, // dalga 1 verimi: net kapanış farkı ÷ ardışık kapanış farklarının toplamı
+  cleanW1Speed: 0.3, // dalga 1 hızı: (|1 − 0| ÷ ATR) ÷ mum sayısı
 };
+
+/** Dalga 1 kalitesi: verim (1 = dümdüz itki, 0 = testere) ve hız (mum başına ATR). */
+export function w1Quality(candles, atrArr, P0, P1) {
+  let path = 0;
+  for (let i = P0.i + 1; i <= P1.i; i++) path += Math.abs(candles[i].close - candles[i - 1].close);
+  const bars = Math.max(1, P1.i - P0.i);
+  const er = path > 0 ? Math.abs(candles[P1.i].close - candles[P0.i].close) / path : 0;
+  const speed = Math.abs(P1.price - P0.price) / atrArr[P1.i] / bars;
+  return { er, speed, bars };
+}
+
+// Ders kitabı şablonu: net dalga 1, orantılı ABC (a = dalga 1'in %30–60'ı, b = a'nın %45–90'ı, c = a'nın 1–1,4 katı,
+// her bacak ≥ 1 ATR), ★ çakışma (%61,8 ≈ C = 1,272A) ve süre(2)/süre(1) ≤ 2,5.
+const TB = { aMin: 0.3, aMax: 0.6, bMin: 0.45, bMax: 0.9, cMin: 1, cMax: 1.4, legAtr: 1, timeMax: 2.5 };
+const TB_MISS = { w1: 'dalga 1 testere', abc: 'ABC orantısız', star: '★ yok', time: 'dalga 2 çok uzun' };
+
+/** Şablon uyumu: { n: sağlanan şart sayısı (0–4), checks, ratios: { a, b, c } }. C: dalga 2'nin ucu (oluşuyorsa bölge çakışma seviyesi). */
+export function textbookOf({ P0, P1, A, B, C, w1q, zone, timeRatio, atr }, o) {
+  const L = Math.abs(P1.price - P0.price);
+  let ratios = null, abc = false;
+  if (A && B && C != null) {
+    const la = Math.abs(A.price - P1.price), lb = Math.abs(B.price - A.price), lc = Math.abs(C - B.price);
+    ratios = { a: la / L, b: lb / la, c: lc / la };
+    abc = ratios.a >= TB.aMin && ratios.a <= TB.aMax && ratios.b >= TB.bMin && ratios.b <= TB.bMax
+      && ratios.c >= TB.cMin && ratios.c <= TB.cMax && Math.min(la, lb, lc) >= TB.legAtr * atr;
+  }
+  const checks = { w1: w1q.er >= o.cleanW1Er && w1q.speed >= o.cleanW1Speed, abc, star: !!zone?.perfect, time: timeRatio <= TB.timeMax };
+  return { n: Object.values(checks).filter(Boolean).length, checks, ratios };
+}
+export const tbMissing = (tb) => Object.keys(tb.checks).filter((k) => !tb.checks[k]).map((k) => TB_MISS[k]);
+const tbReason = (tb) => `Ders kitabı şekli değil (${tb.n}/4: ${tbMissing(tb).join(', ')})`;
 
 /** Bölge emrinin aktif olduğu ilk mutlak mum indeksi (süre koşulu). */
 const activeFromOf = (o, P0, P1) =>
@@ -93,7 +131,7 @@ export function findAbc(candles, atrArr, i1, i2, type1, k, opts) {
     if (A.type === type1) continue;
     const pts = [pt(candles, i1, type1), { t: A.i, p: A.price }, { t: B.i, p: B.price }, pt(candles, i2, A.type)];
     const evals = kinds
-      .map((id) => evaluate(id, pts, { ruleSet: opts.ruleSet, logScale: true }))
+      .map((id) => evaluate(id, pts, { ruleSet: opts.ruleSet, logScale: opts.abcLog ?? true }))
       .filter((e) => e.valid)
       .sort((a, b) => b.score - a.score);
     if (evals.length) return { A, B, div, eval: evals[0], kind: evals[0].pattern };
@@ -158,23 +196,41 @@ function evaluateForming({ candles, atrArr, P0, P1, tentative, k, opts, live, pr
   const retrNow = Math.abs(Math.log(P1.price) - Math.log(cur.price)) / L1;
   const w1Atr = Math.abs(P1.price - P0.price) / atrArr[P1.i];
   if (w1Atr < opts.minW1Atr) reject.push(`Dalga 1 küçük (${w1Atr.toFixed(1)}×ATR)`);
+  const w1q = w1Quality(candles, atrArr, P0, P1);
   if (retrNow > opts.retrMax) reject.push(`Dalga 2 geri çekilme %${(retrNow * 100).toFixed(1)} bant dışı`);
 
   const imp = evaluate('impulse', [P0, P1, cur].map((p) => ({ t: p.i, p: p.price })), { ruleSet: opts.ruleSet, logScale: true });
   const hardFails = imp.results.filter((r) => r.status === 'fail' && !PARTIAL_OK.has(r.rule.id));
   if (hardFails.length) reject.push('İtki kuralı ihlali');
 
-  // İç yapı: P1'den bugüne alt derecede tam iki onaylı pivot (A, B), C oluşuyor.
+  // İç yapı: P1'den bugüne alt derecede iki onaylı pivot (A, B), ardından C.
+  // C, B'den sonraki en uç dip (long): C uzayabilir (dip → B'yi geçmeyen tepki → daha derin dip, C'nin alt dalgaları).
+  // C'den önceki tepkiler B'yi geçerse ABC sayılmaz. Fiyat C'den dönünce C alt derecede onaylanır ama büyük derecede
+  // henüz onaylı değildir: kurulum listeden düşmesin diye bu da kabul edilir (cDone: C tamam, dalga 3 başlıyor).
   const kinds = opts.abcKinds === 'both' ? ['zigzag', 'flat'] : [opts.abcKinds];
   let ab = null;
   for (const div of opts.subDivisors) {
     const { pivots: inner, tentative: t } = zigzag(candles, atrArr, k / div, { from: P1.i, to: last, start: { i: P1.i, type: P1.type } });
     const ins = inner.filter((p) => p.i > P1.i);
-    if (ins.length !== 2 || ins[0].type === P1.type || !t || t.type !== ins[0].type) continue;
-    const [A, B] = ins;
+    let A, B, C, cDone;
+    if (!opts.cExtend) {
+      if (ins.length !== 2 || ins[0].type === P1.type || !t || t.type !== ins[0].type) continue;
+      [A, B] = ins; C = t; cDone = false;
+    } else {
+      if (ins.length < 2 || ins[0].type === P1.type) continue;
+      [A, B] = ins;
+      const rest = t ? [...ins.slice(2), t] : ins.slice(2);
+      if (!rest.length || rest[0].type !== A.type) continue;
+      C = rest.filter((p) => p.type === A.type).reduce((a, p) => (d * (p.price - a.price) < 0 ? p : a));
+      if (rest.some((p) => p.type !== A.type && p.i < C.i && d * (p.price - B.price) >= 0)) continue;
+      if (ins.length > 2 && C.i !== tentative.i) continue;
+      cDone = C !== t;
+    }
     const pts = [{ t: P1.i, p: P1.price }, { t: A.i, p: A.price }, { t: B.i, p: B.price }];
     const ev = kinds.map((id) => evaluate(id, pts, { ruleSet: opts.ruleSet, logScale: true })).filter((e) => e.valid).sort((a, b) => b.score - a.score);
-    if (ev.length) { ab = { A, B, C: t, eval: ev[0] }; break; }
+    // cExt: C uzadı (B'den sonra C'den önce daha sığ bir dip var) — yalnızca etiket (backtest kırılımı)
+    const cExt = !!opts.cExtend && ins.slice(2).some((p) => p.type === A.type && p.i < C.i);
+    if (ev.length) { ab = { A, B, C, eval: ev[0], cDone, cExt }; break; }
   }
   if (!ab) reject.push('Dalga 2 ABC değil');
 
@@ -196,11 +252,20 @@ function evaluateForming({ candles, atrArr, P0, P1, tentative, k, opts, live, pr
 
   const D1 = P1.i - P0.i, D2 = last - P1.i;
   const timeRatio = D2 / (D1 || 1);
+  const textbook = textbookOf({ P0, P1, A: ab.A, B: ab.B, C: zone.confluence, w1q, zone, timeRatio, atr: atrArr[P1.i] }, opts);
+  if (opts.textbook && textbook.n < opts.textbookMin) {
+    opts.diagnostics?.push({ direction: dirName, sensitivity: k, phase: 'forming', reasons: [tbReason(textbook)] });
+    return null;
+  }
   const strengthPts = { 'Mükemmel': 15, 'Güçlü': 10, 'Orta': 5, 'Zayıf': 0 }[zone.strength] + Math.min(zone.inside, 3) * 2;
   const score = Math.min(100, Math.round(0.35 * imp.score + 0.35 * ab.eval.score + strengthPts));
 
   return {
     phase: 'forming',
+    cDone: !!ab.cDone,
+    cExt: !!ab.cExt,
+    w1q,
+    textbook,
     direction: dirName,
     d,
     sensitivity: k,
@@ -238,6 +303,7 @@ function evaluateSetup({ candles, atrArr, rsiArr, P0, P1, P2, k, opts, live, pri
   const w1Atr = Math.abs(P1.price - P0.price) / atrArr[P1.i];
 
   if (w1Atr < opts.minW1Atr) reject.push(`Dalga 1 küçük (${w1Atr.toFixed(1)}×ATR)`);
+  const w1q = w1Quality(candles, atrArr, P0, P1);
   if (retr < opts.retrMin || retr > opts.retrMax) reject.push(`Dalga 2 geri çekilme %${(retr * 100).toFixed(1)} bant dışı`);
   if (!(timeRatio > opts.minTimeRatio)) reject.push(`Süre(2)/Süre(1) = ${timeRatio.toFixed(2)}× (> ${opts.minTimeRatio} olmalı)`);
 
@@ -306,7 +372,7 @@ function evaluateSetup({ candles, atrArr, rsiArr, P0, P1, P2, k, opts, live, pri
 
   // Limit bölge planı (geriye dönük: C oluşurken bölge dolmuş muydu?)
   let zone = null;
-  if ((useZone(opts) || opts.onlyPerfect) && !abc.none) {
+  if ((useZone(opts) || opts.onlyPerfect || opts.textbook) && !abc.none) {
     const zpath = candles.slice(abc.B.i + 1);
     if (live) zpath.push(live);
     zone = zonePlan({
@@ -315,6 +381,11 @@ function evaluateSetup({ candles, atrArr, rsiArr, P0, P1, P2, k, opts, live, pri
     }, zpath, true, opts);
     if (zone?.invalid) zone = null;
     if (zone?.perfect) score = Math.min(100, score + 10);
+  }
+  const textbook = textbookOf({ P0, P1, A: abc.none ? null : abc.A, B: abc.none ? null : abc.B, C: P2.price, w1q, zone, timeRatio, atr: atrArr[P1.i] }, opts);
+  if (opts.textbook && textbook.n < opts.textbookMin) {
+    opts.diagnostics?.push({ direction: dirName, sensitivity: k, reasons: [tbReason(textbook)] });
+    return null;
   }
 
   return {
@@ -344,6 +415,8 @@ function evaluateSetup({ candles, atrArr, rsiArr, P0, P1, P2, k, opts, live, pri
     stateLabel: STATE_LABEL[state],
     barsSince2: candles.length - 1 - P2.i,
     timeOk: true,
+    w1q,
+    textbook,
     zone,
     score,
   };
