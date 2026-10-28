@@ -14,7 +14,7 @@ on:
       claude_sample: { description: "Claude örneklemi (0 = yok)", default: "0" }
       universe: { description: "Lab: dönem evreni havuzu (ör. 150; 0 = kapalı, bugünün ilk N'i)", default: "0" }
       strategies: { description: "Lab: yalnız bu aileler (virgülle; boş = hepsi), ör. btc_tsmom_1h,btc_tsmom_4h", default: "" }
-      mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı · research: araştırmacı ajan (kuyruk → tarama → rapor) · replay: canlı sinyalleri gerçek mumlarla yeniden oynat (canlı-backtest eşleştirme)", default: "full" }
+      mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı · research: araştırmacı ajan (kuyruk → tarama → rapor) · replay: canlı sinyalleri gerçek mumlarla yeniden oynat (canlı-backtest eşleştirme) · checklist: 10 maddelik check list ölçümü (son planlar)", default: "full" }
 
 env:
   MODE: ${{ github.event_name == 'schedule' && 'research' || inputs.mode }}
@@ -50,7 +50,7 @@ jobs:
           restore-keys: |
             candles-
       - name: Restore last plans (sweep mode)
-        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' }}
+        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' || env.MODE == 'checklist' }}
         uses: actions/cache/restore@v4
         with:
           path: docs/backtest/plans.json.gz
@@ -60,11 +60,14 @@ jobs:
       - name: Strategy lab
         if: ${{ env.MODE == 'lab' }}
         run: node backtest/lab/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --universe ${{ inputs.universe || '0' }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }} ${{ inputs.strategies != '' && format('--strategies {0}', inputs.strategies) || '' }}
+      - name: Checklist measurement
+        if: ${{ env.MODE == 'checklist' }}
+        run: node backtest/checklist.mjs
       - name: Live replay
         if: ${{ env.MODE == 'replay' }}
         run: node backtest/replay.mjs
       - name: Recover plans from git history (sweep mode)
-        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' }}
+        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' || env.MODE == 'checklist' }}
         run: |
           if [ ! -f docs/backtest/plans.json.gz ]; then
             sha=$(git log --all --diff-filter=A --format=%H -- docs/backtest/plans.json.gz | head -1)
@@ -105,12 +108,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm --cached -q docs/backtest/plans.json.gz 2>/dev/null || true
-          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
           # Dal bu arada ilerlemiş olabilir (scan commit'leri): önce uzak ucu al, çalışma ağacındaki sonuçları onun üstüne koy
           git stash -q --include-untracked || true
           git fetch -q origin ${{ github.ref_name }} && git reset -q --hard origin/${{ github.ref_name }}
           git stash pop -q || true
-          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || git commit -m "backtest (${{ env.MODE }}): ${{ env.MONTHS }} ay, ilk ${{ env.TOP }}, ${{ env.TFS }} (run ${{ github.run_id }})"
           for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || { git rebase --abort 2>/dev/null || true; sleep 5; }; done
       - uses: actions/upload-artifact@v4

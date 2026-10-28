@@ -19,7 +19,7 @@ const VARIANTS_FILE = arg('variants', null), ONLY = arg('only', false) === true,
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
 /** Seri verisi: mumlar + indeks haritası + ADX/EMA200. */
-async function loadSeries(coin, tf, instId) {
+export async function loadSeries(coin, tf, instId) {
   let candles;
   if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); candles = (await fixtureProvider.candles(instId, tf, 1500)).candles; }
   else {
@@ -126,7 +126,7 @@ const corr = (pts) => {
 };
 
 /** Filtreler: true = plan dahil. */
-function passes(t, v, series, mtfIndex, htf) {
+export function passes(t, v, series, mtfIndex, htf) {
   if (v.tfs && !v.tfs.includes(t.tf)) return false;
   if (v.minScore && t.plan.score < v.minScore) return false;
   if (v.onlyLimit && t.plan.inZone) return false;

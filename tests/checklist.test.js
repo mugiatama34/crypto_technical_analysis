@@ -36,3 +36,20 @@ test('check list: dokunulmuş FVG yolu kapatmaz; girişteki bölge sayılmaz', (
   const smc = [{ type: 'fvg', direction: 'short', status: 'mitigated', zone: [101, 102] }, { type: 'orderblock', direction: 'short', status: 'active', zone: [99.5, 100.05] }];
   assert.equal(checklistOf({ plan, candles: slow, smc, now: wed }).items.find((x) => x.id === 'path').ok, true);
 });
+
+test('check list raporu: madde etkisi (✓ − ✗), sayım kovaları, ağırlıklar yalnız eğitimden', async () => {
+  const { perItem, byCount, weighted } = await import('../backtest/checklistReport.js');
+  const ids = ['btc', 'htf', 'rs', 'limit', 'slow', 'weekday', 'stop', 'path', 'magnet', 'confl'];
+  const mk = (time, btc, R) => ({ time, R, hedgedR: R / 2, outcome: R > 0 ? 'tp2' : 'stopped', ok: Object.fromEntries(ids.map((id) => [id, id === 'btc' ? btc : false])) });
+  const trades = [];
+  for (let k = 0; k < 40; k++) { trades.push(mk(k, true, 1), mk(k, false, -1)); } // eğitim: btc ✓ +1, ✗ −1
+  for (let k = 100; k < 140; k++) { trades.push(mk(k, true, -1), mk(k, false, 1)); } // doğrulama: ters (ağırlık bunu görmemeli)
+  const p = perItem(trades, 50);
+  assert.equal(p.btc.delta.train, 2); assert.equal(p.btc.delta.valid, -2); assert.equal(p.htf.delta.train, null);
+  const w = weighted(trades, 50);
+  assert.equal(w.weights.btc, 2); assert.equal(w.weights.htf, 0);
+  const hi = w.tiers.find((t) => t.label === 'yüksek') || w.tiers.find((t) => t.train.n);
+  assert.ok(hi.valid.avgR <= 0, 'doğrulamada ağırlık işe yaramazsa bunu göstermeli');
+  const c = byCount(trades, 50);
+  assert.equal(c.find((b) => b.label === '≤ 3').train.n, 80);
+});

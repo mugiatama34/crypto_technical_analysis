@@ -84,6 +84,10 @@ hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok · hedef yak
 ≥ 2 yöntem (mum/indikatör sayılmaz). Her madde ✓ / ✗ / ? ve **ölçüldü / ölçülmedi / kural** etiketi; FVG/OB/likidite
 detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı olasılık değildir (eşit ağırlık değil). ★ Takibe alınan kayda o
 anki check list dondurulur (kartta ✓ n/10).
+**Ölçüm** (`backtest/checklist.mjs`, Actions → backtest → `mode=checklist`, rapor `docs/backtest/checklist.json`): son tam
+koşunun planlarında her planın karar anında 10 madde (yalnız o ana kadarki veri) → (A) tüm planlar, temel çıkış ve (B) canlı
+4H düzeni; madde madde etki (✓ − ✗ ort. R), ağırlıksız sayım kovaları ve eğitim diliminden öğrenilen ağırlıklarla puan
+(doğrulamada üçte birlik dilimler); hepsi hedge'li de (`backtest/checklistReport.js`).
 
 ### Presetler
 **Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
