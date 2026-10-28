@@ -2,6 +2,8 @@
 import { getCandles, getTopCoins, instIdOf, TIMEFRAMES } from '../data/okx.js';
 import { barsFor } from '../scan/scanner.js';
 import { analyzeCoin, COIN_TFS, DEFAULT_TFS, FAMILIES } from '../scan/coin.js';
+import { structureOverlay } from '../detectors/structure.js';
+import { makeContext } from '../scan/context.js';
 import { drawRow } from './chart.js';
 import { fmtPrice, esc } from './format.js';
 
@@ -103,7 +105,8 @@ function renderTf() {
   const focusSigs = [...(top[S.focus]?.signals || [])].sort((a, b) => b.strength - a.strength).slice(0, 3); // odak: en güçlü 3 sinyal
   const inFocus = new Set(focusSigs.map((q) => q.id));
   const layerSigs = all ? [] : x.signals.filter((q) => !inFocus.has(q.id) && !LAYER_DEAD.has(q.status) && LAYERS.some((L) => S.layers.has(L.id) && L.match(q))).map((q) => ({ ...q, faint: true }));
-  const sigs = all ? x.signals : [...focusSigs, ...layerSigs];
+  const sigs = all ? [...x.signals] : [...focusSigs, ...layerSigs];
+  if (S.layers.has('struct')) { try { sigs.push(structureOverlay(makeContext({ candles: x.candles, live: x.live, tf: S.view }))); } catch { /* yapı çizilemedi */ } }
   renderLayers(x, all);
   requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref, { clean: true, onLegend: (items) => renderLegend(items, ref) }));
   $('#clusters').innerHTML = top.length ? top.map((c, i) => {
@@ -119,6 +122,8 @@ function renderTf() {
 /** Katman düğmeleri (sayı = bu dilimdeki sinyal); "tüm sinyaller" açıkken pasif. */
 function renderLayers(x, all) {
   const el = $('#layers'); el.innerHTML = '';
+  const st = chip('Yapı HH/HL · BOS', S.layers.has('struct'), () => { S.layers.has('struct') ? S.layers.delete('struct') : S.layers.add('struct'); store.set('coin.layers', [...S.layers]); renderTf(); });
+  st.title = 'Son 8 swing noktası (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)'; el.append(st);
   for (const L of LAYERS) {
     const n = x.signals.filter((q) => L.match(q) && !LAYER_DEAD.has(q.status)).length;
     const b = chip(`${L.label}${n ? ` ${n}` : ''}`, S.layers.has(L.id), () => { S.layers.has(L.id) ? S.layers.delete(L.id) : S.layers.add(L.id); store.set('coin.layers', [...S.layers]); renderTf(); });

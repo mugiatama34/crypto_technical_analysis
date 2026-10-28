@@ -142,3 +142,24 @@ export function detect(ctx) {
   }
   return out;
 }
+
+/**
+ * Grafik katmanı (sinyal değil): son `swings` pivot HH/HL/LH/LL etiketiyle ve son `breaks` BOS/CHoCH kesikli çizgi + etiket.
+ * ctx.swings ile aynı pivotlar. → sözde sinyal { id, name, draw } (drawRow'a eklenir).
+ */
+export function structureOverlay(ctx, { swings = 8, breaks = 4 } = {}) {
+  const pivots = ctx.swings || [];
+  const draw = [];
+  for (const p of labelSwings(pivots).slice(-swings)) {
+    const up = p.type === 'H', bull = p.label === 'HH' || p.label === 'HL';
+    draw.push({ kind: 'marker', i: p.i, price: p.price, position: up ? 'aboveBar' : 'belowBar', shape: 'circle', color: bull ? '#4fb3a9' : '#e5655f', text: p.label });
+  }
+  if (pivots.length >= 3) {
+    for (const e of structureEvents(ctx.candles, pivots).events.slice(-breaks)) {
+      const color = e.dir === 1 ? '#3987e5' : '#d95926';
+      draw.push({ kind: 'line', points: [{ i: e.pivot.i, price: e.level }, { i: e.i, price: e.level }], color, style: 'dashed' });
+      draw.push({ kind: 'marker', i: e.i, price: e.level, position: e.dir === 1 ? 'aboveBar' : 'belowBar', shape: e.dir === 1 ? 'arrowUp' : 'arrowDown', color, text: e.kind });
+    }
+  }
+  return { id: 'overlay|structure', name: 'Yapı (HH/HL · BOS)', type: 'overlay', group: 'smc', direction: 'neutral', strength: 0, draw };
+}

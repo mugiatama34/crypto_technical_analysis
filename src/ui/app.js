@@ -1,6 +1,7 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
 import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
-import { checklistOf } from '../scan/checklist.js';
+import { checklistOf, CHECKS } from '../scan/checklist.js';
+import { structureOverlay } from '../detectors/structure.js';
 import { makeContext } from '../scan/context.js';
 import { runDetectors } from '../scan/registry.js';
 import { UP_TF } from '../scan/regime.js';
@@ -243,7 +244,8 @@ function renderDetail(r) {
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>
       <button type="button" class="btn" id="watchBtn" title="Giriş / stop / hedefleri dondur ve sonraki mumlarla izle">${state.watch.some((w) => w.coin === r.coin && w.tf === r.tf && w.direction === r.direction && isOpen(w)) ? '★ Takipte' : '☆ Takibe al'}</button>
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
-      <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label></div>
+      <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label>
+      <label class="chip small" title="Son 8 swing (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)"><input type="checkbox" id="showStruct" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label></div>
     <div class="chart" id="chart"></div>
     <div class="legend">${[...new Set(shown.map((s) => s.group))].map((g) => `<span><i style="background:${GROUPS[g].color}"></i>${esc(GROUPS[g].label)}</span>`).join('')}</div>
     <div class="stat-strip">${stats.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
@@ -252,16 +254,23 @@ function renderDetail(r) {
     <div class="sig-list">${(state.showAllSignals ? r.signals : b.signals).map((s) => sigCard(s, r)).join('')}</div>
     ${others.length ? `<h2 style="margin-top:12px">Diğer kümeler</h2><div class="sig-list">${others.map((c) => `<div class="sig"><div class="sig-head"><span class="dir ${c.direction}">${c.direction.toUpperCase()}</span><span class="sig-name">Puan ${c.score}</span><span class="sig-str">${fmtPrice(c.zone[0], r.price)} – ${fmtPrice(c.zone[1], r.price)}</span></div><div class="sig-note">${c.signals.map((s) => esc(s.name)).join(' · ')}</div></div>`).join('')}</div>` : ''}
   `;
-  drawRow($('#chart'), r.candles, r.live, shown, r.price);
+  drawRow($('#chart'), r.candles, r.live, withStruct(shown, r), r.price);
+  $('#showStruct').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderDetail(r); });
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
   checklistFor(r).then((cl) => { if (state.selected === rowKey(r)) renderChecklist(cl); });
   $('#detail').querySelectorAll('[data-sig]').forEach((cb) => cb.addEventListener('change', (e) => {
     if (e.target.checked) state.hiddenSignals.delete(e.target.dataset.sig); else state.hiddenSignals.add(e.target.dataset.sig);
     const show = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));
-    drawRow($('#chart'), r.candles, r.live, show, r.price);
+    drawRow($('#chart'), r.candles, r.live, withStruct(show, r), r.price);
     e.target.closest('.sig').classList.toggle('off', !e.target.checked);
   }));
+}
+
+/** "Yapı" açıksa çizilecek sinyallere HH/HL · BOS katmanı eklenir. */
+function withStruct(sigs, r) {
+  if (!state.settings.showStructure || !r.candles?.length) return sigs;
+  try { return [...sigs, structureOverlay(makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} }))]; } catch { return sigs; }
 }
 
 function sigCard(s, r) {
@@ -391,6 +400,8 @@ async function refreshWatch() {
   saveWatch(state.watch);
   if (msgs.length) notifyWatch(`★ ${msgs.join(' · ')}`);
   renderWatch();
+  const sel = state.selected?.startsWith('watch|') && state.watch.find((x) => `watch|${x.id}` === state.selected);
+  if (sel) renderWatchDetail(sel);
 }
 
 function renderWatch() {
@@ -400,7 +411,7 @@ function renderWatch() {
   $('#watchList').innerHTML = list.map((w) => {
     const R = watchR(w);
     const st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
-    return `<article class="watch ${isOpen(w) ? '' : 'closed'}" data-id="${esc(w.id)}">
+    return `<article class="watch ${isOpen(w) ? '' : 'closed'}${state.selected === `watch|${w.id}` ? ' sel' : ''}" data-id="${esc(w.id)}" role="button" tabindex="0" title="Ayrıntı ve grafik için dokun">
       <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
         <span class="badge">${esc(st)}</span>${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
         <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
@@ -415,10 +426,57 @@ function renderWatch() {
   }).join('');
 }
 
+/** Mum dizisinde ts anını içeren (ya da ondan önceki son) mumun indeksi. */
+const idxAt = (cs, ts) => { let k = -1; for (let i = 0; i < cs.length; i++) { if (cs[i].time <= ts) k = i; else break; } return k; };
+
+/** Takip kaydının ayrıntısı: grafik (giriş/stop/TP çizgileri, eklendi/girildi/TP1/kapanış işaretleri), dondurulan check list, not. */
+async function renderWatchDetail(w) {
+  state.selected = `watch|${w.id}`;
+  for (const el of document.querySelectorAll('.row')) el.classList.remove('sel');
+  for (const el of document.querySelectorAll('.watch')) el.classList.toggle('sel', el.dataset.id === w.id);
+  const R = watchR(w), st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
+  const tv = `https://www.tradingview.com/chart/?symbol=OKX:${encodeURIComponent(w.coin + 'USDT.P')}`;
+  const cl = w.checklist?.items ? w.checklist.items.map((x) => ({ ...CHECKS.find((c) => c.id === x.id), ok: x.ok })).filter((x) => x.label) : null;
+  const when = [['Eklendi', w.addedAt], ['Girildi', w.activeAt], ['TP1', w.tp1At], ['Kapandı', w.closedAt]].filter(([, t]) => t);
+  $('#detail').innerHTML = `
+    <div class="detail-head"><h3>★ ${esc(w.coin)} <small class="row-tf">${w.tf}</small></h3><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
+      <span class="badge">${esc(st)}</span>${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
+      <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
+      <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showStructW" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label></div>
+    <div class="chart" id="chart"><p class="empty">Mumlar yükleniyor…</p></div>
+    <div class="stat-strip">${[['Giriş', fmtPrice(w.entry)], ['Stop', fmtPrice(w.stop)], ['TP1', `${fmtPrice(w.tp1)} · ${w.rr1}R`], ['TP2', `${fmtPrice(w.tp2)} · ${w.rr}R`], ['Son fiyat', fmtPrice(w.lastPrice)]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
+    <p class="note">${when.map(([k, t]) => `${k} ${fmtTime(t)}`).join(' · ')}${w.priceAtAdd ? ` · eklendiğinde fiyat ${fmtPrice(w.priceAtAdd)}` : ''}</p>
+    ${cl ? `<div class="checklist"><h2>Check list (takibe alındığı an) <b>${cl.filter((x) => x.ok === true).length}/${cl.length}</b></h2><ul class="cl">${cl.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev">${esc(x.ev)}</small></span></li>`).join('')}</ul></div>` : '<p class="note">Bu kayıtta check list yok (check list eklenmeden önce takibe alınmış).</p>'}
+    <h2>Sinyaller (takibe alındığı an)</h2><div class="sig-note">${esc(w.signals.join(' · ')) || '–'}</div>
+    ${w.note ? `<h2>Not</h2><div class="sig-note">${esc(w.note)}</div>` : ''}`;
+  $('#showStructW').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderWatchDetail(w); });
+  if (window.innerWidth < 1100) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  let data;
+  try { data = await candlesOf(w.instId, w.tf); } catch (err) { $('#chart').innerHTML = `<p class="empty">Mumlar alınamadı: ${esc(err.message)}</p>`; return; }
+  if (state.selected !== `watch|${w.id}`) return;
+  const cs = data.candles, all = data.live ? [...cs, data.live] : cs;
+  const mk = (ts, text, color, pos = 'aboveBar', shape = 'arrowDown') => { const i = idxAt(all, ts); return i >= 0 ? [{ kind: 'marker', i, price: all[i].close, position: pos, shape, color, text }] : []; };
+  const sig = { id: 'watch', name: 'Takip', type: 'watch', group: 'smc', direction: w.direction, strength: 1, draw: [
+    { kind: 'hline', price: w.entry, color: '#3987e5', label: 'Giriş', style: 'solid' },
+    { kind: 'hline', price: w.stop, color: '#ef5350', label: 'Stop', style: 'dashed' },
+    { kind: 'hline', price: w.tp1, color: '#7cc4a8', label: 'TP1', style: 'dashed' },
+    { kind: 'hline', price: w.tp2, color: '#7cc4a8', label: 'TP2', style: 'dashed' },
+    ...mk(w.addedAt, '★ eklendi', '#f0c75e'),
+    ...(w.activeAt ? mk(w.activeAt, 'giriş', '#3987e5', w.d === 1 ? 'belowBar' : 'aboveBar', w.d === 1 ? 'arrowUp' : 'arrowDown') : []),
+    ...(w.tp1At ? mk(w.tp1At, 'TP1', '#7cc4a8') : []),
+    ...(w.closedAt ? mk(w.closedAt, st, w.status === 'done' ? '#7cc4a8' : '#ef5350') : []),
+  ] };
+  $('#chart').innerHTML = '';
+  drawRow($('#chart'), cs, data.live, withStruct([sig], { candles: cs, live: data.live, tf: w.tf, coin: w.coin }), all[all.length - 1]?.close);
+}
+
 function bindWatch() {
   $('#watchList').addEventListener('click', (e) => {
-    const id = e.target.closest('[data-del]')?.dataset.del; if (!id) return;
-    state.watch = state.watch.filter((w) => w.id !== id); saveWatch(state.watch); renderWatch();
+    const id = e.target.closest('[data-del]')?.dataset.del;
+    if (id) { state.watch = state.watch.filter((w) => w.id !== id); saveWatch(state.watch); renderWatch(); return; }
+    if (e.target.closest('input')) return;
+    const card = e.target.closest('.watch'); const w = card && state.watch.find((x) => x.id === card.dataset.id);
+    if (w) renderWatchDetail(w);
   });
   $('#watchList').addEventListener('change', (e) => {
     const id = e.target.dataset.note; if (!id) return;

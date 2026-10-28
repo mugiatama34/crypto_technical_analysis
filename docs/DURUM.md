@@ -283,3 +283,6 @@ rejimi bunu önceden bilmiyor (tutarsız). Check list etiketleri ölçüme göre
 - 28.10 son: check list 8 maddeye indi ("hedefte likidite" olumsuz, "≥ 2 yöntem" etkisiz → çıkarıldı). Coin sayfasına
   **Katmanlar** (FVG / OB / Likidite / Fib; odak modunda soluk çizim). FVG "Price action / SMC" ailesinde; odak modu yalnız
   en güçlü 3 sinyali çizdiği için görünmüyordu. Testler 151.
+- Takip kartına dokununca ayrıntı + grafik (giriş/stop/TP çizgileri, eklendi/giriş/TP1/kapanış işaretleri, dondurulan check list).
+  Grafiklere isteğe bağlı **Yapı** katmanı (son 8 swing HH/HL/LH/LL + son 4 BOS/CHoCH): tarayıcı ayrıntısında kutu, coin
+  sayfasında Katmanlar. Testler 152.

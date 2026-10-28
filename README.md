@@ -79,6 +79,12 @@ Ayrıntı başlığında **☆ Takibe al**: kurulumun giriş / stop / TP1 / TP2'
 gevşek) ve botun `trackPlan`'ı ile izlenir: Bekliyor → Girildi (anlık R) → TP1 görüldü → TP2 — tamam | Stop oldu (TP1 sonrası
 başa baş) | Süre doldu (24 saat) | Kaçtı. Her taramada, "Güncelle" ile ve sayfa açıkken 5 dakikada bir güncellenir; durum
 değişince bildirim. Not alanı, ✕, "Kapananları sil", JSON dışa/içe aktar. Liste yalnız bu tarayıcıda (`src/watch/watch.js`).
+Karta dokununca ayrıntı: grafik (giriş / stop / TP1 / TP2 çizgileri; ★ eklendi, giriş, TP1 ve kapanış işaretleri), takibe
+alındığı anki check list, sinyaller ve not.
+
+**Yapı katmanı** (tarayıcı ayrıntısında "Yapı HH/HL · BOS" kutusu, coin sayfasında Katmanlar → "Yapı"): son 8 swing noktası
+HH/HL/LH/LL etiketiyle ve son 4 yapı kırılımı (BOS/CHoCH) kesikli çizgi + etiketle (`structureOverlay`, yapı detektörüyle
+aynı pivotlar). Seçim tarayıcıda saklanır.
 
 ### İşlem check list'i (8 madde)
 Ayrıntıda grafiğin altında **Check list x/8** (`src/scan/checklist.js`, kullanıcı onayı 28.10): BTC günlük rejimi aynı yön ·

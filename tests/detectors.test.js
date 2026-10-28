@@ -178,3 +178,15 @@ test('Fib kesişimi (ABC): itkinin 0,618 geri çekilmesi × A\'nın B\'den 1,272
   assert.equal(g.status, 'forming');
   assert.ok(detectFib(ctxOf(cs)).length >= 1); // only yoksa diğer fib sinyalleri de gelir
 });
+
+test('structureOverlay: son swing etiketleri (HH/HL/LH/LL) ve BOS/CHoCH çizgi + etiket', async () => {
+  const { structureOverlay } = await import('../src/detectors/structure.js');
+  const { makeContext } = await import('../src/scan/context.js');
+  const { build } = await import('./helpers.js');
+  const c = build([[0, 100], [10, 110], [20, 104], [30, 116], [40, 108], [50, 122], [60, 112], [70, 100], [80, 106], [90, 95], [100, 101]]);
+  const ov = structureOverlay(makeContext({ candles: c, tf: '1H' }), { swings: 8, breaks: 4 });
+  const texts = ov.draw.filter((d) => d.kind === 'marker').map((d) => d.text);
+  assert.ok(texts.some((t) => ['HH', 'HL', 'LH', 'LL'].includes(t)), texts.join(','));
+  assert.ok(texts.some((t) => t === 'BOS' || t === 'CHoCH'), texts.join(','));
+  assert.ok(ov.draw.filter((d) => d.kind === 'marker' && /^(HH|HL|LH|LL|H|L)$/.test(d.text)).length <= 8);
+});
