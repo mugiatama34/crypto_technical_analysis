@@ -74,6 +74,50 @@ export function hedgeOf(t, btc, feePct, portion) {
   return { btcPct: +full.toFixed(2), hedgedR: +(t.R - (t.d * (hedgePct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) };
 }
 
+/**
+ * Yön yığılması sınırı (portföy düzeyi, coin'ler arası): karar anında (plan mumu kapanışı) aynı yönde açık — bekleyen ya da
+ * dolmuş, kapanmamış — işlem sayısı maxOpen'a ulaştıysa yeni sinyal alınmaz; maxNew: aynı karar anında aynı yönde en fazla
+ * bu kadar yeni sinyal. Aynı anda gelenlerde puanı yüksek önce. Açık aralık: dolan → dolum + süre; dolmayan → 24 saat.
+ * trades: { time, tf, d, score, waitBars, bars, entryFill }. → filtrelenmiş dizi (zaman sırasıyla).
+ */
+export function capTrades(trades, { maxOpen = null, maxNew = null } = {}, expireHours = 24) {
+  if (!maxOpen && !maxNew) return trades;
+  const ms = (t) => TIMEFRAMES[t.tf].ms;
+  const at = (t) => t.time + ms(t);
+  const endOf = (t) => (t.entryFill ? t.time + ((t.waitBars || 1) + (t.bars || 0) + 1) * ms(t) : at(t) + expireHours * 3600e3);
+  const sorted = [...trades].sort((a, b) => at(a) - at(b) || (b.score ?? 0) - (a.score ?? 0));
+  const open = { 1: [], [-1]: [] }, out = [];
+  let lastAt = null, newCount = { 1: 0, [-1]: 0 };
+  for (const t of sorted) {
+    const now = at(t);
+    if (now !== lastAt) { lastAt = now; newCount = { 1: 0, [-1]: 0 }; }
+    const o = (open[t.d] = open[t.d].filter((e) => e > now));
+    if (maxOpen && o.length >= maxOpen) continue;
+    if (maxNew && newCount[t.d] >= maxNew) continue;
+    o.push(endOf(t)); newCount[t.d]++; out.push(t);
+  }
+  return out;
+}
+
+/** Yığılma tanısı: her sinyalin karar anında aynı yönde açık sayısı (p50/p90/max) ve en kötü 7 günlük R toplamı (dolanlar). */
+export function stackOf(trades, expireHours = 24) {
+  const ms = (t) => TIMEFRAMES[t.tf].ms, at = (t) => t.time + ms(t);
+  const endOf = (t) => (t.entryFill ? t.time + ((t.waitBars || 1) + (t.bars || 0) + 1) * ms(t) : at(t) + expireHours * 3600e3);
+  const sorted = [...trades].sort((a, b) => at(a) - at(b));
+  const open = { 1: [], [-1]: [] }, counts = [];
+  for (const t of sorted) { const now = at(t); open[t.d] = open[t.d].filter((e) => e > now); counts.push(open[t.d].length); open[t.d].push(endOf(t)); }
+  counts.sort((a, b) => a - b);
+  const q = (p) => (counts.length ? counts[Math.min(counts.length - 1, Math.floor(p * counts.length))] : null);
+  const filled = sorted.filter((t) => t.entryFill && t.R != null && !['expired', 'missed', 'knife'].includes(t.outcome));
+  let worst7 = 0;
+  for (let i = 0, j = 0, sum = 0; j < filled.length; j++) {
+    sum += filled[j].R;
+    while (filled[j].time - filled[i].time > 7 * 86400e3) sum -= filled[i++].R;
+    if (sum < worst7) worst7 = sum;
+  }
+  return { p50: q(0.5), p90: q(0.9), max: counts.length ? counts[counts.length - 1] : null, worst7dR: +worst7.toFixed(1) };
+}
+
 const corr = (pts) => {
   const n = pts.length; if (n < 10) return null;
   const mx = pts.reduce((a, p) => a + p[0], 0) / n, my = pts.reduce((a, p) => a + p[1], 0) / n;
@@ -207,11 +251,12 @@ async function main() {
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
         const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
-        const tr = { time: t.time, tf: t.tf, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
+        const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
         if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
         trades.push(tr);
       }
     }
+    if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
     const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
     return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
@@ -220,6 +265,7 @@ async function main() {
       byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
       byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
       byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
+      stack: { train: stackOf(tr), valid: stackOf(va) },
       ...hedgedOfTrades(tr, va) };
   };
 
@@ -241,12 +287,22 @@ async function main() {
   // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
   const base = results[0];
   const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted'].includes(k)) out[k] = val; return out; };
+  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'stack', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted'].includes(k)) out[k] = val; return out; };
   // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
   const V = (name) => SINGLE.find((v) => v.name === name);
   const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), h14 = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2'), hw = V('üst TF eğilimi aynı yön'), hn = V('üst TF eğilimi ters değil');
   const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, h14], [guard, wk, lim, h14], [guard, wk, lim, h14, adx], [guard, wk, lim, h14, t8], [guard, wk, lim, h14, t16], [guard, wk, lim, h14, man], [guard, wk, lim, h14, man, hw], [guard, wk, lim, h14, man, hn]];
   for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
+  // Yön yığılması sınırı: canlı 4H düzeni (ve eski 1H+4H düzeni) üstüne aynı yönde açık/yeni sinyal tavanı
+  const only4h = { name: 'yalnız 4H', tfs: ['4H'] };
+  const live4h = [guard, wk, lim, only4h, man, hw];
+  const CAPS = [
+    [live4h], [...live4h, { name: 'aynı yönde ≤ 3 açık', maxOpenSameDir: 3 }], [...live4h, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }],
+    [...live4h, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }], [...live4h, { name: 'mum başına aynı yönde ≤ 1 yeni', maxNewSameDir: 1 }],
+    [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
+    [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
+  ];
+  for (const list of CAPS) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));

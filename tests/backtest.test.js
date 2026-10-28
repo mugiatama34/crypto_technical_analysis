@@ -151,3 +151,22 @@ test('sweep hedgeOf: kısmi çıkışlı hedge — %80 TP1\'e kadar, %20 çıkı
   assert.equal(hedgeOf({ ...t, tp1Bars: null }, btc, 0, 0.8).hedgedR, +(0.5 - full / 100 / 0.02).toFixed(3));
   assert.equal(hedgeOf(t, null, 0, 0.8).hedgedR, null);
 });
+
+test('sweep capTrades: aynı yönde açık tavanı ve mum başına yeni sinyal tavanı; stackOf tanısı', async () => {
+  const { capTrades, stackOf } = await import('../backtest/sweep.mjs');
+  const H4 = 4 * 3600e3;
+  // 4 long aynı mumda (puan 90..60), 1 short; hepsi dolmuş, 10 mum açık
+  const mk = (i, d, score, bar = 0) => ({ time: bar * H4, tf: '4H', d, score, waitBars: 1, bars: 10, entryFill: 1, R: -1, outcome: 'stopped', id: i });
+  const tr = [mk('a', 1, 60), mk('b', 1, 90), mk('c', 1, 80), mk('d', 1, 70), mk('s', -1, 50)];
+  assert.deepEqual(capTrades(tr, { maxNew: 1 }).map((t) => t.id).sort(), ['b', 's']);
+  assert.deepEqual(capTrades(tr, { maxOpen: 2 }).map((t) => t.id).sort(), ['b', 'c', 's']);
+  // Açık olan kapandıktan sonra yeni long tekrar alınır (12 mum sonra)
+  const later = [...tr, mk('e', 1, 55, 13)];
+  assert.ok(capTrades(later, { maxOpen: 2 }).some((t) => t.id === 'e'));
+  // Dolmayan sinyal 24 saat (6 mum) yer tutar
+  const pend = [{ ...mk('p', 1, 99), entryFill: null, outcome: 'missed' }, mk('q', 1, 10, 3), mk('r', 1, 10, 7)];
+  assert.deepEqual(capTrades(pend, { maxOpen: 1 }).map((t) => t.id), ['p', 'r']);
+  assert.equal(capTrades(tr, {}), tr);
+  const st = stackOf(tr);
+  assert.equal(st.max, 3); assert.equal(st.worst7dR, -5);
+});

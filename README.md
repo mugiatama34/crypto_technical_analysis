@@ -278,6 +278,10 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   puan eşiği, TF alt kümesi, grup dışlama/zorunluluk ve MTF vekiliyle yeniden simüle eder; eğitim diliminde en iyi
   4 tek değişikliğin birleşimlerini de dener. Rapor **`sweep.html`** (`docs/backtest/sweep.json`). Workflow'da
   `mode: sweep` yalnız taramayı koşar (son planlar Actions cache'ten), `full` önce yeniden koşar.
+- **Yön yığılması sınırı** (sweep, `cap: true` satırları): coin'ler arası portföy filtresi — `maxOpenSameDir` (karar anında
+  aynı yönde açık/bekleyen işlem tavanı 3/5/10) ve `maxNewSameDir` (aynı mum kapanışında aynı yönde ≤ 1/2 yeni sinyal, puanı
+  yüksek önce); canlı 4H düzeni ve eski 1H+4H düzeni üstüne. `stack` tanısı: aynı yönde eşzamanlı açık p50/p90/max ve en kötü
+  7 günlük R toplamı (`capTrades`, `stackOf`). Neden: 21–24.10 canlıda 558 sinyalin 509'u long'du (tek bahis ~400 kez).
 - **Öğrenilen puan:** `backtest/learn.mjs` planları özelliklere çevirir (hangi detektör/grup var, sinyal sayısı, puan,
   risk %, TF, yön, giriş tipi, ADX kovası ve yön uyumu, EMA200 tarafı, üst TF uyumu, saat dilimi) ve L2 cezalı lojistik
   regresyonla "R > 0" olasılığını öğrenir (eğitim ilk 2/3). Rapor `backtest.html` → "Öğrenilen puan": doğrulama
