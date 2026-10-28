@@ -14,6 +14,8 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
 4. Oturum sonunda `docs/DURUM.md`'ye tarihli kısa bir giriş ekle (ne yapıldı, ne bulundu, ne bekleniyor) ve push et.
 
 ## Sabit kurallar
+- **Sorgula ve geri bildir:** Kullanıcının isteği ya da önerisi mantıksızsa, ölçümlerle çelişiyorsa, eksik ya da riskliyse bunu
+  uygulamadan önce açıkça söyle (neden, kanıt, daha iyi seçenek); körü körüne uygulama. Karar yine kullanıcınındır.
 - Testler: `node --test tests/*.test.js` (hepsi geçmeli; sayı DURUM.md'de). Yeni özellik = test + README notu.
 - Git: dal `claude/awesome-heisenberg-mmuyod` (repo HEAD). Commit → `git pull -q --rebase origin <dal>` → push. PR açma.
   Commit mesajı Türkçe; model adı yazılmaz; sonuna Co-Authored-By ve Claude-Session satırları (oturumun verdiği).

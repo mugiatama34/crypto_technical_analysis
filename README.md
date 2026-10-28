@@ -71,6 +71,12 @@ açık, botta kapalı (`cExtend`; bot eski kuralla birebir). Dalga-3 sinyal adı
 orantılı ABC, ★ çakışma, süre dengesi) ve **SMT ✓**; notta eksik şartlar, dalga 1 verimi/hızı, "C uzadı". Bot bu ayarları
 kullanmaz. Lab ölçümü (`w3_*`, 24 ay 4H ilk 50): SMT ve ders kitabı filtresi kenar vermedi (DURUM 28.10).
 
+### ★ Takip listem
+Ayrıntı başlığında **☆ Takibe al**: kurulumun giriş / stop / TP1 / TP2'si botun `buildPlan`'ı ile o an dondurulur (eşikler
+gevşek) ve botun `trackPlan`'ı ile izlenir: Bekliyor → Girildi (anlık R) → TP1 görüldü → TP2 — tamam | Stop oldu (TP1 sonrası
+başa baş) | Süre doldu (24 saat) | Kaçtı. Her taramada, "Güncelle" ile ve sayfa açıkken 5 dakikada bir güncellenir; durum
+değişince bildirim. Not alanı, ✕, "Kapananları sil", JSON dışa/içe aktar. Liste yalnız bu tarayıcıda (`src/watch/watch.js`).
+
 ### Presetler
 **Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
 **Harmonik PRZ**, **Kırılım**, **Dönüş**. "Detektörler ve ağırlıklar" panelinden her detektör ayrı ayrı açılıp

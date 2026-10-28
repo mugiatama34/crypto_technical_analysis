@@ -1,5 +1,6 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
-import { runScan, compareByScore } from '../scan/scanner.js';
+import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
+import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL } from '../watch/watch.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
 import { TF_ORDER, TIMEFRAMES } from '../data/okx.js';
@@ -18,6 +19,7 @@ const state = {
   settings: loadSettings(),
   scan: null, rows: [], selected: null, busy: false, abort: null, page: 0,
   cache: new Map(), hiddenSignals: new Set(), showAllSignals: false,
+  watch: loadWatch(),
 };
 
 // ------------------------------------------------------------------ araç çubuğu
@@ -144,6 +146,7 @@ async function scan() {
   } finally {
     state.busy = false; state.abort = null;
     $('#scanBtn').disabled = false; $('#cancelBtn').hidden = true; $('#progress').hidden = true;
+    refreshWatch();
     state.page = 0;
     renderRows();
   }
@@ -233,6 +236,7 @@ function renderDetail(r) {
   ];
   $('#detail').innerHTML = `
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>
+      <button type="button" class="btn" id="watchBtn" title="Giriş / stop / hedefleri dondur ve sonraki mumlarla izle">${state.watch.some((w) => w.coin === r.coin && w.tf === r.tf && w.direction === r.direction && isOpen(w)) ? '★ Takipte' : '☆ Takibe al'}</button>
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label></div>
     <div class="chart" id="chart"></div>
@@ -244,6 +248,7 @@ function renderDetail(r) {
   `;
   drawRow($('#chart'), r.candles, r.live, shown, r.price);
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
+  $('#watchBtn').addEventListener('click', () => addWatch(r));
   $('#detail').querySelectorAll('[data-sig]').forEach((cb) => cb.addEventListener('change', (e) => {
     if (e.target.checked) state.hiddenSignals.delete(e.target.dataset.sig); else state.hiddenSignals.add(e.target.dataset.sig);
     const show = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));
@@ -307,11 +312,101 @@ function bindScreenshot() {
   });
 }
 
+// ------------------------------------------------------------------ ★ takip listesi
+function addWatch(r) {
+  const w = makeWatch(r);
+  if (w.error) { banner(`Takibe alınamadı: ${w.error}`, 'err'); return; }
+  state.watch = [w, ...state.watch]; saveWatch(state.watch); $('#watchPanel').open = true;
+  banner(`★ ${r.coin} ${r.tf} ${r.direction.toUpperCase()} takipte: giriş ${fmtPrice(w.entry)}, stop ${fmtPrice(w.stop)}, TP1 ${fmtPrice(w.tp1)}, TP2 ${fmtPrice(w.tp2)}.`);
+  try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch { /* yok */ }
+  renderWatch(); renderDetail(r);
+}
+
+function notifyWatch(msg) {
+  banner(msg);
+  try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Takip listesi', { body: msg }); } catch { /* yok */ }
+}
+
+/** Açık kayıtları güncel mumlarla günceller (tarama önbelleği tazeyse ondan, değilse indirir). */
+async function refreshWatch() {
+  const open = state.watch.filter(isOpen);
+  if (!open.length) { renderWatch(); return; }
+  const provider = FIXTURE ? fixtureProvider : okxProvider;
+  const now = Date.now(), msgs = [];
+  for (const key of new Set(open.map((w) => `${w.instId}|${w.tf}`))) {
+    const [instId, tf] = key.split('|');
+    let data = state.cache.get(key);
+    if (!data || now - data.at > TIMEFRAMES[tf].ms / 4) {
+      try { const r = await provider.candles(instId, tf, barsFor(tf)); data = { candles: r.candles, live: r.live, at: now }; state.cache.set(key, data); } catch { continue; }
+    }
+    const cs = data.live ? [...data.candles, data.live] : data.candles;
+    state.watch = state.watch.map((w) => {
+      if (`${w.instId}|${w.tf}` !== key || !isOpen(w)) return w;
+      const { item, events } = updateWatch(w, cs, now);
+      for (const ev of events) msgs.push(`${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${WATCH_LABEL[ev === 'tp1' ? 'tp1' : item.status] || ev}`);
+      return item;
+    });
+  }
+  saveWatch(state.watch);
+  if (msgs.length) notifyWatch(`★ ${msgs.join(' · ')}`);
+  renderWatch();
+}
+
+function renderWatch() {
+  const list = state.watch;
+  $('#watchTitle').textContent = `★ Takip listem (${list.filter(isOpen).length} açık / ${list.length})`;
+  if (!list.length) { $('#watchList').innerHTML = '<p class="empty">Henüz takip yok. Bir satır seçip ayrıntıda "☆ Takibe al"a bas.</p>'; return; }
+  $('#watchList').innerHTML = list.map((w) => {
+    const R = watchR(w);
+    const st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
+    return `<article class="watch ${isOpen(w) ? '' : 'closed'}" data-id="${esc(w.id)}">
+      <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
+        <span class="badge">${esc(st)}</span>${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
+        <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
+      <div class="row-grid">
+        <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>
+        <div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
+        <div><span>Son fiyat</span> <b>${fmtPrice(w.lastPrice)}</b></div><div><span>Eklendi</span> <b>${fmtTime(w.addedAt)}</b></div>
+      </div>
+      <div class="sig-note">${esc(w.signals.join(' · '))}</div>
+      <input type="text" class="watch-note" data-note="${esc(w.id)}" value="${esc(w.note || '')}" placeholder="Not (ör. Bybit'te açtım, 0,5 risk)">
+    </article>`;
+  }).join('');
+}
+
+function bindWatch() {
+  $('#watchList').addEventListener('click', (e) => {
+    const id = e.target.closest('[data-del]')?.dataset.del; if (!id) return;
+    state.watch = state.watch.filter((w) => w.id !== id); saveWatch(state.watch); renderWatch();
+  });
+  $('#watchList').addEventListener('change', (e) => {
+    const id = e.target.dataset.note; if (!id) return;
+    state.watch = state.watch.map((w) => (w.id === id ? { ...w, note: e.target.value } : w)); saveWatch(state.watch);
+  });
+  $('#watchRefresh').addEventListener('click', refreshWatch);
+  $('#watchClear').addEventListener('click', () => { state.watch = state.watch.filter(isOpen); saveWatch(state.watch); renderWatch(); });
+  $('#watchExport').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(state.watch, null, 1)], { type: 'application/json' }));
+    a.download = `takip-listesi-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+  });
+  $('#watchImport').addEventListener('change', async (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    try { state.watch = mergeImport(state.watch, await f.text()); saveWatch(state.watch); renderWatch(); banner('Takip listesi içe aktarıldı.'); }
+    catch (err) { banner(`İçe aktarılamadı: ${err.message}`, 'err'); }
+    e.target.value = '';
+  });
+  setInterval(() => { if (!state.busy && state.watch.some(isOpen) && document.visibilityState === 'visible') refreshWatch(); }, 5 * 60e3);
+}
+
 // ------------------------------------------------------------------ başlat
 renderToolbar();
 bindToolbar();
 bindRows();
 bindScreenshot();
+bindWatch();
+if (state.watch.length) $('#watchPanel').open = true;
+refreshWatch();
 if (FIXTURE) banner('Fixture modu: OKX yerine sentetik veri kullanılıyor.');
 window.addEventListener('beforeunload', destroyChart);
 window.__cta = { state, scan, UI_DEFAULTS };

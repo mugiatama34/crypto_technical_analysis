@@ -249,3 +249,9 @@ Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön
 - Yaklaşım farkı: tek limit yakın kenarda, emir 96 saat (orijinal: kademeli, B kırılana kadar); TP1 1 × dalga 1.
 - **Yapılanlar:** `src/scan/wave3.js` güncel sürüm (`cExtend` bayrağı, bot varsayılanı eski davranış, 240/240 birebir), `src/scan/smt.js`,
   tarayıcıda **Ayarlar** bölmesi (Genel + Dalga-3 alt başlıkları), sinyal adında 📐 x/4 ve SMT ✓, notta eksik şartlar. Testler 145.
+
+## 28.10.2026 — ★ Takip listesi + CLAUDE.md "sorgula" kuralı
+- Tarayıcıya ★ takip listesi (botun buildPlan/trackPlan'ı; localStorage; not, sil, kapananları sil, dışa/içe aktar, 5 dk'da bir
+  güncelleme, bildirim). Testler 147.
+- CLAUDE.md: kullanıcı isteği mantıksız/eksik/ölçümle çelişiyorsa uygulamadan önce söyle ve sorgula.
+- Bekleyen: işlem check list'i (10 madde) — öneri kullanıcı onayında.

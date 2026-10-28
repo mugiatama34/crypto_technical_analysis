@@ -60,6 +60,20 @@
     <div class="panel-body" id="settings"></div>
   </details>
 
+  <details class="panel" id="watchPanel">
+    <summary id="watchTitle">★ Takip listem</summary>
+    <div class="panel-body">
+      <div class="set-actions" style="margin-bottom:10px">
+        <button type="button" class="btn" id="watchRefresh">Güncelle</button>
+        <button type="button" class="btn" id="watchClear">Kapananları sil</button>
+        <button type="button" class="btn" id="watchExport">Dışa aktar</button>
+        <label class="btn" style="cursor:pointer">İçe aktar<input type="file" id="watchImport" accept="application/json" hidden></label>
+        <span class="note">Giriş/stop/hedefler takibe alındığı anda dondurulur; bot kurallarıyla izlenir (bekleyen emir 24 saat). Liste yalnız bu tarayıcıda; taşımak için dışa/içe aktar. Sayfa açıkken 5 dakikada bir güncellenir.</span>
+      </div>
+      <div id="watchList" class="rows"></div>
+    </div>
+  </details>
+
   <div id="banner" hidden></div>
   <div class="summary" id="summary"><span class="note">"Tara"ya basınca seçili evren, seçili zaman dilimlerinde taranır; her sembol × zaman dilimi için bulunan yapılar aynı fiyat bölgesinde kümelenip puanlanır. Aynı sembolde birden çok zaman dilimi aynı yönü gösteriyorsa <b>MTF</b> rozeti çıkar.</span></div>
 
@@ -113,6 +127,6 @@
   </footer>
 </div>
 <script src="lib/lightweight-charts.standalone.production.js"></script>
-<script type="module" src="src/ui/app.js?v=2"></script>
+<script type="module" src="src/ui/app.js?v=3"></script>
 </body>
 </html>
