@@ -173,3 +173,4 @@ footer a { color: var(--ink-2); }
 .cl small { color: var(--ink-muted); font-size: 11px; }
 .cl .ev { border: 1px solid var(--grid); border-radius: 6px; padding: 0 4px; margin-left: 4px; }
 .cl .ev.m { color: #4fb3a9; }
+.cl .ev.w { color: #c9a227; } .cl .ev.n { color: #e5655f; }

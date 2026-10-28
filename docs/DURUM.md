@@ -258,3 +258,25 @@ Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön
 - **Check list (10 madde, onaylandı; stop eşiği %0,8):** ayrıntıda ✓/✗/? + ölçüldü/ölçülmedi etiketi; takibe alınana dondurulur.
   Maddeler 1–6 ölçülmüş filtreler, 7 kural, 8–10 ölçülmedi. Öneri: "≥ N madde" kesitini sweep'te ölç (karar aracı değil, kontrol
   aracı). Testler 150.
+
+## 28.10.2026 — Check list ölçümü (koşu 40666195858; 12 ay 1H/4H, 70 bin plan; bölünme 13.07.2026)
+**Tüm planlar (filtresiz, n 47 bin; taban eğitim −0,09 / doğr −0,08R).** Madde etkisi Δ = ✓ − ✗ (eğitim / doğrulama · hedge'li):
+| Madde | Δ R | Δ hedge'li | Sonuç |
+|---|---|---|---|
+| stop ≥ %0,8 | +0,22 / +0,22 | +0,32 / +0,32 | **sağlam, en güçlü** (dar stop = komisyon) |
+| limit giriş | +0,04 / +0,07 | +0,05 / +0,06 | sağlam |
+| hafta içi | +0,03 / +0,03 | +0,04 / +0,04 | sağlam |
+| BTC günlük rejimi | +0,15 / **−0,11** | +0,04 / 0,00 | tutarsız |
+| üst TF trendi | +0,07 / −0,09 | +0,04 / +0,03 | tutarsız |
+| yavaş yaklaşma | −0,01 / +0,06 | −0,02 / +0,03 | tutarsız |
+| rs, yol temiz, likidite, ≥ 2 yöntem | ≈ 0 ya da − | ≈ 0 | etkisiz |
+- **Ağırlıksız sayım:** ≤ 3 en kötü (doğr. −0,17R), 4–7 arası −0,04…−0,08, **≥ 8 yine kötü (−0,15)**; hiçbir kova pozitif değil.
+- **Ağırlıklı puan (ağırlık eğitimden):** doğrulamada yüksek dilim (−0,10R) düşük dilimden (−0,04R) **kötü** → çöktü (BTC ve üst TF
+  ağırlıkları dönemle ters döndü). Hedge'li ağırlıkla da ayırt etmiyor.
+**Canlı 4H düzeni içinde (n 495; 4, 6, 7 ve üst TF hep ✓ → ölçülemez):** rs +0,04 / +0,03 (hedge'li +0,09 / +0,06), yavaş yaklaşma
++0,02 / +0,11, yol temiz +0,19 / +0,01 (n 65–80) → zayıf pozitif, sonuçsuz; likidite mıknatısı −0,07 / −0,05; BTC rejimi ≈ 0.
+Sayım 6 / 7 / ≥ 8: doğr. +0,07 / +0,10 / +0,11R (fark gürültü düzeyinde); ağırlıklı yüksek–düşük farkı +0,02R (anlamsız).
+**Düzeltme (önemli):** "kazanç BTC yönünden" = işlem SÜRESİNCE BTC'nin gittiği yön (β, geriye bakınca). Girişteki BTC günlük
+rejimi bunu önceden bilmiyor (tutarsız). Check list etiketleri ölçüme göre güncellendi (sağlam / zayıf + / tutarsız / olumsuz / etkisiz).
+**Karar önerisi:** sayı/puan karar aracı değil. Gerçek parada sağlam üçlü: stop ≥ %0,8 · limit · hafta içi. Canlıya kural yok
+(4H stopları zaten geniş; stop ≥ %0,8 yalnız 1H/15m açılırsa anlamlı). Testler 151.

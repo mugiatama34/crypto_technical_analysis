@@ -17,7 +17,7 @@ test('check list: 10 madde, ölçülmüş/ölçülmemiş etiketi; long lehine he
   const by = Object.fromEntries(r.items.map((x) => [x.id, x.ok]));
   assert.deepEqual(by, { btc: true, htf: true, rs: true, limit: true, slow: true, weekday: true, stop: true, path: true, magnet: true, confl: true });
   assert.equal(r.n, 10); assert.equal(r.known, 10);
-  assert.equal(r.items.find((x) => x.id === 'path').ev, 'ölçülmedi');
+  assert.equal(r.items.find((x) => x.id === 'stop').ev, 'sağlam'); assert.equal(r.items.find((x) => x.id === 'btc').ev, 'tutarsız');
 });
 
 test('check list: ters koşullar ✗, veri yoksa ?', () => {

@@ -348,8 +348,8 @@ function renderChecklist(cl) {
   const el = $('#checklist'); if (!el) return;
   if (cl.error) { el.innerHTML = `<p class="note">Check list yok: ${esc(cl.error)}</p>`; return; }
   el.innerHTML = `<h2>Check list <b>${cl.n}/${cl.of}</b>${cl.known < cl.of ? ` <small>(${cl.of - cl.known} madde verisiz)</small>` : ''}</h2>
-    <p class="note">Madde sayısı başarı olasılığı değildir; maddeler eşit ağırlıkta değil (kazancın çoğu BTC yönünden). "ölçülmedi" maddeler görüş.</p>
-    <ul class="cl">${cl.items.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev ${x.ev === 'ölçüldü' ? 'm' : ''}">${esc(x.ev)}</small><br><small>${esc(x.detail || '')}</small></span></li>`).join('')}</ul>`;
+    <p class="note">Ölçüm (12 ay, 1H/4H): madde sayısı ve ağırlıklı puan doğrulamada ayırt etmedi. Etiket = maddenin kendi ölçümü (sağlam / zayıf + / tutarsız / olumsuz / etkisiz); ayrıntı için maddeye uzun bas.</p>
+    <ul class="cl">${cl.items.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev ${x.ev === 'sağlam' ? 'm' : x.ev === 'zayıf +' ? 'w' : x.ev === 'olumsuz' ? 'n' : ''}">${esc(x.ev)}</small><br><small>${esc(x.detail || '')}</small></span></li>`).join('')}</ul>`;
 }
 
 // ------------------------------------------------------------------ ★ takip listesi

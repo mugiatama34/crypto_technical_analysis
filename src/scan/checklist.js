@@ -1,21 +1,21 @@
-// İşlem check list'i (kullanıcı onayı 28.10.2026): 10 madde, her biri ✓ / ✗ / ? (veri yok). Madde sayısı başarı olasılığı
-// DEĞİLDİR: maddeler eşit ağırlıkta değil (kazancın çoğu BTC yönünden) ve 8–10 ölçülmedi. Saf fonksiyonlar; veri dışarıdan.
+// İşlem check list'i (kullanıcı onayı 28.10.2026): 10 madde, her biri ✓ / ✗ / ? (veri yok). ev = ölçüm sonucu (checklist.mjs,
+// 28.10, 12 ay 1H/4H): sağlam / zayıf + / tutarsız / olumsuz / etkisiz. Madde sayısı ve ağırlıklı puan doğrulamada ayırt etmedi. Saf fonksiyonlar; veri dışarıdan.
 import { regimeNow, horizonTrend } from './regime.js';
 import { approachOf, isKnife, knifeGuardOf, isWeekendUtc } from '../../bot/plan.js';
 
 export const MIN_STOP_PCT = 0.8; // madde 7: stop mesafesi ≥ %0,8 (komisyon R'nin < 0,15'i)
 
 export const CHECKS = [
-  { id: 'btc', label: 'BTC günlük rejimi aynı yönde', ev: 'ölçüldü', hint: 'BTC günlük kapanışı EMA50 üstünde → long, altında → short. Kazancın ana kaynağı.' },
-  { id: 'htf', label: 'Coin\'in üst TF trendi aynı yönde', ev: 'ölçüldü', hint: '15m→1H, 1H→4H, 4H→1D: EMA50 tarafı + eğimi + ADX/DI. Canlıda filtre.' },
-  { id: 'rs', label: 'BTC\'ye göre güç işlem yönünde', ev: 'ölçüldü', hint: 'Long: coin/BTC oranı EMA50 üstünde ve yükseliyor; short: tersi. Zayıf pozitif.' },
-  { id: 'limit', label: 'Limit giriş (fiyat bölgede değil)', ev: 'ölçüldü', hint: 'Fiyat bölgeye gelmeden emir. Canlıda filtre.' },
-  { id: 'slow', label: 'Bölgeye yavaş yaklaşıyor (düşen bıçak değil)', ev: 'ölçüldü', hint: 'Son 3 mumda hareket < 2 ATR ve son mum < 1,5 ATR. +0,02R.' },
-  { id: 'weekday', label: 'Hafta içi (UTC Cumartesi/Pazar değil)', ev: 'ölçüldü', hint: 'Hafta sonu girişleri her TF\'de daha kötü. Canlıda filtre.' },
-  { id: 'stop', label: `Stop mesafesi ≥ %${String(MIN_STOP_PCT).replace('.', ',')}`, ev: 'kural', hint: 'Dar stopta komisyon R\'yi yer (SUI 27.10: komisyon 0,28R).' },
-  { id: 'path', label: 'Giriş→TP1 yolunda ters FVG/OB yok', ev: 'ölçülmedi', hint: 'Yolda ters yönlü, dokunulmamış FVG ya da order block fiyatı durdurabilir.' },
-  { id: 'magnet', label: 'Hedef yakınında likidite mıknatısı var', ev: 'ölçülmedi', hint: 'TP1/TP2 çevresinde (±1 ATR) ya da aralarında alınmamış eşit tepe/dip, önceki gün/hafta ucu.' },
-  { id: 'confl', label: 'Kümede en az 2 farklı yöntem', ev: 'ölçülmedi', hint: 'Aynı bölgede ör. yapı/SMC + fib/Elliott (mum formasyonu ve indikatör sayılmaz: teyit, yöntem değil). Puanın parçası, tek başına ölçülmedi.' },
+  { id: 'btc', label: 'BTC günlük rejimi aynı yönde', ev: 'tutarsız', hint: 'BTC günlük kapanışı EMA50 üstünde → long, altında → short. Ölçüm (12 ay, 47 bin işlem): eğitimde +0,15R, doğrulamada −0,11R, hedge\'li ≈ 0 → girişte BTC rejimi sonucu önceden söylemiyor.' },
+  { id: 'htf', label: 'Coin\'in üst TF trendi aynı yönde', ev: 'tutarsız', hint: '15m→1H, 1H→4H, 4H→1D: EMA50 tarafı + eğimi + ADX/DI. Tüm planlarda eğitim +0,07R, doğrulama −0,09R; canlı 4H birleşiminin içinde filtre (orada ölçülemez).' },
+  { id: 'rs', label: 'BTC\'ye göre güç işlem yönünde', ev: 'zayıf +', hint: 'Long: coin/BTC oranı EMA50 üstünde ve yükseliyor; short: tersi. Canlı 4H içinde +0,04 / +0,03R (hedge\'li +0,09 / +0,06), n ≈ 115; tüm planlarda ≈ 0.' },
+  { id: 'limit', label: 'Limit giriş (fiyat bölgede değil)', ev: 'sağlam', hint: 'Fiyat bölgeye gelmeden emir. +0,04 / +0,07R, hedge\'li de (+0,05 / +0,06). Canlıda filtre.' },
+  { id: 'slow', label: 'Bölgeye yavaş yaklaşıyor (düşen bıçak değil)', ev: 'zayıf +', hint: 'Son 3 mumda hareket < 2 ATR ve son mum < 1,5 ATR. Canlı 4H içinde +0,02 / +0,11R (hedge\'li +0,03 / +0,06); tüm planlarda tutarsız.' },
+  { id: 'weekday', label: 'Hafta içi (UTC Cumartesi/Pazar değil)', ev: 'sağlam', hint: '+0,03 / +0,03R, hedge\'li +0,04 / +0,04. Canlıda filtre.' },
+  { id: 'stop', label: `Stop mesafesi ≥ %${String(MIN_STOP_PCT).replace('.', ',')}`, ev: 'sağlam', hint: 'Dar stopta komisyon R\'yi yer. En güçlü madde: +0,22 / +0,22R, hedge\'li +0,32 / +0,32 (1H\'de belirleyici; 4H stopları zaten geniş).' },
+  { id: 'path', label: 'Giriş→TP1 yolunda ters FVG/OB yok', ev: 'zayıf +', hint: 'Canlı 4H içinde +0,19 / +0,01R (hedge\'li +0,13 / +0,06), n ≈ 70; tüm planlarda ≈ 0. Sonuçsuz.' },
+  { id: 'magnet', label: 'Hedef yakınında likidite mıknatısı var', ev: 'olumsuz', hint: 'TP1/TP2 çevresinde (±1 ATR) ya da aralarında alınmamış eşit tepe/dip, önceki gün/hafta ucu. Ölçüm: canlı 4H içinde −0,07 / −0,05R; tüm planlarda tutarsız.' },
+  { id: 'confl', label: 'Kümede en az 2 farklı yöntem', ev: 'etkisiz', hint: 'Mum formasyonu ve indikatör sayılmaz. Planların %99\'u zaten ✓ → ayırt etmiyor.' },
 ];
 
 const lvlOf = (s) => s.meta?.level ?? (s.zone ? (s.zone[0] + s.zone[1]) / 2 : null);
