@@ -37,6 +37,8 @@
   .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 8px 2px 0; font-size: 12px; color: var(--ink-2); }
   .legend .lg { display: inline-flex; align-items: center; gap: 6px; } .legend .lg i { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
   .legend .lg b { font-variant-numeric: tabular-nums; } .legend .lg.key { color: var(--ink); }
+  .legend .lg.faint { opacity: .6; } .layers-lbl { color: var(--ink-dim); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-left: 6px; }
+  #layers .chip[disabled] { opacity: .4; cursor: default; }
   .hint { color: var(--ink-dim); font-size: 12px; margin: 10px 2px 0; }
   .allsig { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 12.5px; }
 </style>
@@ -68,7 +70,7 @@
     <div class="head"><h2 id="h-coin"></h2><span class="px" id="h-px"></span><span id="h-chg"></span></div>
     <p class="headline" id="headline"></p>
     <div class="tablewrap"><table class="grid" id="tftable"></table></div>
-    <div class="tfbar"><div class="chips" id="tftabs"></div><label class="allsig"><input type="checkbox" id="allsig"> tüm sinyaller</label></div>
+    <div class="tfbar"><div class="chips" id="tftabs"></div><label class="allsig"><input type="checkbox" id="allsig"> tüm sinyaller</label><span class="layers-lbl">Katmanlar</span><div class="chips" id="layers" role="group" aria-label="Katmanlar"></div></div>
     <div class="chart" id="chart"></div>
     <div class="legend" id="legend"></div>
     <p class="hint">Grafikte seçili küme çizili. Başka bir kümeyi görmek için aşağıdaki kartına dokun; yakınlaştırmak için grafikte iki parmakla aç ya da fare tekerini kullan.</p>
@@ -83,6 +85,6 @@
   <footer><strong>Veri: OKX USDT perp.</strong> Yatırım tavsiyesi değildir.</footer>
 </div>
 <script src="lib/lightweight-charts.standalone.production.js"></script>
-<script type="module" src="src/ui/coin.js"></script>
+<script type="module" src="src/ui/coin.js?v=2"></script>
 </body>
 </html>

@@ -11,12 +11,12 @@ const plan = { d: 1, atr: 1, entry: 100, stop: 99, tp1: 103, tp2: 105, inZone: f
 const slow = build([[0, 102], [10, 101], [20, 100.5]]);
 const wed = Date.UTC(2026, 9, 28, 12), sat = Date.UTC(2026, 9, 31, 12);
 
-test('check list: 10 madde, ölçülmüş/ölçülmemiş etiketi; long lehine her şey ✓', () => {
-  assert.equal(CHECKS.length, 10);
+test('check list: 8 madde, ölçülmüş/ölçülmemiş etiketi; long lehine her şey ✓', () => {
+  assert.equal(CHECKS.length, 8);
   const r = checklistOf({ plan, candles: slow, btcDaily: up, upCandles: up, smc: [{ type: 'liquidity', direction: 'neutral', name: 'EQH (alınmamış)', zone: [102.8, 103.2], meta: { level: 103 } }], coin: 'X', now: wed });
   const by = Object.fromEntries(r.items.map((x) => [x.id, x.ok]));
-  assert.deepEqual(by, { btc: true, htf: true, rs: true, limit: true, slow: true, weekday: true, stop: true, path: true, magnet: true, confl: true });
-  assert.equal(r.n, 10); assert.equal(r.known, 10);
+  assert.deepEqual(by, { btc: true, htf: true, rs: true, limit: true, slow: true, weekday: true, stop: true, path: true });
+  assert.equal(r.n, 8); assert.equal(r.known, 8);
   assert.equal(r.items.find((x) => x.id === 'stop').ev, 'sağlam'); assert.equal(r.items.find((x) => x.id === 'btc').ev, 'tutarsız');
 });
 
@@ -27,8 +27,8 @@ test('check list: ters koşullar ✗, veri yoksa ?', () => {
     smc: [{ type: 'fvg', direction: 'short', status: 'active', name: 'FVG ↓', zone: [101, 101.6] }], coin: 'X', now: sat,
   });
   const by = Object.fromEntries(r.items.map((x) => [x.id, x.ok]));
-  assert.deepEqual(by, { btc: false, htf: null, rs: null, limit: false, slow: false, weekday: false, stop: false, path: false, magnet: false, confl: false });
-  assert.equal(r.n, 0); assert.equal(r.known, 8);
+  assert.deepEqual(by, { btc: false, htf: null, rs: null, limit: false, slow: false, weekday: false, stop: false, path: false });
+  assert.equal(r.n, 0); assert.equal(r.known, 6);
   assert.match(r.items.find((x) => x.id === 'path').detail, /FVG/);
 });
 
@@ -39,7 +39,7 @@ test('check list: dokunulmuş FVG yolu kapatmaz; girişteki bölge sayılmaz', (
 
 test('check list raporu: madde etkisi (✓ − ✗), sayım kovaları, ağırlıklar yalnız eğitimden', async () => {
   const { perItem, byCount, weighted } = await import('../backtest/checklistReport.js');
-  const ids = ['btc', 'htf', 'rs', 'limit', 'slow', 'weekday', 'stop', 'path', 'magnet', 'confl'];
+  const ids = ['btc', 'htf', 'rs', 'limit', 'slow', 'weekday', 'stop', 'path'];
   const mk = (time, btc, R) => ({ time, R, hedgedR: R / 2, outcome: R > 0 ? 'tp2' : 'stopped', ok: Object.fromEntries(ids.map((id) => [id, id === 'btc' ? btc : false])) });
   const trades = [];
   for (let k = 0; k < 40; k++) { trades.push(mk(k, true, 1), mk(k, false, -1)); } // eğitim: btc ✓ +1, ✗ −1

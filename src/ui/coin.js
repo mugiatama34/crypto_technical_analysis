@@ -12,7 +12,15 @@ const provider = window.__COIN_PROVIDER__ || {
   topCoins: (n) => getTopCoins(n),
 };
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* yok */ } } };
-const S = { focus: 0, tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
+// Katmanlar: odak modunda da tüm grafikte soluk çizilen sinyal türleri (seçim tarayıcıda saklanır)
+const LAYERS = [
+  { id: 'fvg', label: 'FVG', match: (s) => s.type === 'fvg' },
+  { id: 'ob', label: 'OB', match: (s) => s.type === 'orderblock' },
+  { id: 'liq', label: 'Likidite', match: (s) => s.type === 'liquidity' },
+  { id: 'fib', label: 'Fib', match: (s) => s.type === 'fibonacci' },
+];
+const LAYER_DEAD = new Set(['invalid', 'done']);
+const S = { layers: new Set(store.get('coin.layers', [])), focus: 0, tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
 const clean = (s) => String(s || '').toUpperCase().replace(/USDT.*$/, '').replace(/[^A-Z0-9]/g, '').slice(0, 15);
 
 function chip(label, pressed, onClick, small = false) {
@@ -92,7 +100,11 @@ function renderTf() {
   const all = $('#allsig').checked;
   if (S.focus >= top.length) S.focus = 0;
   // Odak modu: grafikte yalnız seçili küme (kartına dokunarak değişir); "tüm sinyaller" her şeyi çizer
-  const sigs = all ? x.signals : [...(top[S.focus]?.signals || [])].sort((a, b) => b.strength - a.strength).slice(0, 3); // odak: en güçlü 3 sinyal
+  const focusSigs = [...(top[S.focus]?.signals || [])].sort((a, b) => b.strength - a.strength).slice(0, 3); // odak: en güçlü 3 sinyal
+  const inFocus = new Set(focusSigs.map((q) => q.id));
+  const layerSigs = all ? [] : x.signals.filter((q) => !inFocus.has(q.id) && !LAYER_DEAD.has(q.status) && LAYERS.some((L) => S.layers.has(L.id) && L.match(q))).map((q) => ({ ...q, faint: true }));
+  const sigs = all ? x.signals : [...focusSigs, ...layerSigs];
+  renderLayers(x, all);
   requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref, { clean: true, onLegend: (items) => renderLegend(items, ref) }));
   $('#clusters').innerHTML = top.length ? top.map((c, i) => {
     const core = c.signals[0]?.zone || c.zone;
@@ -104,10 +116,21 @@ function renderTf() {
   }
 }
 
+/** Katman düğmeleri (sayı = bu dilimdeki sinyal); "tüm sinyaller" açıkken pasif. */
+function renderLayers(x, all) {
+  const el = $('#layers'); el.innerHTML = '';
+  for (const L of LAYERS) {
+    const n = x.signals.filter((q) => L.match(q) && !LAYER_DEAD.has(q.status)).length;
+    const b = chip(`${L.label}${n ? ` ${n}` : ''}`, S.layers.has(L.id), () => { S.layers.has(L.id) ? S.layers.delete(L.id) : S.layers.add(L.id); store.set('coin.layers', [...S.layers]); renderTf(); });
+    b.disabled = all || !n; b.title = n ? `${L.label} seviyelerini odak modunda soluk çiz` : 'Bu dilimde yok (analiz türü seçili mi?)';
+    el.append(b);
+  }
+}
+
 /** Grafiğin altında: çizilen seviyeler/bölgeler (renk, ad, fiyat), fiyata göre sıralı. */
 function renderLegend(items, ref) {
   const rows = items.map((it) => ({ ...it, p: it.price ?? (it.lo + it.hi) / 2 })).sort((a, b) => b.p - a.p);
-  $('#legend').innerHTML = rows.length ? rows.map((it) => `<span class="lg${it.key ? ' key' : ''}"><i style="background:${esc(it.color)}"></i>${esc(it.text)} <b>${it.price != null ? fmtPrice(it.price, ref) : `${fmtPrice(it.lo, ref)}–${fmtPrice(it.hi, ref)}`}</b></span>`).join('') : '';
+  $('#legend').innerHTML = rows.length ? rows.map((it) => `<span class="lg${it.key ? ' key' : ''}${it.faint ? ' faint' : ''}"><i style="background:${esc(it.color)}"></i>${esc(it.text)} <b>${it.price != null ? fmtPrice(it.price, ref) : `${fmtPrice(it.lo, ref)}–${fmtPrice(it.hi, ref)}`}</b></span>`).join('') : '';
 }
 
 $('#go').addEventListener('click', run);

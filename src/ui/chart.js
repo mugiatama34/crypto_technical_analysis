@@ -64,7 +64,25 @@ export function drawRow(el, candles, live, signals, price, opts = {}) {
     const clean = data.filter((d) => !seen.has(d.time) && seen.add(d.time)).sort((a, b) => a.time - b.time);
     if (clean.length >= 2) chart.addSeries(LW.LineSeries, lineOpts(color, style, width)).setData(clean);
   };
+  const fade = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c + '66' : c);
   for (const s of signals) {
+    // Katman (s.faint): soluk renk, etiketsiz; kutular ve yatay seviyeler (son 60 mum boyunca) çizilir, gerisi atlanır
+    if (s.faint) {
+      for (const d of s.draw || []) {
+        try {
+          if (d.kind === 'box') {
+            const from = Math.max(0, d.from), to = Math.max(from + 1, Math.min(lastI, d.to));
+            addLine([{ i: from, price: d.hi }, { i: to, price: d.hi }], fade(d.color), 'solid', 1);
+            addLine([{ i: from, price: d.lo }, { i: to, price: d.lo }], fade(d.color), 'dotted', 1);
+            if (clean) legend.push({ color: fade(d.color), text: `${d.label || s.name} (katman)`, lo: d.lo, hi: d.hi, faint: true });
+          } else if (d.kind === 'hline') {
+            addLine([{ i: Math.max(0, lastI - 60), price: d.price }, { i: lastI, price: d.price }], fade(d.color), 'dotted', 1);
+            if (clean) legend.push({ color: fade(d.color), text: `${d.label || s.name} (katman)`, price: d.price, faint: true });
+          }
+        } catch { /* yoksay */ }
+      }
+      continue;
+    }
     for (const d of s.draw || []) {
       try {
         if (d.kind === 'box') {

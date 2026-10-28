@@ -280,3 +280,6 @@ Sayım 6 / 7 / ≥ 8: doğr. +0,07 / +0,10 / +0,11R (fark gürültü düzeyinde)
 rejimi bunu önceden bilmiyor (tutarsız). Check list etiketleri ölçüme göre güncellendi (sağlam / zayıf + / tutarsız / olumsuz / etkisiz).
 **Karar önerisi:** sayı/puan karar aracı değil. Gerçek parada sağlam üçlü: stop ≥ %0,8 · limit · hafta içi. Canlıya kural yok
 (4H stopları zaten geniş; stop ≥ %0,8 yalnız 1H/15m açılırsa anlamlı). Testler 151.
+- 28.10 son: check list 8 maddeye indi ("hedefte likidite" olumsuz, "≥ 2 yöntem" etkisiz → çıkarıldı). Coin sayfasına
+  **Katmanlar** (FVG / OB / Likidite / Fib; odak modunda soluk çizim). FVG "Price action / SMC" ailesinde; odak modu yalnız
+  en güçlü 3 sinyali çizdiği için görünmüyordu. Testler 151.

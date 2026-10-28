@@ -1,4 +1,4 @@
-// İşlem check list'i (kullanıcı onayı 28.10.2026): 10 madde, her biri ✓ / ✗ / ? (veri yok). ev = ölçüm sonucu (checklist.mjs,
+// İşlem check list'i (kullanıcı onayı 28.10.2026): 8 madde (28.10: 'hedefte likidite' ve '≥ 2 yöntem' ölçümde bilgi vermediği için çıkarıldı), her biri ✓ / ✗ / ? (veri yok). ev = ölçüm sonucu (checklist.mjs,
 // 28.10, 12 ay 1H/4H): sağlam / zayıf + / tutarsız / olumsuz / etkisiz. Madde sayısı ve ağırlıklı puan doğrulamada ayırt etmedi. Saf fonksiyonlar; veri dışarıdan.
 import { regimeNow, horizonTrend } from './regime.js';
 import { approachOf, isKnife, knifeGuardOf, isWeekendUtc } from '../../bot/plan.js';
@@ -14,11 +14,8 @@ export const CHECKS = [
   { id: 'weekday', label: 'Hafta içi (UTC Cumartesi/Pazar değil)', ev: 'sağlam', hint: '+0,03 / +0,03R, hedge\'li +0,04 / +0,04. Canlıda filtre.' },
   { id: 'stop', label: `Stop mesafesi ≥ %${String(MIN_STOP_PCT).replace('.', ',')}`, ev: 'sağlam', hint: 'Dar stopta komisyon R\'yi yer. En güçlü madde: +0,22 / +0,22R, hedge\'li +0,32 / +0,32 (1H\'de belirleyici; 4H stopları zaten geniş).' },
   { id: 'path', label: 'Giriş→TP1 yolunda ters FVG/OB yok', ev: 'zayıf +', hint: 'Canlı 4H içinde +0,19 / +0,01R (hedge\'li +0,13 / +0,06), n ≈ 70; tüm planlarda ≈ 0. Sonuçsuz.' },
-  { id: 'magnet', label: 'Hedef yakınında likidite mıknatısı var', ev: 'olumsuz', hint: 'TP1/TP2 çevresinde (±1 ATR) ya da aralarında alınmamış eşit tepe/dip, önceki gün/hafta ucu. Ölçüm: canlı 4H içinde −0,07 / −0,05R; tüm planlarda tutarsız.' },
-  { id: 'confl', label: 'Kümede en az 2 farklı yöntem', ev: 'etkisiz', hint: 'Mum formasyonu ve indikatör sayılmaz. Planların %99\'u zaten ✓ → ayırt etmiyor.' },
 ];
 
-const lvlOf = (s) => s.meta?.level ?? (s.zone ? (s.zone[0] + s.zone[1]) / 2 : null);
 const DEAD = new Set(['mitigated', 'invalid', 'done']);
 
 /**
@@ -56,14 +53,6 @@ export function checklistOf({ plan, candles, btcDaily = null, upCandles = null, 
   const lo = Math.min(plan.entry + d * 0.1 * atr, plan.tp1), hi = Math.max(plan.entry + d * 0.1 * atr, plan.tp1);
   const block = smc.find((s) => (s.type === 'fvg' || s.type === 'orderblock') && s.direction === oppo && !DEAD.has(s.status) && s.zone && s.zone[1] > lo && s.zone[0] < hi);
   res.path = { ok: !block, detail: block ? `yolda: ${block.name}` : 'yol temiz' };
-  // 9) Hedef yakınında likidite (alınmamış havuz / önceki gün-hafta ucu)
-  const pools = smc.filter((s) => s.type === 'liquidity' && s.direction === 'neutral').map((s) => ({ s, lv: lvlOf(s) })).filter((x) => x.lv != null && d * (x.lv - plan.entry) > 0);
-  const near = pools.find(({ lv }) => Math.abs(lv - plan.tp1) <= atr || Math.abs(lv - plan.tp2) <= atr || (d * (lv - plan.tp1) >= 0 && d * (plan.tp2 - lv) >= 0));
-  res.magnet = { ok: !!near, detail: near ? `hedefte: ${near.s.name}` : (pools.length ? 'havuz var ama hedeften uzak' : 'yakında likidite havuzu görülmedi') };
-  // 10) Çakışma: en iyi kümede ≥ 2 farklı grup
-  const groups = [...new Set(plan.groups || [])].filter((g) => g !== 'candle' && g !== 'indicator');
-  res.confl = { ok: groups.length >= 2, detail: `${groups.length} grup${groups.length ? `: ${groups.join(', ')}` : ''}` };
-
   const items = CHECKS.map((c) => ({ ...c, ...res[c.id] }));
   return { items, n: items.filter((x) => x.ok === true).length, known: items.filter((x) => x.ok != null).length, of: items.length };
 }

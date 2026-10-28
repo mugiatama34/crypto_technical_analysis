@@ -27,6 +27,9 @@ seçilebilir aileler (PA/SMC, Elliott, Fibonacci + kesişim, formasyon, harmonik
 yapı HH/HL–LH/LL, range konumu, RSI, BTC korelasyonu, BTC'ye göre güç, en iyi long/short çekirdek bölgesi), grafik ve
 kurallara dayalı yorum (yön, BTC ilişkisi, konum, bölgede/yaklaşıyor, fib kesişimi, Elliott, momentum, karar notu).
 Adres `coin.html#ARB` ile doğrudan açılır. 5m isteğe bağlı (varsayılan kapalı; Telegram uyarısında yok).
+Grafik odak modunda seçili kümenin en güçlü 3 sinyalini çizer; **Katmanlar** düğmeleri (FVG / OB / Likidite / Fib, yanında o
+dilimdeki sayı) seçilen türün tüm geçerli sinyallerini soluk ve etiketsiz ekler (açıklamada "(katman)"); seçim tarayıcıda
+saklanır, "tüm sinyaller" açıkken pasif. FVG/OB/Likidite "Price action / SMC", Fib "Fibonacci + kesişim" ailesindedir.
 Grafik **odak modu**: yalnız seçili kümenin en güçlü 3 sinyali çizilir (kart dokununca değişir); fiyat ekseninde yalnız Giriş/Stop/Hedef etiketi kalır, diğer seviye adları çizginin sağ ucunda ve grafiğin altındaki lejantta. "Tüm sinyaller" kutusu her şeyi çizer.
 Fib kesişimi (uyarı, preset, coin sayfası) B'nin A'yı geri alma sınırı %88,6 → %100 (çift tepeye yakın düzeltmeler,
 MORPHO 26.10); canlı botun 4H puanlamasındaki varsayılan değişmedi. Lab: `fib_cluster_g` (aynı ayar, 15m/1H/4H) ve
@@ -77,15 +80,15 @@ gevşek) ve botun `trackPlan`'ı ile izlenir: Bekliyor → Girildi (anlık R) �
 başa baş) | Süre doldu (24 saat) | Kaçtı. Her taramada, "Güncelle" ile ve sayfa açıkken 5 dakikada bir güncellenir; durum
 değişince bildirim. Not alanı, ✕, "Kapananları sil", JSON dışa/içe aktar. Liste yalnız bu tarayıcıda (`src/watch/watch.js`).
 
-### İşlem check list'i (10 madde)
-Ayrıntıda grafiğin altında **Check list x/10** (`src/scan/checklist.js`, kullanıcı onayı 28.10): BTC günlük rejimi aynı yön ·
+### İşlem check list'i (8 madde)
+Ayrıntıda grafiğin altında **Check list x/8** (`src/scan/checklist.js`, kullanıcı onayı 28.10): BTC günlük rejimi aynı yön ·
 coin'in üst TF trendi aynı yön · BTC'ye göre güç işlem yönünde · limit giriş · bölgeye yavaş yaklaşma (düşen bıçak değil) ·
-hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok · hedef yakınında likidite (±1 ATR ya da TP1–TP2 arası) · kümede
-≥ 2 yöntem (mum/indikatör sayılmaz). Her madde ✓ / ✗ / ? ve **ölçüldü / ölçülmedi / kural** etiketi; FVG/OB/likidite
-detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı olasılık değildir (eşit ağırlık değil). ★ Takibe alınan kayda o
-anki check list dondurulur (kartta ✓ n/10).
+hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok. Her madde ✓ / ✗ / ? ve ölçüm etiketi (sağlam / zayıf + /
+tutarsız); FVG/OB detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı ve ağırlıklı puan ölçümde ayırt etmedi
+(kontrol aracı, karar aracı değil). "Hedefte likidite" (olumsuz) ve "≥ 2 yöntem" (etkisiz) ölçüm sonrası çıkarıldı.
+★ Takibe alınan kayda o anki check list dondurulur (kartta ✓ n/8).
 **Ölçüm** (`backtest/checklist.mjs`, Actions → backtest → `mode=checklist`, rapor `docs/backtest/checklist.json`): son tam
-koşunun planlarında her planın karar anında 10 madde (yalnız o ana kadarki veri) → (A) tüm planlar, temel çıkış ve (B) canlı
+koşunun planlarında her planın karar anında maddeler (yalnız o ana kadarki veri) → (A) tüm planlar, temel çıkış ve (B) canlı
 4H düzeni; madde madde etki (✓ − ✗ ort. R), ağırlıksız sayım kovaları ve eğitim diliminden öğrenilen ağırlıklarla puan
 (doğrulamada üçte birlik dilimler); hepsi hedge'li de (`backtest/checklistReport.js`).
 
