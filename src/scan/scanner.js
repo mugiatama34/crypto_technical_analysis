@@ -92,6 +92,13 @@ export function analyzeRow(job, { ids, weights = {}, settings = {}, errors = nul
   return { ...job, price: ctx.price, atr: ctx.atrNow, trend, signals, clusters, best, score: best?.score ?? 0, direction: best?.direction ?? null, error: null };
 }
 
+/** Liste sırası (tarayıcı): kartta görünen küme puanı (r.score) azalan; eşitlikte MTF puanı, sonra sinyal sayısı. */
+export function compareByScore(a, b) {
+  if (b.score !== a.score) return b.score - a.score;
+  const am = a.mtf?.direction === a.direction ? a.mtf.score : 0, bm = b.mtf?.direction === b.direction ? b.mtf.score : 0;
+  return bm - am || (b.best?.signals.length || 0) - (a.best?.signals.length || 0);
+}
+
 export function compareRows(a, b) {
   const am = a.mtf?.direction === a.direction ? a.mtf.score : 0, bm = b.mtf?.direction === b.direction ? b.mtf.score : 0;
   const as = Math.max(a.score, am), bs = Math.max(b.score, bm);

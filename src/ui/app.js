@@ -1,5 +1,5 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
-import { runScan, compareRows } from '../scan/scanner.js';
+import { runScan, compareByScore } from '../scan/scanner.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
 import { TF_ORDER, TIMEFRAMES } from '../data/okx.js';
@@ -145,15 +145,15 @@ function filteredRows() {
   const s = state.settings;
   const q = $('#search').value.trim().toLowerCase();
   let rows = state.rows.filter((r) => !r.error && r.best);
-  rows = rows.filter((r) => Math.max(r.score, r.mtf?.direction === r.direction ? r.mtf.score : 0) >= s.minScore);
+  rows = rows.filter((r) => r.score >= s.minScore); // kartta görünen küme puanı (MTF puanı süzmeyi aşmaz)
   if (s.dirFilter !== 'all') rows = rows.filter((r) => r.direction === s.dirFilter);
   if (q) rows = rows.filter((r) => r.coin.toLowerCase().includes(q) || r.best.signals.some((x) => x.name.toLowerCase().includes(q)));
   const cmp = {
-    score: compareRows,
-    mtf: (a, b) => ((b.mtf?.direction === b.direction ? b.mtf.score : 0) - (a.mtf?.direction === a.direction ? a.mtf.score : 0)) || compareRows(a, b),
-    signals: (a, b) => (b.best.signals.length - a.best.signals.length) || compareRows(a, b),
+    score: compareByScore,
+    mtf: (a, b) => ((b.mtf?.direction === b.direction ? b.mtf.score : 0) - (a.mtf?.direction === a.direction ? a.mtf.score : 0)) || compareByScore(a, b),
+    signals: (a, b) => (b.best.signals.length - a.best.signals.length) || compareByScore(a, b),
     symbol: (a, b) => a.coin.localeCompare(b.coin) || TIMEFRAMES[a.tf].rank - TIMEFRAMES[b.tf].rank,
-  }[s.sortBy] || compareRows;
+  }[s.sortBy] || compareByScore;
   return [...rows].sort(cmp);
 }
 
@@ -215,7 +215,7 @@ function select(r) {
 function renderDetail(r) {
   const b = r.best;
   const shown = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));
-  const others = r.clusters.slice(1, 4);
+  const others = r.clusters.slice(1).filter((c) => c.score >= state.settings.minScore).sort((a, b) => b.score - a.score).slice(0, 3);
   const tv = `https://www.tradingview.com/chart/?symbol=OKX:${encodeURIComponent(r.coin + 'USDT.P')}`;
   const stats = [
     ['Fiyat', fmtPrice(r.price)], ['ATR', fmtPrice(r.atr, r.price)], ['Küme puanı', `${r.score}`],

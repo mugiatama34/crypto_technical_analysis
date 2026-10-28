@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { build, randomWalk } from './helpers.js';
-import { runScan, analyzeRow, compareRows } from '../src/scan/scanner.js';
+import { runScan, analyzeRow, compareRows, compareByScore } from '../src/scan/scanner.js';
 import { clusterSignals, multiTfAlignment } from '../src/scan/scoring.js';
 import { PRESETS } from '../src/scan/presets.js';
 import { DETECTORS } from '../src/scan/registry.js';
@@ -80,4 +80,12 @@ test('presetler yalnızca kayıtlı detektörleri anar', () => {
     for (const d of p.detectors || []) assert.ok(ids.has(d), `${p.id}: ${d}`);
     for (const d of Object.keys(p.weights)) assert.ok(ids.has(d), `${p.id} weight: ${d}`);
   }
+});
+
+test('compareByScore: kartta görünen küme puanına göre sıralar (MTF puanı öne geçirmez)', () => {
+  const r = (coin, score, mtf, n = 1) => ({ coin, direction: 'long', score, mtf: { direction: 'long', score: mtf }, best: { signals: Array(n).fill({}) } });
+  const rows = [r('A', 10, 80), r('B', 45, 0), r('C', 30, 50), r('D', 30, 60)];
+  assert.deepEqual([...rows].sort(compareByScore).map((x) => x.coin), ['B', 'D', 'C', 'A']);
+  // eski sıralama MTF ile A'yı öne alıyordu
+  assert.equal([...rows].sort(compareRows)[0].coin, 'A');
 });

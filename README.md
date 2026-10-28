@@ -60,6 +60,8 @@ Bir sembol + zaman diliminin sinyalleri fiyat bölgesine göre kümelenir (0,5 �
 sinyal gücü × detektör ağırlığı × durum ağırlığı; aynı detektörün tekrarları azalan katkıyla sayılır; farklı
 grupların aynı bölgede buluşması bonus alır; fiyata uzaklık ve küme genişliği ceza alır. Aynı sembolde birden
 çok zaman dilimi aynı yönü gösteriyorsa **MTF** rozeti ve bonus verilir.
+Listede **Min puan** ve **Puan** sıralaması kartta görünen küme puanına göre çalışır (MTF puanı süzmeyi/sırayı aşmaz;
+eşitlikte MTF, sonra sinyal sayısı). Ayrıntıdaki "Diğer kümeler" de min puanın altındakileri göstermez.
 
 ### Presetler
 **Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
