@@ -188,3 +188,18 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
   12 aylık backtest ortalaması bu tür 4 günlük tek yönlü pencereyi yansıtmaz. Stop takibi doğrulanmadı (bu ortamdan OKX'e erişim yok).
 - Sıradaki (öneri): canlı-backtest eşleştirme betiği (her canlı sinyali aynı seviyelerle gerçek mumlarda `trackPlan` + motorla yeniden
   oynat, farkları listele) → backtest.yml'de `mode=replay`. Denetçinin "uygulama hatası" şüphesini kesin kapatır.
+
+## 28.10.2026 — Canlı-backtest eşleştirme sonucu (replay, koşu 40639326072, 592 kayıt, gerçek OKX mumları)
+| Kesit | Kaydedilen R (n, kazanma) | Takip yeniden (n) | Motor (n) | Durum eşleşmesi |
+|---|---|---|---|---|
+| Eski rejim long | −0,80 (402, %9) | −0,74 (387) | −0,73 (387) | %90 |
+| Eski rejim short | +0,29 (40, %45) | +0,30 (45) | +0,30 (44) | %93 |
+| Yeni 4H (26.10'dan) | +0,10 (14, %79) | +0,08 (13) | −0,05 (10) | %92 |
+| Tümü, aynı kayıtlar | −0,659 (418) | −0,663 | — | %91 |
+- **Uygulama hatası yok:** canlı takip, aynı seviyelerle gerçek mumlarda yeniden oynatılınca aynı sonucu veriyor (aynı 418 kayıtta
+  −0,659 vs −0,663R); backtest motoru da aynı planlarla aynı yerde (−0,73R). Eski rejimin kaybı gerçek: long yığılması + düşüş.
+  Eski short'lar +0,29R. Denetçinin "uygulama hatası şüphesi" kapandı.
+- Uyuşmayan 51 kaydın 33'ü bıçak koruması açılış tarihi belirsizliği (betik 21.10 07:00 varsaydı), kalanı çoğunlukla
+  önbellek kaybı dönemindeki sahipsiz kayıtlar ve aynı mumda stop/hedef sırası; sistematik yön yok.
+- Yeni 4H: n 13 → sonuçsuz (motor −0,05 farkı 3 kaydın kaçan/bıçak sayılmasından). 4–6 hafta beklenir.
+- Araç: `node backtest/replay.mjs` / Actions → backtest → `mode=replay` (rapor `docs/backtest/replay.json`). İstenirse haftada bir.
