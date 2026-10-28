@@ -164,3 +164,15 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - HUMA long planı (kullanıcı): 26.10 kapitülasyon fitili 0,0175 (hacim ~10–20×), 27.10 0,02864 tepe; giriş limit 0,02595, stop önerisi 0,0242 (0,02437 dibinin altı), TP1 0,0284 (EQH altı), TP2 0,03075 (22 Eki tepesi); günlük trend aşağı → %0,5 risk.
 - BTC 03:00 UTC 81 199: 25 Eki tepesi 81 008 süpürüldü, Adım 3 premium bölgesine (FVG 81 176–81 222, OB 81 510–81 887) girdi.
 - **Yeni sohbete devir (28.10 sabah):** Açık işler → (1) lab koşusu 40636015586 (div_* uyumsuzluk, 24 ay, top 50, 1H/4H/1D): bitince `docs/backtest/lab.json` oku (meta.strategies div_*), sıkı ölçüt + hedge'li R + TF kırılımı raporla, DURUM'a yaz. (2) HUMA long limit emri verildi (giriş 0,02595, öneri stop 0,0242, TP1 0,0284, TP2 0,03075); kullanıcı dolunca paylaşacak. (3) Pratik: Adım 3 sayfada (artifact https://claude.ai/artifact/QTodSVAzfiDm59JQBQ8zLV), kullanıcı çizimi bekleniyor; bugün çalışma günü planı `docs/egitim/calisma-gunu-28-10.md` (Adım 3 → replay → Adım 4–6). (4) NEAR short planı (süpürme 4,665–4,696 + 15m < 4,614) bilgi olarak. Gerçek işlem günlüğü: ARB 0R, SUI +2,3R, DOGE −1,1R, SUI short ≈ −1R.
+
+## 28.10.2026 — Uyumsuzluk lab sonucu (koşu 40636015586, 24 ay, top 50, 1H/4H/1D)
+| Varyant | Eğitim R / PF | Doğr. R / PF | Hedge'li eğ / doğr | n |
+|---|---|---|---|---|
+| div_rsi_pivot | −0,06 / 0,90 | +0,00 / 1,00 | −0,06 / −0,12 | 5334 |
+| div_rsi_mss | −0,01 / 0,98 | +0,01 / 1,03 | −0,04 / −0,07 | 2526 |
+| div_rsi_mss_ext | +0,01 / 1,02 | +0,02 / 1,03 | −0,03 / −0,10 | 1644 |
+| div_rsimacd_mss | −0,02 / 0,97 | +0,02 / 1,03 | −0,03 / −0,07 | 2264 |
+| div_rsi_mss_btc | +0,03 / 1,06 | +0,08 / 1,17 | −0,05 / −0,06 | 1034 (zayıf) |
+- Sıkı ölçütü geçen yok. En iyisi BTC rejimi yönünde olan; ama hedge'li negatif → kazanç BTC yönünden, uyumsuzluktan değil.
+- 1D umut verici ama n çok küçük (doğr. 23–29; ör. div_rsi_mss 1D doğr. +0,43R PF 2,2, eğitim −0,07R) → sonuçsuz. 1H/4H ≈ 0.
+- Karar: uyumsuzluk yorumda "bakılacak işaret" kalır, ağırlık artmaz, ayrı kategori yok. Sıradaki (isteğe bağlı): 1D'yi geniş evren (universe 150) + daha uzun geçmişle n ≥ 100'e çıkarıp tekrar ölç; RSI trend çizgisi kırılımı ölçülmedi.
