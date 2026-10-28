@@ -212,6 +212,12 @@ Durum dosyası (`bot/state.json`) çalıştırmalar arasında Actions cache ile 
 Gönderilen her setup ve takip sonucu `docs/signals/history.json`'a yazılır (her koşuda commit) ve **`signals.html`**'de
 görünür: kaçı giriş bölgesine geldi, kaçı TP1/TP2 gördü, kaçı stop oldu / süresi doldu / kaçtı; TF, yön, karar, güven ve
 aya göre kırılım; filtrelenebilir tam liste. Gerçekleşen R varsayımı backtest ile aynı (TP1'de yarı, başabaş stop).
+Durum önbelleği kaybolursa geçmişte açık kalan kayıtlar her turda sessizce yeniden takibe alınır (`orphan: true`).
+
+**Canlı-backtest eşleştirme** (`backtest/replay.mjs`, Actions → backtest → `mode=replay`): her geçmiş kaydını aynı
+seviyelerle gerçek mumlarda (1) canlı takip koduyla (`trackPlan`, 24 saat süre dolumu dahil) ve (2) backtest motoruyla
+yeniden oynatır → `docs/backtest/replay.json` (rejim/yön/TF kırılımı, kayıt→takip durum çiftleri, uyuşmayanlar).
+Kayıt ≠ takip → canlı takip/veri sorunu; takip ≠ motor → kural farkı. Ücret/kayma varsayılan 0 (canlı R komisyonsuz).
 
 ### GitHub cron güvenilirliği
 GitHub'ın zamanlayıcısı "elinden geleni yapar": yoğun saatlerde dakikalarca gecikebilir, bazı tetiklemeler hiç
