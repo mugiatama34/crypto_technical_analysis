@@ -63,6 +63,14 @@ grupların aynı bölgede buluşması bonus alır; fiyata uzaklık ve küme geni
 Listede **Min puan** ve **Puan** sıralaması kartta görünen küme puanına göre çalışır (MTF puanı süzmeyi/sırayı aşmaz;
 eşitlikte MTF, sonra sinyal sayısı). Ayrıntıdaki "Diğer kümeler" de min puanın altındakileri göstermez.
 
+### Ayarlar bölmesi (Elliott dalga-3)
+Araç çubuğunun altındaki **Ayarlar** (klonnist/ew-setup-scanner'dan uyarlandı; bu tarayıcıda saklanır): **Genel** (Elliott kural
+seti, SMT referansı/penceresi, "sadece SMT'li limit bölge long'ları") ve **Elliott dalga-3 setup** (Dalga yapısı · Ders kitabı
+şekli · Limit bölge · B kırılımı · Hedef ve R:R). **C uzaması** (C uzayınca / alt derecede bitince kurulum düşmez) tarayıcıda
+açık, botta kapalı (`cExtend`; bot eski kuralla birebir). Dalga-3 sinyal adında **📐 x/4** (ders kitabı şablonu: net dalga 1,
+orantılı ABC, ★ çakışma, süre dengesi) ve **SMT ✓**; notta eksik şartlar, dalga 1 verimi/hızı, "C uzadı". Bot bu ayarları
+kullanmaz. Lab ölçümü (`w3_*`, 24 ay 4H ilk 50): SMT ve ders kitabı filtresi kenar vermedi (DURUM 28.10).
+
 ### Presetler
 **Hepsi**, **ICT giriş**, **Elliott 3. dalga**, **EW diyagonal**, **EW zigzag**, **EW flat**, **EW düzeltmeler**,
 **Harmonik PRZ**, **Kırılım**, **Dönüş**. "Detektörler ve ağırlıklar" panelinden her detektör ayrı ayrı açılıp
@@ -160,6 +168,10 @@ grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) v
 Not: lab hedge'li R'si limit girişli ailelerde önceden sinyal mumundan hesaplanıyordu; artık dolum zamanından.
 
 ### SMC: süpürme → MSS → FVG %50 (arkadaşın kuralı)
+Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2 sürerken, yakın kenar tek limit, 96 saat,
+TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_long_smt` / `_long_nosmt` (SMT ✓ / değil),
+`_tb3` / `_tb4` / `_tb_low` (ders kitabı ≥ 3/4, 4/4, ≤ 2/4). Tarama mum başına bir kez (aileler paylaşır).
+
 Lab aileleri `div_*` (`backtest/lab/divergence.js`, 1H/4H/1D): son iki onaylı swing dibi/tepesinde **klasik uyumsuzluk**
 (fiyat yeni uç, RSI ≥ 2 puan geride). Tetik `div_rsi_pivot` = ikinci uç onaylanınca, diğerleri = ikinci uçtan önceki son
 minör tepe/dip kapanışla kırılınca (MSS, ≤ 20 mum). Stop ikinci uç ∓ 0,2 ATR, TP1 1,5R, TP2 boyun (≥ 2,5R) ya da 3R,

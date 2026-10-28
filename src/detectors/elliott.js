@@ -1,7 +1,8 @@
 // Elliott Wave: (1) dalga-3 giriş setup'ları (wave3.js), (2) ZigZag pivot pencerelerinin kural motoruyla
 // sayımı (ew/engine/analyze.js: itki, diagonal, zigzag, flat, üçgen, WXY) ve sıradaki dalga hedefi.
 import { signal } from '../core/signal.js';
-import { findWave3Setups, activePlans, DEFAULTS as W3 } from '../scan/wave3.js';
+import { findWave3Setups, activePlans, tbMissing, DEFAULTS as W3 } from '../scan/wave3.js';
+import { tagSmt, SMT_LABEL } from '../scan/smt.js';
 import { analyze } from '../ew/engine/analyze.js';
 
 export const EW_DEFAULTS = {
@@ -95,8 +96,12 @@ export function detect(ctx) {
   if (candles.length < 60) return out;
 
   // 1) Dalga-3 setup'ları (preset'e özgü taramada kapatılabilir)
-  const w3opts = { ...W3, ruleSet: o.ruleSet, entryType: 'both', minRR: o.minRR, sensitivities: o.sensitivities };
-  for (const s of o.wave3 === false ? [] : findWave3Setups(candles, w3opts, live)) {
+  // o.w3: tarayıcı Ayarlar bölmesi (C uzaması, ders kitabı, bölge, SMT…); bot göndermez → varsayılanlar
+  const w3opts = { ...W3, ruleSet: o.ruleSet, entryType: 'both', minRR: o.minRR, sensitivities: o.sensitivities, ...(o.w3 || {}) };
+  const setups = o.wave3 === false ? [] : findWave3Setups(candles, w3opts, live);
+  if (ctx.opts.ref && w3opts.smtRef && w3opts.smtRef !== 'off') tagSmt(setups, candles, ctx.opts.ref, w3opts);
+  for (const s of setups) {
+    if (w3opts.smtOnly && s.phase === 'forming' && s.d === 1 && s.zone && s.smt !== 'smt') continue; // yalnız SMT'li limit bölge long
     const plans = activePlans(s, w3opts);
     if (!plans.length) continue;
     const plan = plans[0];
@@ -109,14 +114,17 @@ export function detect(ctx) {
     out.push(signal({
       id: `ew|w3|${s.direction}|${s.points.p0.i}|${s.points.p1.i}`,
       type: 'elliott', group: 'elliott',
-      name: `EW dalga-3 ${plan.type === 'zone' ? 'bölge' : 'kırılım'} (${s.stateLabel})`,
+      name: `EW dalga-3 ${plan.type === 'zone' ? 'bölge' : 'kırılım'} (${s.stateLabel})${o.w3 && s.textbook ? ` 📐${s.textbook.n}/4` : ''}${s.smt === 'smt' ? ' SMT ✓' : ''}`,
       direction: s.direction,
       strength: Math.min(1, (s.score / 100) * (s.zone?.perfect ? 1.1 : 1)),
       zone, index: (s.points.p2 || s.points.cNow).i,
       status: s.state === 'triggered' ? 'triggered' : s.phase === 'forming' ? 'forming' : 'active',
       invalidation: s.points.p0.price, entry, stop,
       target: (plan.type === 'zone' ? Z.targets : L.targets)[0].price,
-      note: `Dalga 2 = ${s.abc?.label || 'ABC yok'}, geri çekilme %${(s.retr * 100).toFixed(0)}, süre oranı ${s.timeRatio.toFixed(1)}×; R:R ${plan.rr.toFixed(1)}${s.zone?.perfect ? ' · ★ mükemmel bölge' : ''}.`,
+      note: `Dalga 2 = ${s.abc?.label || 'ABC yok'}, geri çekilme %${(s.retr * 100).toFixed(0)}, süre oranı ${s.timeRatio.toFixed(1)}×; R:R ${plan.rr.toFixed(1)}${s.zone?.perfect ? ' · ★ mükemmel bölge' : ''}`
+        + `${o.w3 && s.textbook ? ` · 📐 ders kitabı ${s.textbook.n}/4${s.textbook.n < 4 ? ` (eksik: ${tbMissing(s.textbook).join(', ')})` : ''}` : ''}`
+        + `${o.w3 && s.w1q ? ` · dalga 1 verimi ${s.w1q.er.toFixed(2)}, hızı ${s.w1q.speed.toFixed(2)}` : ''}${s.cExt ? ' · C uzadı' : ''}${s.cDone ? ' · C alt derecede bitti' : ''}`
+        + `${s.smt ? ` · ${SMT_LABEL[s.smt]}` : ''}.`,
       draw: [
         { kind: 'line', points: pts.map(({ p }) => ({ i: p.i, price: p.price })), color: '#f0c75e', label: 'EW' },
         ...pts.map(({ p, l }) => ({ kind: 'marker', i: p.i, price: p.price, position: p.type === 'H' ? 'aboveBar' : 'belowBar', shape: p.type === 'H' ? 'arrowDown' : 'arrowUp', color: '#f0c75e', text: l })),
@@ -124,7 +132,7 @@ export function detect(ctx) {
         { kind: 'hline', price: stop, color: '#ef5350', label: 'Stop', style: 'dashed' },
         ...(plan.type === 'zone' ? Z.targets : L.targets).slice(0, 2).map((t, i) => ({ kind: 'hline', price: t.price, color: '#7cc4a8', label: `H${i + 1}`, style: 'dashed' })),
       ],
-      meta: { score: s.score, rr: plan.rr, plan: plan.type, state: s.state, abc: s.abc?.kind || null, perfect: !!s.zone?.perfect },
+      meta: { score: s.score, rr: plan.rr, plan: plan.type, state: s.state, abc: s.abc?.kind || null, perfect: !!s.zone?.perfect, textbook: s.textbook?.n ?? null, smt: s.smt ?? null, cExt: !!s.cExt },
     }));
   }
 

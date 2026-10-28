@@ -143,3 +143,16 @@ footer a { color: var(--ink-2); }
 /* BTC'ye göre göreli güç çipi */
 .mtf.rs-up { color: #4cc24c; }
 .mtf.rs-down { color: #ef7d7d; }
+
+/* Ayarlar bölmesi */
+.set-group { border: 1px solid var(--grid); border-radius: var(--radius); margin: 0 0 10px; }
+.set-group > summary { cursor: pointer; padding: 8px 12px; color: var(--ink-2); font: 600 12.5px/1.35 var(--font); min-height: var(--touch); display: flex; align-items: center; }
+.set-group h4 { margin: 10px 12px 4px; color: var(--ink-dim); font: 600 11px/1.3 var(--font); text-transform: uppercase; letter-spacing: 0.05em; }
+.set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 14px; padding: 4px 12px 12px; }
+.set-grid .field { display: flex; }
+.set-grid .field input, .set-grid .field select { width: 100%; min-height: 32px; }
+.set-grid small, .set-grid .check small { display: block; color: var(--ink-muted); font-size: 11px; line-height: 1.35; margin-top: 2px; }
+.set-grid .check { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--ink-2); align-self: end; }
+.set-grid .check .ck { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; min-height: 32px; }
+.set-grid .check .ck input { margin: 2px 0 0; width: 18px; height: 18px; flex: none; }
+.set-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

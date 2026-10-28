@@ -5,6 +5,7 @@ import { attachRelativeStrength } from './relative.js';
 import { makeContext } from './context.js';
 import { runDetectors, DETECTORS } from './registry.js';
 import { clusterSignals, multiTfAlignment } from './scoring.js';
+import { timeIndex, refCoinFor } from './smt.js';
 
 const CONCURRENCY = 6;
 /** TF'ye göre indirilecek mum sayısı (OKX tek istekte 300 verir; fazlası sayfalanır). */
@@ -35,6 +36,21 @@ export async function runScan(settings, hooks = {}) {
   if (settings.manualCoins?.length) coins = settings.manualCoins.map((c) => ({ coin: c.toUpperCase(), instId: instIdOf(c.toUpperCase()) }));
   else coins = await provider.topCoins(settings.topN || 50, net);
 
+  // SMT etiketi (tarayıcı Ayarlar → dalga-3): referans grafik (BTC; BTC için ETH) mumları TF başına bir kez
+  const w3 = settings.detectorOpts?.elliott?.w3;
+  const refs = new Map();
+  if (w3?.smtRef && w3.smtRef !== 'off') {
+    for (const tf of tfs) for (const rc of [w3.smtRef, w3.smtRef === 'BTC' ? 'ETH' : 'BTC']) {
+      try {
+        const key = `${instIdOf(rc)}|${tf}`;
+        let data = cache.get(key);
+        if (!data || Date.now() - data.at > (TIMEFRAMES[tf].ms / 4)) { const r = await provider.candles(instIdOf(rc), tf, barsFor(tf), net); data = { candles: r.candles, live: r.live, at: Date.now() }; cache.set(key, data); }
+        refs.set(`${rc}|${tf}`, { candles: data.candles, index: timeIndex(data.candles) });
+      } catch (err) { if (err.name === 'AbortError') throw err; }
+    }
+  }
+  const refOf = (coin, tf) => { const rc = refCoinFor(coin, w3?.smtRef); return rc ? refs.get(`${rc}|${tf}`) || null : null; };
+
   const jobs = [];
   for (const c of coins) for (const tf of tfs) jobs.push({ ...c, tf });
   const rows = new Array(jobs.length);
@@ -53,7 +69,7 @@ export async function runScan(settings, hooks = {}) {
           data = { candles, live, at: Date.now() };
           cache.set(key, data);
         }
-        rows[idx] = analyzeRow({ ...j, candles: data.candles, live: data.live }, { ids, weights, settings, errors });
+        rows[idx] = analyzeRow({ ...j, candles: data.candles, live: data.live, ref: refs.size ? refOf(j.coin, j.tf) : null }, { ids, weights, settings, errors });
       } catch (err) {
         if (err.name === 'AbortError') throw err;
         rows[idx] = { ...j, candles: [], live: null, signals: [], clusters: [], best: null, score: 0, direction: null, error: err.message };
@@ -82,7 +98,7 @@ export async function runScan(settings, hooks = {}) {
 
 /** Tek sembol+TF: bağlam → sinyaller → kümeler. Saf; testlerde doğrudan çağrılır. */
 export function analyzeRow(job, { ids, weights = {}, settings = {}, errors = null }) {
-  const ctx = makeContext({ candles: job.candles, live: job.live, tf: job.tf, symbol: job.coin, opts: settings.detectorOpts || {} });
+  const ctx = makeContext({ candles: job.candles, live: job.live, tf: job.tf, symbol: job.coin, opts: job.ref ? { ...(settings.detectorOpts || {}), ref: job.ref } : settings.detectorOpts || {} });
   if (ctx.n < 50) return { ...job, signals: [], clusters: [], best: null, score: 0, direction: null, error: 'Yetersiz mum' };
   const signals = runDetectors(ctx, ids, errors);
   const { clusters, best } = clusterSignals(signals, { atr: ctx.atrNow, price: ctx.price, weights, opts: settings.scoring });

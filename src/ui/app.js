@@ -5,6 +5,7 @@ import { PRESETS, PRESET_MAP } from '../scan/presets.js';
 import { TF_ORDER, TIMEFRAMES } from '../data/okx.js';
 import { fixtureProvider } from '../data/fixture.js';
 import { loadSettings, saveSettings, effectiveDetectors, UI_DEFAULTS } from './settings.js';
+import { renderSettingsPanel, EW_UI_DEFAULTS } from './settingsPanel.js';
 import { drawRow, destroyChart } from './chart.js';
 import { analyzeScreenshot } from './screenshot.js';
 import { fmtPrice, fmtTime, esc } from './format.js';
@@ -33,6 +34,14 @@ function renderToolbar() {
   $('#sortBy').value = s.sortBy;
   $('#apiKey').value = s.apiKey || '';
   renderDetectors();
+  renderSettings();
+}
+
+function renderSettings() {
+  renderSettingsPanel($('#settings'), state.settings.ew, (patch) => {
+    update({ ew: patch ? { ...state.settings.ew, ...patch } : { ...EW_UI_DEFAULTS } });
+    if (!patch) renderSettings();
+  });
 }
 
 function renderDetectors() {

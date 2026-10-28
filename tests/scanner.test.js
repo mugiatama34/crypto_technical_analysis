@@ -89,3 +89,14 @@ test('compareByScore: kartta görünen küme puanına göre sıralar (MTF puanı
   // eski sıralama MTF ile A'yı öne alıyordu
   assert.equal([...rows].sort(compareRows)[0].coin, 'A');
 });
+
+test('Ayarlar: withEw dalga-3 seçeneklerini Elliott detektörüne ekler, preset ayarlarını korur', async () => {
+  const { withEw } = await import('../src/ui/settings.js');
+  const { EW_UI_DEFAULTS, parseField } = await import('../src/ui/settingsPanel.js');
+  const o = withEw({ elliott: { patterns: ['zigzag'], wave3: false }, fvg: { x: 1 } }, { ...EW_UI_DEFAULTS, textbook: true, ruleSet: 'fp' });
+  assert.deepEqual(o.elliott.patterns, ['zigzag']); assert.equal(o.elliott.wave3, false); assert.equal(o.fvg.x, 1);
+  assert.equal(o.elliott.ruleSet, 'fp'); assert.equal(o.elliott.w3.textbook, true); assert.equal(o.elliott.w3.cExtend, true);
+  assert.equal(parseField('retrMin', '50'), 0.5);
+  assert.deepEqual(parseField('targets', ''), EW_UI_DEFAULTS.targets);
+  assert.equal(parseField('textbookMin', '4'), 4);
+});

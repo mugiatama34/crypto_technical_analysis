@@ -229,3 +229,23 @@ Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön
   (ABCDE) ve diagonal dalga 4→5 modları, tarayıcıda ★ takip listesi, backtest para simülasyonu (kaldıraç/tasfiye), hedef seçimi, CSV.
 - Öneri sırası: (1) wave3 düzeltmelerini taşı, (2) lab'de SMT + ders kitabı etiketini sıkı ölçüt + hedge'li R ile ölç, (3) ★ takip listesi.
   Kullanıcı kararı bekleniyor.
+
+## 28.10.2026 — Dalga-3 güncellemesi + SMT / ders kitabı ölçümü (lab 40658989127, 24 ay, 4H, ilk 50; bölünme 02.03.2026)
+| Aile | Eğitim R / PF (n) | Doğr. R / PF (n) | Hedge'li eğ / doğr | Karar |
+|---|---|---|---|---|
+| w3_zone (C uzaması açık, L+S) | −0,08 / 0,87 (978) | +0,02 / 1,04 (671) | −0,10 / −0,02 | ret |
+| w3_zone_legacy (eski C kuralı) | −0,06 / 0,90 (968) | +0,05 / 1,08 (660) | −0,08 / 0,00 | ret (≈ aynı) |
+| w3_zone_long | −0,12 / 0,80 (868) | +0,18 / 1,34 (591) | −0,13 / +0,06 | zayıf (yalnız doğr.) |
+| w3_zone_long_smt (SMT ✓) | −0,16 / 0,76 (581) | +0,13 / 1,24 (344) | −0,13 / +0,06 | ret |
+| w3_zone_long_nosmt | −0,17 / 0,73 (704) | +0,19 / 1,36 (497) | −0,15 / +0,04 | ret |
+| w3_zone_tb3 (≥ 3/4) | −0,06 / 0,91 (525) | −0,11 / 0,84 (368) | −0,03 / −0,13 | ret |
+| w3_zone_tb4 (4/4) | +0,09 / 1,14 (147) | −0,23 / 0,67 (102) | +0,06 / −0,11 | ret |
+| w3_zone_tb_low (≤ 2/4) | −0,08 / 0,86 (931) | +0,03 / 1,05 (631) | −0,12 / 0,00 | ret |
+- **SMT doğrulanmadı:** SMT ✓ long'lar SMT'siz long'lardan iyi değil (doğr. +0,13 vs +0,19; hedge'li +0,06 vs +0,04). Long'lar
+  eğitimde −, doğrulamada + (Mart–Ekim 2026 yükselişi; short'lar tersi) → kazanç BTC yönünden (r 0,55). Arkadaşın 1 yıllık +53R'si
+  büyük olasılıkla bu yükseliş dilimi (hedge'siz).
+- **Ders kitabı şekli kenar vermedi**; 4/4 doğrulamada en kötü (arkadaşın notuyla aynı). Etiket olarak kalır, filtre önerilmez.
+- **C uzaması** sonucu değiştirmiyor (≈ aynı) → tarayıcıda açık, botta kapalı kalır.
+- Yaklaşım farkı: tek limit yakın kenarda, emir 96 saat (orijinal: kademeli, B kırılana kadar); TP1 1 × dalga 1.
+- **Yapılanlar:** `src/scan/wave3.js` güncel sürüm (`cExtend` bayrağı, bot varsayılanı eski davranış, 240/240 birebir), `src/scan/smt.js`,
+  tarayıcıda **Ayarlar** bölmesi (Genel + Dalga-3 alt başlıkları), sinyal adında 📐 x/4 ve SMT ✓, notta eksik şartlar. Testler 145.
