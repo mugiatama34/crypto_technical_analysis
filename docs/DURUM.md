@@ -176,3 +176,15 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
 - Sıkı ölçütü geçen yok. En iyisi BTC rejimi yönünde olan; ama hedge'li negatif → kazanç BTC yönünden, uyumsuzluktan değil.
 - 1D umut verici ama n çok küçük (doğr. 23–29; ör. div_rsi_mss 1D doğr. +0,43R PF 2,2, eğitim −0,07R) → sonuçsuz. 1H/4H ≈ 0.
 - Karar: uyumsuzluk yorumda "bakılacak işaret" kalır, ağırlık artmaz, ayrı kategori yok. Sıradaki (isteğe bağlı): 1D'yi geniş evren (universe 150) + daha uzun geçmişle n ≥ 100'e çıkarıp tekrar ölç; RSI trend çizgisi kırılımı ölçülmedi.
+
+## 28.10.2026 — Denetçi 🔴 uyarısı incelendi (canlı −0,86R vs backtest +0,02R)
+- **Sahipsiz kayıt hatası (düzeltildi, 6675809):** geçmişte 110 açık kayıt vardı; ~80'i 20–23.10'dan beri hiç güncellenmemiş (durum
+  önbelleği `bot/state.json` o tarihlerde kaybolmuş/eski sürüme dönmüş; geçmiş dosyası kalmış). Denetçinin "süre dolumu çalışmıyor"
+  dediği bu: takip yalnız `state.sent` üzerinden. Artık her tur geçmişte açık olup durumda olmayan kayıtlar **sessizce** (Telegram'sız,
+  istatistiğe sayılmadan) yeniden takibe alınıyor, geçmişte `orphan: true` işaretli; mumu olmayan (TF taranmıyor/coin listeden çıktı)
+  bekleyen planlar da 24 saatte `expired`. İlk canlı turda eski kayıtlar toplu kapanacak (closedAt = o tur; gerçek zaman değil).
+- **−0,86R'nin ana nedeni yön yığılması, kod değil (kuvvetli işaret):** eski rejimin 558 sinyalinin **509'u long** (109 coin, coin başına
+  13'e kadar tekrar); stop olan 380'in 366'sı long. 21–24.10 düşüşünde aynı long bahsi ~400 kez açılmış = tek bağımsız sonuç.
+  12 aylık backtest ortalaması bu tür 4 günlük tek yönlü pencereyi yansıtmaz. Stop takibi doğrulanmadı (bu ortamdan OKX'e erişim yok).
+- Sıradaki (öneri): canlı-backtest eşleştirme betiği (her canlı sinyali aynı seviyelerle gerçek mumlarda `trackPlan` + motorla yeniden
+  oynat, farkları listele) → backtest.yml'de `mode=replay`. Denetçinin "uygulama hatası" şüphesini kesin kapatır.
