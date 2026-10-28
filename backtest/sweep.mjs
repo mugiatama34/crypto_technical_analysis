@@ -297,7 +297,7 @@ async function main() {
   const only4h = { name: 'yalnız 4H', tfs: ['4H'] };
   const live4h = [guard, wk, lim, only4h, man, hw];
   const CAPS = [
-    [live4h], [...live4h, { name: 'aynı yönde ≤ 3 açık', maxOpenSameDir: 3 }], [...live4h, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }],
+    live4h, [...live4h, { name: 'aynı yönde ≤ 3 açık', maxOpenSameDir: 3 }], [...live4h, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }],
     [...live4h, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }], [...live4h, { name: 'mum başına aynı yönde ≤ 1 yeni', maxNewSameDir: 1 }],
     [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
