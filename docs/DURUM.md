@@ -286,3 +286,12 @@ rejimi bunu önceden bilmiyor (tutarsız). Check list etiketleri ölçüme göre
 - Takip kartına dokununca ayrıntı + grafik (giriş/stop/TP çizgileri, eklendi/giriş/TP1/kapanış işaretleri, dondurulan check list).
   Grafiklere isteğe bağlı **Yapı** katmanı (son 8 swing HH/HL/LH/LL + son 4 BOS/CHoCH): tarayıcı ayrıntısında kutu, coin
   sayfasında Katmanlar. Testler 152.
+
+## 28.10.2026 akşam — Diyagonal lab yeniden (koşu 40762943515; 24 ay, ilk 50, 1H/4H; bölünme 02.03.2026)
+| Aile | Eğitim n / kazanma / R / PF | Doğr. n / kazanma / R / PF | Hedge'li eğ / doğr |
+|---|---|---|---|
+| ending_diagonal | 95 / %14 / −0,22 / 0,78 | 75 / %19 / +0,30 / 1,32 | −0,37 / +0,08 |
+| ending_diagonal_wide (stop +1 ATR) | 85 / %24 / −0,01 / 0,99 | 68 / %29 / +0,24 / 1,32 | −0,14 / −0,07 |
+| leading_diagonal | 11 / %64 / +1,00 / 3,68 | 6 / %33 / −0,12 / 0,82 | +0,59 / −0,78 |
+- Sıkı ölçütü geçen yok. Ending doğrulamadaki kâr long'lardan (+0,63R; short −0,13R) = yükseliş dönemi (β 1,0, r 0,67). Leading n 17 → sonuçsuz.
+- Arkadaşlara paylaşım sayfası: https://claude.ai/artifact/9pFjTqbgE5Yve2u3ZJQNad (komisyon %0,05/taraf, kayma %0,05 piyasa/stop; funding yok).
