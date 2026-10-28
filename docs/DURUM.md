@@ -203,3 +203,21 @@ sweep/engine aileleri: kenar yok, BTC bağımlı. Momentum `xsmom_l28_k5_short_r
   önbellek kaybı dönemindeki sahipsiz kayıtlar ve aynı mumda stop/hedef sırası; sistematik yön yok.
 - Yeni 4H: n 13 → sonuçsuz (motor −0,05 farkı 3 kaydın kaçan/bıçak sayılmasından). 4–6 hafta beklenir.
 - Araç: `node backtest/replay.mjs` / Actions → backtest → `mode=replay` (rapor `docs/backtest/replay.json`). İstenirse haftada bir.
+
+## 28.10.2026 — Yön yığılması sınırı ölçüldü (sweep 40640085060, 12 ay, 1H/4H planları)
+Canlı 4H düzeni (bıçak + hafta sonu yok + limit + erken %80 + HTF aynı yön) üstüne portföy tavanı:
+| Varyant | Eğitim R / PF (n) | Doğr. R / PF (n) | Hedge'li eğ / doğr | maxDD eğ/doğr | En kötü 7 gün R | Aynı yönde açık p50/max |
+|---|---|---|---|---|---|---|
+| tavansız (canlı) | +0,114 / 1,59 (238) | +0,093 / 1,51 (257) | +0,054 / +0,079 | 7,9 / 7,9 | −4,4 / −3,7 | 7–8 / 22–25 |
+| ≤ 10 açık | +0,118 / 1,60 (210) | +0,084 / 1,43 (204) | +0,053 / +0,057 | 8,3 / 7,2 | −4,4 / −3,7 | 5–6 / 9 |
+| ≤ 5 açık | +0,047 / 1,22 (155) | +0,088 / 1,45 (148) | +0,008 / +0,072 | 6,4 / 5,8 | −3,1 / −4,3 | 3 / 4 |
+| ≤ 3 açık | +0,013 / 1,06 (119) | +0,121 / 1,73 (110) | −0,021 / +0,099 | 7,3 / 2,7 | −2,9 / −2,7 | 1 / 2 |
+| mum başına ≤ 2 yeni | +0,048 / 1,23 (200) | +0,097 / 1,52 (202) | +0,006 / +0,086 | 8,3 / 5,2 | −4,6 / −2,8 | 5 / 12–15 |
+| mum başına ≤ 1 yeni | +0,007 / 1,03 (155) | +0,079 / 1,41 (140) | +0,003 / +0,076 | 8,1 / 5,8 | −4,5 / −3,5 | 3 / 7–9 |
+- **Hiçbir tavan iki dilimde temeli geçmedi.** Sıkı tavanlar eğitimde R'yi çökertiyor (≤ 3: +0,01R, PF 1,06 → sıkı ölçüt dışı); doğrulamadaki
+  +0,12R tek dilim = seçim iyimserliği. Tavan kârlı işlemleri de kesiyor; toplam R düşüyor (eğitim 27 → 1,5–25).
+- Yığılma backtest'te de olağan (aynı yönde ortanca 7–8 açık, en çok 25) ve 4H'de zarar kaynağı değil; en kötü 7 gün yalnız −4R.
+- Eski 1H+4H düzeni tavanla da negatif (≤ 5: doğr. −0,07R, hedge'li −0,13R) → 21–24.10 kaybı yığılmadan çok 1H + eski filtrelerden.
+- **Karar:** canlıya kural yok (Variables değişmez). Gerçek parada kişisel risk kuralı olarak "aynı yönde ≤ 3 açık işlem" mantıklı
+  (toplam risk sınırı), ama bu kenar artırmaz, yalnız kötü haftayı yumuşatır.
+- Not: tavansız 4H satırı n 257 (24.10 taramasında 293) — aradaki tam koşuyla planlar yenilenmiş; karşılaştırma aynı koşu içinde.
