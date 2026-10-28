@@ -158,6 +158,12 @@ grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) v
 Not: lab hedge'li R'si limit girişli ailelerde önceden sinyal mumundan hesaplanıyordu; artık dolum zamanından.
 
 ### SMC: süpürme → MSS → FVG %50 (arkadaşın kuralı)
+Lab aileleri `div_*` (`backtest/lab/divergence.js`, 1H/4H/1D): son iki onaylı swing dibi/tepesinde **klasik uyumsuzluk**
+(fiyat yeni uç, RSI ≥ 2 puan geride). Tetik `div_rsi_pivot` = ikinci uç onaylanınca, diğerleri = ikinci uçtan önceki son
+minör tepe/dip kapanışla kırılınca (MSS, ≤ 20 mum). Stop ikinci uç ∓ 0,2 ATR, TP1 1,5R, TP2 boyun (≥ 2,5R) ya da 3R,
+half_be. Varyantlar: `_ext` (ilk uç RSI ≤ 35/≥ 65, ikinci uç 100 mumun ucu), `div_rsimacd_mss` (MACD histogramı da
+uyumsuz), `_btc` (BTC günlük rejimi yönünde). RSI trend çizgisi kırılımı ölçülmedi.
+
 Lab aileleri `sweep_mss_fvg*` (`backtest/lab/smc.js`): bir likidite seviyesi (swing tepe/dip, eşit tepe/dip, önceki günün
 tepe/dibi) **fitille süpürülür** (kapanış seviyenin bu tarafında), ardından `maxBars` içinde (1H 12, 4H 6) ters yöne
 **MSS** (kapanış son minör dip/tepeyi geçer), süpürme→MSS bacağında **FVG** varsa FVG'nin **%50'sine limit** (24 saat),

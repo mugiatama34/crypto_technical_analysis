@@ -87,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 36);
+  assert.equal(STRATEGIES.length, 41);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -390,4 +390,28 @@ test('sweep_mss_fvg: eşit tepe/PDH fitille süpürülür → kapanışla minör
   const pre5 = sweepMssFvg.prepare(cs5, '1H', {}); let p5 = null;
   for (let i = 90; i < 118 && !p5; i++) p5 = sweepMssFvg.signal(i, cs5, pre5);
   assert.equal(p5, null);
+});
+
+test('uyumsuzluk: regularDiv klasik boğa/ayı uyumsuzluğunu bulur, gösterge de yeni uç yapınca bulmaz', async () => {
+  const { regularDiv } = await import('../backtest/lab/divergence.js');
+  const rsi = new Array(60).fill(50);
+  rsi[10] = 25; rsi[30] = 35; // dipler: fiyat LL, RSI HL
+  const piv = [{ i: 5, price: 110, type: 'H' }, { i: 10, price: 100, type: 'L' }, { i: 20, price: 108, type: 'H' }, { i: 30, price: 97, type: 'L' }];
+  const r = regularDiv(piv, rsi, 1, 59);
+  assert.ok(r && r.p2.i === 30 && r.neck === 108, 'boğa uyumsuzluğu bekleniyordu');
+  rsi[30] = 20; // gösterge de dipte → uyumsuzluk yok
+  assert.equal(regularDiv(piv, rsi, 1, 59), null);
+  const rsiH = new Array(60).fill(50); rsiH[10] = 75; rsiH[30] = 65;
+  const pivH = [{ i: 5, price: 90, type: 'L' }, { i: 10, price: 100, type: 'H' }, { i: 20, price: 94, type: 'L' }, { i: 30, price: 103, type: 'H' }];
+  assert.equal(regularDiv(pivH, rsiH, -1, 59)?.neck, 94);
+});
+
+test('uyumsuzluk stratejisi: sentetik seride geleceğe bakmadan çalışır, planlar tutarlı', async () => {
+  const { divRsiMss, divRsiPivot } = await import('../backtest/lab/divergence.js');
+  const cs = []; let p = 100;
+  for (let i = 0; i < 600; i++) { const w = Math.sin(i / 9) * 3 + Math.sin(i / 2.3) * 0.8 - (i % 200) * 0.02; const open = p; const close = 100 + w; p = close; cs.push(c(i * 3600e3, open, Math.max(open, close) + 0.4, Math.min(open, close) - 0.4, close)); }
+  for (const st of [divRsiMss, divRsiPivot]) {
+    const trades = runStrategy(st, { coin: 'T', tf: '1H', candles: cs }, o);
+    for (const t of trades) assert.ok(Number.isFinite(t.R));
+  }
 });
