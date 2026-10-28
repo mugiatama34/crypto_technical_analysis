@@ -29,7 +29,7 @@ export function runStrategy(strategy, { coin, tf, candles, extra }, o) {
     if (sim.outcome === 'invalid') continue;
     busyUntil = i + 1 + (sim.waitBars || 1) + (sim.bars || 0);
     const mult = plan.sizeMult ?? 1; // üst dilime ters işlemde yarım boy (R ölçeklenir)
-    trades.push({ coin, tf, direction: plan.direction, time: candles[i].time, entry: plan.entry, stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, ...sim, R: +(sim.R * mult).toFixed(3), sizeMult: mult, htf: plan.htf ?? null });
+    trades.push({ coin, tf, direction: plan.direction, time: candles[i].time, entry: plan.entry, stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, ...sim, R: +(sim.R * mult).toFixed(3), sizeMult: mult, htf: plan.htf ?? null, ...(plan.tags ? { tags: plan.tags } : {}) });
   }
   return trades;
 }
@@ -155,6 +155,7 @@ async function main() {
   for (const s of series) if (s.coin === 'BTC') btcMaps.set(s.tf, s.candles);
   for (const tf of tfs) if (!btcMaps.has(tf)) { try { btcMaps.set(tf, await fetchTf(CFG.fixture ? 'BTC' : instIdOf('BTC'), tf, 1500)); } catch (err) { log(`  BTC ${tf}: ${err.message}`); } }
   if (btcDaily && !btcMaps.has('1D')) btcMaps.set('1D', btcDaily);
+  for (const s of series) s.extra.btc = btcMaps.get(s.tf) || null; // aynı TF BTC mumları (SMT etiketi)
   const btcCloseAt = (tf, time) => { const c = btcMaps.get(tf); if (!c) return null; let lo = 0, hi = c.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (c[m].time <= time) { k = m; lo = m + 1; } else hi = m - 1; } return k >= 0 ? c[k].close : null; };
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;

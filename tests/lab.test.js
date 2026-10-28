@@ -87,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 41);
+  assert.equal(STRATEGIES.length, 49);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -414,4 +414,23 @@ test('uyumsuzluk stratejisi: sentetik seride geleceğe bakmadan çalışır, pla
     const trades = runStrategy(st, { coin: 'T', tf: '1H', candles: cs }, o);
     for (const t of trades) assert.ok(Number.isFinite(t.R));
   }
+});
+
+test('lab w3_zone: dalga 2 sürerken bölgeye limit plan (yakın kenar), etiketler; kurulum bir kez; SMT BTC referansıyla', async () => {
+  const { W3_STRATEGIES } = await import('../backtest/lab/wave3.js');
+  const { build } = await import('./helpers.js');
+  const pre = [[0, 140]]; for (let b = 10; b <= 150; b += 10) pre.push([b, b % 20 ? 135 : 140]);
+  const path = [...pre, [170, 120], [190, 100], [210, 130], [222, 115], [230, 122], [240, 110], [246, 119], [260, 140]];
+  const cs = build(path);
+  const btc = build(path.map(([b, p]) => [b, p * 10 + (b >= 236 && b <= 242 ? 120 : 0)])); // BTC C dibinde A'yı süpürmüyor
+  const st = W3_STRATEGIES.find((s) => s.id === 'w3_zone');
+  const p = st.prepare(cs, '4H', { btc });
+  const plans = [];
+  for (let i = 150; i < cs.length - 1; i++) { const x = st.signal(i, cs, p); if (x) plans.push({ i, ...x }); }
+  assert.ok(plans.length >= 1, 'en az bir limit plan');
+  const x = plans[0];
+  assert.equal(x.inZone, false); assert.equal(x.direction, 'long');
+  assert.ok(x.stop < x.entry && x.tp1 > x.entry);
+  assert.ok(x.tags && 'smt' in x.tags && x.tags.tb != null);
+  assert.equal(new Set(plans.map((q) => `${q.entry}|${q.stop}`)).size, plans.length, 'aynı kurulum iki kez işlenmez');
 });
