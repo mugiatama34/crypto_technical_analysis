@@ -170,3 +170,26 @@ test('sweep capTrades: aynı yönde açık tavanı ve mum başına yeni sinyal t
   const st = stackOf(tr);
   assert.equal(st.max, 3); assert.equal(st.worst7dR, -5);
 });
+
+test('engine fillBarTp: dolum mumunda hedef — count (iyimser) / skip / lower (alt TF sırası)', async () => {
+  const { simulateTrade, fillOrder, BT_DEFAULTS } = await import('../backtest/engine.js');
+  const H4 = 4 * 3600e3, H1 = 3600e3;
+  const c4 = (k, o, h, l, cl) => ({ time: k * H4, open: o, high: h, low: l, close: cl, volume: 1 });
+  const c1 = (k, o, h, l, cl) => ({ time: k * H1, open: o, high: h, low: l, close: cl, volume: 1 });
+  const plan = { d: 1, entry: 100, stop: 97, tp1: 101.2, tp2: 110, inZone: false, atr: 2 };
+  // 4H dolum mumu (k=1): düşük 99,5 (dolum) ve yüksek 101,5 (erken hedef) aynı mumda; sonra fiyat 100,2'de kalır
+  const cs = [c4(0, 103, 104, 102, 102.5), c4(1, 102.5, 101.5 + 1, 99.5, 100.5), c4(2, 100.5, 100.8, 100.1, 100.2), c4(3, 100.2, 100.6, 99.9, 100.1)];
+  const o = { ...BT_DEFAULTS, feePct: 0, slipPct: 0, tp1Portion: 0.8, maxHoldBars: 3 };
+  assert.equal(simulateTrade(plan, cs, 1, '4H', o).tp1Bars, 1, 'count: dolum mumunda hedef');
+  assert.equal(simulateTrade(plan, cs, 1, '4H', { ...o, fillBarTp: 'skip' }).tp1Bars, null, 'skip: sayılmaz');
+  // 1H: önce yükseliş (hedef), sonra düşüş (dolum) → sıra yanlış, hedef sayılmaz
+  const upFirst = [c1(4, 102.5, 102.6, 101.6, 101.8), c1(5, 101.8, 103.5, 101.7, 103), c1(6, 103, 103.1, 100.9, 101), c1(7, 101, 101.1, 99.5, 100.5)];
+  assert.equal(fillOrder(plan, 1, 1 * H4, H4, upFirst, plan.tp1), 'none');
+  assert.equal(simulateTrade(plan, cs, 1, '4H', { ...o, fillBarTp: 'lower', lowerCandles: upFirst }).tp1Bars, null);
+  // 1H: önce dolum, sonra hedef → sayılır
+  const fillFirst = [c1(4, 102.5, 102.6, 99.5, 100), c1(5, 100, 100.8, 99.8, 100.6), c1(6, 100.6, 103.5, 100.5, 103), c1(7, 103, 103.1, 100.4, 100.5)];
+  assert.equal(fillOrder(plan, 1, 1 * H4, H4, fillFirst, plan.tp1), 'tp');
+  assert.equal(simulateTrade(plan, cs, 1, '4H', { ...o, fillBarTp: 'lower', lowerCandles: fillFirst }).tp1Bars, 1);
+  // dolum alt mumunda stop → stop
+  assert.equal(fillOrder(plan, 1, 1 * H4, H4, [c1(4, 101, 101, 96.5, 98)], plan.tp1), 'stop');
+});

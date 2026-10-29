@@ -241,7 +241,8 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05 };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count' };
+    const LOWER = { '4H': '1H', '1H': '15m' };
     const trades = [];
     for (const [k, list] of groups) {
       const s = series.get(k); if (!s) continue;
@@ -249,7 +250,7 @@ async function main() {
         if (!passes(t, v, s, mtfIndex, htf)) continue;
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
-        const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o);
+        const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o);
         const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
         const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
         if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
@@ -300,6 +301,8 @@ async function main() {
     live4h, [...live4h, { name: 'aynı yönde ≤ 3 açık', maxOpenSameDir: 3 }], [...live4h, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }],
     [...live4h, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }], [...live4h, { name: 'mum başına aynı yönde ≤ 1 yeni', maxNewSameDir: 1 }],
     [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
+    // Dolum mumunda hedef: iyimser (varsayılan) / kötümser / 1H sırasıyla (aynı 4H mumda giriş + erken hedef)
+    [...live4h, { name: 'dolum mumunda hedef sayılmaz (kötümser)', fillBarTp: 'skip' }], [...live4h, { name: 'dolum mumunda sıra 1H ile', fillBarTp: 'lower' }],
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
   ];
   for (const list of CAPS) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }

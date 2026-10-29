@@ -17,6 +17,11 @@ export const BT_DEFAULTS = {
   tpScheme: 'half_be',
   trailAtr: 1.0,
   knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
+  // Limit dolum mumunda hedef (TP1 / tek hedef): 'count' (varsayılan, iyimser: önce dolum sonra hedef varsayılır) |
+  // 'skip' (kötümser: dolum mumunda hedef sayılmaz) | 'lower' (alt TF mumlarıyla sıra: o.lowerCandles, dolumdan SONRAKİ
+  // alt mumlarda stop görülmeden hedef görülürse sayılır; dolumun alt mumunda stop varsa stop)
+  fillBarTp: 'count',
+  lowerCandles: null,
   timeStop: null, // zaman stopu { bars, minMfeR }: dolumdan bars mum içinde TP1 yoksa (ve MFE < minMfeR) kapanıştan çık
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
@@ -70,6 +75,10 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   const scheme = o.tpScheme || 'half_be';
   const single = scheme === 'single', trailOnly = scheme === 'trail_only';
   const atr = plan.atr || Math.abs(entry - plan.stop);
+  // Dolum mumunda hedefe izin (limit dolum): count → evet, skip → hayır, lower → alt TF sırası
+  const fb = mkt ? 'count' : (o.fillBarTp || 'count');
+  const fillRes = fb === 'lower' ? fillOrder(plan, d, candles[fillI].time, ms, o.lowerCandles, single || trailOnly ? plan.tp2 : plan.tp1) : null;
+  const fillTpOk = fb === 'count' || fillRes === 'tp';
   for (let k = fillI; k < candles.length && k < fillI + o.maxHoldBars; k++) {
     const c = candles[k];
     const hiR = Rof(d === 1 ? c.high : c.low), loR = Rof(d === 1 ? c.low : c.high);
@@ -78,8 +87,8 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
     const tp1Hit = !single && !trailOnly && (d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1);
     const tp2Hit = !trailOnly && (d === 1 ? c.high >= plan.tp2 : c.low <= plan.tp2);
     // Dolum mumunda (piyasa girişte) stop ve hedef aynı mumdaysa stop sayılır (sıra bilinmez)
-    if (stopHit && (k > fillI || mkt || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
-    if (portion === 1 && tp1Hit && k >= fillI) {
+    if (stopHit && (k > fillI || mkt || fillRes === 'stop' || !fillTpOk || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
+    if (portion === 1 && tp1Hit && (k > fillI || fillTpOk)) {
       R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion; tp1Bars = k - fillI + 1;
       if (scheme === 'half_be') stop = entry; // başabaş
       if (scheme === 'trail') stop = d === 1 ? Math.max(stop, c.close - o.trailAtr * atr) : Math.min(stop, c.close + o.trailAtr * atr);
@@ -90,7 +99,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
       if (scheme === 'trail') { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
       else if (tp2Hit) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
     }
-    if (single && tp2Hit && k >= fillI) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
+    if (single && tp2Hit && (k > fillI || fillTpOk)) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
     if (trailOnly) { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
     exitI = k;
     // Zaman stopu: TP1 görülmeden bars mum doldu (ve ilerleme yetersiz) → mum kapanışından çık
@@ -99,6 +108,28 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
   R -= feeR;
   return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
+}
+
+/**
+ * Limit dolum mumunun içinde sıra (alt TF): [t0, t0 + ms) aralığındaki alt mumlarda ilk giriş dokunuşu; o alt mumda stop →
+ * 'stop'; sonraki alt mumlarda önce stop → 'stop', önce hedef → 'tp'; hiçbiri ya da veri yok → 'none'.
+ */
+export function fillOrder(plan, d, t0, ms, lower, target) {
+  if (!lower?.length) return 'none';
+  let lo = 0, hi = lower.length - 1, s0 = lower.length;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (lower[m].time >= t0) { s0 = m; hi = m - 1; } else lo = m + 1; }
+  let filled = false;
+  for (let j = s0; j < lower.length && lower[j].time < t0 + ms; j++) {
+    const c = lower[j];
+    const stopHit = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
+    if (!filled) {
+      if (d === 1 ? c.low <= plan.entry : c.high >= plan.entry) { filled = true; if (stopHit) return 'stop'; }
+      continue;
+    }
+    if (stopHit) return 'stop';
+    if (d === 1 ? c.high >= target : c.low <= target) return 'tp';
+  }
+  return 'none';
 }
 
 /** Bir sembol+TF serisini baştan sona tarar; planları simüle eder. */
