@@ -332,3 +332,8 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - Kullanıcı TradingView'a ICT Killzones / Smart Money Concepts / Previous Highs & Lows [LuxAlgo] ekledi; öneriler CLAUDE.md'de. Killzone Asya ≈ 01–05 UTC (bizim tanım 00–07).
 - Coin kontrol listesi: `docs/egitim/coin-kontrol-listesi.md` + telefonda işaretlenebilir sayfa https://claude.ai/artifact/Nr2ZywwscFMkDBwNQ8iVsD (coin başına localStorage).
 - İlk deneme AVAX: günlük MSS 10,048 (PWH, 21 Eki) doğru; düzeltilenler: 4H'yi bozan seviye 4H LH 9,166 (PWH değil), weak low 8,55 alınmadı (hedef), BTC 4H range'de discount (0,81), AVAX PWL'yi aldı BTC almadı (AVAX zayıf), senaryo A short olmalı (Asya tepesi 9,014 + OB 8,97–9,06 süpürme → 15m MSS → short, stop süpürme ucu + 0,1–0,2 ATR).
+
+## 29.10.2026 — Takip kartı düzeltmesi
+- 29.10: takip kartı hatası (PONS 5m): kart eski fiyatla "+0,18R anlık" gösterirken grafik stopu gösteriyordu. Sebep: ayrıntı
+  grafiği yeni mumları indiriyor ama kaydı güncellemiyordu; 5 dk'lık yenileme sekme arka plandayken atlanıyordu. Düzeltme:
+  ayrıntı açılınca aynı mumlarla kayıt güncellenir, sekmeye dönünce liste hemen yenilenir, kartta son güncelleme saati var.

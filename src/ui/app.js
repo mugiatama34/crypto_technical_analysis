@@ -418,7 +418,7 @@ function renderWatch() {
       <div class="row-grid">
         <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>
         <div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
-        <div><span>Son fiyat</span> <b>${fmtPrice(w.lastPrice)}</b></div><div><span>Eklendi</span> <b>${fmtTime(w.addedAt)}</b></div>
+        <div><span>Son fiyat</span> <b>${fmtPrice(w.lastPrice)}</b> <small>${fmtTime(w.updatedAt)}</small></div><div><span>Eklendi</span> <b>${fmtTime(w.addedAt)}</b></div>
       </div>
       <div class="sig-note">${esc(w.signals.join(' · '))}</div>
       <input type="text" class="watch-note" data-note="${esc(w.id)}" value="${esc(w.note || '')}" placeholder="Not (ör. Bybit'te açtım, 0,5 risk)">
@@ -455,6 +455,15 @@ async function renderWatchDetail(w) {
   try { data = await candlesOf(w.instId, w.tf); } catch (err) { $('#chart').innerHTML = `<p class="empty">Mumlar alınamadı: ${esc(err.message)}</p>`; return; }
   if (state.selected !== `watch|${w.id}`) return;
   const cs = data.candles, all = data.live ? [...cs, data.live] : cs;
+  // Grafikteki mumlarla kaydı da güncelle (kart ile grafik aynı veriyi göstersin)
+  if (isOpen(w)) {
+    const { item, events } = updateWatch(w, all, Date.now());
+    if (events.length || item.lastPrice !== w.lastPrice) {
+      state.watch = state.watch.map((x) => (x.id === w.id ? item : x)); saveWatch(state.watch); renderWatch();
+      if (events.length) notifyWatch(`★ ${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${events.map((ev) => WATCH_LABEL[ev === 'tp1' ? 'tp1' : item.status] || ev).join(' · ')}`);
+      return renderWatchDetail(item);
+    }
+  }
   const mk = (ts, text, color, pos = 'aboveBar', shape = 'arrowDown') => { const i = idxAt(all, ts); return i >= 0 ? [{ kind: 'marker', i, price: all[i].close, position: pos, shape, color, text }] : []; };
   const sig = { id: 'watch', name: 'Takip', type: 'watch', group: 'smc', direction: w.direction, strength: 1, draw: [
     { kind: 'hline', price: w.entry, color: '#3987e5', label: 'Giriş', style: 'solid' },
@@ -496,6 +505,8 @@ function bindWatch() {
     e.target.value = '';
   });
   setInterval(() => { if (!state.busy && state.watch.some(isOpen) && document.visibilityState === 'visible') refreshWatch(); }, 5 * 60e3);
+  // Sekmeye dönünce hemen güncelle (arka plandayken aralık atlanır; kart eski kalmasın)
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !state.busy && state.watch.some(isOpen)) refreshWatch(); });
 }
 
 // ------------------------------------------------------------------ başlat
