@@ -338,3 +338,5 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
   grafiği yeni mumları indiriyor ama kaydı güncellemiyordu; 5 dk'lık yenileme sekme arka plandayken atlanıyordu. Düzeltme:
   ayrıntı açılınca aynı mumlarla kayıt güncellenir, sekmeye dönünce liste hemen yenilenir, kartta son güncelleme saati var.
 - 29.10: **smc-analiz skill'i** eklendi (`.claude/skills/smc-analiz/`) + `bot/practice/smc_levels.mjs` (seviye hesabı) + test. Kullanıcı "SMC'ye göre analiz et <COIN>" der; öğrenme modunda önce sorular. Testler 157 geçiyor.
+- 29.10 HUMA long (kullanıcı): giriş 0,02668, **25x**, plan stop 0,02496 (−%6,4) / hedef 0,03278; tepe 0,02749 (+%3,1), elle +%1,0'da (0,02695) kapandı, ROI +%26 ≈ **+0,16R**. Uyarı: 25x izole marjinde tasfiye ≈ −%3,6 (≈ 0,0257) → stoptan ÖNCE; kaldıraç stop mesafesine göre seçilmeli (≤ ~1/(stop%×1,5)). ROI yanıltıcı, R esas.
+- 29.10 ONDO: kullanıcının fikri (0,4100 long, stop 0,4074, hedef 0,4188) yönde doğru çıktı; EQL 0,4073 süpürülmeden yükseldi (tepe ≈ 0,4172). Benim "önce süpürme" önerim bu örnekte işlemi kaçırırdı; tek örnek, kayda alındı.
