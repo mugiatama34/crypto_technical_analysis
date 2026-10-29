@@ -81,7 +81,9 @@ hedge'li +0,08R; ayda ~25 sinyal.
 
 ## Kısa bulgu özeti (ayrıntı DURUM.md)
 Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG) sıkı
-ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). Çalışan tek kesit: 4H + düşen bıçak koruması + hafta sonu yok +
+ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). **29.10 düzeltme:** motor limit dolum mumunda hedefi iyimser sayıyordu;
+1H sırasıyla canlı 4H düzeni eğitim/doğr. +0,025/+0,028R, hedge'li ≈ 0 (sıkı ölçüt geçilmiyor) — yeni ölçümler `fillBarTp: 'lower'`
+ile yapılmalı. Eski iyimser değerlerle bulunan kesit: 4H + düşen bıçak koruması + hafta sonu yok +
 yalnız limit + erken %80 kâr + günlük trend aynı yön (hedge'li doğr. +0,08R, n 293) — zayıf ama iki dilimde pozitif;
 ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe yaramadı; hafta sonu kötü. Momentum
 `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.

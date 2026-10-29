@@ -295,3 +295,20 @@ rejimi bunu önceden bilmiyor (tutarsız). Check list etiketleri ölçüme göre
 | leading_diagonal | 11 / %64 / +1,00 / 3,68 | 6 / %33 / −0,12 / 0,82 | +0,59 / −0,78 |
 - Sıkı ölçütü geçen yok. Ending doğrulamadaki kâr long'lardan (+0,63R; short −0,13R) = yükseliş dönemi (β 1,0, r 0,67). Leading n 17 → sonuçsuz.
 - Arkadaşlara paylaşım sayfası: https://claude.ai/artifact/9pFjTqbgE5Yve2u3ZJQNad (komisyon %0,05/taraf, kayma %0,05 piyasa/stop; funding yok).
+
+## 29.10.2026 — ÖNEMLİ: dolum mumunda erken hedef iyimserliği (sweep 40841478908, 12 ay)
+Soru (OL 4H): Telegram'da "giriş bölgesine geldi" ve "erken hedef" aynı turda. Canlıda erken hedefe ulaşan 21 işlemin 12'si
+girişle aynı turda. Neden: erken hedef girişin %1,2 ötesi, 4H ATR %2–5 → tek 4H mum ikisini de kapsıyor; bot ve backtest
+motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyimser). Ölçüm, canlı 4H düzeni:
+| Dolum mumunda hedef | Eğitim R / PF | Doğr. R / PF | Hedge'li eğ / doğr |
+|---|---|---|---|
+| iyimser (eski varsayım) | +0,114 / 1,59 | +0,093 / 1,51 | +0,054 / +0,079 |
+| **1H mumlarla gerçek sıra** | **+0,025 / 1,09** | **+0,028 / 1,11** | **−0,020 / +0,016** |
+| kötümser (hiç sayılmaz) | −0,023 / 0,93 | −0,029 / 0,90 | −0,047 / −0,033 |
+- **Canlı 4H düzeninin beklentisi +0,08R değil, ≈ +0,03R; hedge'li ≈ 0.** Sıkı ölçüt (eğitim PF 1,09) geçilmiyor. "Çalışan tek kesit"
+  bulgusunun büyük kısmı bu iyimser varsayımdan geliyordu. Önceki tüm sweep/lab sonuçları da (limit dolum + yakın hedef olanlar)
+  aynı iyimserliği taşıyabilir; geniş hedefli ailelerde etki küçük.
+- Motor: `fillBarTp` ('count' varsayılan / 'skip' / 'lower' + `fillOrder`), sweep satırları "dolum mumunda sıra 1H ile" / "kötümser".
+- Öneri (kullanıcı kararı): (1) canlı kural değişmeden kâğıt test sürsün, beklenti ≈ 0 olarak okunsun; (2) bundan sonra tüm
+  ölçümler `fillBarTp: 'lower'` ile; (3) erken hedef mesafesini (%1,2 yerine 0,75R / 1R / 1,5R) 1H sırasıyla yeniden ölç;
+  (4) bot takibinde aynı 4H mumdaki dolum + hedefi 15m mumlarla çöz, Telegram'da tek mesaj. Testler 153.
