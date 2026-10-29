@@ -353,3 +353,4 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 | kontrol fib_cluster_g_p0 (kanalsız) | −0,06 / 0,91 | −0,09 / 0,86 | −0,15 / −0,14 | 3422 | %18–20 |
 - Hiçbiri sıkı ölçütü geçmedi; kanal şartı sonucu iyileştirmedi (ve n'yi 20× azalttı). Süpürmeli giriş en kötüsü (stop fitile çok yakın, çoğu stop). Kanalsız fib kesişiminde limitlerin ~%80'i hiç dolmuyor (kullanıcının ONDO/SUI gözlemi).
 - Tek pozitif kesit (seçilmiş, iyimser): kontrolde 1H long n270 +0,10R PF 1,18, 4H long n20 +0,29R — long-only = BTC yönü olabilir, ölçülmeden kural yok.
+- 5m (6 ay, koşu 40910478840): chan_fib_p0 eğ −0,25R / doğr −0,57R (n 112), pool −0,02 / −0,58 (n 27), sweep −0,85 / −0,64 (n 30), p0_htf −0,58 / −0,26 (n 51); hedge'li hepsi negatif. 5m daha kötü (gürültü + komisyon). **Karar: kanal + fib kesişimi tek başına kural olmaz; yorumda "bakılacak yer".**
