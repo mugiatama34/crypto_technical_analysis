@@ -337,3 +337,4 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - 29.10: takip kartı hatası (PONS 5m): kart eski fiyatla "+0,18R anlık" gösterirken grafik stopu gösteriyordu. Sebep: ayrıntı
   grafiği yeni mumları indiriyor ama kaydı güncellemiyordu; 5 dk'lık yenileme sekme arka plandayken atlanıyordu. Düzeltme:
   ayrıntı açılınca aynı mumlarla kayıt güncellenir, sekmeye dönünce liste hemen yenilenir, kartta son güncelleme saati var.
+- 29.10: **smc-analiz skill'i** eklendi (`.claude/skills/smc-analiz/`) + `bot/practice/smc_levels.mjs` (seviye hesabı) + test. Kullanıcı "SMC'ye göre analiz et <COIN>" der; öğrenme modunda önce sorular. Testler 157 geçiyor.

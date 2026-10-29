@@ -199,6 +199,11 @@ Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2
 TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_long_smt` / `_long_nosmt` (SMT ✓ / değil),
 `_tb3` / `_tb4` / `_tb_low` (ders kitabı ≥ 3/4, 4/4, ≤ 2/4). Tarama mum başına bir kez (aileler paylaşır).
 
+**SMC analiz skill'i** (`.claude/skills/smc-analiz/SKILL.md`): "SMC'ye göre analiz et <COIN>" denince coin kontrol listesi
+(`docs/egitim/coin-kontrol-listesi.md`) gerçek veriyle sırayla uygulanır; öğrenme modunda önce sorular sorulur. Seviyeleri
+`node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,
+1H PDH/PDL, PWH/PWL, Asya, EQH/EQL (alındı mı) ve BTC'ye göre SMT ipucu.
+
 Lab aileleri `div_*` (`backtest/lab/divergence.js`, 1H/4H/1D): son iki onaylı swing dibi/tepesinde **klasik uyumsuzluk**
 (fiyat yeni uç, RSI ≥ 2 puan geride). Tetik `div_rsi_pivot` = ikinci uç onaylanınca, diğerleri = ikinci uçtan önceki son
 minör tepe/dip kapanışla kırılınca (MSS, ≤ 20 mum). Stop ikinci uç ∓ 0,2 ATR, TP1 1,5R, TP2 boyun (≥ 2,5R) ya da 3R,
