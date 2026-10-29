@@ -342,3 +342,14 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - 29.10 ONDO: kullanıcının fikri (0,4100 long, stop 0,4074, hedef 0,4188) yönde doğru çıktı; EQL 0,4073 süpürülmeden yükseldi (tepe ≈ 0,4172). Benim "önce süpürme" önerim bu örnekte işlemi kaçırırdı; tek örnek, kayda alındı.
 - 29.10: Lab'e **kanal + 0,618×1,272** ailesi (`chan_fib_p0/pool/sweep/p0_htf`, long+short) ve `--fillbar skip` (kötümser dolum mumu) eklendi. Koşu 1: 24 ay, top 50, 15m/1H/4H (+ kontrol `fib_cluster_g_p0`); koşu 2: 5m, 6 ay. Testler 158.
 - **Kullanıcının kendi kurulumu (kanal + fib, 5m) gözlem listesi:** ONDO 29.10 (limit 0,4100) → yön doğru, giriş muhtemelen dolmadı (dip ≈ 0,4105); SUI 29.10 (limit 0,9292) → yön doğru, giriş gelmedi (BTC NY'de 80,0k → 81,5k). İkisinde de benim "önce süpürme" şartım da tetiklenmezdi. Ders: güçlü hareketlerde derin limit dolmuyor → backtest'te dolum oranı (fillRate) ayrıca okunacak.
+
+## 29.10.2026 — Kanal + 0,618×1,272 lab sonucu (koşu 40888890873, 24 ay, top 50, 15m/1H/4H, fillbar=skip)
+| Varyant | Eğitim R / PF | Doğr. R / PF | Hedge'li eğ / doğr | n | Dolum |
+|---|---|---|---|---|---|
+| chan_fib_p0 (kullanıcının stopu) | −0,13 / 0,81 | −0,17 / 0,75 | −0,23 / −0,17 | 153 | %52–62 |
+| chan_fib_pool (stop havuz altı) | −0,57 / 0,35 | −0,54 / 0,29 | – | 31 | %48–59 |
+| chan_fib_sweep (süpürme sonrası giriş) | −0,69 / 0,39 | −1,13 / 0,11 | – | 47 | piyasa |
+| chan_fib_p0_htf (günlük yönde) | −0,10 / 0,85 | −0,09 / 0,86 | −0,33 / −0,23 | 72 | %39–64 |
+| kontrol fib_cluster_g_p0 (kanalsız) | −0,06 / 0,91 | −0,09 / 0,86 | −0,15 / −0,14 | 3422 | %18–20 |
+- Hiçbiri sıkı ölçütü geçmedi; kanal şartı sonucu iyileştirmedi (ve n'yi 20× azalttı). Süpürmeli giriş en kötüsü (stop fitile çok yakın, çoğu stop). Kanalsız fib kesişiminde limitlerin ~%80'i hiç dolmuyor (kullanıcının ONDO/SUI gözlemi).
+- Tek pozitif kesit (seçilmiş, iyimser): kontrolde 1H long n270 +0,10R PF 1,18, 4H long n20 +0,29R — long-only = BTC yönü olabilir, ölçülmeden kural yok.
