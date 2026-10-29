@@ -312,3 +312,18 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - Öneri (kullanıcı kararı): (1) canlı kural değişmeden kâğıt test sürsün, beklenti ≈ 0 olarak okunsun; (2) bundan sonra tüm
   ölçümler `fillBarTp: 'lower'` ile; (3) erken hedef mesafesini (%1,2 yerine 0,75R / 1R / 1,5R) 1H sırasıyla yeniden ölç;
   (4) bot takibinde aynı 4H mumdaki dolum + hedefi 15m mumlarla çöz, Telegram'da tek mesaj. Testler 153.
+
+## 29.10.2026 — Erken hedef mesafesi gerçek sırayla (sweep 40846483158) + bot 15m sıra düzeltmesi
+| Canlı 4H düzeni, dolum mumunda 1H sırası | Eğitim R / PF | Doğr. R / PF | Hedge'li eğ / doğr |
+|---|---|---|---|
+| erken %80 @ %1,2 (canlı) | +0,025 / 1,09 | +0,028 / 1,11 | −0,02 / +0,02 |
+| erken %80 @ 0,5R | −0,02 / 0,94 | −0,02 / 0,93 | −0,05 / −0,04 |
+| erken %80 @ 0,75R | −0,06 / 0,87 | +0,00 / 1,01 | −0,05 / −0,03 |
+| erken %80 @ 1R | −0,05 / 0,90 | −0,04 / 0,93 | −0,04 / −0,06 |
+| erken %80 @ 1,5R | −0,07 / 0,88 | −0,06 / 0,91 | −0,05 / −0,05 |
+| erken %50 @ 1R | −0,02 / 0,96 | −0,02 / 0,96 | −0,03 / −0,04 |
+| standart (TP1 yarı, başabaş) | −0,08 / 0,87 | −0,07 / 0,89 | −0,05 / −0,04 |
+- Daha iyi mesafe yok; en iyisi mevcut %1,2 ve o da ≈ 0 (hedge'li ≈ 0). **Sonuç: 4H sinyal düzeninin gerçekçi kenarı yok.**
+  Canlı kâğıt test, ölçümü doğrulamak için sürebilir; gerçek para için kural olarak önerilmez.
+- Bot: aynı 4H mumdaki dolum + erken hedef/TP1/stop sırası 15m mumlarla çözülüyor (`fillRes`), aynı turdaki olaylar tek mesaj
+  ("↳" ile; "sıra 15m mumlarla doğrulandı" ya da "son 15 dakikada sırayla"). Testler 154.
