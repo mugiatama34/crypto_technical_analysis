@@ -14,6 +14,7 @@ on:
       claude_sample: { description: "Claude örneklemi (0 = yok)", default: "0" }
       universe: { description: "Lab: dönem evreni havuzu (ör. 150; 0 = kapalı, bugünün ilk N'i)", default: "0" }
       strategies: { description: "Lab: yalnız bu aileler (virgülle; boş = hepsi), ör. btc_tsmom_1h,btc_tsmom_4h", default: "" }
+      fillbar: { description: "Lab: limit dolum mumunda hedef: count (iyimser, eski) | skip (kötümser)", default: "count" }
       mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı · research: araştırmacı ajan (kuyruk → tarama → rapor) · replay: canlı sinyalleri gerçek mumlarla yeniden oynat (canlı-backtest eşleştirme) · checklist: 10 maddelik check list ölçümü (son planlar)", default: "full" }
 
 env:
@@ -59,7 +60,7 @@ jobs:
             plans-
       - name: Strategy lab
         if: ${{ env.MODE == 'lab' }}
-        run: node backtest/lab/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --universe ${{ inputs.universe || '0' }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }} ${{ inputs.strategies != '' && format('--strategies {0}', inputs.strategies) || '' }}
+        run: node backtest/lab/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --universe ${{ inputs.universe || '0' }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }} --fillbar ${{ inputs.fillbar || 'count' }} ${{ inputs.strategies != '' && format('--strategies {0}', inputs.strategies) || '' }}
       - name: Checklist measurement
         if: ${{ env.MODE == 'checklist' }}
         run: node backtest/checklist.mjs

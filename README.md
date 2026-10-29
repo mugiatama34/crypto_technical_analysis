@@ -204,6 +204,12 @@ TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_l
 `node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,
 1H PDH/PDL, PWH/PWL, Asya, EQH/EQL (alındı mı) ve BTC'ye göre SMT ipucu.
 
+Lab aileleri `chan_fib_*` (`backtest/lab/channel.js`, kullanıcının kurulumu): yükselen/düşen kanalda (önceki dip + itki başı =
+alt çizgi, önceki tepe + itki ucu = üst çizgi; HL/HH, eğim oranı 0,5–2) itki P0→P1'in 0,618 geri çekilmesi × A'nın B'den 1,272
+uzantısı kesişimi kanal çizgisinde (≤ 0,6 ATR). `_p0` limit + stop P0 ∓ 0,1 ATR, `_pool` stop ∓ 0,5 ATR, `_sweep` P0 süpürülüp
+geri kapanınca piyasa girişi, `_p0_htf` yalnız günlük trend yönünde. TP1 P1 (≥ 1,5R), TP2 üst çizgi / P1 ± 0,236 L. Lab'in
+`--fillbar skip` seçeneği (workflow `fillbar`) limit dolum mumunda hedefi saymaz (kötümser; 29.10 motor düzeltmesi).
+
 Lab aileleri `div_*` (`backtest/lab/divergence.js`, 1H/4H/1D): son iki onaylı swing dibi/tepesinde **klasik uyumsuzluk**
 (fiyat yeni uç, RSI ≥ 2 puan geride). Tetik `div_rsi_pivot` = ikinci uç onaylanınca, diğerleri = ikinci uçtan önceki son
 minör tepe/dip kapanışla kırılınca (MSS, ≤ 20 mum). Stop ikinci uç ∓ 0,2 ATR, TP1 1,5R, TP2 boyun (≥ 2,5R) ya da 3R,

@@ -12,7 +12,7 @@ import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
-const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01) };
+const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01), fillbar: String(arg('fillbar', 'count')) };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
 
@@ -121,7 +121,7 @@ async function main() {
     .map((s) => (CFG.tfs ? { ...s, tfs: s.tfs.filter((t) => CFG.tfs.includes(t)) } : s)).filter((s) => s.tfs.length);
   const tfs = [...new Set(strategies.flatMap((s) => s.tfs))];
   log(`Laboratuvar: ${strategies.map((s) => s.id).join(', ')} × ${coins.length} coin × ${tfs.join(',')}; ${CFG.months} ay`);
-  const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip, fundingPct8h: CFG.funding };
+  const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip, fundingPct8h: CFG.funding, fillBarTp: CFG.fillbar === 'lower' ? 'skip' : CFG.fillbar }; // lab'de alt TF yok: 'lower' → 'skip' (kötümser)
   const needDaily = strategies.some((s) => s.needs?.includes('1D'));
   const needBtc = strategies.some((s) => s.needs?.includes('BTC1D'));
   const fetchTf = async (instId, tf, n) => (CFG.fixture ? (await fixtureProvider.candles(instId, tf, n)).candles : getHistoryCached(instId, tf, startMs - (tf === '1D' ? 120 * 86400e3 : 0), endMs, { cacheDir: CFG.cacheDir }));

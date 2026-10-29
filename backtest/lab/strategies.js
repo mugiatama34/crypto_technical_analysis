@@ -12,6 +12,7 @@ import { endingDiagonal, endingDiagonalWide, leadingDiagonal } from './diagonal.
 import { XS_STRATEGIES } from './xsmom.js';
 import { SMC_STRATEGIES } from './smc.js';
 import { DIV_STRATEGIES } from './divergence.js';
+import { CHAN_STRATEGIES } from './channel.js';
 import { W3_STRATEGIES } from './wave3.js';
 import { zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0 } from './corrections.js';
 export { zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide };
@@ -181,5 +182,5 @@ const mkTsmom = (id, tf, maxHold) => ({
 export const btcTsmom1h = mkTsmom('btc_tsmom_1h', '1H', 200);
 export const btcTsmom4h = mkTsmom('btc_tsmom_4h', '4H', 100);
 
-export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, ...SMC_STRATEGIES, ...DIV_STRATEGIES, ...W3_STRATEGIES, ...XS_STRATEGIES];
+export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, ...SMC_STRATEGIES, ...DIV_STRATEGIES, ...W3_STRATEGIES, ...CHAN_STRATEGIES, ...XS_STRATEGIES];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));

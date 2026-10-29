@@ -87,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 49);
+  assert.equal(STRATEGIES.length, 53);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -433,4 +433,21 @@ test('lab w3_zone: dalga 2 sürerken bölgeye limit plan (yakın kenar), etiketl
   assert.ok(x.stop < x.entry && x.tp1 > x.entry);
   assert.ok(x.tags && 'smt' in x.tags && x.tags.tb != null);
   assert.equal(new Set(plans.map((q) => `${q.entry}|${q.stop}`)).size, plans.length, 'aynı kurulum iki kez işlenmez');
+});
+
+test('kanal + fib kesişimi: yükselen kanalda alt çizgideki 0,618×1,272 kurulumunu bulur, kanal yoksa bulmaz', async () => {
+  const { channelSetup, CHAN_DEFAULTS } = await import('../backtest/lab/channel.js');
+  // Yükselen kanal: dipler 100 → 104 (eğim 0,2/mum), tepeler 110 → 114; itki P0 104 → P1 114 (L 10), A 109, B 112,3
+  // C kesişimi: 0,618 → 114 − 6,18 = 107,82; 1,272×|A−P1| = 6,36 → 112,3 − 6,36 = 105,94 — tol için B'yi ayarlayalım
+  const P = (i, price, type) => ({ i, price, type });
+  const w = [P(0, 100, 'L'), P(10, 110, 'H'), P(20, 104, 'L'), P(30, 114, 'H'), P(35, 109, 'L'), P(40, 114.1, 'H')];
+  // le = 114,1 − 1,272×5 = 107,74; lr = 107,82 → fark 0,08; alt çizgi i=48'de 104 + 0,2×28 = 109,6 → uzak (tol 0,6 ATR, ATR 1)
+  assert.equal(channelSetup(w, 48, 1, CHAN_DEFAULTS), null);
+  const w2 = [P(0, 98, 'L'), P(10, 108, 'H'), P(20, 102, 'L'), P(30, 112, 'H'), P(35, 107, 'L'), P(40, 111.9, 'H')];
+  // alt çizgi eğimi 0,2: i=41'de 106,2; lr = 112 − 6,18 = 105,82; le = 111,9 − 1,272×5 = 105,54 → mid 105,68 (çizgiye 0,52 ≤ 0,6×1,2)
+  const s = channelSetup(w2, 41, 1.2, CHAN_DEFAULTS);
+  assert.ok(s && s.d === 1, 'long kurulum bekleniyordu');
+  assert.ok(Math.abs(s.k.mid - 105.68) < 0.01);
+  const flat = [P(0, 103, 'L'), P(10, 108, 'H'), P(20, 102, 'L'), P(30, 112, 'H'), P(35, 107, 'L'), P(40, 111.9, 'H')]; // dip alçaldı → kanal değil
+  assert.equal(channelSetup(flat, 41, 1.2, CHAN_DEFAULTS), null);
 });
