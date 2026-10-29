@@ -327,3 +327,8 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
   Canlı kâğıt test, ölçümü doğrulamak için sürebilir; gerçek para için kural olarak önerilmez.
 - Bot: aynı 4H mumdaki dolum + erken hedef/TP1/stop sırası 15m mumlarla çözülüyor (`fillRes`), aynı turdaki olaylar tek mesaj
   ("↳" ile; "sıra 15m mumlarla doğrulandı" ya da "son 15 dakikada sırayla"). Testler 154.
+
+## 29.10.2026 — Eğitim: indikatörler + kontrol listesi
+- Kullanıcı TradingView'a ICT Killzones / Smart Money Concepts / Previous Highs & Lows [LuxAlgo] ekledi; öneriler CLAUDE.md'de. Killzone Asya ≈ 01–05 UTC (bizim tanım 00–07).
+- Coin kontrol listesi: `docs/egitim/coin-kontrol-listesi.md` + telefonda işaretlenebilir sayfa https://claude.ai/artifact/Nr2ZywwscFMkDBwNQ8iVsD (coin başına localStorage).
+- İlk deneme AVAX: günlük MSS 10,048 (PWH, 21 Eki) doğru; düzeltilenler: 4H'yi bozan seviye 4H LH 9,166 (PWH değil), weak low 8,55 alınmadı (hedef), BTC 4H range'de discount (0,81), AVAX PWL'yi aldı BTC almadı (AVAX zayıf), senaryo A short olmalı (Asya tepesi 9,014 + OB 8,97–9,06 süpürme → 15m MSS → short, stop süpürme ucu + 0,1–0,2 ATR).
