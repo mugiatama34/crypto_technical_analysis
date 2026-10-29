@@ -39,7 +39,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   katmanlar · "…" · geri al; kaleme basınca grafiğin üstünde yüzen çizim çubuğu açılır (fib, çizgiler, kanal, ABCD,
   Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
   Binance "… / TetherUS PERPETUAL CONTRACT", Bybit "…USDT Perpetual Contract" (fitiller OKX'ten birkaç pip farklı;
-  ör. ARB 8 Eki dibi OKX 0,16142 / Bybit 0,16164 / Binance 0,15979). Kullanıcının **masaüstü TradingView arayüzü Almanca** (28.10: üst çubuk Indikatoren / Alarm / **Wiedergabe** = Bar Replay). Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
+  ör. ARB 8 Eki dibi OKX 0,16142 / Bybit 0,16164 / Binance 0,15979). Kullanıcının TradingView indikatörleri (29.10): **ICT Killzones [LuxAlgo]**, **LuxAlgo - Smart Money Concepts**, LuxAlgo - Previous Highs & Lows, LuxAlgo - Fair Value Gap (öneri: SMC tek başına yeter; killzone yalnız 15m/1H; ayar sekmeleri Eingaben / Stil / Sichtbarkeit). Kullanıcının **masaüstü TradingView arayüzü Almanca** (28.10: üst çubuk Indikatoren / Alarm / **Wiedergabe** = Bar Replay). Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
   yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Telefon grafik ayarları → **Sembol** sayfası:
   MUMLAR = Temel hat / Kenarlar / Fitil, her birinde iki kutu (sol yükselen, sağ düşen); renk seçici hex almaz:
   10 sütun × 8 satır tablo (1. satır griler, 2. satır canlı renkler, altı açık→koyu tonlar), altında "+" (özel renk)
