@@ -1,6 +1,7 @@
 // Walk-forward backtest (saf): her adımda yalnızca o ana kadarki mumlarla analiz + plan; plan ileriye simüle edilir.
 import { analyzeRow, barsFor } from '../src/scan/scanner.js';
-import { buildPlan, onCooldown, knifeGuardOf, approachOf, isKnife, confirmsTurn } from '../bot/plan.js';
+import { buildPlan, onCooldown, knifeGuardOf, approachOf, isKnife, confirmsTurn, fillOrder } from '../bot/plan.js';
+export { fillOrder };
 import { TIMEFRAMES } from '../src/data/okx.js';
 
 export const BT_DEFAULTS = {
@@ -108,28 +109,6 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
   R -= feeR;
   return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
-}
-
-/**
- * Limit dolum mumunun içinde sıra (alt TF): [t0, t0 + ms) aralığındaki alt mumlarda ilk giriş dokunuşu; o alt mumda stop →
- * 'stop'; sonraki alt mumlarda önce stop → 'stop', önce hedef → 'tp'; hiçbiri ya da veri yok → 'none'.
- */
-export function fillOrder(plan, d, t0, ms, lower, target) {
-  if (!lower?.length) return 'none';
-  let lo = 0, hi = lower.length - 1, s0 = lower.length;
-  while (lo <= hi) { const m = (lo + hi) >> 1; if (lower[m].time >= t0) { s0 = m; hi = m - 1; } else lo = m + 1; }
-  let filled = false;
-  for (let j = s0; j < lower.length && lower[j].time < t0 + ms; j++) {
-    const c = lower[j];
-    const stopHit = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
-    if (!filled) {
-      if (d === 1 ? c.low <= plan.entry : c.high >= plan.entry) { filled = true; if (stopHit) return 'stop'; }
-      continue;
-    }
-    if (stopHit) return 'stop';
-    if (d === 1 ? c.high >= target : c.low <= target) return 'tp';
-  }
-  return 'none';
 }
 
 /** Bir sembol+TF serisini baştan sona tarar; planları simüle eder. */

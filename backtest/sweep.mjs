@@ -303,6 +303,11 @@ async function main() {
     [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
     // Dolum mumunda hedef: iyimser (varsayılan) / kötümser / 1H sırasıyla (aynı 4H mumda giriş + erken hedef)
     [...live4h, { name: 'dolum mumunda hedef sayılmaz (kötümser)', fillBarTp: 'skip' }], [...live4h, { name: 'dolum mumunda sıra 1H ile', fillBarTp: 'lower' }],
+    // Erken hedef mesafesi, gerçek sırayla (dolum mumunda 1H): %1,2 yerine R cinsinden; erken kısmı yoksa standart yarı/başabaş
+    ...[['erken %80: 0,5R', { tp1R: 0.5, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 0,75R', { tp1R: 0.75, tp1Portion: 0.8, keepTp2: true }],
+      ['erken %80: 1R', { tp1R: 1, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 1,5R', { tp1R: 1.5, tp1Portion: 0.8, keepTp2: true }],
+      ['erken %50: 1R', { tp1R: 1, tp1Portion: 0.5, keepTp2: true }], ['standart: TP1 yarı (plan), başabaş', {}]]
+      .map(([name, x]) => [guard, wk, lim, only4h, hw, { name: `${name} · sıra 1H`, fillBarTp: 'lower', ...x }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
   ];
   for (const list of CAPS) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }

@@ -319,6 +319,12 @@ hedef varsa stop sayılır; komisyon iki taraf; 24 saatte dolmayan plan düşer;
   puan eşiği, TF alt kümesi, grup dışlama/zorunluluk ve MTF vekiliyle yeniden simüle eder; eğitim diliminde en iyi
   4 tek değişikliğin birleşimlerini de dener. Rapor **`sweep.html`** (`docs/backtest/sweep.json`). Workflow'da
   `mode: sweep` yalnız taramayı koşar (son planlar Actions cache'ten), `full` önce yeniden koşar.
+- **Dolum mumunda hedef sırası** (`fillBarTp`, 29.10): limit dolum mumunda hedef/stop görüldüyse motor varsayılan olarak
+  "önce dolum" sayar (`count`, iyimser); `lower` dolum mumunun alt TF mumlarıyla (4H → 1H) sırayı çözer (`fillOrder`,
+  `bot/plan.js`), `skip` hiç saymaz. Canlı 4H düzeni 1H sırasıyla +0,03R (iyimser +0,09R). Sweep'te "· sıra 1H" satırları
+  erken hedef mesafesini (0,5R–1,5R, %80/%50) gerçek sırayla karşılaştırır. Bot da takipte aynı 4H mumdaki dolum + hedef/stop
+  sırasını 15m mumlarla çözer (`trackPlan` `opts.lower`, sonuç `fillRes` olarak plana yazılır); aynı turdaki olaylar tek
+  Telegram mesajında gelir.
 - **Yön yığılması sınırı** (sweep, `cap: true` satırları): coin'ler arası portföy filtresi — `maxOpenSameDir` (karar anında
   aynı yönde açık/bekleyen işlem tavanı 3/5/10) ve `maxNewSameDir` (aynı mum kapanışında aynı yönde ≤ 1/2 yeni sinyal, puanı
   yüksek önce); canlı 4H düzeni ve eski 1H+4H düzeni üstüne. `stack` tanısı: aynı yönde eşzamanlı açık p50/p90/max ve en kötü

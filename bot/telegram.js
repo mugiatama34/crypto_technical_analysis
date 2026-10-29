@@ -60,6 +60,17 @@ export function formatUpdate(plan, event, price) {
   return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd}${tsx} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
 }
 
+/**
+ * Aynı turda birden çok takip olayı (ör. giriş + erken hedef): tek mesaj. Dolum mumunda sıra 15m mumlarla çözüldüyse
+ * (plan.fillRes) bu belirtilir; aksi halde 15 dakikalık kontrol aralığında ikisi de olmuş demektir.
+ */
+export function formatUpdates(plan, events, price) {
+  const dir = plan.direction === 'long' ? 'LONG' : 'SHORT';
+  const head = events.map((ev) => STATUS_TR[ev] || ev).join('\n↳ ');
+  const how = plan.fillRes ? ' (sıra 15m mumlarla doğrulandı)' : ' (son 15 dakikada sırayla)';
+  return `${head}${how} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
+}
+
 /** Günlük özet. */
 export function formatSummary(stats, open, since) {
   const d = new Date(since).toLocaleDateString('tr-TR');

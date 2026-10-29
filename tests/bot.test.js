@@ -290,3 +290,26 @@ test('orphansOf: durumda olmayan açık geçmiş kayıtları yeniden takibe; mum
   const r = trackPlan(o[0], [], 1 + 25 * 3600e3);
   assert.equal(r.status, 'expired');
 });
+
+test('trackPlan opts.lower: aynı 4H mumda dolum + erken hedef sırası 15m ile; sonuç kaydedilir; birleşik mesaj', async () => {
+  const { formatUpdates } = await import('../bot/telegram.js');
+  const H4 = 4 * 3600e3, M15 = 15 * 60e3;
+  const c = (t, o, h, l, cl) => ({ time: t, open: o, high: h, low: l, close: cl, volume: 1 });
+  const plan = { coin: 'OL', tf: '4H', direction: 'long', d: 1, entry: 100, stop: 96, tp1: 104, tp2: 110, early: 101.2, earlyPortion: 0.8, sentAt: 0, status: 'waiting' };
+  const bar = c(H4, 102, 103, 99.8, 102.5); // 4H: dolum (99,8) ve erken hedef (103) aynı mumda
+  const q = (k, o, h, l, cl) => c(H4 + k * M15, o, h, l, cl);
+  const upFirst = [q(0, 102, 103, 101.9, 102.8), q(1, 102.8, 102.9, 99.8, 100.2), q(2, 100.2, 100.9, 100.1, 100.5)];
+  const fillFirst = [q(0, 102, 102.1, 99.8, 100.3), q(1, 100.3, 103, 100.2, 102.8), q(2, 102.8, 102.9, 102.4, 102.5)];
+  const now = 3 * H4;
+  let r = trackPlan(plan, [bar], now, { lower: upFirst });
+  assert.deepEqual(r.events, ['active']); assert.equal(r.status, 'active'); assert.equal(r.patch.fillRes, 'none');
+  r = trackPlan(plan, [bar], now, { lower: fillFirst });
+  assert.deepEqual(r.events, ['active', 'early']); assert.equal(r.patch.fillRes, 'tp');
+  // kayıtlı sonuç sonraki turda alt TF olmasa da kullanılır
+  const saved = { ...plan, ...r.patch, status: 'active', fillRes: 'none' };
+  assert.equal(trackPlan(saved, [bar], now, { lower: fillFirst }).status, 'active');
+  // alt TF yoksa eski davranış (iyimser)
+  assert.deepEqual(trackPlan(plan, [bar], now).events, ['active', 'early']);
+  const msg = formatUpdates({ ...plan, fillRes: 'tp' }, ['active', 'early'], 102.5);
+  assert.match(msg, /Giriş bölgesine geldi\n↳ ⚡ Erken hedef/); assert.match(msg, /15m mumlarla doğrulandı/);
+});

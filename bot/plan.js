@@ -189,6 +189,28 @@ export function confirmsTurn(c, prev, plan) {
 }
 
 /**
+ * Limit dolum mumunun içinde sıra (alt TF): [t0, t0 + ms) aralığındaki alt mumlarda ilk giriş dokunuşu; o alt mumda stop →
+ * 'stop'; sonraki alt mumlarda önce stop → 'stop', önce hedef → 'tp'; hiçbiri ya da veri yok → 'none'.
+ */
+export function fillOrder(plan, d, t0, ms, lower, target) {
+  if (!lower?.length) return 'none';
+  let lo = 0, hi = lower.length - 1, s0 = lower.length;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (lower[m].time >= t0) { s0 = m; hi = m - 1; } else lo = m + 1; }
+  let filled = false;
+  for (let j = s0; j < lower.length && lower[j].time < t0 + ms; j++) {
+    const c = lower[j];
+    const stopHit = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
+    if (!filled) {
+      if (d === 1 ? c.low <= plan.entry : c.high >= plan.entry) { filled = true; if (stopHit) return 'stop'; }
+      continue;
+    }
+    if (stopHit) return 'stop';
+    if (d === 1 ? c.high >= target : c.low <= target) return 'tp';
+  }
+  return 'none';
+}
+
+/**
  * Açık planı yeni mumlarla günceller. candles: sentAt'tan sonraki mumlar (eskiden yeniye) + canlı.
  * opts.knifeGuard: düşen bıçak koruması (knifeGuardOf); açıkken waiting → confirming → active | knife | expired.
  * @returns {{ status, events: string[], patch: object }} patch: plana yazılacak alanlar (yaklaşma ölçüsü, teyitli giriş)
@@ -233,6 +255,23 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       }
       if (ms && Math.round((c.time - knifeAt()) / ms) >= g.confirmBars) { status = 'expired'; events.push('unconfirmed'); break; }
       continue;
+    }
+    // Dolum mumunda sıra (opts.lower: alt TF mumları, ör. 15m): aynı mumda giriş + hedef/stop görüldüyse hangisi önce?
+    // Sonuç mum kapanınca plana yazılır (fillRes) ki sonraki turlarda alt TF verisi kaysa da aynı kalsın.
+    if ((status === 'active') && o.lower && ms && (patch.filledAt ?? plan.filledAt) === c.time && !(patch.confirmedAt ?? plan.confirmedAt)) {
+      const target = plan.early ?? plan.tp1;
+      const hitTarget = d === 1 ? c.high >= target : c.low <= target;
+      if (hitTarget || hitStop) {
+        let res = plan.fillRes ?? patch.fillRes;
+        if (!res) {
+          res = fillOrder(plan, d, c.time, ms, o.lower, target);
+          if (c.time + ms <= now && o.lower[0]?.time <= c.time) patch.fillRes = res;
+        }
+        if (res === 'stop') { status = 'stopped'; events.push('stopped'); break; }
+        if (res === 'none') continue; // alt TF'de dolumdan sonra hedef görülmedi: bu mumda hedef sayılmaz
+        if (plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; continue; }
+        status = 'tp1'; events.push('tp1'); continue;
+      }
     }
     // Erken kâr al (plan.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be)
     if (status === 'early') {

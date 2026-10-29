@@ -24,7 +24,7 @@ import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
 import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
-import { sendTelegram, formatSetup, formatUpdate, formatSummary } from './telegram.js';
+import { sendTelegram, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
@@ -187,19 +187,33 @@ async function main() {
   // 1) Açık planları güncelle. Durumda olmayan açık geçmiş kayıtları (önbellek kaybı) sessizce yeniden takibe alınır.
   const orphans = orphansOf(history.items, state.sent);
   if (orphans.length) { state.sent.push(...orphans); log(`Sahipsiz ${orphans.length} açık kayıt yeniden takibe alındı (bildirim yok)`); }
+  // Dolum mumunda sıra için alt TF (15m) mumları: taramada varsa oradan, yoksa açık plan başına indir (tur başına ≤ 12)
+  const lowerCache = new Map(); let lowerFetches = 0;
+  const lowerOf = async (p) => {
+    if (p.tf === '15m' || !['waiting', 'active'].includes(p.status) || p.fillRes) return null;
+    const r15 = byKey.get(`${p.coin}|15m`);
+    if (r15 && !r15.error) return r15.live ? [...r15.candles, r15.live] : r15.candles;
+    if (!lowerCache.has(p.coin)) {
+      if (lowerFetches >= 12) return null;
+      lowerFetches++;
+      try { const x = provider ? await provider.candles(instIdOf(p.coin), '15m', 200) : await getCandles(instIdOf(p.coin), TIMEFRAMES['15m'], 200); lowerCache.set(p.coin, x.live ? [...x.candles, x.live] : x.candles); } catch { lowerCache.set(p.coin, null); }
+    }
+    return lowerCache.get(p.coin);
+  };
   for (const p of state.sent) {
     if (CLOSED.has(p.status)) continue;
     const row = byKey.get(`${p.coin}|${p.tf}`);
     // Mum yoksa (TF taranmıyor, coin listeden çıktı) yalnız süre dolumu denetlenir
     const candles = !row || row.error ? [] : row.live ? [...row.candles, row.live] : row.candles;
-    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
+    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, lower: candles.length ? await lowerOf(p) : null });
     if (events.length) {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
       for (const ev of events) {
         if (!p.orphan) state.stats[ev] = (state.stats[ev] || 0) + 1;
         if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = now;
-        if (!p.orphan) await notify(formatUpdate(p, ev, row?.price), state);
       }
+      // Aynı turda birden çok olay (ör. giriş + erken hedef) → tek mesaj
+      if (!p.orphan) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
       if (CLOSED.has(p.status) && btcPrice) p.btcAtClose = btcPrice;
       historyUpdate(history, p);
       log(`  takip ${p.coin} ${p.tf} → ${events.join(',')}`);
