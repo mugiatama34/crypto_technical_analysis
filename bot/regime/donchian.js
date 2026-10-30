@@ -37,7 +37,12 @@ const rOf = (p, exit, o) => +(((exit - p.entry) - (o.feePct / 100) * 2 * p.entry
 export async function runRegimeDonchian({ now, cfg = {}, notify, log, stateFile, publishDir, provider }) {
   const o = { ...RD_DEFAULTS, ...cfg };
   const cand = async (coin, tf, n) => { const r = provider ? await provider.candles(instIdOf(coin), tf, n) : await getCandles(instIdOf(coin), TIMEFRAMES[tf], n); return r.candles; };
-  let st; try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch { st = { open: [], closed: [], lastRegime: null }; }
+  // Durum: önce yerel dosya; yoksa (Actions önbelleği yok) yayınlanan docs/agent/regime.json'dan kurulur. Önbellek yol listesine
+  // eklenmez: listeyi değiştirmek actions/cache sürümünü değiştirir ve tüm bot durumunu (ajanlar, momentum) sıfırlar (30.10 olayı).
+  let st; try { st = JSON.parse(fs.readFileSync(stateFile, 'utf8')); } catch {
+    try { const pub = JSON.parse(fs.readFileSync(path.join(publishDir || 'docs/agent', 'regime.json'), 'utf8')); st = { open: pub.open || [], closed: pub.closed || [], lastRegime: pub.regime ?? null }; }
+    catch { st = { open: [], closed: [], lastRegime: null }; }
+  }
   const btc1h = await cand('BTC', '1H', 120), btcD = await cand('BTC', '1D', 120);
   const rg = regimeAt(btc1h, btcD, now);
   const label = rg?.label || null;

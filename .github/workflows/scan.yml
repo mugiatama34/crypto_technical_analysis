@@ -45,7 +45,6 @@ jobs:
             bot/state.json
             bot/agent-state.json
             bot/momentum-state.json
-            bot/regime-state.json
           key: bot-state-${{ github.run_id }}
           restore-keys: |
             bot-state-
@@ -106,7 +105,6 @@ jobs:
             bot/state.json
             bot/agent-state.json
             bot/momentum-state.json
-            bot/regime-state.json
           key: bot-state-${{ github.run_id }}
 
       - name: Publish agent pages
