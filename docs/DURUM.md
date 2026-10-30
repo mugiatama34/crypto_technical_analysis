@@ -360,3 +360,10 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - DATA: önerilen limit 0,1371 dolup stop olurdu (dip 0,1259) → −1R (%0,5); kullanıcı girmedi. Kesişim (0,1381) de stop olurdu.
 - smc_levels notu: 4H yapı etiketi pivot onayı gecikmeli (30.10 sabahı "HH/HL" dedi, gerçek 4H BOS ↓ 79 168) → skill'de son BOS'u öncele.
 - 30.10: **Rejim → model** çalışması başladı (kullanıcı onayı). `src/scan/btcRegime.js` (G↑/G↓ × normal / şok↓ toparlanma|devam / şok↑ geri çekilme|devam) + lab `byRegime`/`byRegimeDir`. Faz 1 hızlı test: 10 aile, 1H/4H, 24 ay, fillbar=skip. Sonra tam matris + eğitimde seç/doğrulamada test eden seçici. Testler 159.
+
+## 30.10.2026 — Rejim × model hızlı test (koşu 41025413530; 10 aile, 1H/4H, 24 ay, fillbar=skip)
+- Seçici dürüst testi: eğitimde (n ≥ 50, R > 0,05, PF > 1,1) seçilen 20 rejim×yön×aile hücresi doğrulamada **n 3836, ort. −0,018R** (tümünün ortalaması −0,125R). Rejim seçimi kaybı büyük ölçüde azaltıyor ama tek başına pozitif değil.
+- Tek güçlü hücre: **G↑ · şok↑ devam · long · donchian** eğitim n525 +0,35R PF 1,81 / doğr. n350 +0,84R PF 3,6 (engine_wide, w3_zone aynı yönde pozitif). Aynı rejimde short'lar her ailede sert negatif. Tersi (G↓ · şok↓ devam · long) her ailede negatif → "bıçak yakalama".
+- Sınırda: G↑ · normal · short · div_rsi_mss +0,12 / +0,08 (n 428/315, doğr. PF 1,17); G↓ · normal · short · zigzag_c +0,30 / +0,30 (doğr. n 62).
+- 30.10 sabahki rejim (G↓ · şok↓ toparlanma): doğrulamada çok az örnek → sonuçsuz.
+- Eksik: rejim hücrelerinde hedge'li R yok (donchian long kazancı BTC yönü olabilir — amaç zaten BTC ile birlikte kazanmak, ama ölçülmeli). Sıradaki: tam matris + hücre başına hedge'li R + yürüyen (walk-forward) seçim.
