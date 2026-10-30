@@ -451,3 +451,18 @@ test('kanal + fib kesişimi: yükselen kanalda alt çizgideki 0,618×1,272 kurul
   const flat = [P(0, 103, 'L'), P(10, 108, 'H'), P(20, 102, 'L'), P(30, 112, 'H'), P(35, 107, 'L'), P(40, 111.9, 'H')]; // dip alçaldı → kanal değil
   assert.equal(channelSetup(flat, 41, 1.2, CHAN_DEFAULTS), null);
 });
+
+test('BTC rejimi: 48 saatte büyük düşüş + toparlanma etiketlenir, sakin seride normal', async () => {
+  const { regimeAt } = await import('../src/scan/btcRegime.js');
+  const H = 36e5, D = 864e5;
+  const daily = []; for (let i = 0; i < 80; i++) daily.push({ time: i * D, open: 100 - i * 0.1, high: 101 - i * 0.1, low: 99 - i * 0.1, close: 100 - i * 0.1 }); // düşen, ATR ≈ 2
+  const t0 = 80 * D; const h1 = [];
+  for (let i = 0; i < 120; i++) { // yatay 92, son 48 saatte 12 saatlik 84'e düşüş, sonra 88'e toparlanma
+    const p = i < 80 ? 92 : i < 92 ? 92 - (i - 80) * (8 / 12) : 84 + Math.min(4, (i - 92) * 0.2);
+    h1.push({ time: t0 - 120 * H + i * H, open: p, high: p + 0.2, low: p - 0.2, close: p });
+  }
+  const r = regimeAt(h1, daily, t0);
+  assert.equal(r.trend, 'down'); assert.equal(r.shock, 'down'); assert.equal(r.phase, 'toparlanma'); assert.match(r.label, /G↓ · şok↓ toparlanma/);
+  const calm = h1.map((c, i) => ({ ...c, high: 92.3, low: 91.7, close: 92 }));
+  assert.equal(regimeAt(calm, daily, t0).shock, 'none');
+});

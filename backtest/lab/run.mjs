@@ -7,6 +7,7 @@ import path from 'node:path';
 import { getTopCoins, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
 import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
+import { regimeAt } from '../../src/scan/btcRegime.js';
 import { stats, sessionOf, weekpartOf, entryTimeOf } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
@@ -102,7 +103,7 @@ export function report(trades, split) {
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), byRegime: by(trades, (t) => t.regime || 'rejim yok', split), byRegimeDir: by(trades, (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
 }
 
 async function main() {
@@ -156,6 +157,11 @@ async function main() {
   for (const tf of tfs) if (!btcMaps.has(tf)) { try { btcMaps.set(tf, await fetchTf(CFG.fixture ? 'BTC' : instIdOf('BTC'), tf, 1500)); } catch (err) { log(`  BTC ${tf}: ${err.message}`); } }
   if (btcDaily && !btcMaps.has('1D')) btcMaps.set('1D', btcDaily);
   for (const s of series) s.extra.btc = btcMaps.get(s.tf) || null; // aynı TF BTC mumları (SMT etiketi)
+  // BTC rejim etiketi (karar anı: sinyal mumu kapanışı) — günlük trend + 48 saatlik şok/evre (src/scan/btcRegime.js)
+  let rgH = btcMaps.get('1H'), rgD = btcMaps.get('1D') || btcDaily;
+  if (!rgH) { try { rgH = await fetchTf(CFG.fixture ? 'BTC' : instIdOf('BTC'), '1H', 1500); } catch (err) { log(`  BTC 1H (rejim): ${err.message}`); } }
+  if (!rgD) { try { rgD = await fetchTf(CFG.fixture ? 'BTC' : instIdOf('BTC'), '1D', 400); } catch (err) { log(`  BTC 1D (rejim): ${err.message}`); } }
+  const regimeOf = (t) => regimeAt(rgH, rgD, t.time + (TIMEFRAMES[t.tf]?.ms || 0))?.label || null;
   const btcCloseAt = (tf, time) => { const c = btcMaps.get(tf); if (!c) return null; let lo = 0, hi = c.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (c[m].time <= time) { k = m; lo = m + 1; } else hi = m - 1; } return k >= 0 ? c[k].close : null; };
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
@@ -168,6 +174,7 @@ async function main() {
       if (!out.meta.benchmark && daily.length) out.meta.benchmark = benchmarks(daily.filter((s) => topSet.has(s.coin)), startMs, split, endMs);
     } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin) || (st.coins && !st.coins.includes(s.coin))) continue; trades.push(...runStrategy(st, s, o)); }
     attachBtc(trades, btcCloseAt, CFG.fee);
+    for (const t of trades) t.regime = regimeOf(t);
     const rep = report(trades, split);
     out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
     log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) | hedge'li doğr. n${rep.hedged.valid.n} ${rep.hedged.valid.avgR}R PF ${rep.hedged.valid.profitFactor}${rep.hedged.candidate ? ' ← HEDGE\'Lİ ADAY' : ''} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);

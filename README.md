@@ -204,6 +204,11 @@ TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_l
 `node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,
 1H PDH/PDL, PWH/PWL, Asya, EQH/EQL (alındı mı) ve BTC'ye göre SMT ipucu.
 
+**BTC rejim etiketi** (`src/scan/btcRegime.js`, lab `byRegime` / `byRegimeDir`): her işlem karar anındaki BTC durumuyla
+etiketlenir — günlük trend (EMA50 tarafı: G↑/G↓) + son 48 saatte şok (1H tepe–dip ≥ 2 × günlük ATR%; dip sonra geldiyse
+şok↓, tepe sonra geldiyse şok↑) ve evre (şok bacağının ≥ %38,2'si geri alındıysa toparlanma / geri çekilme, değilse devam).
+Yalnız kapanmış mumlar; amaç "hangi rejimde hangi model" matrisi ve eğitimde seçip doğrulamada test eden rejim seçici.
+
 Lab aileleri `chan_fib_*` (`backtest/lab/channel.js`, kullanıcının kurulumu): yükselen/düşen kanalda (önceki dip + itki başı =
 alt çizgi, önceki tepe + itki ucu = üst çizgi; HL/HH, eğim oranı 0,5–2) itki P0→P1'in 0,618 geri çekilmesi × A'nın B'den 1,272
 uzantısı kesişimi kanal çizgisinde (≤ 0,6 ATR). `_p0` limit + stop P0 ∓ 0,1 ATR, `_pool` stop ∓ 0,5 ATR, `_sweep` P0 süpürülüp

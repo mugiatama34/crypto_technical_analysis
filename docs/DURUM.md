@@ -359,3 +359,4 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - 29.10 NY: BTC PDH/EQH 81 787'yi 81 944'e süpürdü → 17:00 geri altında kapanış → 20:00'den itibaren 76 472'ye düşüş (PWL 79 168 ve PDL alındı; günlük LL). 28.10'daki "81 787 süpürülür + MSS ↓ → short" senaryosu gerçekleşti.
 - DATA: önerilen limit 0,1371 dolup stop olurdu (dip 0,1259) → −1R (%0,5); kullanıcı girmedi. Kesişim (0,1381) de stop olurdu.
 - smc_levels notu: 4H yapı etiketi pivot onayı gecikmeli (30.10 sabahı "HH/HL" dedi, gerçek 4H BOS ↓ 79 168) → skill'de son BOS'u öncele.
+- 30.10: **Rejim → model** çalışması başladı (kullanıcı onayı). `src/scan/btcRegime.js` (G↑/G↓ × normal / şok↓ toparlanma|devam / şok↑ geri çekilme|devam) + lab `byRegime`/`byRegimeDir`. Faz 1 hızlı test: 10 aile, 1H/4H, 24 ay, fillbar=skip. Sonra tam matris + eğitimde seç/doğrulamada test eden seçici. Testler 159.
