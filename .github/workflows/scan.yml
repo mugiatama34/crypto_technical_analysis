@@ -77,6 +77,7 @@ jobs:
           AGENT: ${{ vars.AGENT }}
           AGENT_MODEL: ${{ vars.AGENT_MODEL }}
           AGENT_EVERY_MIN: ${{ vars.AGENT_EVERY_MIN }}
+          AGENT_SOURCE: ${{ vars.AGENT_SOURCE }}
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
           TF_RULES: ${{ vars.TF_RULES }}
           SHORT_RULE: ${{ vars.SHORT_RULE }}

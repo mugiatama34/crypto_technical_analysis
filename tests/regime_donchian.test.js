@@ -20,3 +20,10 @@ test('rejim-Donchian: izleyen stop yükselir, düşüşte stop olur', () => {
   const r2 = stepPosition(p, [c(2, 105, 105, 100.5, 101)], RD_DEFAULTS);
   assert.equal(r2.outcome, 'stopped'); assert.equal(r2.exit, 101);
 });
+
+test('ölçülmüş kural adayı ajan biçiminde: long, stop girişin altında, risk yüzdesi ve kural açıklaması', async () => {
+  const { toAgentCand } = await import('../bot/regime/donchian.js');
+  const a = toAgentCand('SOL', '4H', { entry: 100, stop: 96, atr: 2, time: 0 }, 'G↑ · şok↑ devam');
+  assert.equal(a.direction, 'long'); assert.equal(a.d, 1); assert.ok(a.stop < a.entry); assert.equal(a.riskPct, 4);
+  assert.match(a.signals[0].name, /Ölçülmüş kural/); assert.equal(a.source, 'regime_donchian');
+});

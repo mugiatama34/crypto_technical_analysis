@@ -209,6 +209,10 @@ TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_l
 ≤ 100 mum, en fazla 6 açık. Lab (30.10, 24 ay): bu hücre ham +0,35 / +0,84R, hedge'li +0,16 / +0,38R (eğitim / doğrulama).
 Durum `bot/regime-state.json`, yayın `docs/agent/regime.json`, Telegram bildirimi.
 
+**Ajan aday kaynağı** (`AGENT_SOURCE=measured`, varsayılan `all`): ajanlar yalnız ölçülmüş kenarı olan kural adaylarını görür
+(şimdilik rejim-Donchian: BTC "G↑ · şok↑ devam" iken Donchian long; `regimeCandidates`). Aday ve açık pozisyon yoksa Claude
+çağrılmaz. `AGENT_MODEL=claude-haiku-5-5` ile çağrılarda sunucu taraflı yedek (`fallbacks`) gönderilmez.
+
 **BTC rejim etiketi** (`src/scan/btcRegime.js`, lab `byRegime` / `byRegimeDir`): her işlem karar anındaki BTC durumuyla
 etiketlenir — günlük trend (EMA50 tarafı: G↑/G↓) + son 48 saatte şok (1H tepe–dip ≥ 2 × günlük ATR%; dip sonra geldiyse
 şok↓, tepe sonra geldiyse şok↑) ve evre (şok bacağının ≥ %38,2'si geri alındıysa toparlanma / geri çekilme, değilse devam).

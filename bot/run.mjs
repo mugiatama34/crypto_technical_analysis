@@ -19,6 +19,7 @@
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
+//   AGENT_SOURCE=all|measured (measured: ajanlar yalnız ölçülmüş kural adaylarını görür)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,7 +30,7 @@ import { sendTelegram, formatSetup, formatUpdate, formatUpdates, formatSummary }
 import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
-import { runRegimeDonchian } from './regime/donchian.js';
+import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -68,6 +69,9 @@ const CFG = {
   agent: env('AGENT', '1') === '1',
   agentModel: env('AGENT_MODEL', 'claude-opus-5-5'),
   agentEveryMin: +env('AGENT_EVERY_MIN', 15),
+  // Ajan aday kaynağı: all (bot kural motoru adayları, eski) | measured (yalnız ölçülmüş kenarlı kurallar: rejim-Donchian). measured'da
+  // aday yoksa ve açık pozisyon yoksa Claude çağrılmaz (maliyet ≈ 0).
+  agentSource: env('AGENT_SOURCE', 'all'),
   agentMinScore: +env('AGENT_MIN_SCORE', 60),
   agentStateFile: env('AGENT_STATE_FILE', 'bot/agent-state.json'),
   momentum: env('MOMENTUM', '0') === '1', // haftalık kesitsel momentum kâğıt portföyü (bot/momentum)
@@ -343,10 +347,16 @@ async function main() {
         uniq.push({ coin: 'BTC', tf, direction: d === 1 ? 'long' : 'short', d, source: 'btc_trend', score: null, mtf: null, price: b.price, atr: +a.toPrecision(6), zone: [b.price, b.price], inZone: true, entry: b.price, stop, tp1: null, tp2: null, rr: null, rr1: null, riskPct: +((2 * a / b.price) * 100).toFixed(2), trend: { rsBtc: null, rsSide: null, adx: tf === '4H' ? read.adx4h : read.adx1h }, signals: [{ name: `BTC ${tf} trend ${d === 1 ? '↑' : '↓'} (EMA50 eğimi + ADX ${tf === '4H' ? read.adx4h : read.adx1h} DI uyumlu)`, group: 'trend', direction: d === 1 ? 'long' : 'short', strength: 1 }], htf: [] });
         break; // tek BTC adayı: 4H öncelikli
       }
+      let agentList = uniq;
+      if (CFG.agentSource === 'measured') {
+        const m = await regimeCandidates({ now, provider, log });
+        agentList = m.cands;
+        log(`Ajan adayları (ölçülmüş kurallar): BTC rejimi ${m.label || '–'} → ${m.cands.length} aday${m.cands.length ? ' (' + m.cands.map((c) => `${c.coin} ${c.tf}`).join(', ') + ')' : ''}`);
+      }
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: uniq, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)

@@ -32,6 +32,30 @@ export function stepPosition(p, candles, o = RD_DEFAULTS) {
   }
   return null;
 }
+/** Ölçülmüş kural sinyalini ajan aday biçimine çevirir (bot/run.mjs adaylarıyla aynı alanlar). */
+export function toAgentCand(coin, tf, s, label) {
+  return { coin, tf, direction: 'long', d: 1, source: 'regime_donchian', score: null, mtf: null, price: s.entry, atr: +s.atr.toPrecision(6), zone: [s.entry, s.entry], inZone: true,
+    entry: s.entry, stop: +s.stop.toPrecision(8), tp1: null, tp2: null, rr: null, rr1: null, riskPct: +(((s.entry - s.stop) / s.entry) * 100).toFixed(2), trend: { rsBtc: null, rsSide: null, adx: null },
+    signals: [{ name: `Ölçülmüş kural: BTC ${label} → Donchian 20 kırılımı long (lab 24 ay: hedge'li doğr. +0,38R; stop 2 ATR, 2 ATR izleyen, hedef yok)`, group: 'trend', direction: 'long', strength: 1 }], htf: [] };
+}
+
+/** Ajanlar için yalnız ölçülmüş kenarı olan kural adayları: rejim aktifse ilk N coinde Donchian long. → { label, cands } */
+export async function regimeCandidates({ now, provider, cfg = {}, log = () => {} }) {
+  const o = { ...RD_DEFAULTS, ...cfg };
+  const cand = async (coin, tf, n) => { const r = provider ? await provider.candles(instIdOf(coin), tf, n) : await getCandles(instIdOf(coin), TIMEFRAMES[tf], n); return r.candles; };
+  const rg = regimeAt(await cand('BTC', '1H', 120), await cand('BTC', '1D', 120), now);
+  const label = rg?.label || null, cands = [];
+  if (label !== o.regime) return { label, cands };
+  const top = provider ? await provider.topCoins(o.top) : await getTopCoins(o.top, {});
+  for (const t of top) {
+    for (const tf of o.tfs) {
+      try { const s = donchianLong(await cand(t.coin, tf, 150), o); if (s) { cands.push(toAgentCand(t.coin, tf, s, label)); break; } } catch (e) { log(`Ölçülmüş aday ${t.coin} ${tf}: ${e.message}`); }
+    }
+    if (cands.length >= 10) break;
+  }
+  return { label, cands };
+}
+
 const rOf = (p, exit, o) => +(((exit - p.entry) - (o.feePct / 100) * 2 * p.entry) / (p.entry - p.stop0)).toFixed(3);
 
 export async function runRegimeDonchian({ now, cfg = {}, notify, log, stateFile, publishDir, provider }) {
