@@ -251,6 +251,12 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   doğrulama temelden iyi, hedge'li doğrulama > 0, n ≥ 100) → Telegram "🔬 Araştırmacı raporu", `docs/agent/research.json`;
   kuyruk `done` olur. `RESEARCH_MODEL`. İki ajan bu JSON dosyalarıyla haberleşir; `agent.html`'de "Denetçi" ve
   "Araştırmacı" sekmeleri.
+- **Haftalık sinyal kalitesi** (`bot/review/periods.js`, `WEEKLY_REPORT=1` varsayılan açık, Pazartesi özet saatinde):
+  son 7 günün sinyalleri bugünkü sonuçlarıyla (sayı, günlük sıklık, dolum, kapanan, kazanma, ort./toplam R, long/short,
+  en iyi/kötü) + önceki hafta + içinde bulunulan ayar dönemi → Telegram "📊 Haftalık sinyal raporu". Her yeni sinyal
+  `cfg` alanında canlı ayar etiketini taşır (ör. `4H · bıçak · limit · hs yok · erken %1.2/80 · üst TF with`); etiket
+  değişince `periodReport` yeni dönem açar, böylece her Variables değişikliğinin sıklık/kalite etkisi ayrı görülür.
+  30.10 öncesi dönemler (P1–P5) sinyal alanlarından çıkarıldı.
 Genel kurallar: en iyi küme puanı ≥ `MIN_SCORE` (70) ve **MTF uyumu** (`REQUIRE_MTF=1`: en az iki zaman dilimi aynı yön),
 stop bölge kenarının ötesinde, TP2 için R:R ≥ `MIN_RR` (2), fiyat bölgeye en fazla 3 ATR uzakta, risk fiyatın ≤ %5'i,
 aynı sembol+yön+TF 6 saat içinde tekrar gönderilmez. Tur başına en fazla `MAX_EVAL` (8) aday değerlendirilir,

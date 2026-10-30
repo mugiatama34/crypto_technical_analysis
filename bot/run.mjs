@@ -31,6 +31,7 @@ import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
 import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
+import { cfgLabel, weeklyReport } from './review/periods.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -56,6 +57,7 @@ const CFG = {
   maxAlerts: +env('MAX_ALERTS', 3),
   cooldownHours: +env('COOLDOWN_H', 6),
   summaryHour: +env('SUMMARY_HOUR_UTC', 6),
+  weeklyReport: env('WEEKLY_REPORT', '1') === '1', // Pazartesi özet saatinde geçen haftanın sinyal kalitesi raporu
   stateFile: env('STATE_FILE', 'bot/state.json'),
   dry: env('DRY', '') === '1' || process.argv.includes('--dry'),
   account: +env('ACCOUNT_USDT', 0),
@@ -270,6 +272,7 @@ async function main() {
   state.lastRejects = rejects; // denetçi için
   // Aktif kural imzası: değişince zaman damgası (denetçi eski/yeni rejimi ayırır)
   const ruleSig = JSON.stringify({ tfs: CFG.tfs, rules: CFG.tfs.map((tf) => fmtRule(ruleFor(tf, 'long')) + '|' + fmtRule(ruleFor(tf, 'short'))), earlyTp: CFG.earlyTp, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
+  const cfgTag = cfgLabel({ tfs: CFG.tfs.filter((tf) => !ruleFor(tf, 'long').off || !ruleFor(tf, 'short').off), knife: !!CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop });
   if (state.ruleSig !== ruleSig) { state.ruleSig = ruleSig; state.ruleSince = now; log('Kural seti değişti; denetçi için zaman damgası güncellendi'); }
   log(`Elenme nedenleri: ${Object.entries(rejects).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' | ')}`);
   cands.sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || b.score - a.score);
@@ -309,7 +312,7 @@ async function main() {
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
     await notify(formatSetup(plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
-    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     state.sent.push(rec);
     historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;
@@ -382,6 +385,10 @@ async function main() {
     for (const p of recent) if (stats[p.status] != null) stats[p.status]++;
     await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since), state);
     state.lastSummary = now;
+    // Haftalık sinyal kalitesi (Pazartesi): geçen 7 günün sinyalleri bugünkü sonuçlarıyla, önceki hafta ve dönemle kıyas
+    if (CFG.weeklyReport && new Date(now).getUTCDay() === 1 && now - (state.lastWeekly || 0) > 6 * 24 * 3600e3) {
+      try { await notify(weeklyReport(history.items, now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); }
+    }
   }
   if (CFG.dry) log('DRY: durum kaydedilmedi'); else { saveState(CFG.stateFile, state); saveHistory(CFG.historyFile, history); }
 }
