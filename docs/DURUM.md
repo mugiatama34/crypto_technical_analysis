@@ -367,3 +367,4 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - Sınırda: G↑ · normal · short · div_rsi_mss +0,12 / +0,08 (n 428/315, doğr. PF 1,17); G↓ · normal · short · zigzag_c +0,30 / +0,30 (doğr. n 62).
 - 30.10 sabahki rejim (G↓ · şok↓ toparlanma): doğrulamada çok az örnek → sonuçsuz.
 - Eksik: rejim hücrelerinde hedge'li R yok (donchian long kazancı BTC yönü olabilir — amaç zaten BTC ile birlikte kazanmak, ama ölçülmeli). Sıradaki: tam matris + hücre başına hedge'li R + yürüyen (walk-forward) seçim.
+- 30.10: Lab'e **yürüyen rejim seçici** (`backtest/lab/selector.js`: her ay yalnız geçmişten n ≥ 50, R > 0,05, PF > 1,1 olan rejim×yön×strateji hücreleri; 6 ay ısınma; R ve hedge'li R ile ayrı) + hücre başına hedge'li kırılım (`byRegimeDirHedged`). Tam matris koşusu: tüm aileler (chan_* hariç), 1H/4H/1D, 24 ay, fillbar=skip. Testler 160.

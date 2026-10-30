@@ -466,3 +466,17 @@ test('BTC rejimi: 48 saatte büyük düşüş + toparlanma etiketlenir, sakin se
   const calm = h1.map((c, i) => ({ ...c, high: 92.3, low: 91.7, close: 92 }));
   assert.equal(regimeAt(calm, daily, t0).shock, 'none');
 });
+
+test('rejim seçici: yalnız geçmişte iyi olan hücreyi sonraki aylarda seçer (geleceğe bakmaz)', async () => {
+  const { walkForward } = await import('../backtest/lab/selector.js');
+  const M = 30 * 864e5; const tr = [];
+  for (let m = 0; m < 10; m++) for (let j = 0; j < 60; j++) {
+    const time = Date.UTC(2025, 0, 1) + m * M + j * 36e5;
+    tr.push({ strategy: 'iyi', regime: 'G↑ · normal', direction: 'long', time, outcome: 'tp2', R: j % 3 === 0 ? -1 : 1, coin: 'A', tf: '1H' });
+    tr.push({ strategy: 'kötü', regime: 'G↑ · normal', direction: 'long', time: time + 1, outcome: 'stopped', R: -1, coin: 'B', tf: '1H' });
+  }
+  const w = walkForward(tr, { minN: 50, minR: 0.05, minPF: 1.1, warmMonths: 2, field: 'R' });
+  assert.ok(w.picked.length > 0);
+  assert.ok(w.picked.every((t) => t.strategy === 'iyi'), 'kötü hücre seçilmemeli');
+  assert.ok(w.picked.every((t) => t.time >= Date.UTC(2025, 0, 1) + 2 * M - 864e5 * 5), 'ısınma aylarından işlem alınmamalı');
+});

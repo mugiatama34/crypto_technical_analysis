@@ -8,6 +8,7 @@ import { getTopCoins, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
 import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
 import { regimeAt } from '../../src/scan/btcRegime.js';
+import { walkForward } from './selector.js';
 import { stats, sessionOf, weekpartOf, entryTimeOf } from '../report.js';
 import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
@@ -103,7 +104,7 @@ export function report(trades, split) {
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), byRegime: by(trades, (t) => t.regime || 'rejim yok', split), byRegimeDir: by(trades, (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
+  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), byRegime: by(trades, (t) => t.regime || 'rejim yok', split), byRegimeDir: by(trades, (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), byRegimeDirHedged: by(hedgedOf(trades), (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
 }
 
 async function main() {
@@ -166,6 +167,7 @@ async function main() {
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
   const out = { meta: { ...CFG, tfs, pit, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
+  const allTrades = []; // rejim seçici için (tüm stratejiler)
   for (const st of strategies) {
     const ts = Date.now(); const trades = [];
     if (st.kind === 'portfolio') {
@@ -175,9 +177,17 @@ async function main() {
     } else for (const s of series) { if (!st.tfs.includes(s.tf) || !topSet.has(s.coin) || (st.coins && !st.coins.includes(s.coin))) continue; trades.push(...runStrategy(st, s, o)); }
     attachBtc(trades, btcCloseAt, CFG.fee);
     for (const t of trades) t.regime = regimeOf(t);
+    for (const t of trades) allTrades.push({ strategy: st.id, regime: t.regime, direction: t.direction, time: t.time, outcome: t.outcome, R: t.R, hedgedR: t.hedgedR, coin: t.coin, tf: t.tf, mfe: t.mfe });
     const rep = report(trades, split);
     out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
     log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) | hedge'li doğr. n${rep.hedged.valid.n} ${rep.hedged.valid.avgR}R PF ${rep.hedged.valid.profitFactor}${rep.hedged.candidate ? ' ← HEDGE\'Lİ ADAY' : ''} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
+  }
+  // Yürüyen rejim seçici: her ay yalnız geçmişe bakarak hücre seç (R ile ve hedge'li R ile ayrı ayrı)
+  if (allTrades.length) {
+    const sel = (field) => { const w = walkForward(allTrades, { minN: 50, minR: 0.05, minPF: 1.1, warmMonths: 6, field }); const pk = field === 'R' ? w.picked : w.picked.map((t) => ({ ...t, R: t.hedgedR })).filter((t) => t.R != null); return { all: stats(pk), train: stats(pk.filter((t) => t.time < split)), valid: stats(pk.filter((t) => t.time >= split)), hedged: field === 'R' ? stats(w.picked.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }))) : null, months: w.months, lastCells: w.lastCells.slice(0, 40) }; };
+    out.selector = { rule: 'her ay: geçmişte n ≥ 50, ort. R > 0,05, PF > 1,1 olan (rejim × yön × strateji) hücreleri; 6 ay ısınma', byR: sel('R'), byHedged: sel('hedgedR') };
+    const a = out.selector.byR.all, h = out.selector.byHedged.all;
+    log(`  REJİM SEÇİCİ (yürüyen): n${a.n} ${a.avgR}R PF ${a.profitFactor} | hedge'li seçim: n${h.n} ${h.avgR}R PF ${h.profitFactor}`);
   }
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });
