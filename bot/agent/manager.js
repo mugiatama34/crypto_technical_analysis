@@ -61,8 +61,9 @@ export async function call({ apiKey, model, system, user, schema, maxTokens = 30
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY yok');
   const res = await fetchImpl(API, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' },
-    body: JSON.stringify({ model, max_tokens: maxTokens, fallbacks: 'default', system, output_config: { format: { type: 'json_schema', schema }, effort }, messages: [{ role: 'user', content: user }] }),
+    // Sunucu taraflı yedek model (fallbacks) Haiku'da yok: yalnız Opus/Sonnet/Fable'da gönderilir (AGENT_MODEL=claude-haiku-5-5 için)
+    headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', ...(/haiku/.test(model) ? {} : { 'anthropic-beta': 'server-side-fallback-2026-07-01' }) },
+    body: JSON.stringify({ model, max_tokens: maxTokens, ...(/haiku/.test(model) ? {} : { fallbacks: 'default' }), system, output_config: { format: { type: 'json_schema', schema }, effort }, messages: [{ role: 'user', content: user }] }),
   });
   if (!res.ok) { let m = `HTTP ${res.status}`; try { m = (await res.json())?.error?.message || m; } catch { /* yok */ } throw new Error(`Claude: ${m}`); }
   const j = await res.json();

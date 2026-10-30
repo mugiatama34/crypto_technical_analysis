@@ -227,3 +227,13 @@ test('erken kâr al: ajan pozisyonu (4H) erken hedefte %80 kapanır, stop giriş
   openPosition(b, req({ tf: '1H', price: 100, stop: 97, tp1: 104, tp2: 108 }), 0, P.guards);
   assert.equal(updatePositions(b, { BTC: [c(1000, 100, 101.6, 99.9, 101.4)] }, 2000, { earlyTp: { pct: 1.2 } }).length, 0);
 });
+
+test('ajan çağrısı: Haiku modelinde yedek model (fallbacks) gönderilmez, Opus\'ta gönderilir', async () => {
+  const { call } = await import('../bot/agent/manager.js');
+  const seen = [];
+  const fetchImpl = async (_u, req) => { seen.push({ h: req.headers, b: JSON.parse(req.body) }); return { ok: true, json: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: '{"a":1}' }], usage: {} }) }; };
+  await call({ apiKey: 'k', model: 'claude-haiku-5-5', system: 's', user: 'u', schema: {}, fetchImpl });
+  await call({ apiKey: 'k', model: 'claude-opus-5-5', system: 's', user: 'u', schema: {}, fetchImpl });
+  assert.equal(seen[0].b.fallbacks, undefined); assert.equal(seen[0].h['anthropic-beta'], undefined);
+  assert.equal(seen[1].b.fallbacks, 'default');
+});
