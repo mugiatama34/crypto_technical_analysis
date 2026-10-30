@@ -11,6 +11,7 @@
 //   SUMMARY_HOUR_UTC=6  STATE_FILE=bot/state.json  DRY=1 (ağa yazma: Telegram/Claude yok, konsola yaz; durum kaydedilmez)
 //   RESET_STATE=1 (koşu başında durum dosyasını sil: takip ve cooldown sıfırlanır)
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
+//   REGIME_DONCHIAN=1  BTC 'G↑ · şok↑ devam' rejiminde Donchian long kâğıt kuralı (docs/agent/regime.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
 //   AUDIT=1 AUDIT_MODEL=...: denetçi ajan (günlük rapor + araştırma kuyruğu; bot/review)
@@ -28,6 +29,7 @@ import { sendTelegram, formatSetup, formatUpdate, formatUpdates, formatSummary }
 import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
+import { runRegimeDonchian } from './regime/donchian.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -82,6 +84,9 @@ const CFG = {
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
+  // Rejim kuralı (kâğıt): BTC 'G↑ · şok↑ devam' iken Donchian 20 long, 2 ATR izleyen (bot/regime/donchian.js). Varsayılan kapalı.
+  regimeDonchian: env('REGIME_DONCHIAN', '0') === '1',
+  regimeStateFile: env('REGIME_STATE_FILE', 'bot/regime-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
   historyFile: env('HISTORY_FILE', 'docs/signals/history.json'),
   modelMinProb: env('MODEL_MIN_PROB', '') === '' ? (MODEL?.threshold ?? 0) : +env('MODEL_MIN_PROB', 0),
@@ -348,6 +353,11 @@ async function main() {
   if (CFG.momentum) {
     try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
     catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
+  }
+  // 7) Rejim kuralı: BTC yukarı şok devam ederken Donchian long (kâğıt)
+  if (CFG.regimeDonchian) {
+    try { await runRegimeDonchian({ now, cfg: { dry: CFG.dry }, notify: (t) => notify(t, state), log, stateFile: CFG.regimeStateFile, publishDir: CFG.agentPublishDir, provider }); }
+    catch (err) { log(`Rejim-Donchian hatası: ${err.message}`); console.error(err); }
   }
   if ((summaryDue || CFG.forceAudit) && CFG.audit) {
     try {

@@ -204,6 +204,11 @@ TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_l
 `node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,
 1H PDH/PDL, PWH/PWL, Asya, EQH/EQL (alındı mı) ve BTC'ye göre SMT ipucu.
 
+**Rejim-Donchian kâğıt kuralı** (`bot/regime/donchian.js`, `REGIME_DONCHIAN=1`, varsayılan kapalı): BTC rejimi
+"G↑ · şok↑ devam" iken ilk 30 coinde 4H/1H Donchian 20 kırılımı long (ADX ≥ 25, +DI > −DI), stop 2 ATR, 2 ATR izleyen,
+≤ 100 mum, en fazla 6 açık. Lab (30.10, 24 ay): bu hücre ham +0,35 / +0,84R, hedge'li +0,16 / +0,38R (eğitim / doğrulama).
+Durum `bot/regime-state.json`, yayın `docs/agent/regime.json`, Telegram bildirimi.
+
 **BTC rejim etiketi** (`src/scan/btcRegime.js`, lab `byRegime` / `byRegimeDir`): her işlem karar anındaki BTC durumuyla
 etiketlenir — günlük trend (EMA50 tarafı: G↑/G↓) + son 48 saatte şok (1H tepe–dip ≥ 2 × günlük ATR%; dip sonra geldiyse
 şok↓, tepe sonra geldiyse şok↑) ve evre (şok bacağının ≥ %38,2'si geri alındıysa toparlanma / geri çekilme, değilse devam).

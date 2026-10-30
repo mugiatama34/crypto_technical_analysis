@@ -368,3 +368,9 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
 - 30.10 sabahki rejim (G↓ · şok↓ toparlanma): doğrulamada çok az örnek → sonuçsuz.
 - Eksik: rejim hücrelerinde hedge'li R yok (donchian long kazancı BTC yönü olabilir — amaç zaten BTC ile birlikte kazanmak, ama ölçülmeli). Sıradaki: tam matris + hücre başına hedge'li R + yürüyen (walk-forward) seçim.
 - 30.10: Lab'e **yürüyen rejim seçici** (`backtest/lab/selector.js`: her ay yalnız geçmişten n ≥ 50, R > 0,05, PF > 1,1 olan rejim×yön×strateji hücreleri; 6 ay ısınma; R ve hedge'li R ile ayrı) + hücre başına hedge'li kırılım (`byRegimeDirHedged`). Tam matris koşusu: tüm aileler (chan_* hariç), 1H/4H/1D, 24 ay, fillbar=skip. Testler 160.
+
+## 30.10.2026 — Tam rejim matrisi (koşu 41037446881; 49 aile, 1H/4H/1D, 24 ay, fillbar=skip)
+- **Yürüyen rejim seçici** (her ay yalnız geçmişten seçim): n 9136, ort. **−0,063R** (doğrulama kısmı ≈ 0,00R); hedge'li seçim −0,061R. → Genel "rejime göre model seç" sistemi kenar vermedi.
+- **Tek sağlam hücre: G↑ · şok↑ devam · long · Donchian** — donchian (1H/4H) ham eğ n524 +0,35R / doğr n352 +0,84R; **hedge'li +0,16 / +0,38R**; donchian_4h_long hedge'li +0,46 / +0,69R (n 130/116). Aynı rejimde short'lar her ailede negatif.
+- Umut veren ama doğrulamada az örnekli: G↓ · şok↓ toparlanma · long · RSI uyumsuzluğu (eğ n 58 +0,65R, doğr n 9) → sonuçsuz.
+- Eklendi: **REGIME_DONCHIAN** kâğıt kuralı (varsayılan kapalı; açmak kullanıcıda). Testler 162. Öneri: Variables'ta REGIME_DONCHIAN=1 → ileriye dönük kâğıt test (rejim yılda birkaç kez/ay; az ama hedefli işlem).

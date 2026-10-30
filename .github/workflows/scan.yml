@@ -45,6 +45,7 @@ jobs:
             bot/state.json
             bot/agent-state.json
             bot/momentum-state.json
+            bot/regime-state.json
           key: bot-state-${{ github.run_id }}
           restore-keys: |
             bot-state-
@@ -93,6 +94,7 @@ jobs:
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}
           MOMENTUM_HEDGE: ${{ vars.MOMENTUM_HEDGE }}
+          REGIME_DONCHIAN: ${{ vars.REGIME_DONCHIAN }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
 
@@ -104,6 +106,7 @@ jobs:
             bot/state.json
             bot/agent-state.json
             bot/momentum-state.json
+            bot/regime-state.json
           key: bot-state-${{ github.run_id }}
 
       - name: Publish agent pages
