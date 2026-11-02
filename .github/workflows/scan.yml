@@ -78,6 +78,8 @@ jobs:
           AGENT_MODEL: ${{ vars.AGENT_MODEL }}
           AGENT_EVERY_MIN: ${{ vars.AGENT_EVERY_MIN }}
           AGENT_SOURCE: ${{ vars.AGENT_SOURCE }}
+          SIGNAL_CHART: ${{ vars.SIGNAL_CHART }}
+          WEEKLY_REPORT: ${{ vars.WEEKLY_REPORT }}
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}
           TF_RULES: ${{ vars.TF_RULES }}
           SHORT_RULE: ${{ vars.SHORT_RULE }}

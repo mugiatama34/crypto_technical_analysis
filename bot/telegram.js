@@ -13,6 +13,20 @@ export async function sendTelegram(text, { token, chatId, fetchImpl = fetch } = 
   } catch (err) { console.warn('Telegram hata', err.message); return false; }
 }
 
+/** Fotoğraf (PNG Buffer) + kısa HTML açıklama. Kimlik yoksa ya da hata olursa false. */
+export async function sendTelegramPhoto(png, caption, { token, chatId, fetchImpl = fetch } = {}) {
+  if (!token || !chatId || !png) return false;
+  try {
+    const fd = new FormData();
+    fd.append('chat_id', String(chatId));
+    if (caption) { fd.append('caption', caption.slice(0, 1000)); fd.append('parse_mode', 'HTML'); }
+    fd.append('photo', new Blob([png], { type: 'image/png' }), 'chart.png');
+    const res = await fetchImpl(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: fd });
+    if (!res.ok) { console.warn('Telegram foto', res.status, await res.text().catch(() => '')); return false; }
+    return true;
+  } catch (err) { console.warn('Telegram foto hata', err.message); return false; }
+}
+
 /** Fiyat biçimi: büyüklüğe göre ondalık. */
 export function fp(p) {
   if (!Number.isFinite(p)) return '–';

@@ -3,3 +3,4 @@ node_modules/
 *.log
 backtest/cache/
 docs/backtest/plans.json.gz
+bot/chart-*.svg

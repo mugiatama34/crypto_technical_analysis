@@ -26,12 +26,14 @@ import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
 import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
-import { sendTelegram, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
+import { sendTelegram, sendTelegramPhoto, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
 import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
 import { cfgLabel, weeklyReport } from './review/periods.js';
+import { finalR } from './review/metrics.js';
+import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -57,6 +59,7 @@ const CFG = {
   maxAlerts: +env('MAX_ALERTS', 3),
   cooldownHours: +env('COOLDOWN_H', 6),
   summaryHour: +env('SUMMARY_HOUR_UTC', 6),
+  signalChart: env('SIGNAL_CHART', '0') === '1', // sinyalde kurulum grafiği, kapanışta sonuç grafiği (Telegram fotoğrafı)
   weeklyReport: env('WEEKLY_REPORT', '1') === '1', // Pazartesi özet saatinde geçen haftanın sinyal kalitesi raporu
   stateFile: env('STATE_FILE', 'bot/state.json'),
   dry: env('DRY', '') === '1' || process.argv.includes('--dry'),
@@ -142,7 +145,7 @@ function saveState(file, st) {
 function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return { items: [] }; } }
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
-function historyAdd(h, p, extra = {}) { if (!h.items.some((x) => x.id === histId(p))) h.items.push({ id: histId(p), ...p, ...extra }); }
+function historyAdd(h, p, extra = {}) { const { chart, ...q } = p; if (!h.items.some((x) => x.id === histId(q))) h.items.push({ id: histId(q), ...q, ...extra }); } // grafik çizimleri yalnız state.json'da
 function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}) }); }
 
 async function notify(text, state) {
@@ -150,6 +153,18 @@ async function notify(text, state) {
   const ok = await sendTelegram(text, CFG.tg);
   if (!ok) log('Telegram gönderilemedi (kimlik yok ya da hata)');
   return ok;
+}
+
+/** Grafik fotoğrafı gönderir (SIGNAL_CHART=1). Hata/tarayıcı yoksa sessizce atlar; metin mesajı zaten gitmiştir. */
+async function sendChart(candles, plan, o, caption) {
+  if (!CFG.signalChart || !candles?.length) return false;
+  try {
+    const svg = signalChartSvg(candles, plan, o);
+    if (CFG.dry) { const f = `bot/chart-${plan.coin}-${o.result ? 'sonuc' : 'kurulum'}.svg`; fs.writeFileSync(f, svg); log(`DRY: grafik ${f}`); return true; }
+    const png = renderPng(svg);
+    if (!png) { log('Grafik: Chrome/Chromium bulunamadı, yalnız metin'); return false; }
+    return await sendTelegramPhoto(png, caption, CFG.tg);
+  } catch (err) { log(`Grafik hatası ${plan.coin}: ${err.message}`); return false; }
 }
 
 async function main() {
@@ -225,6 +240,10 @@ async function main() {
       }
       // Aynı turda birden çok olay (ör. giriş + erken hedef) → tek mesaj
       if (!p.orphan) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
+      if (!p.orphan && ['done', 'stopped', 'be', 'timeout'].includes(p.status) && candles.length) {
+        const res = resultOf(p, finalR(p));
+        await sendChart(candles, p, { setup: p.chart?.setup, context: p.chart?.context, result: res, bars: 80 }, `📈 Sonuç: <b>${p.coin}</b> ${p.tf} ${p.direction === 'long' ? 'LONG' : 'SHORT'} · ${res.label} ${res.R >= 0 ? '+' : ''}${res.R.toFixed(2)}R`);
+      }
       if (CLOSED.has(p.status) && btcPrice) p.btcAtClose = btcPrice;
       historyUpdate(history, p);
       log(`  takip ${p.coin} ${p.tf} → ${events.join(',')}`);
@@ -313,6 +332,13 @@ async function main() {
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
     await notify(formatSetup(plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
     const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    if (CFG.signalChart && row && !row.error) {
+      try {
+        const cl = row.clusters.find((c) => c.direction === plan.direction) || row.best;
+        rec.chart = { setup: setupDrawOf(cl?.signals, row.candles), context: stopContext(row.candles, plan.tf, rec) }; // yalnız state'te (history'ye girmez)
+        await sendChart(row.candles, rec, { ...rec.chart, note: `${plan.signals.filter((s) => !['candle', 'indicator'].includes(s.group)).slice(0, 3).map((s) => s.name).join(' · ')} · puan ${plan.score}` }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`);
+      } catch (err) { log(`Kurulum grafiği ${plan.coin}: ${err.message}`); }
+    }
     state.sent.push(rec);
     historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;

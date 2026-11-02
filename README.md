@@ -251,6 +251,13 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   doğrulama temelden iyi, hedge'li doğrulama > 0, n ≥ 100) → Telegram "🔬 Araştırmacı raporu", `docs/agent/research.json`;
   kuyruk `done` olur. `RESEARCH_MODEL`. İki ajan bu JSON dosyalarıyla haberleşir; `agent.html`'de "Denetçi" ve
   "Araştırmacı" sekmeleri.
+- **Sinyal grafiği** (`bot/chart.js`, `SIGNAL_CHART=1`, varsayılan kapalı): her sinyalin ardından Telegram'a PNG grafik —
+  son 70 mum, kurulumun kendi çizimleri (detektör `draw`: EW/yapı çizgileri, CHoCH/BOS, OB/FVG/iFVG kutuları, fib ve
+  likidite seviyeleri; mum/indikatör işaretleri atlanır), giriş bölgesi, stop, erken kâr, TP1/TP2 (R ile) ve **stop
+  çevresi**: açık FVG'ler, alınmamış EQH/EQL ve PDH/PDL/PWH/PWL; stop bir FVG'nin içindeyse, bir likiditeye ≤ 0,3 ATR
+  yakınsa ya da hemen ötesinde (≤ 1 ATR) bir havuz varsa ⚠️ notu, havuzun arkasındaysa ✓. Plan kapanınca (TP2 / stop /
+  başa baş / süre) aynı grafik dolum ve çıkış işaretleriyle "📈 Sonuç" olarak gelir. Çizimler `state.json`'da saklanır
+  (history'ye girmez). PNG başsız Chrome ile (`CHROME_BIN` ya da runner'daki google-chrome); tarayıcı yoksa yalnız metin.
 - **Haftalık sinyal kalitesi** (`bot/review/periods.js`, `WEEKLY_REPORT=1` varsayılan açık, Pazartesi özet saatinde):
   son 7 günün sinyalleri bugünkü sonuçlarıyla (sayı, günlük sıklık, dolum, kapanan, kazanma, ort./toplam R, long/short,
   en iyi/kötü) + önceki hafta + içinde bulunulan ayar dönemi → Telegram "📊 Haftalık sinyal raporu". Her yeni sinyal
