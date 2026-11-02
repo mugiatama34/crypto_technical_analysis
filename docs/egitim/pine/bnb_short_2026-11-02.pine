@@ -1,0 +1,53 @@
+//@version=5
+// BNB 4H short sinyali (bot, 02.11.2026 00:00 UTC) — eğitim çizimi. Grafik: OKX:BNBUSDT.P, 4H veya 1H, saat dilimi UTC.
+indicator("BNB 4H short · 02.11", overlay = true, max_lines_count = 50, max_labels_count = 50, max_boxes_count = 10)
+
+t(m, d, h) => timestamp("UTC", 2026, m, d, h, 0)
+tEnd = t(11, 3, 12)
+
+// Plan (Telegram mesajıyla aynı)
+zoneLo = 714.315, zoneHi = 719.65, stopP = 722.604, earlyP = 705.743, tp1P = 701.882, tp2P = 677.47
+// Yapı noktaları (4H mum uçları)
+aT = t(10, 29, 16), aP = 754.16   // düşüşün başladığı tepe
+bT = t(10, 29, 20), bP = 677.47   // sert düşüşün dibi (= TP2)
+wT = t(10, 30, 0),  wP = 718.51   // W tepesi
+xT = t(10, 30, 12), xP = 693.08   // X dibi
+yT = t(11, 1, 12),  yP = 717.68   // Y tepesi (W ile eşit tepe → EQH likiditesi)
+sigT = t(11, 2, 0), fillT = t(11, 2, 3), earlyT = t(11, 2, 7)
+
+hl(p, c, txt, st) =>
+    line.new(sigT, p, tEnd, p, xloc = xloc.bar_time, color = c, width = 2, style = st)
+    label.new(tEnd, p, txt + " " + str.tostring(p), xloc = xloc.bar_time, style = label.style_label_left, color = color.new(c, 70), textcolor = color.white, size = size.small)
+
+pt(x, p, txt, up) =>
+    label.new(x, p, txt, xloc = xloc.bar_time, style = up ? label.style_label_down : label.style_label_up, color = color.new(color.gray, 80), textcolor = color.white, size = size.normal)
+
+if barstate.islastconfirmedhistory
+    // Giriş bölgesi ve seviyeler
+    box.new(sigT, zoneHi, tEnd, zoneLo, xloc = xloc.bar_time, bgcolor = color.new(color.orange, 80), border_color = color.orange)
+    hl(stopP, color.red, "Stop", line.style_solid)
+    hl(zoneLo, color.orange, "Giriş (limit)", line.style_solid)
+    hl(earlyP, color.teal, "Erken kâr %80", line.style_dashed)
+    hl(tp1P, color.green, "TP1", line.style_solid)
+    hl(tp2P, color.lime, "TP2", line.style_solid)
+    // Yapı: düşüş bacağı ve W–X–Y düzeltmesi
+    line.new(aT, aP, bT, bP, xloc = xloc.bar_time, color = color.gray, width = 2)
+    line.new(bT, bP, wT, wP, xloc = xloc.bar_time, color = color.yellow, width = 2)
+    line.new(wT, wP, xT, xP, xloc = xloc.bar_time, color = color.yellow, width = 2)
+    line.new(xT, xP, yT, yP, xloc = xloc.bar_time, color = color.yellow, width = 2)
+    line.new(wT, wP, tEnd, wP, xloc = xloc.bar_time, color = color.new(color.purple, 20), style = line.style_dotted)
+    pt(aT, aP, "Tepe 754,16", true)
+    pt(bT, bP, "Dip 677,47", false)
+    pt(wT, wP, "W", true)
+    pt(xT, xP, "X", false)
+    pt(yT, yP, "Y (EQH)", true)
+    // Fib (0 = tepe 754,16 · 1 = dip 677,47)
+    for lv in array.from(0.382, 0.5, 0.618)
+        p = aP - lv * (aP - bP)
+        line.new(wT, p, sigT, p, xloc = xloc.bar_time, color = color.new(color.silver, 30), style = line.style_dotted)
+        label.new(wT, p, "fib " + str.tostring(lv) + " (" + str.tostring(p, "#.##") + ")", xloc = xloc.bar_time, style = label.style_label_right, color = color.new(color.silver, 85), textcolor = color.silver, size = size.tiny)
+    // Zaman çizgileri: sinyal, dolum, erken kâr
+    line.new(sigT, low, sigT, high, xloc = xloc.bar_time, extend = extend.both, color = color.new(color.blue, 60), style = line.style_dashed)
+    label.new(sigT, stopP + 6, "Sinyal 00:00", xloc = xloc.bar_time, color = color.new(color.blue, 70), textcolor = color.white, size = size.small)
+    label.new(fillT, zoneLo, "Doldu ~03:00", xloc = xloc.bar_time, style = label.style_label_up, color = color.new(color.orange, 60), textcolor = color.white, size = size.small)
+    label.new(earlyT, earlyP, "Erken kâr 07:00", xloc = xloc.bar_time, style = label.style_label_up, color = color.new(color.teal, 60), textcolor = color.white, size = size.small)
