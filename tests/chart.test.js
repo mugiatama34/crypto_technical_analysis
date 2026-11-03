@@ -52,3 +52,19 @@ test('sendTelegramPhoto: multipart sendPhoto', async () => {
   assert.equal(ok, true); assert.match(url, /sendPhoto$/); assert.equal(body.get('chat_id'), '1'); assert.ok(body.get('photo'));
   assert.equal(await sendTelegramPhoto(null, 'x', { token: 'T', chatId: '1' }), false);
 });
+
+import { scenarioOf, panelOf, signalChartSvg as svgOf } from '../bot/chart.js';
+
+test('scenarioOf / panelOf: ana ve alternatif oklar, açıklama paneli', () => {
+  const cs = Array.from({ length: 30 }, (_, i) => ({ time: i * 36e5, open: 100, high: 101, low: 99, close: 100 }));
+  const plan = { coin: 'X', tf: '1H', direction: 'long', entry: 98, stop: 96, tp1: 101, tp2: 104, zone: [97.5, 98], sentAt: 29 * 36e5 };
+  const s = scenarioOf(cs, plan, {});
+  assert.deepEqual(s.main.map((p) => p.label || ''), ['', 'giriş', 'TP1', 'TP2']);
+  assert.equal(s.alt.at(-1).label, 'iptal'); assert.equal(s.inZone, false);
+  const h = scenarioOf(cs, plan, { liqs: [{ label: 'EQL', price: 95.8, near: true }] });
+  assert.match(h.alt[2].label, /EQL süpürme/);
+  const p = panelOf(plan, { notes: ['⚠️ x'] }, s, ['OB ↑']);
+  assert.match(p.title, /X 1H · 100\.00 · LONG/); assert.match(p.lines[1].text, /TP2 104/); assert.match(p.lines.at(-1).text, /kovalama/);
+  const svg = svgOf(cs, plan, { scenario: s, panel: p });
+  assert.match(svg, /Ana \(yeşil\)/); assert.match(svg, /<polygon/);
+});

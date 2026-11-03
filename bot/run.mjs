@@ -33,7 +33,7 @@ import { runMomentum } from './momentum/run.js';
 import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
 import { cfgLabel, weeklyReport } from './review/periods.js';
 import { finalR } from './review/metrics.js';
-import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng } from './chart.js';
+import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenarioOf, panelOf } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
@@ -336,7 +336,9 @@ async function main() {
       try {
         const cl = row.clusters.find((c) => c.direction === plan.direction) || row.best;
         rec.chart = { setup: setupDrawOf(cl?.signals, row.candles), context: stopContext(row.candles, plan.tf, rec) }; // yalnız state'te (history'ye girmez)
-        await sendChart(row.candles, rec, { ...rec.chart, note: `${plan.signals.filter((s) => !['candle', 'indicator'].includes(s.group)).slice(0, 3).map((s) => s.name).join(' · ')} · puan ${plan.score}` }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`);
+        const names = [...new Set(plan.signals.filter((s) => !['candle', 'indicator'].includes(s.group)).map((s) => s.name))];
+        const scen = scenarioOf(row.live ? [...row.candles, row.live] : row.candles, rec, rec.chart.context);
+        await sendChart(row.candles, rec, { ...rec.chart, note: `${names.slice(0, 3).join(' · ')} · puan ${plan.score}`, scenario: scen, panel: panelOf(rec, rec.chart.context, scen, names) }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`);
       } catch (err) { log(`Kurulum grafiği ${plan.coin}: ${err.message}`); }
     }
     state.sent.push(rec);

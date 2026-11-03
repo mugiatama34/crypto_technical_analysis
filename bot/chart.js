@@ -103,7 +103,8 @@ export function stopContext(candles, tf, plan) {
  */
 export function signalChartSvg(candles, plan, o = {}) {
   const cx = o.context || { fvgs: [], liqs: [], notes: [] };
-  const notes = [...(cx.notes || [])];
+  const notes = o.panel ? [] : [...(cx.notes || [])]; // panel varsa notlar panelde
+  const panelH = o.panel ? 50 + o.panel.lines.length * 19 : 0;
   const W = o.width || 960, bars = o.bars || 70;
   const padL = 12, padR = 150, padT = 52, padB = 34 + notes.length * 18;
   const H = (o.height || 600) + notes.length * 18;
@@ -111,14 +112,20 @@ export function signalChartSvg(candles, plan, o = {}) {
   const levels = [plan.stop, plan.entry, plan.tp1, plan.tp2, plan.early, ...(plan.zone || [])].filter((v) => v != null);
   let lo = Math.min(...cs.map((c) => c.low), ...levels), hi = Math.max(...cs.map((c) => c.high), ...levels);
   const m = (hi - lo) * 0.04; lo -= m; hi += m;
-  const extra = 10; // sağda boş mum alanı (seviyeler uzasın)
+  const extra = o.scenario ? 26 : 10; // sağda boş mum alanı (seviyeler ve senaryo okları için)
   const n = cs.length + extra, cw = (W - padL - padR) / n;
   const tfMs = cs.length > 1 ? cs[cs.length - 1].time - cs[cs.length - 2].time : 36e5;
   const xR = W - padR;
   const x = (i) => padL + (i + 0.5) * cw, y = (p) => padT + ((hi - p) / (hi - lo)) * (H - padT - padB);
   const xt = (t) => (t == null ? padL : Math.max(padL, Math.min(xR, x((t - cs[0].time) / tfMs))));
   const inY = (p) => p >= lo && p <= hi, cl = (p) => Math.max(lo, Math.min(hi, p));
-  const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Helvetica, Arial, sans-serif">`, `<rect width="${W}" height="${H}" fill="${C.bg}"/>`];
+  const out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H + panelH}" viewBox="0 0 ${W} ${H + panelH}" font-family="Helvetica, Arial, sans-serif">`, `<rect width="${W}" height="${H + panelH}" fill="${C.bg}"/>`];
+  if (o.panel) {
+    out.push(`<rect x="8" y="8" width="${W - 16}" height="${panelH - 14}" rx="4" fill="#0b0e14" stroke="#f0c75e" stroke-width="2"/>`,
+      `<text x="22" y="32" fill="#f0c75e" font-size="16" font-weight="bold">${esc(o.panel.title)}</text>`);
+    o.panel.lines.forEach((l, k) => out.push(`<text x="22" y="${54 + k * 19}" fill="${l.color || C.text}" font-size="12.5"${l.bold ? ' font-weight="bold"' : ''}>${esc(l.text)}</text>`));
+    out.push(`<g transform="translate(0,${panelH})">`);
+  }
   // ızgara + fiyat ekseni (solda)
   for (let k = 0; k <= 6; k++) {
     const p = lo + ((hi - lo) * k) / 6, yy = y(p);
@@ -191,6 +198,17 @@ export function signalChartSvg(candles, plan, o = {}) {
       `<text x="${xR + 9}" y="${ly + 4}" fill="#0b0e14" font-size="12" font-weight="bold">${esc(l.t)}</text>`,
       `<text x="${xR + 88}" y="${ly + 4}" fill="${l.c}" font-size="12" font-weight="bold">${fmtPrice(l.p)}</text>`);
   }
+  // senaryo okları: ana (kalın, yön rengi yeşil) ve alternatif (ince, kırmızı kesik)
+  for (const [k, path] of [['alt', o.scenario?.alt], ['main', o.scenario?.main]]) {
+    if (!path || path.length < 2) continue;
+    const col = k === 'main' ? '#4caf50' : '#ef5350', xs = (t) => x((t - cs[0].time) / tfMs);
+    const pts = path.map((p) => `${xs(p.t)},${y(cl(p.price))}`).join(' ');
+    out.push(`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${k === 'main' ? 3 : 2}" stroke-dasharray="${k === 'main' ? '9 5' : '6 5'}" stroke-linejoin="round"/>`);
+    const a = path.at(-2), b = path.at(-1), ax = xs(a.t), ay = y(cl(a.price)), bx = xs(b.t), by = y(cl(b.price)), ang = Math.atan2(by - ay, bx - ax);
+    const h1 = [bx - 11 * Math.cos(ang - 0.45), by - 11 * Math.sin(ang - 0.45)], h2 = [bx - 11 * Math.cos(ang + 0.45), by - 11 * Math.sin(ang + 0.45)];
+    out.push(`<polygon points="${bx},${by} ${h1.join(',')} ${h2.join(',')}" fill="${col}"/>`);
+    for (const p of path) if (p.label) out.push(`<text x="${xs(p.t)}" y="${y(cl(p.price)) + (p.above ? -9 : 17)}" fill="${col}" font-size="11" font-weight="bold" text-anchor="middle">${esc(p.label)}</text>`);
+  }
   // sonuç: dolum/çıkış işaretleri
   for (const f of o.result?.fills || []) {
     if (f.t == null || !inY(f.price)) continue;
@@ -205,8 +223,46 @@ export function signalChartSvg(candles, plan, o = {}) {
     `<text x="${padL + 4}" y="42" fill="${C.dim}" font-size="12">${when} UTC · OKX perp · kâğıt sinyal, yatırım tavsiyesi değil</text>`);
   if (o.note) out.push(`<text x="${xR}" y="24" fill="${C.dim}" font-size="12" text-anchor="end">${esc(o.note)}</text>`);
   notes.forEach((t, k) => out.push(`<text x="${padL + 4}" y="${H - padB + 42 + k * 18}" fill="${t.startsWith('✓') ? C.tp : C.warn}" font-size="12">${esc(t)}</text>`));
+  if (o.panel) out.push('</g>');
   out.push('</svg>');
   return out.join('\n');
+}
+
+/**
+ * Senaryo okları (şimdiki fiyattan): ana = bölge → giriş → TP1 → TP2; alternatif = stop tarafında alınmamış likidite
+ * stopa yakınsa "süpürme → stop", yoksa "tutunmaz → stop → iptal". Zamanlar çizim içindir, tahmin değildir.
+ */
+export function scenarioOf(candles, plan, context = {}) {
+  const last = candles.at(-1); if (!last) return null;
+  const ms = candles.length > 1 ? last.time - candles.at(-2).time : 36e5, t = (k) => last.time + k * ms;
+  const d = plan.direction === 'short' ? -1 : 1, p0 = last.close, risk = Math.abs(plan.entry - plan.stop);
+  const inZone = plan.zone ? p0 >= Math.min(...plan.zone) && p0 <= Math.max(...plan.zone) : false;
+  const start = [{ t: t(0), price: p0 }], ent = inZone ? [] : [{ t: t(3), price: plan.entry, label: 'giriş', above: d === -1 }];
+  const main = [...start, ...ent];
+  if (plan.tp1 != null) main.push({ t: t(12), price: plan.tp1, label: 'TP1', above: d === 1 });
+  if (plan.tp2 != null) main.push({ t: t(22), price: plan.tp2, label: 'TP2', above: d === 1 });
+  const hunt = (context.liqs || []).find((l) => l.near);
+  const alt = hunt
+    ? [...start, ...ent, { t: t(9), price: hunt.price - d * 0.1 * risk, label: `${hunt.label} süpürme`, above: d === -1 }, { t: t(15), price: plan.entry, label: 'dönüş?', above: d === 1 }]
+    : [...start, ...ent, { t: t(9), price: plan.stop, label: 'stop', above: d === -1 }, { t: t(13), price: plan.stop - d * 0.5 * risk, label: 'iptal', above: d === -1 }];
+  return { main, alt, inZone, hunt: hunt || null, price: p0 };
+}
+
+/** Üst açıklama paneli (arkadaşın grafik notu biçiminde): başlık + kurulum + ana/alternatif senaryo + uyarılar + ne yapmalı. */
+export function panelOf(plan, context = {}, scen = null, setupNames = []) {
+  const d = plan.direction === 'short' ? -1 : 1, risk = Math.abs(plan.entry - plan.stop);
+  const R = (p) => (risk ? (d * (p - plan.entry)) / risk : 0), f = fmtPrice, p0 = scen?.price ?? plan.entry;
+  const dir = d === 1 ? 'LONG' : 'SHORT', zone = plan.zone ? `${f(Math.min(...plan.zone))}–${f(Math.max(...plan.zone))}` : f(plan.entry);
+  const lines = [];
+  if (setupNames.length) lines.push({ text: `Kurulum: ${setupNames.slice(0, 4).join(' · ')}`, color: C.text });
+  const tps = [plan.early != null ? `erken ${f(plan.early)} (%${Math.round((plan.earlyPortion ?? 0.8) * 100)} kapat)` : null, plan.tp1 != null ? `TP1 ${f(plan.tp1)} (${R(plan.tp1).toFixed(1)}R)` : null, plan.tp2 != null ? `TP2 ${f(plan.tp2)} (${R(plan.tp2).toFixed(1)}R)` : null].filter(Boolean).join(' → ');
+  lines.push({ text: `Ana (yeşil): ${scen?.inZone ? 'fiyat bölgede' : `fiyat ${zone} bölgesine gelir`}, giriş ${f(plan.entry)}, stop ${f(plan.stop)} → ${tps}.`, color: '#4caf50', bold: true });
+  lines.push(scen?.hunt
+    ? { text: `Alternatif (kırmızı): önce ${scen.hunt.label} ${f(scen.hunt.price)} likiditesi süpürülür → stop alınır; dönüş ancak sonra (stop havuzun arkasında değil).`, color: '#ef5350', bold: true }
+    : { text: `Alternatif (kırmızı): bölge tutmaz → stop ${f(plan.stop)} (−1R); ${f(plan.stop)} ${d === 1 ? 'altında' : 'üstünde'} kapanış kurulumu iptal eder.`, color: '#ef5350', bold: true });
+  for (const n of (context.notes || []).slice(0, 3)) lines.push({ text: n, color: n.startsWith('✓') ? C.tp : C.warn });
+  lines.push({ text: scen?.inZone ? `Fiyat bölgede (${f(p0)}): kovalama yok; limit ya da 15m onayıyla gir.` : `Şimdi ${f(p0)}'dan kovalama; ${f(plan.entry)} limitini bekle.`, color: '#f0c75e', bold: true });
+  return { title: `${plan.coin} ${plan.tf} · ${f(p0)} · ${dir} kurulumu`, lines };
 }
 
 /** Kapanmış plan için sonuç işaretleri. plan: state/history kaydı (filledAt/activeAt, earlyAt, tp1At, closedAt, status). */
