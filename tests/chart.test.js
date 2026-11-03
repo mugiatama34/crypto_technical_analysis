@@ -68,3 +68,12 @@ test('scenarioOf / panelOf: ana ve alternatif oklar, açıklama paneli', () => {
   const svg = svgOf(cs, plan, { scenario: s, panel: p });
   assert.match(svg, /Ana \(yeşil\)/); assert.match(svg, /<polygon/);
 });
+
+import { scenarioSignal } from '../src/scan/scenario.js';
+
+test('scenarioSignal: sayfa grafiği için iki path, indeksler son mumdan ileri', () => {
+  const s = scenarioSignal({ direction: 'short', entry: 10, stop: 11, tp1: 9, tp2: 8, zone: [10, 10.5] }, 99, 9.6);
+  assert.equal(s.draw.length, 2); assert.equal(s.draw[1].width, 3);
+  assert.deepEqual(s.draw[1].points.map((p) => p.i), [99, 102, 111, 121]);
+  assert.equal(s.draw[0].points.at(-1).label, 'iptal'); assert.ok(s.draw[0].points.at(-1).price > 11);
+});

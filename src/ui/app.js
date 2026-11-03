@@ -6,6 +6,7 @@ import { makeContext } from '../scan/context.js';
 import { runDetectors } from '../scan/registry.js';
 import { UP_TF } from '../scan/regime.js';
 import { buildPlan } from '../../bot/plan.js';
+import { scenarioSignal } from '../scan/scenario.js';
 import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL } from '../watch/watch.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
@@ -245,7 +246,8 @@ function renderDetail(r) {
       <button type="button" class="btn" id="watchBtn" title="Giriş / stop / hedefleri dondur ve sonraki mumlarla izle">${state.watch.some((w) => w.coin === r.coin && w.tf === r.tf && w.direction === r.direction && isOpen(w)) ? '★ Takipte' : '☆ Takibe al'}</button>
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label>
-      <label class="chip small" title="Son 8 swing (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)"><input type="checkbox" id="showStruct" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label></div>
+      <label class="chip small" title="Son 8 swing (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)"><input type="checkbox" id="showStruct" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label>
+      <label class="chip small" title="Plana göre ana (yeşil) ve alternatif (kırmızı) yol; tahmin değil"><input type="checkbox" id="showScen" ${state.settings.showScenario !== false ? 'checked' : ''}> Senaryo okları</label></div>
     <div class="chart" id="chart"></div>
     <div class="legend">${[...new Set(shown.map((s) => s.group))].map((g) => `<span><i style="background:${GROUPS[g].color}"></i>${esc(GROUPS[g].label)}</span>`).join('')}</div>
     <div class="stat-strip">${stats.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
@@ -256,6 +258,7 @@ function renderDetail(r) {
   `;
   drawRow($('#chart'), r.candles, r.live, withStruct(shown, r), r.price);
   $('#showStruct').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderDetail(r); });
+  $('#showScen').addEventListener('change', (e) => { update({ showScenario: e.target.checked }); renderDetail(r); });
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
   checklistFor(r).then((cl) => { if (state.selected === rowKey(r)) renderChecklist(cl); });
@@ -269,8 +272,13 @@ function renderDetail(r) {
 
 /** "Yapı" açıksa çizilecek sinyallere HH/HL · BOS katmanı eklenir. */
 function withStruct(sigs, r) {
-  if (!state.settings.showStructure || !r.candles?.length) return sigs;
-  try { return [...sigs, structureOverlay(makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} }))]; } catch { return sigs; }
+  let out = sigs;
+  if (state.settings.showStructure && r.candles?.length) { try { out = [...out, structureOverlay(makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} }))]; } catch { /* yapı çizilemedi */ } }
+  // Senaryo okları: botun planı (gevşek eşikle) → ana (yeşil) / alternatif (kırmızı) yol
+  if (state.settings.showScenario !== false && r.best && r.candles?.length) {
+    try { const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 }); if (plan.ok) out = [...out, scenarioSignal(plan, r.candles.length - (r.live ? 0 : 1), r.price)]; } catch { /* plan yok */ }
+  }
+  return out;
 }
 
 function sigCard(s, r) {

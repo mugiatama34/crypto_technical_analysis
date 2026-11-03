@@ -17,6 +17,7 @@ export const UI_DEFAULTS = {
   sortBy: 'score',
   apiKey: '',
   showStructure: false, // grafikte HH/HL/LH/LL ve BOS/CHoCH katmanı
+  showScenario: true, // grafikte plan senaryosu okları (ana / alternatif)
   ew: { ...EW_UI_DEFAULTS }, // Ayarlar bölmesi (Elliott dalga-3 + SMT)
 };
 

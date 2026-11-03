@@ -5,6 +5,8 @@ import { analyzeCoin, COIN_TFS, DEFAULT_TFS, FAMILIES } from '../scan/coin.js';
 import { structureOverlay } from '../detectors/structure.js';
 import { makeContext } from '../scan/context.js';
 import { drawRow } from './chart.js';
+import { buildPlan } from '../../bot/plan.js';
+import { scenarioSignal } from '../scan/scenario.js';
 import { fmtPrice, esc } from './format.js';
 
 const $ = (s) => document.querySelector(s);
@@ -22,7 +24,7 @@ const LAYERS = [
   { id: 'fib', label: 'Fib', match: (s) => s.type === 'fibonacci' },
 ];
 const LAYER_DEAD = new Set(['invalid', 'done']);
-const S = { layers: new Set(store.get('coin.layers', [])), focus: 0, tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
+const S = { scen: store.get('coin.scen', true), layers: new Set(store.get('coin.layers', [])), focus: 0, tfs: new Set(store.get('coin.tfs', DEFAULT_TFS)), fams: new Set(store.get('coin.fams', FAMILIES.map((f) => f.id))), view: null, result: null, busy: false };
 const clean = (s) => String(s || '').toUpperCase().replace(/USDT.*$/, '').replace(/[^A-Z0-9]/g, '').slice(0, 15);
 
 function chip(label, pressed, onClick, small = false) {
@@ -107,6 +109,10 @@ function renderTf() {
   const layerSigs = all ? [] : x.signals.filter((q) => !inFocus.has(q.id) && !LAYER_DEAD.has(q.status) && LAYERS.some((L) => S.layers.has(L.id) && L.match(q))).map((q) => ({ ...q, faint: true }));
   const sigs = all ? [...x.signals] : [...focusSigs, ...layerSigs];
   if (S.layers.has('struct')) { try { sigs.push(structureOverlay(makeContext({ candles: x.candles, live: x.live, tf: S.view }))); } catch { /* yapı çizilemedi */ } }
+  // Senaryo okları: odaktaki küme için botun planı (gevşek eşik) → ana (yeşil) / alternatif (kırmızı) yol
+  if (S.scen && top[S.focus]) {
+    try { const c = top[S.focus], plan = buildPlan({ ...x, best: c, direction: c.direction, score: c.score }, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 }); if (plan.ok) sigs.push(scenarioSignal(plan, x.candles.length - (x.live ? 0 : 1), x.price)); } catch { /* plan yok */ }
+  }
   renderLayers(x, all);
   requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref, { clean: true, onLegend: (items) => renderLegend(items, ref) }));
   $('#clusters').innerHTML = top.length ? top.map((c, i) => {
@@ -124,6 +130,8 @@ function renderLayers(x, all) {
   const el = $('#layers'); el.innerHTML = '';
   const st = chip('Yapı HH/HL · BOS', S.layers.has('struct'), () => { S.layers.has('struct') ? S.layers.delete('struct') : S.layers.add('struct'); store.set('coin.layers', [...S.layers]); renderTf(); });
   st.title = 'Son 8 swing noktası (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)'; el.append(st);
+  const sc = chip('Senaryo okları', S.scen, () => { S.scen = !S.scen; store.set('coin.scen', S.scen); renderTf(); });
+  sc.title = 'Odaktaki kümenin planı: ana (yeşil) ve alternatif (kırmızı) yol; tahmin değil'; el.append(sc);
   for (const L of LAYERS) {
     const n = x.signals.filter((q) => L.match(q) && !LAYER_DEAD.has(q.status)).length;
     const b = chip(`${L.label}${n ? ` ${n}` : ''}`, S.layers.has(L.id), () => { S.layers.has(L.id) ? S.layers.delete(L.id) : S.layers.add(L.id); store.set('coin.layers', [...S.layers]); renderTf(); });

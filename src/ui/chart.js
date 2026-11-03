@@ -43,7 +43,10 @@ export function drawRow(el, candles, live, signals, price, opts = {}) {
   const data = all.map((c) => ({ time: sec(c.time), open: c.open, high: c.high, low: c.low, close: c.close }));
   // Sade modda sağa boş (whitespace) mumlar: etiketler mumların üstüne değil bu boşluğa yazılır
   const step = all.length > 1 ? all[all.length - 1].time - all[all.length - 2].time : 3600e3;
-  const pad = clean ? 14 : 0;
+  // Senaryo okları ('path' talimatı, son mumdan ileri indeksler) için de sağda boşluk gerekir
+  let ahead = 0;
+  for (const s of signals) for (const d of s.draw || []) if (d.kind === 'path') for (const p of d.points || []) ahead = Math.max(ahead, p.i - (all.length - 1));
+  const pad = Math.max(clean ? 14 : 0, ahead ? ahead + 2 : 0);
   for (let k = 1; k <= pad; k++) data.push({ time: sec(all[all.length - 1].time + k * step) });
   series.setData(data);
   const lastI = all.length - 1;
@@ -101,6 +104,17 @@ export function drawRow(el, candles, live, signals, price, opts = {}) {
         } else if (d.kind === 'line') {
           for (const p of d.points) minI = Math.min(minI, p.i);
           addLine(d.points, d.color, d.style || 'solid', 2);
+        } else if (d.kind === 'path') {
+          // Senaryo yolu: gelecek indeksler boş (whitespace) mumların zamanına oturur; etiketler ve uçta ok işareti
+          const tF = (i) => (i <= lastI ? tm(i) : sec(all[lastI].time + (i - lastI) * step));
+          const pts = d.points.map((p) => ({ time: tF(p.i), value: p.price, p }));
+          const ln = chart.addSeries(LW.LineSeries, lineOpts(d.color, d.style || 'dashed', d.width || 2));
+          ln.setData(pts.map(({ time, value }) => ({ time, value })));
+          const a = pts.at(-2), b = pts.at(-1), up = b && a ? b.value > a.value : true;
+          const mk = pts.filter((q) => q.p.label).map((q) => ({ time: q.time, position: q.p.above ? 'aboveBar' : 'belowBar', shape: 'circle', size: 0.4, color: d.color, text: q.p.label }));
+          if (b) mk.push({ time: b.time, position: up ? 'aboveBar' : 'belowBar', shape: up ? 'arrowUp' : 'arrowDown', color: d.color, text: '' });
+          LW.createSeriesMarkers(ln, mk.sort((x, y) => x.time - y.time));
+          if (clean) legend.push({ color: d.color, text: d.width >= 3 ? 'Senaryo · ana' : 'Senaryo · alternatif', price: b?.value });
         } else if (d.kind === 'marker') {
           minI = Math.min(minI, d.i);
           markers.push({ time: tm(d.i), position: d.position || 'belowBar', shape: d.shape || 'circle', color: d.color, text: d.text || '' });
@@ -166,7 +180,7 @@ export function drawRow(el, candles, live, signals, price, opts = {}) {
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => requestAnimationFrame(layout));
   }
   const from = Math.max(0, Math.min(minI, lastI - (clean ? 70 : 40)) - 10);
-  chart.timeScale().setVisibleLogicalRange({ from, to: all.length + (clean ? pad : 8) });
+  chart.timeScale().setVisibleLogicalRange({ from, to: all.length + Math.max(pad, clean ? 0 : 8) });
   opts.onLegend?.(legend);
   const ro = new ResizeObserver(([e]) => { const r = e.contentRect; if (r.width > 0 && r.height > 0) { chart.resize(Math.floor(r.width), Math.floor(r.height)); if (layout) requestAnimationFrame(layout); } });
   ro.observe(el);

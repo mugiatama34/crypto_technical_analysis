@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { makeContext } from '../src/scan/context.js';
 import { findFvgs } from '../src/detectors/fvg.js';
 import { equalLevels, sweepsOf } from '../src/detectors/liquidity.js';
+import { scenarioPaths } from '../src/scan/scenario.js';
 
 const C = { bg: '#131722', grid: '#2a2e39', text: '#d1d4dc', dim: '#787b86', up: '#26a69a', down: '#ef5350', zone: '#ff9800', stop: '#ef5350', early: '#4dd0e1', tp: '#66bb6a', sig: '#5b9cf6', liq: '#b39ddb', fvgUp: '#26a69a', fvgDn: '#ef5350', warn: '#ffb74d' };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -234,18 +235,10 @@ export function signalChartSvg(candles, plan, o = {}) {
  */
 export function scenarioOf(candles, plan, context = {}) {
   const last = candles.at(-1); if (!last) return null;
-  const ms = candles.length > 1 ? last.time - candles.at(-2).time : 36e5, t = (k) => last.time + k * ms;
-  const d = plan.direction === 'short' ? -1 : 1, p0 = last.close, risk = Math.abs(plan.entry - plan.stop);
-  const inZone = plan.zone ? p0 >= Math.min(...plan.zone) && p0 <= Math.max(...plan.zone) : false;
-  const start = [{ t: t(0), price: p0 }], ent = inZone ? [] : [{ t: t(3), price: plan.entry, label: 'giriş', above: d === -1 }];
-  const main = [...start, ...ent];
-  if (plan.tp1 != null) main.push({ t: t(12), price: plan.tp1, label: 'TP1', above: d === 1 });
-  if (plan.tp2 != null) main.push({ t: t(22), price: plan.tp2, label: 'TP2', above: d === 1 });
-  const hunt = (context.liqs || []).find((l) => l.near);
-  const alt = hunt
-    ? [...start, ...ent, { t: t(9), price: hunt.price - d * 0.1 * risk, label: `${hunt.label} süpürme`, above: d === -1 }, { t: t(15), price: plan.entry, label: 'dönüş?', above: d === 1 }]
-    : [...start, ...ent, { t: t(9), price: plan.stop, label: 'stop', above: d === -1 }, { t: t(13), price: plan.stop - d * 0.5 * risk, label: 'iptal', above: d === -1 }];
-  return { main, alt, inZone, hunt: hunt || null, price: p0 };
+  const ms = candles.length > 1 ? last.time - candles.at(-2).time : 36e5;
+  const hunt = (context.liqs || []).find((l) => l.near) || null;
+  const s = scenarioPaths(plan, last.close, hunt), tm = (arr) => arr.map((p) => ({ ...p, t: last.time + p.k * ms }));
+  return { main: tm(s.main), alt: tm(s.alt), inZone: s.inZone, hunt, price: last.close };
 }
 
 /** Üst açıklama paneli (arkadaşın grafik notu biçiminde): başlık + kurulum + ana/alternatif senaryo + uyarılar + ne yapmalı. */

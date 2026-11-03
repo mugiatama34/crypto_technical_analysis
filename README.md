@@ -258,6 +258,10 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   yakınsa ya da hemen ötesinde (≤ 1 ATR) bir havuz varsa ⚠️ notu, havuzun arkasındaysa ✓. Plan kapanınca (TP2 / stop /
   başa baş / süre) aynı grafik dolum ve çıkış işaretleriyle "📈 Sonuç" olarak gelir. Çizimler `state.json`'da saklanır
   (history'ye girmez). PNG başsız Chrome ile (`CHROME_BIN` ya da runner'daki google-chrome); tarayıcı yoksa yalnız metin.
+- **Senaryo okları** (`src/scan/scenario.js`): plandan ana (yeşil: bölge → giriş → TP1 → TP2) ve alternatif (kırmızı: stopa
+  yakın alınmamış likidite varsa "süpürme → stop", yoksa "tutunmaz → stop → iptal") yol. Telegram grafiğinde (SIGNAL_CHART)
+  üstte açıklama paneliyle (kurulum, ana/alternatif, stop uyarıları, "kovalama/limiti bekle"); tarayıcı detayında
+  "Senaryo okları" kutusu, coin sayfasında "Senaryo okları" katmanı (odaktaki küme). Oklar tahmin değil, plan senaryosu.
 - **Haftalık sinyal kalitesi** (`bot/review/periods.js`, `WEEKLY_REPORT=1` varsayılan açık, Pazartesi özet saatinde):
   son 7 günün sinyalleri bugünkü sonuçlarıyla (sayı, günlük sıklık, dolum, kapanan, kazanma, ort./toplam R, long/short,
   en iyi/kötü) + önceki hafta + içinde bulunulan ayar dönemi → Telegram "📊 Haftalık sinyal raporu". Her yeni sinyal
