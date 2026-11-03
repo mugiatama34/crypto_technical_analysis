@@ -80,7 +80,7 @@ MOMENTUM_RANK=rel MOMENTUM_HEDGE=1`. Yani yalnız 4H sinyalleri; beklenti (12 ay
 hedge'li +0,08R; ayda ~25 sinyal.
 
 ## Kısa bulgu özeti (ayrıntı DURUM.md)
-Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG) sıkı
+Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG, uyumsuzluk, kanal, range sapması 03.11) sıkı
 ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). **29.10 düzeltme:** motor limit dolum mumunda hedefi iyimser sayıyordu;
 1H sırasıyla canlı 4H düzeni eğitim/doğr. +0,025/+0,028R, hedge'li ≈ 0 (sıkı ölçüt geçilmiyor) — yeni ölçümler `fillBarTp: 'lower'`
 ile yapılmalı; erken hedef mesafesi (0,5R–1,5R) de gerçek sırayla ≤ 0 → 4H düzeninin gerçekçi kenarı yok. Eski iyimser değerlerle bulunan kesit: 4H + düşen bıçak koruması + hafta sonu yok +
