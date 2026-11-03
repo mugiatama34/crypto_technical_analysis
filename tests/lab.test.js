@@ -87,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 53);
+  assert.equal(STRATEGIES.length, 57);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -479,4 +479,22 @@ test('rejim seçici: yalnız geçmişte iyi olan hücreyi sonraki aylarda seçer
   assert.ok(w.picked.length > 0);
   assert.ok(w.picked.every((t) => t.strategy === 'iyi'), 'kötü hücre seçilmemeli');
   assert.ok(w.picked.every((t) => t.time >= Date.UTC(2025, 0, 1) + 2 * M - 864e5 * 5), 'ısınma aylarından işlem alınmamalı');
+});
+
+import { rangeAt, deviationAt, RANGE_STRATEGIES } from '../backtest/lab/range.js';
+
+test('range sapması: dip süpürülüp bant içine kapanınca long, TP1 orta, TP2 tepe', () => {
+  // 60 mum 100–104 arası salınım, sonra dip 99,4'e fitil, kapanış 100,6
+  const cs = []; for (let i = 0; i < 60; i++) { const up = i % 6 < 3; cs.push({ time: i * 9e5, open: up ? 100.5 : 103.5, high: up ? 103.8 : 104, low: up ? 100 : 100.2, close: up ? 103.5 : 100.5 }); }
+  cs.push({ time: 60 * 9e5, open: 100.6, high: 100.9, low: 99.9, close: 100.2 });
+  cs.push({ time: 61 * 9e5, open: 100.2, high: 100.4, low: 99.4, close: 99.8 });
+  cs.push({ time: 62 * 9e5, open: 99.8, high: 100.8, low: 99.7, close: 100.6 });
+  const atr = cs.map(() => 1.5), i = cs.length - 1;
+  const rg = rangeAt(cs, atr, i);
+  assert.ok(rg); assert.equal(rg.lo, 100); assert.equal(rg.hi, 104);
+  assert.deepEqual(deviationAt(cs, atr, i, rg), { d: 1, ext: 99.4 });
+  const st = RANGE_STRATEGIES[0], p = st.prepare(cs, '15m'); p.atr = atr;
+  const s = st.signal(i, cs, p);
+  assert.equal(s.direction, 'long'); assert.equal(s.tp1, 102); assert.equal(s.tp2, 104); assert.ok(Math.abs(s.stop - 99.25) < 1e-9);
+  assert.equal(st.signal(i, cs, p), null); // aynı bant ikinci kez sinyal vermez
 });
