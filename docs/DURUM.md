@@ -396,3 +396,7 @@ motoru 4H mumda sırayı bilmeden "önce dolum, sonra hedef" varsayıyordu (iyim
   range_dev (kapanışta giriş, TP1 orta, TP2 karşı kenar): n 14.973, eğitim −0,29R / doğr. −0,27R, PF 0,63–0,65, hedge'li −0,48R · _edge (kenar geri testinde limit): −0,63 / −0,66R · _htf (günlük trend yönünde): −0,29 / −0,27R · _wide (60 mum): −0,28 / −0,26R.
   TF'ye göre: 15m −0,32R (n 11.387) en kötü, 1H −0,20R, 4H −0,12R; _htf 4H doğr. +0,12R ama eğitim negatif ve n ≈ 300 → sonuçsuz. Maliyet (komisyon + kayma) dar bantlarda R'yi ~0,25 düşürüyor; maliyetsiz bile ≈ 0 civarı. Karar: canlıya/sinyale eklenmez (kullanıcı kuralı: onaylanmadan eklenmez).
 - 03.11 Eklendi: senaryo okları + açıklama paneli (Telegram grafiği), tarayıcı ve coin sayfası grafiğinde "Senaryo okları". Testler 177.
+- 04.11 **Fib kesişimi 0,618×1,272 düşük TF (kullanıcı hipotezi; 1 ay, ilk 30 coin, fillbar kötümser, komisyon %0,05 + kayma %0,05):**
+  - fib_cluster_g_ltf (stop itki 0,886): 1m n 2377 −0,86R (PF 0,36) · 5m n 378 −0,12R (eğ −0,04 / doğr −0,27) · 15m n 137 −0,12R (eğ −0,25 / doğr +0,08). 15m short +0,15R (n 66, sonuçsuz).
+  - fib_cluster_g_p0_ltf (arkadaşın yönetimi): 1m n 1695 −0,60R · 5m n 271 −0,15R · 15m n 101 −0,26R. Hedge'li hepsi negatif.
+  - Okuma: 1m en kötü (dar stop → maliyet R'yi yiyor); 5m/15m ≈ −0,1R, sıkı ölçüt yok. Sinyallerin ~%80'i dolmadan kaçıyor (missed). Hipotez (düşük TF daha iyi) desteklenmedi. Sıradaki: C zaman sınırı varyantları (koşu 2) ve düşük maliyet kontrolü.
