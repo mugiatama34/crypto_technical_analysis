@@ -168,3 +168,6 @@ export const fibClusterCStrict = mkFib('fib_cluster_c_strict', 'Fib kesişimi ya
 const G = { clusterRetr: [0.618], clusterExt: [1.272], clusterTolAtr: 0.5, bRetr: [0.382, 1.0], ks: [2, 3, 4] };
 export const fibClusterG = { ...mkFib('fib_cluster_g', 'Fib kesişimi 0,618×1,272, B ≤ %100, ZigZag 2/3/4, stop itki 0,886 (limit giriş)', G), tfs: ['15m', '1H', '4H'] };
 export const fibClusterGP0 = { ...mkFib('fib_cluster_g_p0', 'Fib kesişimi 0,618×1,272, B ≤ %100, stop itki başı, TP1 itki ucu, TP2 −0,236 (arkadaşın yönetimi)', { ...G, stopAt: 'p0' }), tfs: ['15m', '1H', '4H'] };
+// Düşük TF sürümleri (kullanıcı hipotezi 04.11: kesişim 1m/5m/15m'de daha temiz çalışır) — aynı kural, yalnız TF listesi farklı
+export const fibClusterGLtf = { ...fibClusterG, id: 'fib_cluster_g_ltf', label: `${fibClusterG.label} · 1m/5m/15m`, tfs: ['1m', '5m', '15m'] };
+export const fibClusterGP0Ltf = { ...fibClusterGP0, id: 'fib_cluster_g_p0_ltf', label: `${fibClusterGP0.label} · 1m/5m/15m`, tfs: ['1m', '5m', '15m'] };
