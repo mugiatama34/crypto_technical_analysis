@@ -87,7 +87,7 @@ test('report: eğitim/doğrulama bölünmesi, kırılımlar ve eğri; aday ölç
   assert.equal(rep.curve.length, rep.all.n);
   const sum = (m) => Object.values(m).reduce((a, x) => a + x.all.n, 0);
   assert.equal(sum(rep.bySession), rep.all.n); assert.equal(sum(rep.byWeekpart), rep.all.n);
-  assert.equal(STRATEGIES.length, 59);
+  assert.equal(STRATEGIES.length, 63);
 });
 
 test('donchian_4h_long: yükselen trendde long verir, düşen trendde sessiz; günlük filtre geleceğe bakmaz', () => {
@@ -497,4 +497,13 @@ test('range sapması: dip süpürülüp bant içine kapanınca long, TP1 orta, T
   const s = st.signal(i, cs, p);
   assert.equal(s.direction, 'long'); assert.equal(s.tp1, 102); assert.equal(s.tp2, 104); assert.ok(Math.abs(s.stop - 99.25) < 1e-9);
   assert.equal(st.signal(i, cs, p), null); // aynı bant ikinci kez sinyal vermez
+});
+
+import { BT_DEFAULTS as BTD } from '../backtest/engine.js';
+
+test('simulateTrade: plan.expireBars limit süresini kısaltır (C zaman sınırı)', () => {
+  const cs = Array.from({ length: 20 }, (_, i) => ({ time: i * 6e4, open: 10, high: 10.2, low: i === 6 ? 9.4 : 9.9, close: 10 }));
+  const plan = { d: 1, direction: 'long', entry: 9.5, stop: 9.0, tp1: 10.5, tp2: 11, inZone: false, atr: 0.2, price: 10 };
+  assert.notEqual(simulateTrade(plan, cs, 1, '1m', BTD).outcome, 'expired');
+  assert.equal(simulateTrade({ ...plan, expireBars: 3 }, cs, 1, '1m', BTD).outcome, 'expired');
 });

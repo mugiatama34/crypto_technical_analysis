@@ -31,7 +31,8 @@ export const BT_DEFAULTS = {
 /** Tek plan simülasyonu. candles: tüm seri; from: planın oluştuğu mumdan sonraki ilk indeks. */
 export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   const d = plan.d, ms = TIMEFRAMES[tf].ms;
-  const expireBars = Math.ceil((o.expireHours * 3600e3) / ms);
+  // plan.expireBars: planın kendi limit süresi (ör. fib kesişiminde C dalgasının zaman sınırı); genel süreyi aşamaz
+  const expireBars = Math.min(Math.ceil((o.expireHours * 3600e3) / ms), plan.expireBars ?? Infinity);
   const slip = o.slipPct / 100, fee = o.feePct / 100;
   let i = from, entry = null, fillI = -1, mkt = !!plan.inZone, appr = null;
   // Dolum

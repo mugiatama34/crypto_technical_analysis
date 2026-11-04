@@ -136,7 +136,15 @@ function fibClusterPlan(pts, c, atr, o) {
   if (o.stopAt === 'p0') { k.stop = pts[0].price - k.d * (o.bufferAtr ?? 0.2) * atr; k.tp2 = k.tp1 + k.d * 0.236 * k.L; }
   const risk = k.d * (k.mid - k.stop);
   if (!(risk > 0) || k.d * (k.tp1 - k.mid) / risk < (o.minRR ?? 1.5)) return null;
-  return { ...mk(k.d, k.mid, k.stop, k.tp1, k.tp2, atr, { kind: 'fib_cluster', retr: k.retr, ext: k.ext, diffAtr: k.diff, rr1: +((k.d * (k.tp1 - k.mid)) / risk).toFixed(2) }), inZone: false, zone: [k.mid - 0.25 * atr, k.mid + 0.25 * atr], price: c.close };
+  // C dalgası zaman sınırı (o.cTime): B'den bölgeye varış en fazla cTime × A bacağının süresi (A = P1→A mum sayısı);
+  // süre dolarsa limit iptal (C fazla uzadı). Süre zaten dolmuşsa plan verilmez.
+  let expireBars;
+  if (o.cTime) {
+    const aBars = Math.max(1, pts[2].i - pts[1].i), left = pts[3].i + Math.ceil(o.cTime * aBars) - c.i;
+    if (left < 1) return null;
+    expireBars = left;
+  }
+  return { ...mk(k.d, k.mid, k.stop, k.tp1, k.tp2, atr, { kind: 'fib_cluster', retr: k.retr, ext: k.ext, diffAtr: k.diff, rr1: +((k.d * (k.tp1 - k.mid)) / risk).toFixed(2) }), inZone: false, zone: [k.mid - 0.25 * atr, k.mid + 0.25 * atr], price: c.close, ...(expireBars ? { expireBars } : {}) };
 }
 const mkFib = (id, label, o) => ({
   id, label, tfs: ['1H', '4H'], exit: { tpScheme: 'half_be', maxHoldBars: 120 }, o: { ...CORR_DEFAULTS, ...FIB_DEFAULTS, minRR: 1.5, ...o },
@@ -171,3 +179,9 @@ export const fibClusterGP0 = { ...mkFib('fib_cluster_g_p0', 'Fib kesişimi 0,618
 // Düşük TF sürümleri (kullanıcı hipotezi 04.11: kesişim 1m/5m/15m'de daha temiz çalışır) — aynı kural, yalnız TF listesi farklı
 export const fibClusterGLtf = { ...fibClusterG, id: 'fib_cluster_g_ltf', label: `${fibClusterG.label} · 1m/5m/15m`, tfs: ['1m', '5m', '15m'] };
 export const fibClusterGP0Ltf = { ...fibClusterGP0, id: 'fib_cluster_g_p0_ltf', label: `${fibClusterGP0.label} · 1m/5m/15m`, tfs: ['1m', '5m', '15m'] };
+// C zaman sınırı (kullanıcı 04.11: C çok uzarsa kesişim çalışmıyor): C ≤ 1× ya da ≤ 1,618× A bacağının süresi
+const ltfT = (base, id, cTime, tag) => ({ ...mkFib(id, `${base.label} · C ≤ ${tag}× A süresi · 1m/5m/15m`, { ...base.o, cTime }), tfs: ['1m', '5m', '15m'] });
+export const fibClusterGLtfT1 = ltfT(fibClusterG, 'fib_cluster_g_ltf_t1', 1, '1');
+export const fibClusterGLtfT16 = ltfT(fibClusterG, 'fib_cluster_g_ltf_t16', 1.618, '1,618');
+export const fibClusterGP0LtfT1 = ltfT(fibClusterGP0, 'fib_cluster_g_p0_ltf_t1', 1, '1');
+export const fibClusterGP0LtfT16 = ltfT(fibClusterGP0, 'fib_cluster_g_p0_ltf_t16', 1.618, '1,618');
