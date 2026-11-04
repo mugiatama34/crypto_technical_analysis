@@ -14,7 +14,9 @@ import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
-const CFG = { months: +arg('months', 6), top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01), fillbar: String(arg('fillbar', 'count')) };
+// --months N ya da N@E: son N ay ya da E ay önce biten N ay (örneklem dışı doğrulama için; workflow girdisi sınırı yüzünden tek alanda)
+const [MONTHS_N, END_AGO] = String(arg('months', 6)).split('@').map(Number);
+const CFG = { months: MONTHS_N, endAgo: END_AGO || 0, top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01), fillbar: String(arg('fillbar', 'count')) };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
 
@@ -109,7 +111,7 @@ export function report(trades, split) {
 
 async function main() {
   const t0 = Date.now();
-  const endMs = Date.now(), startMs = endMs - CFG.months * 30 * 86400e3;
+  const endMs = Date.now() - CFG.endAgo * 30 * 86400e3, startMs = endMs - CFG.months * 30 * 86400e3;
   let coins, fixtureProvider = null;
   if (CFG.fixture) { ({ fixtureProvider } = await import('../../src/data/fixture.js')); coins = await fixtureProvider.topCoins(CFG.top); }
   else if (CFG.coins) coins = CFG.coins.map((c) => ({ coin: c.toUpperCase(), instId: instIdOf(c.toUpperCase()) }));
