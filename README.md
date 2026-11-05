@@ -262,6 +262,9 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   yakın alınmamış likidite varsa "süpürme → stop", yoksa "tutunmaz → stop → iptal") yol. Telegram grafiğinde (SIGNAL_CHART)
   üstte açıklama paneliyle (kurulum, ana/alternatif, stop uyarıları, "kovalama/limiti bekle"); tarayıcı detayında
   "Senaryo okları" kutusu, coin sayfasında "Senaryo okları" katmanı (odaktaki küme). Oklar tahmin değil, plan senaryosu.
+- **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
+  (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
+  ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.
 - **Haftalık sinyal kalitesi** (`bot/review/periods.js`, `WEEKLY_REPORT=1` varsayılan açık, Pazartesi özet saatinde):
   son 7 günün sinyalleri bugünkü sonuçlarıyla (sayı, günlük sıklık, dolum, kapanan, kazanma, ort./toplam R, long/short,
   en iyi/kötü) + önceki hafta + içinde bulunulan ayar dönemi → Telegram "📊 Haftalık sinyal raporu". Her yeni sinyal

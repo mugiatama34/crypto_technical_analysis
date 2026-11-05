@@ -57,6 +57,21 @@ export const REVIEW_SCHEMA = {
   },
 };
 
+/** Tur içi API durumu (bot/run.mjs kredi uyarısı için): başarılı çağrı sayısı ve son kredi/kimlik hatası. */
+export const apiHealth = { ok: 0, creditError: null };
+export const isCreditError = (msg) => /credit balance is too low|billing|insufficient.*credit|quota/i.test(String(msg || ''));
+
+/** Kredi uyarısı metni (ya da null); state.creditAlertAt günceller. Saf: test edilir. */
+export function creditAlert(state, h, now) {
+  if (h.creditError) {
+    if (state.creditAlertAt && now - state.creditAlertAt < 24 * 3600e3) return null;
+    state.creditAlertAt = now;
+    return `⚠️ <b>Anthropic API kredisi bitti</b>: ajanlar, denetçi ve araştırmacı çalışmıyor (sinyal botu, momentum ve rejim kuralı çalışmaya devam ediyor). console.anthropic.com → Billing'den kredi yükle.`;
+  }
+  if (h.ok > 0 && state.creditAlertAt) { state.creditAlertAt = 0; return '✅ Anthropic API yeniden çalışıyor: ajanlar devam ediyor.'; }
+  return null;
+}
+
 export async function call({ apiKey, model, system, user, schema, maxTokens = 3000, fetchImpl = fetch, effort = 'medium' }) {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY yok');
   const res = await fetchImpl(API, {
@@ -65,8 +80,9 @@ export async function call({ apiKey, model, system, user, schema, maxTokens = 30
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', ...(/haiku/.test(model) ? {} : { 'anthropic-beta': 'server-side-fallback-2026-07-01' }) },
     body: JSON.stringify({ model, max_tokens: maxTokens, ...(/haiku/.test(model) ? {} : { fallbacks: 'default' }), system, output_config: { format: { type: 'json_schema', schema }, effort }, messages: [{ role: 'user', content: user }] }),
   });
-  if (!res.ok) { let m = `HTTP ${res.status}`; try { m = (await res.json())?.error?.message || m; } catch { /* yok */ } throw new Error(`Claude: ${m}`); }
+  if (!res.ok) { let m = `HTTP ${res.status}`; try { m = (await res.json())?.error?.message || m; } catch { /* yok */ } if (isCreditError(m)) apiHealth.creditError = m; throw new Error(`Claude: ${m}`); }
   const j = await res.json();
+  apiHealth.ok++;
   if (j.stop_reason === 'refusal') throw new Error('Claude reddetti');
   const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
   if (j.stop_reason === 'max_tokens') throw new Error(`Claude cevabı max_tokens'ta kesildi (${maxTokens}; ${text.length} karakter)`);

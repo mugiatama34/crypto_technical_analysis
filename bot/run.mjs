@@ -28,6 +28,7 @@ import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, 
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, sendTelegramPhoto, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
+import { apiHealth, creditAlert } from './agent/manager.js';
 import { runAudit } from './review/run.js';
 import { runMomentum } from './momentum/run.js';
 import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
@@ -418,6 +419,9 @@ async function main() {
       try { await notify(weeklyReport(history.items, now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); }
     }
   }
+  // API kredisi uyarısı: kredi hatası görülünce Telegram'a bir kez (24 saatte en fazla bir), başarılı çağrı gelince "düzeldi"
+  const credit = creditAlert(state, apiHealth, now);
+  if (credit) await notify(credit, state);
   if (CFG.dry) log('DRY: durum kaydedilmedi'); else { saveState(CFG.stateFile, state); saveHistory(CFG.historyFile, history); }
 }
 

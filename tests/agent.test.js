@@ -237,3 +237,16 @@ test('ajan çağrısı: Haiku modelinde yedek model (fallbacks) gönderilmez, Op
   assert.equal(seen[0].b.fallbacks, undefined); assert.equal(seen[0].h['anthropic-beta'], undefined);
   assert.equal(seen[1].b.fallbacks, 'default');
 });
+
+import { creditAlert, isCreditError } from '../bot/agent/manager.js';
+
+test('creditAlert: kredi hatasında 24 saatte bir uyarı, düzelince haber', () => {
+  const st = {}, H = 36e5;
+  assert.ok(isCreditError('Your credit balance is too low to access the Anthropic API.'));
+  assert.match(creditAlert(st, { ok: 0, creditError: 'x' }, 10 * H), /kredisi bitti/);
+  assert.equal(creditAlert(st, { ok: 0, creditError: 'x' }, 20 * H), null); // 24 saat dolmadı
+  assert.match(creditAlert(st, { ok: 0, creditError: 'x' }, 35 * H), /kredisi bitti/);
+  assert.equal(creditAlert(st, { ok: 0, creditError: null }, 36 * H), null); // çağrı yok: durum değişmez
+  assert.match(creditAlert(st, { ok: 2, creditError: null }, 37 * H), /yeniden çalışıyor/);
+  assert.equal(creditAlert(st, { ok: 2, creditError: null }, 38 * H), null);
+});
