@@ -35,6 +35,14 @@ export function fp(p) {
   return p.toFixed(dgt);
 }
 
+/** Girişe göre yüzde uzaklık (+/− işaretsiz, 2 hane). */
+export const pctFrom = (entry, p) => (Number.isFinite(entry) && Number.isFinite(p) && entry ? `%${(Math.abs(p - entry) / entry * 100).toFixed(2)}` : '–');
+/** Kaldıraç tavanı: likidasyon stopun ≥ 1,5 katı uzakta kalsın → ⌊100 ÷ (stop % × 1,5)⌋, 1–20 arası (modül 03 kuralı; 20x üstü önerilmez). */
+export function maxLeverage(entry, stop) {
+  const sp = Math.abs(entry - stop) / entry * 100;
+  return sp > 0 ? Math.max(1, Math.min(20, Math.floor(100 / (sp * 1.5)))) : null;
+}
+
 const CONF_ICON = { 'düşük': '○', 'orta': '◐', 'yüksek': '●' };
 
 /** Yeni setup mesajı. */
@@ -48,8 +56,9 @@ export function formatSetup(plan, dec, size) {
     `Puan ${plan.score}${plan.mtf ? ` · MTF ${esc(plan.mtf.tfs.join('+'))}` : ''} · fiyat ${fp(plan.price)}`,
     '',
     `Giriş: <code>${fp(dec.entry_low)} – ${fp(dec.entry_high)}</code>${plan.inZone ? ' (fiyat bölgede)' : ''}`,
-    `Stop: <code>${fp(dec.stop)}</code>  (risk %${(Math.abs(dec.entry - dec.stop) / dec.entry * 100).toFixed(2)})`,
-    `TP1: <code>${fp(dec.tp1)}</code> (${dec.rr1}R)   TP2: <code>${fp(dec.tp2)}</code> (${dec.rr}R)`,
+    `Stop: <code>${fp(dec.stop)}</code>  (${pctFrom(dec.entry, dec.stop)})`,
+    `TP1: <code>${fp(dec.tp1)}</code> (${pctFrom(dec.entry, dec.tp1)} · ${dec.rr1}R)   TP2: <code>${fp(dec.tp2)}</code> (${pctFrom(dec.entry, dec.tp2)} · ${dec.rr}R)`,
+    maxLeverage(dec.entry, dec.stop) ? `Kaldıraç: en fazla <b>${maxLeverage(dec.entry, dec.stop)}x</b> (likidasyon stopun ≥ 1,5 katı uzakta; izole marjin, kaldıraç yalnız teminatı belirler)` : '',
     size ? `Pozisyon (risk ${size.riskUsd} USDT): ${size.qty} ${esc(plan.coin)} ≈ ${size.notional} USDT` : '',
     '',
     `<b>Yapılar:</b> ${esc(sigs)}`,

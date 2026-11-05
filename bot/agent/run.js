@@ -5,7 +5,7 @@ import path from 'node:path';
 import { PROFILES } from './profiles.js';
 import { newAccount, updatePositions, openPosition, closeManual, adjustPosition, endOfRun, markToMarket, statsOf, closeOrphanHedges, openPendingHedges } from './account.js';
 import { decide, reflect, review, clampParams } from './manager.js';
-import { esc, fp } from '../telegram.js';
+import { esc, fp, pctFrom } from '../telegram.js';
 
 const r2 = (x) => +Number(x).toFixed(2);
 
@@ -27,9 +27,9 @@ export function publish(acct, dir) {
 const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış', time: '⏱️ Zaman stopu (TP1 süresinde gelmedi)', early: '⚡ Erken hedef (%80 kapandı, stop girişe)' };
 
 function fmtOpen(acct, pos, order, hedgeLeg = null) {
-  const p = pos || order;
+  const p = pos || order, e0 = pos ? pos.entry : order.price;
   const hedgeTxt = hedgeLeg ? `\n⚖️ BTC hedge: ${hedgeLeg.direction === 'long' ? 'LONG' : 'SHORT'} ${hedgeLeg.leverage}x marjin ${fp(hedgeLeg.margin)} USDT @ ${fp(hedgeLeg.entry)} (ana pozisyonla birlikte kapanır)` : p.hedge ? '\n⚖️ BTC hedge dolumda açılacak' : '';
-  return `🤖 <b>Ajan [${esc(acct.label)}]</b> ${pos ? 'pozisyon açtı' : 'limit emir koydu'} — <b>${esc(p.coin)}</b> ${esc(p.tf || '')} ${p.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'} ${p.leverage}x\nMarjin ${fp(p.margin)} USDT · ${pos ? `giriş ${fp(pos.entry)}` : `limit ${fp(order.price)}`} · stop ${fp(p.stop)} · ${p.trail && !p.tp1 && !p.tp2 ? `hedef yok, izleyen stop ${p.trail.mult} ATR (≈ ${fp(p.trail.mult * p.trail.atr)}), en fazla ${p.trail.maxBars} mum` : `TP1 ${fp(p.tp1)} · TP2 ${fp(p.tp2)}`} · lik. ${fp(pos?.liq ?? 0)}\n${esc(p.rationale)}${p.notes?.length ? `\n<i>Kırpıldı: ${esc(p.notes.join('; '))}</i>` : ''}${hedgeTxt}\nÖzsermaye ${fp(acct.equity)} USDT`;
+  return `🤖 <b>Ajan [${esc(acct.label)}]</b> ${pos ? 'pozisyon açtı' : 'limit emir koydu'} — <b>${esc(p.coin)}</b> ${esc(p.tf || '')} ${p.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'} ${p.leverage}x\nMarjin ${fp(p.margin)} USDT · ${pos ? `giriş ${fp(pos.entry)}` : `limit ${fp(order.price)}`} · stop ${fp(p.stop)} (${pctFrom(e0, p.stop)}) · ${p.trail && !p.tp1 && !p.tp2 ? `hedef yok, izleyen stop ${p.trail.mult} ATR (≈ ${fp(p.trail.mult * p.trail.atr)}, ${pctFrom(e0, e0 + p.trail.mult * p.trail.atr)}), en fazla ${p.trail.maxBars} mum` : `TP1 ${fp(p.tp1)} (${pctFrom(e0, p.tp1)}) · TP2 ${fp(p.tp2)} (${pctFrom(e0, p.tp2)})`} · lik. ${fp(pos?.liq ?? 0)}${pos?.liq ? ` (${pctFrom(e0, pos.liq)})` : ''}\n${esc(p.rationale)}${p.notes?.length ? `\n<i>Kırpıldı: ${esc(p.notes.join('; '))}</i>` : ''}${hedgeTxt}\nÖzsermaye ${fp(acct.equity)} USDT`;
 }
 function fmtEvent(acct, ev) {
   const p = ev.pos || ev.order;

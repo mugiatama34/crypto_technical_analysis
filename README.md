@@ -265,6 +265,9 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
 - **Ajan + ölçülmüş kural pozisyonu** (`source: regime_donchian`): hedef yok; ajan hesabı lab kuralını uygular — 2 ATR
   izleyen stop (yalnız kapanmış mumda, yalnız kâr yönüne), en fazla 100 mum; erken kâr uygulanmaz. Telegram açılış
   mesajında "hedef yok, izleyen stop 2 ATR (≈ x), en fazla 100 mum" yazar.
+- **Yüzdeler ve kaldıraç tavanı**: sinyal mesajında stop/TP1/TP2'nin girişe uzaklığı (%) ve "Kaldıraç: en fazla Nx"
+  (⌊100 ÷ (stop % × 1,5)⌋, 1–20; likidasyon stopun ≥ 1,5 katı uzakta), ajan açılış mesajında stop/TP/likidasyon %'si,
+  grafik panelinde stop % ve TP %'leri (`pctFrom`, `maxLeverage` — `bot/telegram.js`).
 - **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
   (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
   ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.

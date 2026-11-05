@@ -313,3 +313,12 @@ test('trackPlan opts.lower: aynı 4H mumda dolum + erken hedef sırası 15m ile;
   const msg = formatUpdates({ ...plan, fillRes: 'tp' }, ['active', 'early'], 102.5);
   assert.match(msg, /Giriş bölgesine geldi\n↳ ⚡ Erken hedef/); assert.match(msg, /15m mumlarla doğrulandı/);
 });
+
+import { pctFrom, maxLeverage } from '../bot/telegram.js';
+
+test('pctFrom / maxLeverage: yüzde uzaklık ve kaldıraç tavanı', () => {
+  assert.equal(pctFrom(100, 98), '%2.00'); assert.equal(pctFrom(100, 104.5), '%4.50');
+  assert.equal(maxLeverage(100, 98), 20); // %2 stop → 33 → tavan 20
+  assert.equal(maxLeverage(100, 95), 13); // %5 stop → 100/(5×1,5)
+  assert.equal(maxLeverage(1.741, 1.6505), 12); // %5,2 → 12
+});

@@ -248,8 +248,9 @@ export function panelOf(plan, context = {}, scen = null, setupNames = []) {
   const dir = d === 1 ? 'LONG' : 'SHORT', zone = plan.zone ? `${f(Math.min(...plan.zone))}–${f(Math.max(...plan.zone))}` : f(plan.entry);
   const lines = [];
   if (setupNames.length) lines.push({ text: `Kurulum: ${setupNames.slice(0, 4).join(' · ')}`, color: C.text });
-  const tps = [plan.early != null ? `erken ${f(plan.early)} (%${Math.round((plan.earlyPortion ?? 0.8) * 100)} kapat)` : null, plan.tp1 != null ? `TP1 ${f(plan.tp1)} (${R(plan.tp1).toFixed(1)}R)` : null, plan.tp2 != null ? `TP2 ${f(plan.tp2)} (${R(plan.tp2).toFixed(1)}R)` : null].filter(Boolean).join(' → ');
-  lines.push({ text: `Ana (yeşil): ${scen?.inZone ? 'fiyat bölgede' : `fiyat ${zone} bölgesine gelir`}, giriş ${f(plan.entry)}, stop ${f(plan.stop)} → ${tps}.`, color: '#4caf50', bold: true });
+  const tps = [plan.early != null ? `erken ${f(plan.early)} (%${Math.round((plan.earlyPortion ?? 0.8) * 100)} kapat)` : null, plan.tp1 != null ? `TP1 ${f(plan.tp1)} (${R(plan.tp1).toFixed(1)}R, %${(Math.abs(plan.tp1 - plan.entry) / plan.entry * 100).toFixed(1)})` : null, plan.tp2 != null ? `TP2 ${f(plan.tp2)} (${R(plan.tp2).toFixed(1)}R, %${(Math.abs(plan.tp2 - plan.entry) / plan.entry * 100).toFixed(1)})` : null].filter(Boolean).join(' → ');
+  const sp = risk / plan.entry * 100, lev = sp > 0 ? Math.max(1, Math.min(20, Math.floor(100 / (sp * 1.5)))) : null;
+  lines.push({ text: `Ana (yeşil): ${scen?.inZone ? 'fiyat bölgede' : `fiyat ${zone} bölgesine gelir`}, giriş ${f(plan.entry)}, stop ${f(plan.stop)} (%${sp.toFixed(2)}) → ${tps}.${lev ? ` Kaldıraç ≤ ${lev}x.` : ''}`, color: '#4caf50', bold: true });
   lines.push(scen?.hunt
     ? { text: `Alternatif (kırmızı): önce ${scen.hunt.label} ${f(scen.hunt.price)} likiditesi süpürülür → stop alınır; dönüş ancak sonra (stop havuzun arkasında değil).`, color: '#ef5350', bold: true }
     : { text: `Alternatif (kırmızı): bölge tutmaz → stop ${f(plan.stop)} (−1R); ${f(plan.stop)} ${d === 1 ? 'altında' : 'üstünde'} kapanış kurulumu iptal eder.`, color: '#ef5350', bold: true });
