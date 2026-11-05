@@ -32,10 +32,15 @@ export const PRESETS = [
     detectorOpts: { elliott: { patterns: ['flat'], wave3: false, minScore: 50, maxCounts: 4 } },
   },
   {
-    id: 'fib_cluster', name: 'Fib kesişimi (0,618×1,272)', desc: 'İtki sonrası ABC düzeltmesi: itkinin 0,618 geri çekilmesi ile A bacağının B\'den 1,272 uzantısı aynı yerdeyse giriş bölgesi; yön itkinin yönü.',
+    id: 'fib_cluster', name: 'Fib kesişimi (tüm oranlar)', desc: 'İtki sonrası ABC düzeltmesi: itkinin 0,5/0,618/0,786 geri çekilmesi ile A bacağının B\'den 1,272/1,382/1,618 uzantısı aynı yerdeyse giriş bölgesi (0,618×1,272 öncelikli); yön itkinin yönü.',
     // Tek sinyal: oluşurken puan ≈ 6–16, bölgede ≈ 28 → minScore 5 (20 iken liste hep boş kalıyordu). Üç ZigZag eşiği (15m gürültüsü).
     detectors: ['fibonacci'], weights: { fibonacci: 2.0 }, minScore: 5,
     detectorOpts: { fibonacci: { only: 'cluster', clusterKs: [2, 3, 4], bRetr: [0.382, 1.0] } },
+  },
+  {
+    id: 'fib_cluster_618', name: 'Fib kesişimi (yalnız 0,618×1,272)', desc: 'Aynı kural, yalnız itkinin 0,618 geri çekilmesi × A\'nın 1,272 uzantısı (diğer oran çiftleri gösterilmez).',
+    detectors: ['fibonacci'], weights: { fibonacci: 2.0 }, minScore: 5,
+    detectorOpts: { fibonacci: { only: 'cluster', clusterKs: [2, 3, 4], bRetr: [0.382, 1.0], clusterRetr: [0.618], clusterExt: [1.272] } },
   },
   {
     id: 'ew_corrections', name: 'EW düzeltmeler', desc: 'Zigzag + flat + diyagonal birlikte; fib desteğiyle.',

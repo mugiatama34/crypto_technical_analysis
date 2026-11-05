@@ -190,3 +190,9 @@ test('structureOverlay: son swing etiketleri (HH/HL/LH/LL) ve BOS/CHoCH çizgi +
   assert.ok(texts.some((t) => t === 'BOS' || t === 'CHoCH'), texts.join(','));
   assert.ok(ov.draw.filter((d) => d.kind === 'marker' && /^(HH|HL|LH|LL|H|L)$/.test(d.text)).length <= 8);
 });
+
+test('preset fib_cluster_618: yalnız 0,618×1,272 oran çifti', async () => {
+  const { PRESET_MAP } = await import('../src/scan/presets.js');
+  const o = PRESET_MAP.fib_cluster_618.detectorOpts.fibonacci;
+  assert.deepEqual(o.clusterRetr, [0.618]); assert.deepEqual(o.clusterExt, [1.272]); assert.equal(o.only, 'cluster');
+});

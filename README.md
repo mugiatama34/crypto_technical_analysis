@@ -268,6 +268,8 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
 - **Yüzdeler ve kaldıraç tavanı**: sinyal mesajında stop/TP1/TP2'nin girişe uzaklığı (%) ve "Kaldıraç: en fazla Nx"
   (⌊100 ÷ (stop % × 1,5)⌋, 1–20; likidasyon stopun ≥ 1,5 katı uzakta), ajan açılış mesajında stop/TP/likidasyon %'si,
   grafik panelinde stop % ve TP %'leri (`pctFrom`, `maxLeverage` — `bot/telegram.js`).
+- **Tarayıcı preseti "Fib kesişimi (yalnız 0,618×1,272)"** (`fib_cluster_618`): kesişimde yalnız itkinin 0,618 geri
+  çekilmesi × A'nın 1,272 uzantısı; eski preset "Fib kesişimi (tüm oranlar)" 0,5/0,618/0,786 × 1,272/1,382/1,618'i de gösterir.
 - **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
   (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
   ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.
