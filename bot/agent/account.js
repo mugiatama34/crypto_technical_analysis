@@ -104,7 +104,7 @@ export function closeOrphanHedges(acct, btcPrice, now) {
 export function openPosition(acct, req, now, guards) {
   const c = clampOpen(acct, req, guards, now);
   if (!c.ok) return { ok: false, reason: c.reason };
-  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged, source: req.source || 'scanner' };
+  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged, source: req.source || 'scanner', ...(req.trail ? { trail: req.trail } : {}) };
   if (req.order === 'limit') {
     acct.orders.push({ ...base, type: 'limit', price: r6(+req.limit_price), expiresAt: now + (req.expireHours || 24) * 3600e3 });
     return { ok: true, order: acct.orders[acct.orders.length - 1], notes: c.notes };
@@ -208,6 +208,9 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   }
   // Pozisyonlar
   for (const pos of [...acct.positions]) {
+    // Ölçülmüş rejim-Donchian kuralı: hedef yok, 2 ATR izleyen stop, en fazla 100 mum (kendi TF'sinde). Eski kayıtlarda
+    // trail alanı yoksa ATR açılıştaki stop mesafesinden (2 ATR) türetilir.
+    if (pos.source === 'regime_donchian' && !pos.trail && !pos.hedgeOf) pos.trail = { atr: r6(Math.abs(pos.entry - pos.stop) / 2), mult: 2, maxBars: 100 };
     const cs = (candlesByCoin[pos.coin] || []).filter((c) => c.time > pos.lastTime);
     for (const c of cs) {
       if (!acct.positions.includes(pos)) break;
@@ -218,7 +221,7 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
       const tp2Hit = pos.tp2 && (d === 1 ? c.high >= pos.tp2 : c.low <= pos.tp2);
       if (liqHit) { closePart(acct, pos, 1, pos.liq, 'liq', c.time, events); break; }
       // Erken kâr al: pozisyon TF'si listedeyse erken hedefte %portion kapat, stop girişe; kalan TP2'ye (tp1 mantığı devre dışı)
-      if (et && et.tfs.includes(pos.tf) && !pos.tp1Done && !stopHit) {
+      if (et && !pos.trail && et.tfs.includes(pos.tf) && !pos.tp1Done && !stopHit) {
         const ep = pos.entry * (1 + d * et.pct / 100);
         if (d === 1 ? c.high >= ep : c.low <= ep) {
           closePart(acct, pos, et.portion, r6(ep), 'early', c.time, events); pos.tp1Done = true; pos.earlyDone = true; pos.stop = r6(pos.entry);
@@ -234,6 +237,16 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
         continue;
       }
       if (tp2Hit && pos.tp1Done) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
+      // İzleyen stop (pos.trail): yalnız kapanmış mumda, stop yalnız kâr yönüne taşınır; süre dolunca kapanıştan çıkış
+      if (pos.trail) {
+        const bms = cs.length > 1 ? cs[1].time - cs[0].time : (TIMEFRAMES[pos.tf]?.ms || 0);
+        if (c.time + bms <= now) {
+          const ns = r6(c.close - d * pos.trail.mult * pos.trail.atr);
+          if (d * (ns - pos.stop) > 0) pos.stop = ns;
+          const tfMs = TIMEFRAMES[pos.tf]?.ms;
+          if (tfMs && c.time + bms - pos.openedAt >= pos.trail.maxBars * tfMs) { closePart(acct, pos, 1, c.close * (1 - d * FEES.slipPct / 100), 'time', c.time, events); break; }
+        }
+      }
       // Zaman stopu: kendi TF'sinde bars mum doldu, TP1 görülmedi (ve MFE < minMfeR) → kapanıştan kapat
       const tfMs = TIMEFRAMES[pos.tf]?.ms, risk0 = Math.abs(pos.entry - pos.stop);
       if (ts && tfMs && !pos.tp1Done && risk0 > 0) {

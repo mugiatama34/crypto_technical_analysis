@@ -29,7 +29,7 @@ const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ B
 function fmtOpen(acct, pos, order, hedgeLeg = null) {
   const p = pos || order;
   const hedgeTxt = hedgeLeg ? `\n⚖️ BTC hedge: ${hedgeLeg.direction === 'long' ? 'LONG' : 'SHORT'} ${hedgeLeg.leverage}x marjin ${fp(hedgeLeg.margin)} USDT @ ${fp(hedgeLeg.entry)} (ana pozisyonla birlikte kapanır)` : p.hedge ? '\n⚖️ BTC hedge dolumda açılacak' : '';
-  return `🤖 <b>Ajan [${esc(acct.label)}]</b> ${pos ? 'pozisyon açtı' : 'limit emir koydu'} — <b>${esc(p.coin)}</b> ${esc(p.tf || '')} ${p.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'} ${p.leverage}x\nMarjin ${fp(p.margin)} USDT · ${pos ? `giriş ${fp(pos.entry)}` : `limit ${fp(order.price)}`} · stop ${fp(p.stop)} · TP1 ${fp(p.tp1)} · TP2 ${fp(p.tp2)} · lik. ${fp(pos?.liq ?? 0)}\n${esc(p.rationale)}${p.notes?.length ? `\n<i>Kırpıldı: ${esc(p.notes.join('; '))}</i>` : ''}${hedgeTxt}\nÖzsermaye ${fp(acct.equity)} USDT`;
+  return `🤖 <b>Ajan [${esc(acct.label)}]</b> ${pos ? 'pozisyon açtı' : 'limit emir koydu'} — <b>${esc(p.coin)}</b> ${esc(p.tf || '')} ${p.direction === 'long' ? '🟢 LONG' : '🔴 SHORT'} ${p.leverage}x\nMarjin ${fp(p.margin)} USDT · ${pos ? `giriş ${fp(pos.entry)}` : `limit ${fp(order.price)}`} · stop ${fp(p.stop)} · ${p.trail && !p.tp1 && !p.tp2 ? `hedef yok, izleyen stop ${p.trail.mult} ATR (≈ ${fp(p.trail.mult * p.trail.atr)}), en fazla ${p.trail.maxBars} mum` : `TP1 ${fp(p.tp1)} · TP2 ${fp(p.tp2)}`} · lik. ${fp(pos?.liq ?? 0)}\n${esc(p.rationale)}${p.notes?.length ? `\n<i>Kırpıldı: ${esc(p.notes.join('; '))}</i>` : ''}${hedgeTxt}\nÖzsermaye ${fp(acct.equity)} USDT`;
 }
 function fmtEvent(acct, ev) {
   const p = ev.pos || ev.order;
@@ -86,7 +86,7 @@ export async function runAgents(ctx) {
             const cand = cands.find((p) => p.coin === a.coin) || null;
             const price = ctx.prices[a.coin];
             if (!price) { log(`  ajan ${id}: ${a.coin} fiyat yok, atlandı`); continue; }
-            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', btcPrice: btcPx }, now, profile.guards);
+            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
             if (!res.ok) { log(`  ajan ${id}: ${a.coin} açılmadı — ${res.reason}`); acct.notes.push({ at: now, text: `${a.coin} ${a.direction} reddedildi: ${res.reason}` }); continue; }
             await notify(fmtOpen(acct, res.position, res.order, res.hedgeLeg));
           } else if (a.type === 'close') {

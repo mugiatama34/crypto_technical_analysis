@@ -250,3 +250,18 @@ test('creditAlert: kredi hatasında 24 saatte bir uyarı, düzelince haber', () 
   assert.match(creditAlert(st, { ok: 2, creditError: null }, 37 * H), /yeniden çalışıyor/);
   assert.equal(creditAlert(st, { ok: 2, creditError: null }, 38 * H), null);
 });
+
+test('rejim-Donchian pozisyonu: hedef yok, 2 ATR izleyen stop kâr yönüne taşınır, erken kâr uygulanmaz', () => {
+  const a = newAccount(P, 1000), H = 36e5;
+  const r = openPosition(a, req({ tp1: null, tp2: null, stop: 96, source: 'regime_donchian', trail: { atr: 2, mult: 2, maxBars: 100 } }), 1000, P.guards);
+  const pos = r.position; assert.ok(pos.trail);
+  updatePositions(a, { BTC: [c(1000 + H, 100, 106, 100, 105), c(1000 + 2 * H, 105, 106, 104, 105)] }, 1000 + 3 * H, { earlyTp: '{"pct":1.2,"portion":0.8,"tfs":["1H"]}' });
+  assert.equal(a.positions.length, 1); assert.equal(pos.earlyDone, undefined); // erken kâr yok
+  assert.equal(pos.stop, 101); // 105 − 2×2
+  const ev = updatePositions(a, { BTC: [c(1000 + 3 * H, 105, 105, 100.5, 101)] }, 1000 + 5 * H);
+  assert.deepEqual(ev.map((e) => e.type), ['stop']); assert.equal(a.positions.length, 0);
+  // eski kayıt (trail yok): stop mesafesinden türetilir
+  const b = newAccount(P, 1000); const q = openPosition(b, req({ tp1: null, tp2: null, stop: 96, source: 'regime_donchian' }), 1000, P.guards).position;
+  updatePositions(b, { BTC: [c(1000 + H, 100, 103, 100, 103)] }, 1000 + 2 * H);
+  assert.ok(Math.abs(q.trail.atr - 2.025) < 1e-6); assert.ok(q.stop > 98.9 && q.stop < 99);
+});
