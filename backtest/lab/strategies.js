@@ -15,6 +15,7 @@ import { DIV_STRATEGIES } from './divergence.js';
 import { CHAN_STRATEGIES } from './channel.js';
 import { W3_STRATEGIES } from './wave3.js';
 import { RANGE_STRATEGIES } from './range.js';
+import { FIBSCAN_STRATEGIES } from './fibscan.js';
 import { zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, fibClusterGLtf, fibClusterGP0Ltf, fibClusterGLtfT1, fibClusterGLtfT16, fibClusterGP0LtfT1, fibClusterGP0LtfT16 } from './corrections.js';
 export { zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide };
 export { endingDiagonal, endingDiagonalWide, leadingDiagonal };
@@ -183,5 +184,5 @@ const mkTsmom = (id, tf, maxHold) => ({
 export const btcTsmom1h = mkTsmom('btc_tsmom_1h', '1H', 200);
 export const btcTsmom4h = mkTsmom('btc_tsmom_4h', '4H', 100);
 
-export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, fibClusterGLtf, fibClusterGP0Ltf, fibClusterGLtfT1, fibClusterGLtfT16, fibClusterGP0LtfT1, fibClusterGP0LtfT16, ...SMC_STRATEGIES, ...DIV_STRATEGIES, ...W3_STRATEGIES, ...CHAN_STRATEGIES, ...RANGE_STRATEGIES, ...XS_STRATEGIES];
+export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, fibClusterGLtf, fibClusterGP0Ltf, fibClusterGLtfT1, fibClusterGLtfT16, fibClusterGP0LtfT1, fibClusterGP0LtfT16, ...SMC_STRATEGIES, ...DIV_STRATEGIES, ...W3_STRATEGIES, ...CHAN_STRATEGIES, ...RANGE_STRATEGIES, ...FIBSCAN_STRATEGIES, ...XS_STRATEGIES];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));
