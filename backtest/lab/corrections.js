@@ -10,6 +10,7 @@ import * as I from '../../src/data/indicators.js';
 import { zigzag, fillAtr, pivotsAsOf } from '../../src/core/zigzag.js';
 import { analyze } from '../../src/ew/engine/analyze.js';
 import { fibClusterOf, FIB_DEFAULTS } from '../../src/detectors/fibonacci.js';
+import { dailyTrendAt } from '../../src/scan/regime.js';
 
 export const CORR_DEFAULTS = { ks: [2, 3], ruleSet: 'course', minScore: 50, bufferAtr: 0.2, minRR: 2, cRatio: [0.8, 1.7], retrace: [0.5, 0.886], minImpulse: 1.5, recentBars: 2 };
 
@@ -148,7 +149,8 @@ function fibClusterPlan(pts, c, atr, o) {
 }
 const mkFib = (id, label, o) => ({
   id, label, tfs: ['1H', '4H'], exit: { tpScheme: 'half_be', maxHoldBars: 120 }, o: { ...CORR_DEFAULTS, ...FIB_DEFAULTS, minRR: 1.5, ...o },
-  prepare(candles) { return prepareBase(candles, this.o); },
+  needs: o.btc ? ['BTC1D'] : [],
+  prepare(candles, tf, extra = {}) { return { ...prepareBase(candles, this.o), btcDaily: extra.btcDaily || null }; },
   signal(i, candles, p) {
     if (i < 60) return null;
     const a = p.atr[i]; if (!a) return null;
@@ -163,6 +165,8 @@ const mkFib = (id, label, o) => ({
         const key = `${z}:${w.map((q) => q.i).join('-')}`;
         if (p.seen.has(key)) continue;
         const plan = fibClusterPlan(w, c, a, p.o);
+        // o.btc 'with': yalnız BTC günlük trendi (EMA50 tarafı, kapanmış günlük) işlem yönündeyken
+        if (plan && p.o.btc === 'with') { const bt = p.btcDaily && dailyTrendAt(p.btcDaily, c.time); if (!bt || (bt.up ? 1 : -1) !== plan.d) continue; }
         if (plan) { p.seen.add(key); return plan; }
       }
     }
@@ -185,3 +189,6 @@ export const fibClusterGLtfT1 = ltfT(fibClusterG, 'fib_cluster_g_ltf_t1', 1, '1'
 export const fibClusterGLtfT16 = ltfT(fibClusterG, 'fib_cluster_g_ltf_t16', 1.618, '1,618');
 export const fibClusterGP0LtfT1 = ltfT(fibClusterGP0, 'fib_cluster_g_p0_ltf_t1', 1, '1');
 export const fibClusterGP0LtfT16 = ltfT(fibClusterGP0, 'fib_cluster_g_p0_ltf_t16', 1.618, '1,618');
+// BTC günlük trend yönünde (08.11: son haftada short +31R / long −50R; yön filtresi ayrıca ölçülür) — 5m/15m
+export const fibClusterGLtfBtc = { ...mkFib('fib_cluster_g_ltf_btc', `${fibClusterG.label} · yalnız BTC günlük trend yönünde · 5m/15m`, { ...fibClusterG.o, btc: 'with' }), tfs: ['5m', '15m'] };
+export const fibClusterGLtfT16Btc = { ...mkFib('fib_cluster_g_ltf_t16_btc', `${fibClusterG.label} · C ≤ 1,618× A · BTC günlük trend yönünde · 5m/15m`, { ...fibClusterG.o, cTime: 1.618, btc: 'with' }), tfs: ['5m', '15m'] };
