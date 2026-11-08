@@ -4,6 +4,7 @@
 // nearAtr × ATR içindeyken ilk görüldüğünde) ve "bölgede" (fiyat bölgeye 0,35 ATR yaklaştığında).
 import { makeContext } from '../src/scan/context.js';
 import { detect } from '../src/detectors/fibonacci.js';
+import { clusterSignals } from '../src/scan/scoring.js';
 
 export const FIB_ALERT_DEFAULTS = {
   tfs: ['15m', '1H', '4H'],
@@ -13,6 +14,7 @@ export const FIB_ALERT_DEFAULTS = {
   keepHours: 72, // durum kaydı ömrü
   ks: [2, 3, 4], // ZigZag eşikleri (15m gürültüsü için birden çok)
   bRetr: [0.382, 1.0], // B, A'yı en fazla %100 geri alabilir (çift tepeye yakın düzeltmeler; MORPHO 26.10)
+  minScore: 0, // tarayıcı puanı (preset fib_cluster_618: ağırlık 2,0) bu değerin üstünde olmalı; 0 = filtre yok
 };
 const TF_RANK = { '15m': 1, '1H': 2, '4H': 3 };
 
@@ -28,7 +30,9 @@ export function clustersOf(row, o = FIB_ALERT_DEFAULTS) {
   if (ctx.n < 50 || !(ctx.atrNow > 0)) return [];
   return detect(ctx).filter((s) => s.id.startsWith('fib|cluster')).map((s) => {
     const pts = s.meta.points.map((p) => ({ price: p.price, time: ctx.candles[p.i]?.time }));
-    return { key: `${row.coin}|${row.tf}|${s.direction}|${pts[0].time}|${pts[1].time}`, sig: s, dist: Math.abs(ctx.price - s.entry) / ctx.atrNow, pts, price: ctx.price, atr: ctx.atrNow };
+    // Tarayıcıdaki puan (yalnız bu sinyalin kümesi, fibonacci ağırlığı 2,0) — "puanı > 10" filtresi için
+    const score = clusterSignals([s], { atr: ctx.atrNow, price: ctx.price, weights: { fibonacci: 2.0 } }).best?.score ?? 0;
+    return { key: `${row.coin}|${row.tf}|${s.direction}|${pts[0].time}|${pts[1].time}`, sig: s, dist: Math.abs(ctx.price - s.entry) / ctx.atrNow, pts, price: ctx.price, atr: ctx.atrNow, score, ctx };
   });
 }
 
@@ -44,6 +48,7 @@ export function fibAlerts(rows, state, now, opts = {}) {
   for (const row of rows) {
     if (!row || row.error || !o.tfs.includes(row.tf) || !row.candles?.length) continue;
     for (const c of clustersOf(row, o)) {
+      if (c.score <= (o.minScore || 0)) continue;
       const rec = st[c.key] || { at: now, stages: [] };
       const stage = c.dist <= o.zoneAtr ? 'zone' : c.dist <= o.nearAtr ? 'new' : null;
       if (!stage || rec.stages.includes(stage)) continue;
@@ -54,7 +59,7 @@ export function fibAlerts(rows, state, now, opts = {}) {
   out.sort((a, b) => (a.stage === 'zone' ? 0 : 1) - (b.stage === 'zone' ? 0 : 1) || (TF_RANK[b.tf] || 0) - (TF_RANK[a.tf] || 0) || a.dist - b.dist);
   const sent = out.slice(0, o.max);
   for (const a of sent) { a.rec.stages.push(a.stage); if (a.stage === 'zone' && !a.rec.stages.includes('new')) a.rec.stages.push('new'); a.rec.at = now; st[a.key] = a.rec; delete a.rec; }
-  return sent.map((a) => ({ coin: a.coin, tf: a.tf, stage: a.stage, key: a.key, text: formatFibAlert(a, now) }));
+  return sent.map((a) => ({ coin: a.coin, tf: a.tf, stage: a.stage, key: a.key, score: a.score, sig: a.sig, pts: a.pts, price: a.price, row: { candles: a.ctx.candles }, text: formatFibAlert(a, now, o.btcTrend) }));
 }
 
 /** Bir turun uyarılarını tek Telegram mesajında birleştirir (telefon tur başına bir kez titrer). */
@@ -64,7 +69,8 @@ export function fibDigest(alerts) {
   return [`📐 <b>Fib kesişimi: ${alerts.length} kurulum</b> (${alerts.map((a) => `${a.coin} ${a.tf}`).join(', ')})`, ...alerts.map((a) => a.text)].join('\n\n');
 }
 
-export function formatFibAlert(a, now = Date.now()) {
+/** btcTrend: 'up' | 'down' | null (BTC günlük EMA50 tarafı; yalnız bilgi, ölçülmüş filtre değil). */
+export function formatFibAlert(a, now = Date.now(), btcTrend = null) {
   const s = a.sig, long = s.direction === 'long', [P0, P1, A, B] = a.pts;
   const wk = [0, 6].includes(new Date(now).getUTCDay()) ? ' · hafta sonu' : '';
   const head = a.stage === 'zone' ? '📐🎯 <b>Fib kesişimi: fiyat bölgede</b>' : '📐 <b>Fib kesişimi oluştu</b>';
@@ -74,6 +80,7 @@ export function formatFibAlert(a, now = Date.now()) {
     `Bölge <b>${fmtP(s.entry)}</b> (0,618 × 1,272) · fiyat ${fmtP(a.price)} · uzaklık %${pct.toFixed(2)} (${a.dist.toFixed(1)} ATR)`,
     `İtki ${fmtP(P0.price)} → ${fmtP(P1.price)} · A ${fmtP(A.price)} · B ${fmtP(B.price)}`,
     `Stop önerisi ${fmtP(s.stop)} (itki başı ${fmtP(s.invalidation)}) · H1 ${fmtP(s.target)} · H2 ${fmtP(s.meta.target2)}`,
+    `Puan ${a.score ?? '–'}${btcTrend ? ` · BTC günlük ${btcTrend === 'up' ? 'yükseliş' : 'düşüş'} → ${(btcTrend === 'up') === long ? 'yönle uyumlu' : '⚠️ BTC yönüne ters'}` : ''}`,
     `<i>İzleme uyarısı, işlem sinyali değil (24 ay testte bu kural tek başına kenar vermedi). Bölgede alt dilimde teyit ara; risk %0,5–1.</i>`,
   ].join('\n');
 }

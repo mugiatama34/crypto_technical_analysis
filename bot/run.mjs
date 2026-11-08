@@ -38,6 +38,7 @@ import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenario
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
+import { dailyTrendAt } from '../src/scan/regime.js';
 import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
 import { atr as atrOf } from '../src/data/indicators.js';
 
@@ -71,6 +72,7 @@ const CFG = {
   fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
   fibAlertMax: +env('FIB_ALERT_MAX', 6),
   fibAlertTop: +env('FIB_ALERT_TOP', 30), // hacme göre ilk N coin (gürültü sınırı)
+  fibAlertMinScore: +env('FIB_ALERT_MIN_SCORE', 10), // tarayıcı puanı bu değerin üstünde (preset "yalnız 0,618×1,272")
   apiKey: env('ANTHROPIC_API_KEY', ''),
   agent: env('AGENT', '1') === '1',
   agentModel: env('AGENT_MODEL', 'claude-opus-5-5'),
@@ -204,10 +206,19 @@ async function main() {
       const missing = CFG.fibAlertTfs.filter((tf) => !CFG.tfs.includes(tf));
       if (missing.length) log(`Fib uyarısı: ${missing.join(',')} SCAN_TFS içinde değil, atlanıyor`);
       const top = new Set((res.coins || []).slice(0, CFG.fibAlertTop).map((c) => c.coin));
-      const alerts = fibAlerts(res.rows.filter((r) => !top.size || top.has(r.coin)), state, now, { tfs: CFG.fibAlertTfs, max: CFG.fibAlertMax });
+      const bt = btcDaily ? dailyTrendAt(btcDaily, now) : null;
+      const alerts = fibAlerts(res.rows.filter((r) => !top.size || top.has(r.coin)), state, now, { tfs: CFG.fibAlertTfs, max: CFG.fibAlertMax, minScore: CFG.fibAlertMinScore, btcTrend: bt ? (bt.up ? 'up' : 'down') : null });
       log(`Fib uyarısı (ilk ${CFG.fibAlertTop} coin): ${alerts.length} kurulum${alerts.length ? ' (' + alerts.map((a) => `${a.coin} ${a.tf} ${a.stage}`).join(', ') + ')' : ''}`);
       const msg = fibDigest(alerts);
       if (msg) await notify(msg, state);
+      // Grafik (SIGNAL_CHART=1): tur başına en fazla 3 kurulum; itki ve A-B çizgisi + bölge/stop/H1/H2 + senaryo okları
+      for (const a of alerts.slice(0, 3)) {
+        const plan = { coin: a.coin, tf: a.tf, direction: a.sig.direction, entry: a.sig.entry, stop: a.sig.stop, tp1: a.sig.target, tp2: a.sig.meta.target2, zone: a.sig.zone, sentAt: now };
+        const setup = [{ kind: 'line', points: a.pts.map((q) => ({ t: q.time, price: q.price })), color: '#f0c75e' },
+          ...a.pts.map((q, k) => ({ kind: 'marker', t: q.time, price: q.price, text: ['İtki başı', 'İtki ucu', 'A', 'B'][k], color: '#f0c75e', above: k % 2 === (a.sig.direction === 'long' ? 1 : 0) }))];
+        const scen = scenarioOf(a.row.candles, plan, {});
+        await sendChart(a.row.candles, plan, { setup, scenario: scen, panel: panelOf(plan, {}, scen, [`Fib kesişimi 0,618×1,272 · puan ${a.score}`]), note: `fib kesişimi · ${a.stage === 'zone' ? 'bölgede' : 'yeni'}` }, `📐 <b>${a.coin}</b> ${a.tf} fib kesişimi`);
+      }
     } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); }
   }
 

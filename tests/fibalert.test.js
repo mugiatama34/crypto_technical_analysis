@@ -80,3 +80,11 @@ test('fib kesişimi çizimi: itki, A bacağı, iki seviye ve açıklamalı işar
   assert.match(s.note, /C = B − 1,272×A/);
   assert.match(s.note, /%61,8 geri çekilmesi/);
 });
+
+test('fib uyarısı: tarayıcı puanı hesaplanır, minScore filtresi ve BTC yön notu', () => {
+  const c = clustersOf(row(base))[0];
+  assert.ok(c.score > 0, `puan ${c.score}`);
+  assert.equal(fibAlerts([row(base)], {}, T0, { minScore: c.score }).length, 0); // eşik = puan → elenir
+  const a = fibAlerts([row(base)], {}, T0, { minScore: c.score - 1, btcTrend: 'down' });
+  assert.equal(a.length, 1); assert.match(a[0].text, new RegExp(`Puan ${c.score}`)); assert.match(a[0].text, /BTC yönüne ters/);
+});

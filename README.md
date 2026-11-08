@@ -270,6 +270,10 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   grafik panelinde stop % ve TP %'leri (`pctFrom`, `maxLeverage` — `bot/telegram.js`).
 - **Tarayıcı preseti "Fib kesişimi (yalnız 0,618×1,272)"** (`fib_cluster_618`): kesişimde yalnız itkinin 0,618 geri
   çekilmesi × A'nın 1,272 uzantısı; eski preset "Fib kesişimi (tüm oranlar)" 0,5/0,618/0,786 × 1,272/1,382/1,618'i de gösterir.
+- **Fib uyarısında puan eşiği ve grafik**: `FIB_ALERT_MIN_SCORE` (vars. 10) — tarayıcı puanı (preset "yalnız 0,618×1,272")
+  bu değerin üstündeki kesişimler; pratikte puan > 10 ≈ fiyat bölgede ("bölgede" mesajı). Mesajda puan ve BTC günlük yön notu
+  (bilgi, filtre değil). `SIGNAL_CHART=1` ise tur başına en fazla 3 kurulumun grafiği (itki ve A-B çizgisi, bölge/stop/H1/H2,
+  senaryo okları, açıklama paneli).
 - **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
   (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
   ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.
