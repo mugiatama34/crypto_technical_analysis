@@ -87,3 +87,9 @@ ile yapılmalı; erken hedef mesafesi (0,5R–1,5R) de gerçek sırayla ≤ 0 �
 yalnız limit + erken %80 kâr + günlük trend aynı yön (hedge'li doğr. +0,08R, n 293) — zayıf ama iki dilimde pozitif;
 ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe yaramadı; hafta sonu kötü. Momentum
 `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.
+
+## Açık işler (09.11.2026)
+- FIB_ALERT=1 açık (15m/1H/4H, puan > 10, grafik): mesaj sıklığını kontrol et (≈ 8–10/gün bekleniyor).
+- Kullanıcının gerçek işlemleri DURUM.md'ye etiketli kaydedilir (kendi / arkadaş / bot); 30+ olunca istatistik (kazanma, ort. R, long/short, TF) ve backtest'le kıyas.
+- QML / "kesişim + QML" ölçümü **askıda** (kullanıcı açmadıkça başlama).
+- Pazartesi haftalık sinyal raporu (WEEKLY_REPORT) birlikte okunur; P5 canlı 4H düzeninde n ≥ 100 beklenir.
