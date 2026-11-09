@@ -58,6 +58,17 @@ jobs:
           key: plans-${{ github.run_id }}
           restore-keys: |
             plans-
+      - name: Regenerate plans if cache is missing (sweep mode)
+        # Önbellek 7 gün kullanılmayınca silinir. Git geçmişindeki eski plans.json.gz farklı koşudandır (08.11 olayı),
+        # bu yüzden kullanılmaz: planlar varsayılan ayarla (MONTHS/TOP/TFS) yeniden üretilir, tarama da yenilenir.
+        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' || env.MODE == 'checklist' }}
+        run: |
+          if [ ! -f docs/backtest/plans.json.gz ]; then
+            echo "plans.json.gz önbellekte yok → tam koşu ($MONTHS ay, ilk $TOP, $TFS)"
+            node backtest/run.mjs --months "$MONTHS" --top "$TOP" --tfs "$TFS" --fee "$FEE" --slip "$SLIP"
+            echo "REGEN=1" >> "$GITHUB_ENV"
+          fi
+          ls -la docs/backtest/plans.json.gz
       - name: Strategy lab
         if: ${{ env.MODE == 'lab' }}
         run: node backtest/lab/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --universe ${{ inputs.universe || '0' }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }} --fillbar ${{ inputs.fillbar || 'count' }} ${{ inputs.strategies != '' && format('--strategies {0}', inputs.strategies) || '' }}
@@ -67,15 +78,6 @@ jobs:
       - name: Live replay
         if: ${{ env.MODE == 'replay' }}
         run: node backtest/replay.mjs
-      - name: Recover plans from git history (sweep mode)
-        if: ${{ env.MODE == 'sweep' || env.MODE == 'research' || env.MODE == 'checklist' }}
-        run: |
-          if [ ! -f docs/backtest/plans.json.gz ]; then
-            sha=$(git log --all --diff-filter=A --format=%H -- docs/backtest/plans.json.gz | head -1)
-            if [ -n "$sha" ]; then git show "$sha:docs/backtest/plans.json.gz" > docs/backtest/plans.json.gz && echo "plans.json.gz $sha commit'inden alındı"; fi
-          fi
-          test -f docs/backtest/plans.json.gz || { echo "plans.json.gz yok: önce mode=full koş"; exit 1; }
-          ls -la docs/backtest/plans.json.gz
       - name: Run backtest
         if: ${{ env.MODE == 'full' }}
         run: node backtest/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }}
@@ -86,7 +88,7 @@ jobs:
           path: docs/backtest/plans.json.gz
           key: plans-${{ github.run_id }}
       - name: Parameter sweep
-        if: ${{ env.MODE == 'full' || env.MODE == 'sweep' }}
+        if: ${{ env.MODE == 'full' || env.MODE == 'sweep' || env.REGEN == '1' }}
         run: node backtest/sweep.mjs
       - name: Research agent
         if: ${{ env.MODE == 'research' }}

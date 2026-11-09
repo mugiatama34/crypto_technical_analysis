@@ -9,6 +9,7 @@ import { stats } from './report.js';
 import { FEATURE_NAMES, featuresOf, modelProb, trainLogistic } from './features.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
+import { loadPlans } from './plans.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const IN = String(arg('in', 'docs/backtest')), OUT = String(arg('out', 'docs/backtest')), CACHE = String(arg('cache', 'backtest/cache')), FIXTURE = arg('fixture', false) === true, MODEL = String(arg('model', 'src/scan/learned.json'));
@@ -36,10 +37,7 @@ const topShare = (rows, share) => { const s = [...rows].sort((a, b) => b.p - a.p
 
 async function main() {
   const t0 = Date.now();
-  const all = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(IN, 'plans.json.gz'))).toString());
-  const meta = (() => { try { return JSON.parse(fs.readFileSync(path.join(IN, 'results.json'), 'utf8')).meta; } catch { return {}; } })();
-  const times = all.map((t) => t.time).sort((a, b) => a - b);
-  const split = meta.split || times[Math.floor(times.length * 2 / 3)];
+  const { all, meta, times, split } = loadPlans(IN);
   const series = new Map();
   const keys = new Set(all.map((t) => `${t.coin}|${t.tf}`));
   for (const k of keys) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); }

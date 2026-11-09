@@ -11,6 +11,7 @@ import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 import { horizonSeries, htfTrendAt, htfOk, UP_TF } from '../src/scan/regime.js';
 import { getHistoryCached } from './data.js';
+import { loadPlans } from './plans.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const IN = String(arg('in', 'docs/backtest')), OUT = String(arg('out', 'docs/backtest')), CACHE = String(arg('cache', 'backtest/cache')), FIXTURE = arg('fixture', false) === true;
@@ -205,10 +206,7 @@ const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t
 
 async function main() {
   const t0 = Date.now();
-  const all = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(IN, 'plans.json.gz'))).toString());
-  const meta = (() => { try { return JSON.parse(fs.readFileSync(path.join(IN, 'results.json'), 'utf8')).meta; } catch { return {}; } })();
-  const times = all.map((t) => t.time).sort((a, b) => a - b);
-  const split = meta.split || times[Math.floor(times.length * 2 / 3)];
+  const { all, meta, times, split } = loadPlans(IN);
   log(`Plan: ${all.length}; bölünme ${new Date(split).toISOString().slice(0, 10)}`);
   // Seriler
   const groups = new Map();

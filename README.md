@@ -251,6 +251,9 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   doğrulama temelden iyi, hedge'li doğrulama > 0, n ≥ 100) → Telegram "🔬 Araştırmacı raporu", `docs/agent/research.json`;
   kuyruk `done` olur. `RESEARCH_MODEL`. İki ajan bu JSON dosyalarıyla haberleşir; `agent.html`'de "Denetçi" ve
   "Araştırmacı" sekmeleri.
+  Plan tutarlılığı (`backtest/plans.js`): sweep/checklist/learn, `plans.json.gz` ile `results.json` aynı koşudan değilse
+  (tarih aralığı, TF, bölünme) durur. Plan önbelleği yoksa (7 gün kullanılmayınca silinir) iş akışı planları tam koşuyla
+  yeniden üretir ve taramayı da yeniler; git geçmişindeki eski plan dosyası artık kullanılmaz.
 - **Sinyal grafiği** (`bot/chart.js`, `SIGNAL_CHART=1`, varsayılan kapalı): her sinyalin ardından Telegram'a PNG grafik —
   son 70 mum, kurulumun kendi çizimleri (detektör `draw`: EW/yapı çizgileri, CHoCH/BOS, OB/FVG/iFVG kutuları, fib ve
   likidite seviyeleri; mum/indikatör işaretleri atlanır), giriş bölgesi, stop, erken kâr, TP1/TP2 (R ile) ve **stop
