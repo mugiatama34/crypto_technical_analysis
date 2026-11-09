@@ -63,8 +63,11 @@ jobs:
         # bu yüzden kullanılmaz: planlar varsayılan ayarla (MONTHS/TOP/TFS) yeniden üretilir, tarama da yenilenir.
         if: ${{ env.MODE == 'sweep' || env.MODE == 'research' || env.MODE == 'checklist' }}
         run: |
+          if [ -f docs/backtest/plans.json.gz ] && ! node -e "import('./backtest/plans.js').then((m) => m.loadPlans('docs/backtest')).catch((e) => { console.log(e.message); process.exit(1); })"; then
+            rm docs/backtest/plans.json.gz # önbellekteki planlar results.json ile aynı koşudan değil
+          fi
           if [ ! -f docs/backtest/plans.json.gz ]; then
-            echo "plans.json.gz önbellekte yok → tam koşu ($MONTHS ay, ilk $TOP, $TFS)"
+            echo "plans.json.gz yok/uyumsuz → tam koşu ($MONTHS ay, ilk $TOP, $TFS)"
             node backtest/run.mjs --months "$MONTHS" --top "$TOP" --tfs "$TFS" --fee "$FEE" --slip "$SLIP"
             echo "REGEN=1" >> "$GITHUB_ENV"
           fi
