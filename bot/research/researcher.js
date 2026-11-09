@@ -3,7 +3,7 @@
 import { call } from '../agent/manager.js';
 
 /** Canlı 4H düzeni (tarama adlarıyla aynı anlam): araştırma varyantları bunun üstüne kurulur. */
-export const BASE_LAYOUT = { knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 }, skipWeekend: true, onlyLimit: true, tfs: ['1H', '4H'], tp1Pct: 1.2, tp1Portion: 0.8, keepTp2: true, htfTrend: 'with' };
+export const BASE_LAYOUT = { knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 }, skipWeekend: true, onlyLimit: true, tfs: ['1H', '4H'], tp1Pct: 1.2, tp1Portion: 0.8, keepTp2: true, htfTrend: 'with', fillBarTp: 'lower' }; // 29.10: dolum mumunda gerçek sıra (alt TF)
 
 /** Kuyruk boşken denenen standart hipotezler (düzenin eşik komşuları). */
 export const DEFAULT_HYPOTHESES = [
