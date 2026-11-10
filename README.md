@@ -277,6 +277,9 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
   bu değerin üstündeki kesişimler; pratikte puan > 10 ≈ fiyat bölgede ("bölgede" mesajı). Mesajda puan ve BTC günlük yön notu
   (bilgi, filtre değil). `SIGNAL_CHART=1` ise tur başına en fazla 3 kurulumun grafiği (itki ve A-B çizgisi, bölge/stop/H1/H2,
   senaryo okları, açıklama paneli).
+- **Fib uyarısı "yaklaşıyor" aşaması (10.11)**: puan eşiği artık yalnız "bölgede" mesajına uygulanır; "📐⏳ yaklaşıyor"
+  mesajı fiyat bölgeye `FIB_ALERT_NEAR_ATR` (vars. 4) × ATR içine girdiğinde gelir ve "alarm kur / limit + stop'u önceden gir"
+  hatırlatması taşır. (Önceden eşik, uzakta puan düşük olduğu için bu mesajı fiilen kapatıyordu.)
 - **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
   (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
   ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.

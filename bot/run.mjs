@@ -72,7 +72,8 @@ const CFG = {
   fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
   fibAlertMax: +env('FIB_ALERT_MAX', 6),
   fibAlertTop: +env('FIB_ALERT_TOP', 30), // hacme göre ilk N coin (gürültü sınırı)
-  fibAlertMinScore: +env('FIB_ALERT_MIN_SCORE', 10), // tarayıcı puanı bu değerin üstünde (preset "yalnız 0,618×1,272")
+  fibAlertMinScore: +env('FIB_ALERT_MIN_SCORE', 10), // tarayıcı puanı bu değerin üstünde (yalnız "bölgede" aşaması; preset "yalnız 0,618×1,272")
+  fibAlertNearAtr: +env('FIB_ALERT_NEAR_ATR', 4), // "yaklaşıyor" mesajı: fiyat bölgeye bu × ATR içindeyken
   apiKey: env('ANTHROPIC_API_KEY', ''),
   agent: env('AGENT', '1') === '1',
   agentModel: env('AGENT_MODEL', 'claude-opus-5-5'),
@@ -207,7 +208,7 @@ async function main() {
       if (missing.length) log(`Fib uyarısı: ${missing.join(',')} SCAN_TFS içinde değil, atlanıyor`);
       const top = new Set((res.coins || []).slice(0, CFG.fibAlertTop).map((c) => c.coin));
       const bt = btcDaily ? dailyTrendAt(btcDaily, now) : null;
-      const alerts = fibAlerts(res.rows.filter((r) => !top.size || top.has(r.coin)), state, now, { tfs: CFG.fibAlertTfs, max: CFG.fibAlertMax, minScore: CFG.fibAlertMinScore, btcTrend: bt ? (bt.up ? 'up' : 'down') : null });
+      const alerts = fibAlerts(res.rows.filter((r) => !top.size || top.has(r.coin)), state, now, { tfs: CFG.fibAlertTfs, max: CFG.fibAlertMax, minScore: CFG.fibAlertMinScore, nearAtr: CFG.fibAlertNearAtr, btcTrend: bt ? (bt.up ? 'up' : 'down') : null });
       log(`Fib uyarısı (ilk ${CFG.fibAlertTop} coin): ${alerts.length} kurulum${alerts.length ? ' (' + alerts.map((a) => `${a.coin} ${a.tf} ${a.stage}`).join(', ') + ')' : ''}`);
       const msg = fibDigest(alerts);
       if (msg) await notify(msg, state);

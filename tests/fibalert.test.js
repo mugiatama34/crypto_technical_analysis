@@ -21,7 +21,7 @@ test('fib uyarısı: XRP 1H (25.10 17:00) 0,618×1,272 long ≈ 1,2767 → "yeni
   const state = {};
   const a1 = fibAlerts([row(base)], state, T0);
   assert.deepEqual(a1.map((a) => [a.coin, a.tf, a.stage]), [['XRP', '1H', 'new']]);
-  assert.match(a1[0].text, /Fib kesişimi oluştu/);
+  assert.match(a1[0].text, /Fib kesişimi yaklaşıyor/); assert.match(a1[0].text, /fiyat alarmı kur/);
   assert.match(a1[0].text, /işlem sinyali değil/);
   const a2 = fibAlerts([row(base)], state, T0 + 3600e3);
   assert.equal(a2.length, 0, 'aynı itki ikinci kez gönderilmez');
@@ -84,7 +84,15 @@ test('fib kesişimi çizimi: itki, A bacağı, iki seviye ve açıklamalı işar
 test('fib uyarısı: tarayıcı puanı hesaplanır, minScore filtresi ve BTC yön notu', () => {
   const c = clustersOf(row(base))[0];
   assert.ok(c.score > 0, `puan ${c.score}`);
-  assert.equal(fibAlerts([row(base)], {}, T0, { minScore: c.score }).length, 0); // eşik = puan → elenir
+  assert.equal(fibAlerts([row(base)], {}, T0, { minScore: 99 }).length, 1); // "yaklaşıyor" puan eşiğinden muaf (uzakta puan düşük)
   const a = fibAlerts([row(base)], {}, T0, { minScore: c.score - 1, btcTrend: 'down' });
   assert.equal(a.length, 1); assert.match(a[0].text, new RegExp(`Puan ${c.score}`)); assert.match(a[0].text, /BTC yönüne ters/);
+});
+
+test('fib uyarısı: puan eşiği yalnız "bölgede" aşamasına uygulanır', () => {
+  const state = {};
+  assert.equal(fibAlerts([row(base)], state, T0, { minScore: 99 })[0].stage, 'new');
+  let zones = 0;
+  for (let i = 1; i <= next.length; i++) zones += fibAlerts([row([...base, ...next.slice(0, i)])], state, T0 + i * 3600e3, { minScore: 99 }).filter((a) => a.stage === 'zone').length;
+  assert.equal(zones, 0, 'eşiği geçmeyen bölge mesajı gönderilmez');
 });
