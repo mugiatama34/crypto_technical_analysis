@@ -250,9 +250,11 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   let status = plan.status;
   const events = [], patch = {};
   const knifeAt = () => patch.knifeAt ?? plan.knifeAt;
+  let lastT = null; // kapanışın görüldüğü mum (geç takipte gerçek kapanış zamanı)
   for (let j = 0; j < candles.length; j++) {
     const c = candles[j];
     if (!c || c.time <= plan.sentAt) continue;
+    lastT = c.time;
     const touchEntry = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
     const hitStop = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
     const hitTp1 = d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1;
@@ -333,7 +335,21 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
     }
   }
   if (status === 'waiting' && now - plan.sentAt > o.expireHours * 3600e3) { status = 'expired'; events.push('expired'); }
+  else if (CLOSED.has(status) && events.length && lastT != null) patch.closedBar = lastT;
   return { status, events, patch };
+}
+
+/**
+ * Taranmayan (TF kapalı / coin listeden düştü) açık plan için mum seçimi: plan TF'si ya da gönderimden bu yana
+ * `max` mumu aşmayan ilk üst TF (OKX /market/candles en fazla ~1440 mum verir). Hiçbiri yetmezse null.
+ */
+export function catchUpTf(tf, sentAt, now, max = 1400) {
+  const order = ['15m', '1H', '4H', '1D'];
+  for (const t of order.slice(Math.max(0, order.indexOf(tf)))) {
+    const n = Math.ceil((now - sentAt) / TIMEFRAMES[t].ms) + 3;
+    if (n <= max) return { tf: t, count: Math.max(n, 50) };
+  }
+  return null;
 }
 
 /** UTC Cumartesi/Pazar mı? (tarama: hafta sonu girişleri her TF'de ve iki dilimde daha kötü) */

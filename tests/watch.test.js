@@ -34,3 +34,11 @@ test('takip: taramadaki satırdan plan dondurulur (buildPlan); içe aktarma tekr
   assert.equal(merged.length, 2);
   assert.throws(() => mergeImport([], '{}'));
 });
+
+import { diffWatch } from '../src/watch/watch.js';
+test('diffWatch: silinen id ve not değişikliğinde updatedAt güncellenir', () => {
+  const prev = [{ id: 'a', updatedAt: 1, note: '' }, { id: 'b', updatedAt: 1 }];
+  const { list, removed } = diffWatch(prev, [{ id: 'a', updatedAt: 1, note: 'not' }], 99);
+  assert.deepEqual(removed, ['b']); assert.equal(list[0].updatedAt, 99);
+  assert.equal(diffWatch(prev, prev, 99).list[0].updatedAt, 1);
+});

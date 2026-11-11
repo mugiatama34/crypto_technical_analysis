@@ -543,6 +543,15 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   ya da gerçekleşmemiş R; 24.10 öncesi ya da 7 günden eski takip dışı açık kayıtlar ayrı katlanır), Bybit tarzı **R takvimi**
   (kapanış gününe göre günlük ΣR, hafta ve ay toplamı, artı/eksi gün; "Canlı düzen"/"Tümü"), son 20 kapanan, istatistik
   kırılımları ve tüm sinyaller "Arşiv"de katlı. Yardımcılar `src/ui/signals-lib.js` (test: `tests/signals-lib.test.js`).
+- **☁ Bulut kaydı (`src/sync/`, 11.11)**: takip listesi (`watch.json`) ve gerçek işlemler (`trades.json`) kullanıcının **özel**
+  GitHub deposunda (REST contents API) → telefon / iş / ev bilgisayarında aynı. Ayar (depo + ince taneli token, yalnız o depo
+  Contents RW) her cihazın localStorage'ında; herkese açık depo reddedilir. Birleştirme id başına son `updatedAt`, silinenler
+  (deleted) her iki yönde düşer, sha ile çakışmada yeniden dener (test: `tests/cloud.test.js`, `tests/watch.test.js`).
+- **Benim işlemlerim takvimi (`signals.html` → R takvimi → "Benim işlemlerim", 11.11)**: Bybit Closed P&L CSV yüklenir
+  (`src/trades/bybit.js`, başlıktan sütun bulur, çiftlenmez), günlük $ ve R (= K/Z ÷ "1R" tutarı, Deney B 1 $); bulut açıksa eşitlenir.
+- **Bot: takip dışı açık planlar (11.11)**: TF'si taranmayan ya da listeden düşen coindeki açık planın mumları ayrıca indirilir
+  (tur başına ≤ 8, mum sayısı ~1400'ü aşarsa üst TF: `catchUpTf`) ve gerçek fiyatla kapanır; kapanış zamanı = vuran mum
+  (`closedBar`), 3 günden eskiyse Telegram'a sessiz, kayıtta `lateClose`.
 - **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
   ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır
   (gerçek / plana sadakat / 1,5R kuralı / ara TP / iz süren stop). CSV'ler kişisel veridir, repoya konmaz (`.gitignore`).

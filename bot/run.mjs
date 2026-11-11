@@ -24,7 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, sendTelegramPhoto, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -150,7 +150,7 @@ function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { const { chart, ...q } = p; if (!h.items.some((x) => x.id === histId(q))) h.items.push({ id: histId(q), ...q, ...extra }); } // grafik çizimleri yalnız state.json'da
-function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}) }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}), ...(p.lateClose ? { lateClose: p.lateClose } : {}) }); }
 
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
@@ -239,27 +239,40 @@ async function main() {
     }
     return lowerCache.get(p.coin);
   };
+  // Taranmayan TF/coin'deki açık planlar: mumları ayrıca indirilir (tur başına ≤ 8); gönderimden bu yana mum sayısı
+  // fazlaysa üst TF'ye geçilir (catchUpTf). Böylece 15m/1H kapatıldıktan ya da coin listeden düştükten sonra da kapanırlar.
+  let catchUps = 0;
+  const ownCandles = async (p) => {
+    if (catchUps >= 8 || !['active', 'tp1', 'early', 'confirming'].includes(p.status)) return { candles: [] };
+    const pick = catchUpTf(p.tf, p.sentAt, now); if (!pick) return { candles: [] };
+    catchUps++;
+    try { const x = provider ? await provider.candles(instIdOf(p.coin), pick.tf, pick.count) : await getCandles(instIdOf(p.coin), TIMEFRAMES[pick.tf], pick.count); return { candles: x.live ? [...x.candles, x.live] : x.candles, tf: pick.tf }; } catch { return { candles: [] }; }
+  };
   for (const p of state.sent) {
     if (CLOSED.has(p.status)) continue;
     const row = byKey.get(`${p.coin}|${p.tf}`);
-    // Mum yoksa (TF taranmıyor, coin listeden çıktı) yalnız süre dolumu denetlenir
-    const candles = !row || row.error ? [] : row.live ? [...row.candles, row.live] : row.candles;
-    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, lower: candles.length ? await lowerOf(p) : null });
+    const scanned = row && !row.error;
+    const own = scanned ? null : await ownCandles(p);
+    const candles = scanned ? (row.live ? [...row.candles, row.live] : row.candles) : own.candles;
+    // 3 günden eski, taranmayan planın kapanışı sessizdir (Telegram'a eski sinyal yağmuru olmasın); geçmişe yazılır
+    const quiet = p.orphan || (!scanned && now - p.sentAt > 3 * 864e5);
+    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, lower: scanned && candles.length ? await lowerOf(p) : null });
     if (events.length) {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
+      if (!scanned) p.lateClose = own?.tf || true; // geç takip: ayrı indirilen mumla (hangi TF)
       for (const ev of events) {
-        if (!p.orphan) state.stats[ev] = (state.stats[ev] || 0) + 1;
-        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = now;
+        if (!quiet) state.stats[ev] = (state.stats[ev] || 0) + 1;
+        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = !scanned && p.closedBar ? p.closedBar : now;
       }
       // Aynı turda birden çok olay (ör. giriş + erken hedef) → tek mesaj
-      if (!p.orphan) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
-      if (!p.orphan && ['done', 'stopped', 'be', 'timeout'].includes(p.status) && candles.length) {
+      if (!quiet) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
+      if (!quiet && ['done', 'stopped', 'be', 'timeout'].includes(p.status) && candles.length) {
         const res = resultOf(p, finalR(p));
         await sendChart(candles, p, { setup: p.chart?.setup, context: p.chart?.context, result: res, bars: 80 }, `📈 Sonuç: <b>${p.coin}</b> ${p.tf} ${p.direction === 'long' ? 'LONG' : 'SHORT'} · ${res.label} ${res.R >= 0 ? '+' : ''}${res.R.toFixed(2)}R`);
       }
-      if (CLOSED.has(p.status) && btcPrice) p.btcAtClose = btcPrice;
+      if (CLOSED.has(p.status) && btcPrice && scanned) p.btcAtClose = btcPrice; // geç kapanışta anlık BTC yanıltır
       historyUpdate(history, p);
-      log(`  takip ${p.coin} ${p.tf} → ${events.join(',')}`);
+      log(`  takip ${p.coin} ${p.tf} → ${events.join(',')}${scanned ? '' : ` (ayrı mum ${own?.tf || '-'}${quiet ? ', sessiz' : ''})`}`);
     }
   }
 

@@ -1,9 +1,10 @@
 // ★ Takip listesi (klonnist/ew-setup-scanner fikri): taramadaki kurulum dondurulur (giriş / stop / TP1 / TP2, botun buildPlan'ı)
 // ve sonraki mumlarla botun trackPlan'ı ile izlenir: bekliyor → girildi → TP1 → tamam | stop | süre doldu | kaçtı.
-// Saf fonksiyonlar + tarayıcı deposu (localStorage; yalnız bu tarayıcı). DOM yok.
+// Saf fonksiyonlar + tarayıcı deposu (localStorage) + isteğe bağlı ☁ bulut eşitlemesi (özel GitHub deposu, cloud.js). DOM yok.
 import { buildPlan, trackPlan, CLOSED, PLAN_DEFAULTS } from '../../bot/plan.js';
+import { loadCloud, syncDoc } from '../sync/cloud.js';
 
-const KEY = 'cta-watch-v1';
+const KEY = 'cta-watch-v1', DEL_KEY = 'cta-watch-del-v1', CLOUD_PATH = 'watch.json';
 
 export const WATCH_LABEL = {
   waiting: 'Bekliyor', active: 'Girildi', tp1: 'TP1 görüldü', done: 'TP2 — tamam', stopped: 'Stop oldu', be: 'Başa baş',
@@ -52,8 +53,38 @@ export const isOpen = (w) => !CLOSED.has(w.status);
 export function loadWatch() {
   try { const a = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; }
 }
+const loadDeleted = () => { try { const a = JSON.parse(localStorage.getItem(DEL_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } };
+/**
+ * Önceki ve yeni liste farkı (saf): listeden çıkanlar silinmiş sayılır; içeriği değişip updatedAt'i aynı kalanların
+ * (ör. not düzenleme) updatedAt'i now yapılır ki bulut birleştirmesinde kaybolmasın.
+ */
+export function diffWatch(prev, next, now = Date.now()) {
+  const old = new Map(prev.map((w) => [w.id, w])), ids = new Set(next.map((w) => w.id));
+  const removed = prev.filter((w) => !ids.has(w.id)).map((w) => w.id);
+  const list = next.map((w) => { const o = old.get(w.id); return o && o.updatedAt === w.updatedAt && JSON.stringify(o) !== JSON.stringify(w) ? { ...w, updatedAt: now } : w; });
+  return { list, removed };
+}
+let pushTimer = null, onCloud = null;
+/** Bulut durum dinleyicisi (UI): fn(mesaj). */
+export function onWatchCloud(fn) { onCloud = fn; }
 export function saveWatch(list) {
-  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* özel pencere vb. */ }
+  const { list: diffed, removed } = diffWatch(loadWatch(), list);
+  const del = new Set([...loadDeleted(), ...removed]);
+  const out = diffed.filter((w) => !del.has(w.id)); // başka cihazda silinmiş kayıt eski bir listeyle geri yazılmasın
+  try {
+    localStorage.setItem(KEY, JSON.stringify(out));
+    if (removed.length) localStorage.setItem(DEL_KEY, JSON.stringify([...del].slice(-2000)));
+  } catch { /* özel pencere vb. */ }
+  if (loadCloud()) { clearTimeout(pushTimer); pushTimer = setTimeout(() => syncWatchCloud().catch((e) => onCloud?.(`☁ eşitlenemedi: ${e.message}`)), 1500); }
+  return out;
+}
+/** Bulutla eşitle: yerel + bulut birleşir, ikisine de yazılır. Bulut kapalıysa null. → birleşik liste. */
+export async function syncWatchCloud() {
+  const cfg = loadCloud(); if (!cfg) return null;
+  const merged = await syncDoc(cfg, CLOUD_PATH, { items: loadWatch(), deleted: loadDeleted() });
+  try { localStorage.setItem(KEY, JSON.stringify(merged.items)); localStorage.setItem(DEL_KEY, JSON.stringify(merged.deleted)); } catch { /* */ }
+  onCloud?.(`☁ eşitlendi ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${merged.items.length} kayıt`);
+  return merged.items;
 }
 
 /** İçe aktar: JSON dizi; aynı id'liler atlanır. → birleşik liste. */

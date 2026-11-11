@@ -7,7 +7,8 @@ import { runDetectors } from '../scan/registry.js';
 import { UP_TF } from '../scan/regime.js';
 import { buildPlan } from '../../bot/plan.js';
 import { scenarioSignal } from '../scan/scenario.js';
-import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL } from '../watch/watch.js';
+import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL, syncWatchCloud, onWatchCloud } from '../watch/watch.js';
+import { mountCloudForm } from '../sync/cloud-ui.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
 import { TF_ORDER, TIMEFRAMES } from '../data/okx.js';
@@ -374,7 +375,7 @@ async function addWatch(r) {
   const w = makeWatch(r);
   if (w.error) { banner(`Takibe alınamadı: ${w.error}`, 'err'); return; }
   try { const cl = await checklistFor(r); if (!cl.error) w.checklist = { n: cl.n, of: cl.of, items: cl.items.map((x) => ({ id: x.id, ok: x.ok })) }; } catch { /* check list'siz */ }
-  state.watch = [w, ...state.watch]; saveWatch(state.watch); $('#watchPanel').open = true;
+  state.watch = saveWatch([w, ...state.watch]); $('#watchPanel').open = true;
   banner(`★ ${r.coin} ${r.tf} ${r.direction.toUpperCase()} takipte: giriş ${fmtPrice(w.entry)}, stop ${fmtPrice(w.stop)}, TP1 ${fmtPrice(w.tp1)}, TP2 ${fmtPrice(w.tp2)}.`);
   try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch { /* yok */ }
   renderWatch(); renderDetail(r);
@@ -405,7 +406,7 @@ async function refreshWatch() {
       return item;
     });
   }
-  saveWatch(state.watch);
+  state.watch = saveWatch(state.watch);
   if (msgs.length) notifyWatch(`★ ${msgs.join(' · ')}`);
   renderWatch();
   const sel = state.selected?.startsWith('watch|') && state.watch.find((x) => `watch|${x.id}` === state.selected);
@@ -428,7 +429,7 @@ function renderWatch() {
         <div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
         <div><span>Son fiyat</span> <b>${fmtPrice(w.lastPrice)}</b> <small>${fmtTime(w.updatedAt)}</small></div><div><span>Eklendi</span> <b>${fmtTime(w.addedAt)}</b></div>
       </div>
-      <div class="sig-note">${esc(w.signals.join(' · '))}</div>
+      <div class="sig-note">${esc((w.signals || []).join(' · '))}</div>
       <input type="text" class="watch-note" data-note="${esc(w.id)}" value="${esc(w.note || '')}" placeholder="Not (ör. Bybit'te açtım, 0,5 risk)">
     </article>`;
   }).join('');
@@ -455,7 +456,7 @@ async function renderWatchDetail(w) {
     <div class="stat-strip">${[['Giriş', fmtPrice(w.entry)], ['Stop', fmtPrice(w.stop)], ['TP1', `${fmtPrice(w.tp1)} · ${w.rr1}R`], ['TP2', `${fmtPrice(w.tp2)} · ${w.rr}R`], ['Son fiyat', fmtPrice(w.lastPrice)]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
     <p class="note">${when.map(([k, t]) => `${k} ${fmtTime(t)}`).join(' · ')}${w.priceAtAdd ? ` · eklendiğinde fiyat ${fmtPrice(w.priceAtAdd)}` : ''}</p>
     ${cl ? `<div class="checklist"><h2>Check list (takibe alındığı an) <b>${cl.filter((x) => x.ok === true).length}/${cl.length}</b></h2><ul class="cl">${cl.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev">${esc(x.ev)}</small></span></li>`).join('')}</ul></div>` : '<p class="note">Bu kayıtta check list yok (check list eklenmeden önce takibe alınmış).</p>'}
-    <h2>Sinyaller (takibe alındığı an)</h2><div class="sig-note">${esc(w.signals.join(' · ')) || '–'}</div>
+    <h2>Sinyaller (takibe alındığı an)</h2><div class="sig-note">${esc((w.signals || []).join(' · ')) || '–'}</div>
     ${w.note ? `<h2>Not</h2><div class="sig-note">${esc(w.note)}</div>` : ''}`;
   $('#showStructW').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderWatchDetail(w); });
   if (window.innerWidth < 1100) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -467,7 +468,7 @@ async function renderWatchDetail(w) {
   if (isOpen(w)) {
     const { item, events } = updateWatch(w, all, Date.now());
     if (events.length || item.lastPrice !== w.lastPrice) {
-      state.watch = state.watch.map((x) => (x.id === w.id ? item : x)); saveWatch(state.watch); renderWatch();
+      state.watch = state.watch.map((x) => (x.id === w.id ? item : x)); state.watch = saveWatch(state.watch); renderWatch();
       if (events.length) notifyWatch(`★ ${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${events.map((ev) => WATCH_LABEL[ev === 'tp1' ? 'tp1' : item.status] || ev).join(' · ')}`);
       return renderWatchDetail(item);
     }
@@ -490,17 +491,17 @@ async function renderWatchDetail(w) {
 function bindWatch() {
   $('#watchList').addEventListener('click', (e) => {
     const id = e.target.closest('[data-del]')?.dataset.del;
-    if (id) { state.watch = state.watch.filter((w) => w.id !== id); saveWatch(state.watch); renderWatch(); return; }
+    if (id) { state.watch = state.watch.filter((w) => w.id !== id); state.watch = saveWatch(state.watch); renderWatch(); return; }
     if (e.target.closest('input')) return;
     const card = e.target.closest('.watch'); const w = card && state.watch.find((x) => x.id === card.dataset.id);
     if (w) renderWatchDetail(w);
   });
   $('#watchList').addEventListener('change', (e) => {
     const id = e.target.dataset.note; if (!id) return;
-    state.watch = state.watch.map((w) => (w.id === id ? { ...w, note: e.target.value } : w)); saveWatch(state.watch);
+    state.watch = state.watch.map((w) => (w.id === id ? { ...w, note: e.target.value } : w)); state.watch = saveWatch(state.watch);
   });
   $('#watchRefresh').addEventListener('click', refreshWatch);
-  $('#watchClear').addEventListener('click', () => { state.watch = state.watch.filter(isOpen); saveWatch(state.watch); renderWatch(); });
+  $('#watchClear').addEventListener('click', () => { state.watch = state.watch.filter(isOpen); state.watch = saveWatch(state.watch); renderWatch(); });
   $('#watchExport').addEventListener('click', () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(state.watch, null, 1)], { type: 'application/json' }));
@@ -508,7 +509,7 @@ function bindWatch() {
   });
   $('#watchImport').addEventListener('change', async (e) => {
     const f = e.target.files?.[0]; if (!f) return;
-    try { state.watch = mergeImport(state.watch, await f.text()); saveWatch(state.watch); renderWatch(); banner('Takip listesi içe aktarıldı.'); }
+    try { state.watch = mergeImport(state.watch, await f.text()); state.watch = saveWatch(state.watch); renderWatch(); banner('Takip listesi içe aktarıldı.'); }
     catch (err) { banner(`İçe aktarılamadı: ${err.message}`, 'err'); }
     e.target.value = '';
   });
@@ -525,6 +526,15 @@ bindScreenshot();
 bindWatch();
 if (state.watch.length) $('#watchPanel').open = true;
 refreshWatch();
+// ☁ bulut: açılışta ve sekmeye dönünce eşitle (başka cihazda eklenen/silinen kayıtlar gelsin)
+const cloudForm = mountCloudForm($('#watchCloud'), () => cloudSync());
+onWatchCloud((m) => cloudForm.status(m));
+async function cloudSync() {
+  try { const l = await syncWatchCloud(); if (l) { state.watch = l; renderWatch(); if (l.length) $('#watchPanel').open = true; } }
+  catch (e) { cloudForm.status(`☁ eşitlenemedi: ${e.message}`); }
+}
+cloudSync();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudSync(); });
 if (FIXTURE) banner('Fixture modu: OKX yerine sentetik veri kullanılıyor.');
 window.addEventListener('beforeunload', destroyChart);
 window.__cta = { state, scan, UI_DEFAULTS };

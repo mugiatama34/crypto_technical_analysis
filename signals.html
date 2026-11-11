@@ -35,6 +35,8 @@
   .cal td .d { color: var(--ink-dim); font-size: 10.5px; } .cal td .r { font-size: 13px; font-weight: 700; margin-top: 4px; } .cal td .n { color: var(--ink-muted); font-size: 10px; }
   .cal td.p { background: rgba(76,194,76,.16); } .cal td.p .r { color: #4cc24c; } .cal td.m { background: rgba(239,125,125,.16); } .cal td.m .r { color: #ef7d7d; }
   .cal td.today { outline: 1px solid var(--axis); } .cal td.wk { background: transparent; text-align: right; }
+  .set-actions .btn[aria-pressed="true"] { border-color: var(--axis); background: rgba(255,255,255,.08); }
+  .cloud { margin: 6px 0; } .cloud-body label { display: block; margin: 6px 0; } .cloud-body input { width: min(100%, 340px); }
   .calbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   details > summary { cursor: pointer; font-weight: 600; margin: 6px 0; }
   .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
@@ -53,6 +55,9 @@
 <script type="module">
 import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen } from './src/ui/signals-lib.js';
 import { okxGet } from './src/data/okx.js';
+import { parseClosedPnl, dailyTrades } from './src/trades/bybit.js';
+import { loadCloud, syncDoc } from './src/sync/cloud.js';
+import { mountCloudForm } from './src/sync/cloud-ui.js';
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
 const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
 const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
@@ -90,7 +95,19 @@ function renderList() {
 }
 const RECENT = 20, LIVE_FROM = Date.UTC(2026, 9, 24); // canlı düzen (yalnız 4H) 24.10.2026'dan beri
 const STALE_MS = 7 * 864e5; const isStale = (s) => s.sentAt < LIVE_FROM || Date.now() - (s.activeAt || s.sentAt) > STALE_MS; // takip dışı kalmış açık kayıt
-let calY, calM, calScope = 'live', prices = {};
+let calY, calM, calScope = 'live', calSrc = 'bot', prices = {};
+// Gerçek işlemler (Bybit Closed P&L CSV): yerel + ☁ özel depo 'trades.json'. Repo herkese açık → veri buraya girmez.
+const TR_KEY = 'cta-trades-v1';
+const loadTrades = () => { try { const d = JSON.parse(localStorage.getItem(TR_KEY) || 'null'); return d && Array.isArray(d.items) ? d : { items: [], deleted: [], meta: {} }; } catch { return { items: [], deleted: [], meta: {} }; } };
+const saveTrades = (d) => { try { localStorage.setItem(TR_KEY, JSON.stringify(d)); } catch { /* */ } };
+let trades = loadTrades(), cloudMsg = '';
+const riskUnit = () => +(trades.meta?.riskUnit) > 0 ? +trades.meta.riskUnit : 1;
+async function syncTrades() {
+  const cfg = loadCloud(); if (!cfg) return;
+  try { trades = await syncDoc(cfg, 'trades.json', trades); saveTrades(trades); cloudMsg = `☁ eşitlendi ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · ${trades.items.length} kapanış`; }
+  catch (e) { cloudMsg = `☁ eşitlenemedi: ${e.message}`; }
+  if (calSrc === 'mine') renderCal();
+}
 const sgn = (x, d = 2) => (Number.isFinite(x) ? (x > 0 ? '+' : '') + fmt(x, d) : '–');
 const tvLink = (s) => `<a href="https://www.tradingview.com/chart/?symbol=OKX:${esc(s.coin)}USDT.P" target="_blank" rel="noopener">${esc(s.coin)}</a>`;
 function renderOpen() {
@@ -111,21 +128,39 @@ async function loadPrices() {
   renderOpen();
 }
 function renderCal() {
+  const mine = calSrc === 'mine';
   const scoped = calScope === 'live' ? items.filter((s) => s.sentAt >= LIVE_FROM) : items;
-  const m = dailyR(scoped), weeks = monthGrid(calY, calM), today = new Date().toISOString().slice(0, 10);
+  const m = mine ? dailyTrades(trades.items, riskUnit()) : dailyR(scoped), weeks = monthGrid(calY, calM), today = new Date().toISOString().slice(0, 10);
   const monthKey = `${calY}-${String(calM + 1).padStart(2, '0')}`; let mR = 0, mN = 0, mW = 0, pd = 0, nd = 0;
   for (const [k, v] of Object.entries(m)) if (k.startsWith(monthKey)) { mR += v.R; mN += v.n; mW += v.win; if (v.R > 0) pd++; else if (v.R < 0) nd++; }
   const name = new Date(Date.UTC(calY, calM, 1)).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-  const cell = (c) => { if (!c) return '<td></td>'; const v = m[c.key]; const k = v ? (v.R > 0 ? 'p' : v.R < 0 ? 'm' : '') : ''; return `<td class="${k}${c.key === today ? ' today' : ''}"><div class="d">${c.day}</div>${v ? `<div class="r">${sgn(v.R, 1)}</div><div class="n">${v.n} işlem</div>` : ''}</td>`; };
+  const cell = (c) => { if (!c) return '<td></td>'; const v = m[c.key]; const k = v ? (v.R > 0 ? 'p' : v.R < 0 ? 'm' : '') : ''; return `<td class="${k}${c.key === today ? ' today' : ''}"><div class="d">${c.day}</div>${v ? `<div class="r">${sgn(v.R, 1)}</div><div class="n">${mine ? `${sgn(v.usd)} $ · ` : ''}${v.n} işlem</div>` : ''}</td>`; };
   const wk = (w) => { let r = 0, n = 0; for (const c of w) if (c && m[c.key]) { r += m[c.key].R; n += m[c.key].n; } return `<td class="wk"><div class="d">hafta</div>${n ? `<div class="r ${cls(r)}">${sgn(r, 1)}</div>` : ''}</td>`; };
-  document.querySelector('#cal').innerHTML = `<div class="calbar"><div><button type="button" class="btn" id="cPrev">‹</button> <b style="text-transform:capitalize">${name}</b> <button type="button" class="btn" id="cNext">›</button></div>
-    <select id="cScope"><option value="live" ${calScope === 'live' ? 'selected' : ''}>Canlı düzen (24.10'dan beri)</option><option value="all" ${calScope === 'all' ? 'selected' : ''}>Tüm sinyaller</option></select></div>
-    <div class="tiles" style="margin-bottom:8px"><div class="stat"><div class="k">Ay toplamı</div><div class="v ${cls(mR)}">${sgn(mR, 1)}R</div></div><div class="stat"><div class="k">Kapanan işlem</div><div class="v">${mN}</div></div><div class="stat"><div class="k">Kazanma</div><div class="v">${mN ? fmt((mW / mN) * 100, 0) + '%' : '–'}</div></div><div class="stat"><div class="k">Artı / eksi gün</div><div class="v">${pd} / ${nd}</div></div><div class="stat"><div class="k">Ort. R / işlem</div><div class="v ${cls(mR)}">${mN ? sgn(mR / mN) : '–'}</div></div></div>
+  let mUsd = 0; if (mine) for (const [k, v] of Object.entries(m)) if (k.startsWith(monthKey)) mUsd += v.usd;
+  document.querySelector('#cal').innerHTML = `<div class="calbar"><div class="set-actions"><button type="button" class="btn" id="srcBot" aria-pressed="${!mine}">Bot sinyalleri</button><button type="button" class="btn" id="srcMine" aria-pressed="${mine}">Benim işlemlerim</button></div></div>
+    ${mine ? `<div class="calbar"><div class="set-actions"><label class="btn" style="cursor:pointer">Bybit CSV yükle<input type="file" id="trCsv" accept=".csv,text/csv" hidden></label><label>1R = <input type="number" id="trUnit" min="0.01" step="0.01" value="${riskUnit()}" style="width:70px"> $</label><span class="count">${trades.items.length} kapanış kaydı</span></div><span class="note">${esc(cloudMsg || (loadCloud() ? '' : 'Bulut kapalı: kayıtlar yalnız bu tarayıcıda.'))}</span></div><div id="trCloud"></div>` : ''}
+    <div class="calbar"><div><button type="button" class="btn" id="cPrev">‹</button> <b style="text-transform:capitalize">${name}</b> <button type="button" class="btn" id="cNext">›</button></div>
+    ${mine ? '' : `<select id="cScope"><option value="live" ${calScope === 'live' ? 'selected' : ''}>Canlı düzen (24.10'dan beri)</option><option value="all" ${calScope === 'all' ? 'selected' : ''}>Tüm sinyaller</option></select>`}</div>
+    <div class="tiles" style="margin-bottom:8px"><div class="stat"><div class="k">Ay toplamı</div><div class="v ${cls(mR)}">${sgn(mR, 1)}R</div>${mine ? `<div class="k">${sgn(mUsd)} $</div>` : ''}</div><div class="stat"><div class="k">Kapanan işlem</div><div class="v">${mN}</div></div><div class="stat"><div class="k">Kazanma</div><div class="v">${mN ? fmt((mW / mN) * 100, 0) + '%' : '–'}</div></div><div class="stat"><div class="k">Artı / eksi gün</div><div class="v">${pd} / ${nd}</div></div><div class="stat"><div class="k">Ort. R / işlem</div><div class="v ${cls(mR)}">${mN ? sgn(mR / mN) : '–'}</div></div></div>
     <div class="tablewrap"><table class="cal"><thead><tr>${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz', ''].map((d) => `<th>${d}</th>`).join('')}</tr></thead><tbody>${weeks.map((w) => `<tr>${w.map(cell).join('')}${wk(w)}</tr>`).join('')}</tbody></table></div>
-    <p class="note">Gün = kapanış günü (UTC). R, sayfanın sonuç R kuralıyla (stop −1, erken kâr payı × erken R, TP2 …). Kaçan/süresi dolan sinyaller işlem sayılmaz. %1 riskle 1R ≈ hesabın %1'i.</p>`;
+    <p class="note">${mine ? 'Bybit "Closed P&L" dışa aktarımı (Orders → geçmiş → P&L → dışa aktar). Her satır bir kapanış (kısmi kapanışlar ayrı); K/Z ücretler düşülmüş net. R = K/Z ÷ "1R" tutarı (Deney B: 1 $). Aynı CSV tekrar yüklenirse kayıtlar çiftlenmez. Gün = kapanış günü (UTC).' : `Gün = kapanış günü (UTC). R, sayfanın sonuç R kuralıyla (stop −1, erken kâr payı × erken R, TP2 …). Kaçan/süresi dolan sinyaller işlem sayılmaz. %1 riskle 1R ≈ hesabın %1'i.`}</p>`;
   document.querySelector('#cPrev').addEventListener('click', () => { if (--calM < 0) { calM = 11; calY--; } renderCal(); });
   document.querySelector('#cNext').addEventListener('click', () => { if (++calM > 11) { calM = 0; calY++; } renderCal(); });
-  document.querySelector('#cScope').addEventListener('change', (e) => { calScope = e.target.value; renderCal(); });
+  document.querySelector('#cScope')?.addEventListener('change', (e) => { calScope = e.target.value; renderCal(); });
+  document.querySelector('#srcBot').addEventListener('click', () => { calSrc = 'bot'; renderCal(); });
+  document.querySelector('#srcMine').addEventListener('click', () => { calSrc = 'mine'; renderCal(); syncTrades(); });
+  if (mine) {
+    mountCloudForm(document.querySelector('#trCloud'), () => syncTrades());
+    document.querySelector('#trUnit').addEventListener('change', (e) => { const v = +e.target.value; if (v > 0) { trades = { ...trades, meta: { ...trades.meta, riskUnit: v } }; saveTrades(trades); renderCal(); syncTrades(); } });
+    document.querySelector('#trCsv').addEventListener('change', async (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const rows = parseClosedPnl(await f.text()); const ids = new Set(trades.items.map((x) => x.id)); const add = rows.filter((x) => !ids.has(x.id));
+      trades = { ...trades, items: [...add, ...trades.items].sort((a, b) => b.t - a.t) }; saveTrades(trades);
+      cloudMsg = `${rows.length} satır okundu, ${add.length} yeni kapanış eklendi.`;
+      if (add.length) { const last = new Date(Math.max(...add.map((x) => x.t))); calY = last.getUTCFullYear(); calM = last.getUTCMonth(); }
+      renderCal(); syncTrades();
+    });
+  }
 }
 function renderRecent() {
   const list = closedTrades(items).slice(0, RECENT);
@@ -142,7 +177,7 @@ async function main() {
   document.querySelector('#root').innerHTML = `
     <section><div class="tiles">${tiles.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div></section>
     <section><h2>Şu an açık <span class="count" id="openCount"></span></h2><p class="note" id="openNote">Bekleyen (limit dolmadı) ve aktif sinyaller; fiyat OKX'ten 60 sn'de bir yenilenir.</p><div id="open" class="cards"></div><div id="stale"></div></section>
-    <section><h2>R takvimi</h2><div id="cal"></div></section>
+    <section><h2>R takvimi</h2><p class="note">Bot sinyalleri ya da kendi Bybit işlemlerin; ☁ bulut kaydı açıksa işlemlerin tüm cihazlarında görünür.</p><div id="cal"></div></section>
     <section><h2>Son kapananlar</h2><div id="recent"></div></section>
     <details><summary>İstatistik kırılımları (TF, yön, BTC, ay)</summary>
     <section><h2>Zaman dilimi</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.tf)}</tbody></table></div></section>

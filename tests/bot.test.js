@@ -322,3 +322,19 @@ test('pctFrom / maxLeverage: yüzde uzaklık ve kaldıraç tavanı', () => {
   assert.equal(maxLeverage(100, 95), 13); // %5 stop → 100/(5×1,5)
   assert.equal(maxLeverage(1.741, 1.6505), 12); // %5,2 → 12
 });
+
+import { catchUpTf } from '../bot/plan.js';
+test('catchUpTf: eski 15m plan için mum sayısı sığan üst TF seçilir', () => {
+  const now = Date.UTC(2026, 10, 11), d = 864e5;
+  assert.deepEqual(catchUpTf('15m', now - 2 * d, now), { tf: '15m', count: 195 });
+  assert.equal(catchUpTf('15m', now - 20 * d, now).tf, '1H'); // 20 gün × 96 = 1920 > 1400
+  assert.equal(catchUpTf('4H', now - 20 * d, now).tf, '4H');
+  assert.equal(catchUpTf('1D', now - 5000 * d, now), null);
+});
+test('trackPlan: kapanışta gerçek kapanış mumu (closedBar) yazılır', () => {
+  const H = 3600e3, t0 = Date.UTC(2026, 9, 20);
+  const plan = { tf: '1H', d: 1, status: 'active', entry: 100, stop: 98, tp1: 103, tp2: 106, sentAt: t0, activeAt: t0 + H };
+  const c = (i, lo, hi) => ({ time: t0 + i * H, open: 100, high: hi, low: lo, close: 100 });
+  const r = trackPlan(plan, [c(1, 99.5, 101), c(2, 99, 101.5), c(3, 97.5, 100), c(4, 96, 99)], t0 + 10 * H);
+  assert.equal(r.status, 'stopped'); assert.equal(r.patch.closedBar, t0 + 3 * H);
+});
