@@ -243,6 +243,9 @@ async function main() {
   // fazlaysa üst TF'ye geçilir (catchUpTf). Böylece 15m/1H kapatıldıktan ya da coin listeden düştükten sonra da kapanırlar.
   let catchUps = 0;
   const ownCandles = async (p) => {
+    // Geçici tarama hatası (coin bu tur gelmedi) için değil: yalnız TF kapalıysa ya da plan 2 günden eskiyse (coin listeden düştü)
+    const tfOff = !CFG.tfs.includes(p.tf) || (ruleFor(p.tf, 'long').off && ruleFor(p.tf, 'short').off);
+    if (!tfOff && now - p.sentAt < 2 * 864e5) return { candles: [] };
     if (catchUps >= 8 || !['active', 'tp1', 'early', 'confirming'].includes(p.status)) return { candles: [] };
     const pick = catchUpTf(p.tf, p.sentAt, now); if (!pick) return { candles: [] };
     catchUps++;

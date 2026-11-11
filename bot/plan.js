@@ -286,6 +286,11 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
     }
     // Dolum mumunda sıra (opts.lower: alt TF mumları, ör. 15m): aynı mumda giriş + hedef/stop görüldüyse hangisi önce?
     // Sonuç mum kapanınca plana yazılır (fillRes) ki sonraki turlarda alt TF verisi kaysa da aynı kalsın.
+    // Alt TF yokken (geç takip) dolum mumunda daha önce kaydedilmiş sıra sonucu (fillRes) korunur: 'none' → bu mumda hedef yok
+    if (status === 'active' && !o.lower && plan.fillRes && (patch.filledAt ?? plan.filledAt) === c.time) {
+      if (plan.fillRes === 'stop') { status = 'stopped'; events.push('stopped'); break; }
+      if (plan.fillRes === 'none') continue;
+    }
     if ((status === 'active') && o.lower && ms && (patch.filledAt ?? plan.filledAt) === c.time && !(patch.confirmedAt ?? plan.confirmedAt)) {
       const target = plan.early ?? plan.tp1;
       const hitTarget = d === 1 ? c.high >= target : c.low <= target;

@@ -338,3 +338,12 @@ test('trackPlan: kapanışta gerçek kapanış mumu (closedBar) yazılır', () =
   const r = trackPlan(plan, [c(1, 99.5, 101), c(2, 99, 101.5), c(3, 97.5, 100), c(4, 96, 99)], t0 + 10 * H);
   assert.equal(r.status, 'stopped'); assert.equal(r.patch.closedBar, t0 + 3 * H);
 });
+test('trackPlan: alt TF yokken kaydedilmiş fillRes=none dolum mumunda erken hedefi saydırmaz', () => {
+  const H = 4 * 3600e3, t0 = Date.UTC(2026, 10, 10, 16);
+  const plan = { tf: '4H', d: -1, status: 'active', entry: 0.1573, stop: 0.1641, tp1: 0.1503, tp2: 0.1439, early: 0.1555, earlyPortion: 0.8, sentAt: t0, filledAt: t0 + H, activeAt: t0 + H, fillRes: 'none' };
+  const c = (i, lo, hi) => ({ time: t0 + i * H, open: 0.157, high: hi, low: lo, close: 0.157 });
+  const r = trackPlan(plan, [c(1, 0.1550, 0.1576), c(2, 0.1560, 0.1580)], t0 + 10 * H);
+  assert.equal(r.status, 'active'); assert.deepEqual(r.events, []);
+  const r2 = trackPlan({ ...plan, fillRes: undefined }, [c(1, 0.1550, 0.1576)], t0 + 10 * H);
+  assert.equal(r2.status, 'early'); // kayıt yoksa eski davranış
+});
