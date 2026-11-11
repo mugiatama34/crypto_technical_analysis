@@ -56,10 +56,11 @@
 import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen } from './src/ui/signals-lib.js';
 import { okxGet } from './src/data/okx.js';
 import { parseClosedPnl, dailyTrades } from './src/trades/bybit.js';
+import { bybitOf, bybitPx } from './src/data/bybit-symbols.js';
 import { loadCloud, syncDoc } from './src/sync/cloud.js';
 import { mountCloudForm } from './src/sync/cloud-ui.js';
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
-const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
+const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(11, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
 const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
 const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
 const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -118,7 +119,7 @@ function renderOpen() {
     const px = prices[s.coin], li = liveInfo(s, px), filled = s.status !== 'waiting' && s.status !== 'confirming';
     const live = !li ? 'fiyat yok' : filled ? `Fiyat ${fp(px)} · <span class="${cls(li.uR)}">${sgn(li.uR)}R</span> (gerçekleşmemiş)` : `Fiyat ${fp(px)} · girişe ${fmt(Math.abs(li.toEntryPct), 2)}% ${li.toEntryPct > 0 ? 'uzakta' : '(bölgede/öte)'}`;
     return `<div class="card"><div class="h"><b>${tvLink(s)} ${esc(s.tf)} <span class="${s.direction}">${s.direction === 'long' ? 'LONG' : 'SHORT'}</span></b><span class="st ${s.status}">${ST[s.status] || s.status}</span></div>
-      <div class="kv"><span>Giriş</span><span>${fp(s.entry)}${s.zone ? ` (bölge ${fp(s.zone[0])}–${fp(s.zone[1])})` : ''}</span><span>Stop</span><span>${fp(s.stop)} (%${fmt((Math.abs(s.entry - s.stop) / s.entry) * 100, 2)})</span>${s.early ? `<span>Erken kâr</span><span>${fp(s.early)} (%${fmt((s.earlyPortion ?? 0.8) * 100, 0)})</span>` : ''}<span>TP1 / TP2</span><span>${fp(s.tp1)} / ${fp(s.tp2)}</span><span>Gönderim</span><span>${dt(s.sentAt)}${s.activeAt ? ` · dolum ${dt(s.activeAt)}` : ''}</span></div>
+      <div class="kv"><span>Giriş</span><span>${fp(s.entry)}${s.zone ? ` (bölge ${fp(s.zone[0])}–${fp(s.zone[1])})` : ''}</span><span>Stop</span><span>${fp(s.stop)} (%${fmt((Math.abs(s.entry - s.stop) / s.entry) * 100, 2)})</span>${s.early ? `<span>Erken kâr</span><span>${fp(s.early)} (%${fmt((s.earlyPortion ?? 0.8) * 100, 0)})</span>` : ''}<span>TP1 / TP2</span><span>${fp(s.tp1)} / ${fp(s.tp2)}</span>${(() => { const b = bybitOf(s.coin); return b.mult > 1 ? `<span>Bybit</span><span><a href="https://www.tradingview.com/chart/?symbol=BYBIT:${b.sym}.P" target="_blank" rel="noopener">${esc(b.sym)}</a> (×${b.mult.toLocaleString('tr-TR')}): giriş ${bybitPx(s.coin, s.entry)} · stop ${bybitPx(s.coin, s.stop)}${s.early ? ` · erken ${bybitPx(s.coin, s.early)}` : ''} · TP1 ${bybitPx(s.coin, s.tp1)} · TP2 ${bybitPx(s.coin, s.tp2)}</span>` : ''; })()}<span>Gönderim</span><span>${dt(s.sentAt)}${s.activeAt ? ` · dolum ${dt(s.activeAt)}` : ''}</span></div>
       <div class="live">${live}</div></div>`;
   }).join('') : '<p class="empty">Şu an açık sinyal yok.</p>';
 }

@@ -5,6 +5,7 @@
 // Puan eşiği (minScore) yalnız "bölgede" aşamasına uygulanır: tarayıcı puanı fiyat uzaklığıyla düştüğü için
 // (bölge dışı = "oluşuyor" × yakınlık) eşik "yaklaşıyor" mesajını fiilen kapatıyordu (09.11: 25 saatte 5 bölgede, 0 yaklaşıyor).
 import { makeContext } from '../src/scan/context.js';
+import { bybitLine } from './telegram.js';
 import { detect } from '../src/detectors/fibonacci.js';
 import { clusterSignals } from '../src/scan/scoring.js';
 
@@ -82,8 +83,9 @@ export function formatFibAlert(a, now = Date.now(), btcTrend = null) {
     `Bölge <b>${fmtP(s.entry)}</b> (0,618 × 1,272) · fiyat ${fmtP(a.price)} · uzaklık %${pct.toFixed(2)} (${a.dist.toFixed(1)} ATR)`,
     `İtki ${fmtP(P0.price)} → ${fmtP(P1.price)} · A ${fmtP(A.price)} · B ${fmtP(B.price)}`,
     `Stop önerisi ${fmtP(s.stop)} (itki başı ${fmtP(s.invalidation)}) · H1 ${fmtP(s.target)} · H2 ${fmtP(s.meta.target2)}`,
+    bybitLine(a.coin, [['bölge', s.entry], ['stop', s.stop], ['H1', s.target], ['H2', s.meta.target2]]),
     ...(a.stage === 'new' ? [`👉 Şimdi: bölgeye (${fmtP(s.entry)}) fiyat alarmı kur ya da planın varsa limit + stop'u önceden gir.`] : []),
     `Puan ${a.score ?? '–'}${a.stage === 'new' ? ' (uzakta düşük olur; bölgede yükselir)' : ''}${btcTrend ? ` · BTC günlük ${btcTrend === 'up' ? 'yükseliş' : 'düşüş'} → ${(btcTrend === 'up') === long ? 'yönle uyumlu' : '⚠️ BTC yönüne ters'}` : ''}`,
     `<i>İzleme uyarısı, işlem sinyali değil (24 ay testte bu kural tek başına kenar vermedi). Bölgede alt dilimde teyit ara; risk %0,5–1.</i>`,
-  ].join('\n');
+  ].filter((l) => l !== '').join('\n');
 }

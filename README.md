@@ -543,6 +543,10 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   ya da gerçekleşmemiş R; 24.10 öncesi ya da 7 günden eski takip dışı açık kayıtlar ayrı katlanır), Bybit tarzı **R takvimi**
   (kapanış gününe göre günlük ΣR, hafta ve ay toplamı, artı/eksi gün; "Canlı düzen"/"Tümü"), son 20 kapanan, istatistik
   kırılımları ve tüm sinyaller "Arşiv"de katlı. Yardımcılar `src/ui/signals-lib.js` (test: `tests/signals-lib.test.js`).
+- **Bybit çarpanlı sözleşmeler (`src/data/bybit-symbols.js`, 11.11)**: PEPE/SHIB/BONK gibi küçük fiyatlı coinler Bybit'te
+  `1000PEPEUSDT`, `SHIB1000USDT`… olarak işlem görür. Telegram sinyal/takip/fib mesajlarına ve sinyal sayfası kartlarına
+  "Bybit <sembol> (fiyat ×1000)" satırı eklenir: giriş/stop/erken/TP'ler OKX ham fiyatından 6 anlamlı haneyle (yuvarlanmış metinden
+  değil) ve adet ÷ çarpan. Liste elle tutulur; düzeltme/ekleme Variables `BYBIT_MULT` (JSON, ör. `{"PEPE":{"sym":"1000PEPEUSDT","mult":1000}}`).
 - **☁ Bulut kaydı (`src/sync/`, 11.11)**: takip listesi (`watch.json`) ve gerçek işlemler (`trades.json`) kullanıcının **özel**
   GitHub deposunda (REST contents API) → telefon / iş / ev bilgisayarında aynı. Ayar (depo + ince taneli token, yalnız o depo
   Contents RW) her cihazın localStorage'ında; herkese açık depo reddedilir. Birleştirme id başına son `updatedAt`, silinenler

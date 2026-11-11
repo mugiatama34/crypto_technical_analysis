@@ -36,6 +36,8 @@ import { cfgLabel, weeklyReport } from './review/periods.js';
 import { finalR } from './review/metrics.js';
 import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenarioOf, panelOf } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
+import { setBybitOverrides } from '../src/data/bybit-symbols.js';
+setBybitOverrides(process.env.BYBIT_MULT || ''); // Bybit çarpanlı sözleşme düzeltmeleri (JSON)
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
 import { dailyTrendAt } from '../src/scan/regime.js';
@@ -359,7 +361,7 @@ async function main() {
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
-    await notify(formatSetup(plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
+    await notify(formatSetup(early ? { ...plan, early } : plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
     const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     if (CFG.signalChart && row && !row.error) {
       try {

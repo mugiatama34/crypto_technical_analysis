@@ -27,6 +27,8 @@ export async function sendTelegramPhoto(png, caption, { token, chatId, fetchImpl
   } catch (err) { console.warn('Telegram foto hata', err.message); return false; }
 }
 
+import { bybitOf, bybitPx } from '../src/data/bybit-symbols.js';
+
 /** Fiyat biçimi: büyüklüğe göre ondalık. */
 export function fp(p) {
   if (!Number.isFinite(p)) return '–';
@@ -41,6 +43,13 @@ export const pctFrom = (entry, p) => (Number.isFinite(entry) && Number.isFinite(
 export function maxLeverage(entry, stop) {
   const sp = Math.abs(entry - stop) / entry * 100;
   return sp > 0 ? Math.max(1, Math.min(20, Math.floor(100 / (sp * 1.5)))) : null;
+}
+
+/** Çarpanlı Bybit sözleşmesi varsa (PEPE → 1000PEPEUSDT) kopyalanabilir fiyat satırı; yoksa ''. */
+export function bybitLine(coin, levels, qty) {
+  const b = bybitOf(coin); if (b.mult === 1) return '';
+  const f = (k, v) => (Array.isArray(v) ? `${k} <code>${bybitPx(coin, v[0])}</code> – <code>${bybitPx(coin, v[1])}</code>` : `${k} <code>${bybitPx(coin, v)}</code>`);
+  return `<b>Bybit ${esc(b.sym)}</b> (fiyat ×${b.mult.toLocaleString('tr-TR')}): ${levels.filter(([, v]) => (Array.isArray(v) ? v.every(Number.isFinite) : Number.isFinite(v))).map(([k, v]) => f(k, v)).join(' · ')}${qty ? ` · adet ${+(qty / b.mult).toPrecision(6)}` : ''}`;
 }
 
 const CONF_ICON = { 'düşük': '○', 'orta': '◐', 'yüksek': '●' };
@@ -60,6 +69,7 @@ export function formatSetup(plan, dec, size) {
     `TP1: <code>${fp(dec.tp1)}</code> (${pctFrom(dec.entry, dec.tp1)} · ${dec.rr1}R)   TP2: <code>${fp(dec.tp2)}</code> (${pctFrom(dec.entry, dec.tp2)} · ${dec.rr}R)`,
     maxLeverage(dec.entry, dec.stop) ? `Kaldıraç: en fazla <b>${maxLeverage(dec.entry, dec.stop)}x</b> (likidasyon stopun ≥ 1,5 katı uzakta; izole marjin, kaldıraç yalnız teminatı belirler)` : '',
     size ? `Pozisyon (risk ${size.riskUsd} USDT): ${size.qty} ${esc(plan.coin)} ≈ ${size.notional} USDT` : '',
+    bybitLine(plan.coin, [['giriş', [dec.entry_low, dec.entry_high]], ['stop', dec.stop], ...(plan.early ? [['erken', plan.early]] : []), ['TP1', dec.tp1], ['TP2', dec.tp2]], size?.qty),
     '',
     `<b>Yapılar:</b> ${esc(sigs)}`,
     dec.evidence?.length ? `<b>Kanıt:</b>\n${dec.evidence.map((e) => `• ${esc(e)}`).join('\n')}` : '',
@@ -80,7 +90,8 @@ export function formatUpdate(plan, event, price) {
   const conf = event === 'active' && plan.entryPlanned ? ` (teyit mumu kapanışı; plan ${fp(plan.entryPlanned)})` : '';
   const tsx = event === 'time_stop' && plan.exitPrice != null ? ` · çıkış ${fp(plan.exitPrice)} (${plan.exitR >= 0 ? '+' : ''}${plan.exitR}R)` : '';
   const spd = event === 'confirming' && plan.approachAtr != null ? ` · yaklaşma ${plan.approachAtr}×ATR, dolum mumu ${plan.fillBarAtr}×ATR` : '';
-  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd}${tsx} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
+  const bl = bybitLine(plan.coin, [['giriş', plan.entry], ['stop', plan.stop], ...(plan.early ? [['erken', plan.early]] : [['TP1', plan.tp1]]), ['TP2', plan.tp2]]);
+  return `${STATUS_TR[event] || event} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)}${conf}${spd}${tsx} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}${bl ? `\n${bl}` : ''}`;
 }
 
 /**
@@ -91,7 +102,8 @@ export function formatUpdates(plan, events, price) {
   const dir = plan.direction === 'long' ? 'LONG' : 'SHORT';
   const head = events.map((ev) => STATUS_TR[ev] || ev).join('\n↳ ');
   const how = plan.fillRes ? ' (sıra 15m mumlarla doğrulandı)' : ' (son 15 dakikada sırayla)';
-  return `${head}${how} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}`;
+  const bl = bybitLine(plan.coin, [['giriş', plan.entry], ['stop', plan.stop], ...(plan.early ? [['erken', plan.early]] : [['TP1', plan.tp1]]), ['TP2', plan.tp2]]);
+  return `${head}${how} — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}\nGiriş ${fp(plan.entry)} · stop ${fp(plan.stop)} · ${plan.early ? `erken ${fp(plan.early)}` : `TP1 ${fp(plan.tp1)}`} · TP2 ${fp(plan.tp2)} · fiyat ${fp(price)}${bl ? `\n${bl}` : ''}`;
 }
 
 /** Günlük özet. */
