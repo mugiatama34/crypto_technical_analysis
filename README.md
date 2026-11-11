@@ -551,5 +551,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Ani hareket (spike) ölçümü (`tools/spike/`, 11.11)**: `run.mjs <klasör>` Binance USDT-M 15m aylık CSV'lerinden (BTC/ETH/SOL)
   gövdesi ≥ k×ATR14 mumları bulur (15m ve 1H, k = 2/3/4); sonraki 1–96 mumda yönlü getiri (ATR), devam oranı, gövdenin
   %50'sinin geri alınması ve "önce yeni uç" oranı; günlük EMA20 trendine göre ayrım; bekle-w-mum ters (fade) / devam işlemi
-  (stop payı, hedef m×R, 64 mum, maliyetli/maliyetsiz, eğitim/doğrulama 2/3). Saf fonksiyonlar `spike.js` (test: `tests/spike.test.js`).
+  (stop payı, hedef m×R, 64 mum, maliyetli/maliyetsiz, eğitim/doğrulama 2/3) ve "yeni uç + geri dönüş" (`simSweep`: 16 mum içinde
+  olay ucu aşılıp içeri kapanınca ters giriş, stop yeni ucun ötesinde). İkinci argüman sembol listesi (ör. ilk 30); altcoinlerde
+  hedge'li R ve "en iyi ay hariç" raporlanır. Saf fonksiyonlar `spike.js` (test: `tests/spike.test.js`).
 

@@ -23,3 +23,15 @@ test('15m → 1H birleştirme', () => {
   const h = aggregate(c, 4);
   assert.equal(h.length, 2); assert.deepEqual([h[0].o, h[0].h, h[0].l, h[0].c], [1, 3, 0.1, 2.3]);
 });
+import { simSweep } from '../tools/spike/spike.js';
+test('yeni uç + geri dönüş: önce olay tepesi aşılır, sonra içeri kapanışta short', () => {
+  const c = flat(20); c.push(bar(20 * 9e5, 100, 104, 100, 103.8)); // olay (tepe 104)
+  c.push(bar(21 * 9e5, 103.8, 105, 103.5, 104.5)); // yeni uç 105, içeri kapanmadı
+  c.push(bar(22 * 9e5, 104.5, 104.6, 103, 103.5)); // 104 altına kapanış → giriş 103.5, stop 105.1, risk 1.6
+  c.push(bar(23 * 9e5, 103.5, 103.6, 101, 101.2)); // hedef 1R = 101.9
+  const e = { i: 20, d: 1, a: 1, body: 3.8 };
+  const r = simSweep(c, e, { q: 0, N: 8, m: 1, T: 4, buf: 0.1, cost: 0 });
+  assert.equal(r.j, 22); assert.equal(r.how, 'tp'); assert.ok(Math.abs(r.R - 1) < 1e-9);
+  const c2 = flat(20); c2.push(c[20]); c2.push(bar(21 * 9e5, 103.8, 103.9, 102, 102.5)); // uç aşılmadı → işlem yok
+  assert.equal(simSweep(c2, e, { q: 0, N: 1, m: 1, T: 4 }), null);
+});

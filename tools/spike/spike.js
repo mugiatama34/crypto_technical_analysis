@@ -21,7 +21,7 @@ export function aggregate(c, k) { // 15m → 1H (k=4) vb.; zaman hizalı gruplar
 export function findEvents(c, A, k, gap = 8) {
   const ev = []; let lastUp = -1e9, lastDn = -1e9;
   for (let i = 15; i < c.length; i++) {
-    const a = A[i - 1]; if (!a) continue; const b = c[i].c - c[i].o;
+    const a = A[i - 1]; if (!a || a < c[i].c * 1e-4) continue; const b = c[i].c - c[i].o; // bozuk/donuk veri: ATR ≈ 0
     if (Math.abs(b) < k * a) continue; const d = Math.sign(b);
     if (d > 0 ? i - lastUp <= gap : i - lastDn <= gap) { if (d > 0) lastUp = i; else lastDn = i; continue; }
     if (d > 0) lastUp = i; else lastDn = i;
@@ -38,12 +38,33 @@ export function simTrade(c, e, { mode, w = 0, m = 1.5, T = 32, cost = 0.0015, bu
   for (let x = e.i; x <= j; x++) ext = e.d > 0 ? Math.max(ext, c[x].h) : Math.min(ext, c[x].l);
   const stop = mode === 'fade' ? ext + e.d * buf * e.a : c[e.i].o - e.d * buf * e.a;
   const risk = (entry - stop) * dir; if (!(risk > 0)) return null;
-  const tp = entry + dir * m * risk; let exit = null, how = 'time';
+  const tp = entry + dir * m * risk; let exit = null, how = 'time', xi = j;
   for (let x = j + 1; x <= Math.min(c.length - 1, j + T); x++) {
-    const hitS = dir > 0 ? c[x].l <= stop : c[x].h >= stop, hitT = dir > 0 ? c[x].h >= tp : c[x].l <= tp;
+    xi = x; const hitS = dir > 0 ? c[x].l <= stop : c[x].h >= stop, hitT = dir > 0 ? c[x].h >= tp : c[x].l <= tp;
     if (hitS) { exit = stop; how = 'stop'; break; } if (hitT) { exit = tp; how = 'tp'; break; }
     exit = c[x].c;
   }
   const R = ((exit - entry) * dir - cost * entry) / risk;
-  return { R, how, riskPct: risk / entry };
+  return { R, how, riskPct: risk / entry, j, xi, dir };
+}
+// "yeni uç + geri dönüş": olaydan sonra N mum içinde olay ucunun ötesine geçilir (yeni uç), sonra bir mum seviyenin
+// içine kapanır → o kapanışta ters giriş. Seviye = olay ucu − q × gövde (q=0: uç, q=0,25: gövdenin üst çeyreği).
+// Stop = olaydan beri en uç fiyat ± buf × ATR. Hedef = m × R. T mum sonra kapanış. Aynı mumda stop önce.
+export function simSweep(c, e, { q = 0, N = 16, m = 1.5, T = 64, buf = 0.1, cost = 0.0015 }) {
+  const d = e.d, edge = d > 0 ? c[e.i].h : c[e.i].l, lvl = edge - d * q * e.body;
+  let ext = edge, broke = false, j = -1;
+  for (let x = e.i + 1; x <= Math.min(c.length - 2, e.i + N); x++) {
+    ext = d > 0 ? Math.max(ext, c[x].h) : Math.min(ext, c[x].l);
+    if (!broke && (d > 0 ? c[x].h > edge : c[x].l < edge)) broke = true;
+    if (broke && (d > 0 ? c[x].c < lvl : c[x].c > lvl)) { j = x; break; }
+  }
+  if (j < 0) return null;
+  const dir = -d, entry = c[j].c, stop = ext + d * buf * e.a, risk = (entry - stop) * dir; if (!(risk > 0)) return null;
+  const tp = entry + dir * m * risk; let exit = c[j].c, how = 'time', xi = j;
+  for (let x = j + 1; x <= Math.min(c.length - 1, j + T); x++) {
+    xi = x; const hitS = dir > 0 ? c[x].l <= stop : c[x].h >= stop, hitT = dir > 0 ? c[x].h >= tp : c[x].l <= tp;
+    if (hitS) { exit = stop; how = 'stop'; break; } if (hitT) { exit = tp; how = 'tp'; break; }
+    exit = c[x].c;
+  }
+  return { R: ((exit - entry) * dir - cost * entry) / risk, how, riskPct: risk / entry, j, xi, dir };
 }
