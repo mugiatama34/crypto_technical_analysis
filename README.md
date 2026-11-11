@@ -539,6 +539,10 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   tutulur (stop yok, fonlama işler); her yeniden dengelemede ve bir alt stop olduğunda hedefe çekilir. `MOMENTUM_RANK=rel`
   ile birlikte laboratuvarda hedge'li kesitlerin tamamında pozitif kalan tek aile (`xsmom_l28_k5_short_rel`) canlıya
   taşınmış olur. Sayfada "alt net maruziyet" ve hedge satırı görünür.
+- **Sinyal sayfası (`signals.html`, 11.11)**: en üstte "Şu an açık" kartları (bekleyen/aktif, OKX canlı fiyat 60 sn'de bir: girişe uzaklık
+  ya da gerçekleşmemiş R; 24.10 öncesi ya da 7 günden eski takip dışı açık kayıtlar ayrı katlanır), Bybit tarzı **R takvimi**
+  (kapanış gününe göre günlük ΣR, hafta ve ay toplamı, artı/eksi gün; "Canlı düzen"/"Tümü"), son 20 kapanan, istatistik
+  kırılımları ve tüm sinyaller "Arşiv"de katlı. Yardımcılar `src/ui/signals-lib.js` (test: `tests/signals-lib.test.js`).
 - **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
   ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır
   (gerçek / plana sadakat / 1,5R kuralı / ara TP / iz süren stop). CSV'ler kişisel veridir, repoya konmaz (`.gitignore`).

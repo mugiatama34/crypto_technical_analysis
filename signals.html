@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>Sinyal geçmişi</title>
-<meta name="description" content="Botun Telegram'a gönderdiği tüm setup'lar, takip durumları ve istatistikleri: giriş bölgesine gelen, stop olan, TP1/TP2 gören, süresi dolan.">
+<meta name="description" content="Botun Telegram'a gönderdiği setup'lar: şu an açık olanlar (canlı fiyat), günlük R takvimi, son kapananlar ve arşiv istatistikleri.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="src/ui/styles.css?v=1">
 <style>
@@ -22,6 +22,21 @@
   .st { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--hair); white-space: nowrap; }
   .st.waiting { color: var(--ink-dim); } .st.active { color: #5ea3f0; } .st.tp1 { color: #fab219; } .st.done { color: #4cc24c; } .st.stopped { color: #ef7d7d; } .st.expired, .st.missed, .st.knife { color: var(--ink-muted); } .st.confirming { color: #fab219; } .st.timeout { color: var(--ink-dim); } .st.early, .st.be { color: #4cc24c; }
   section { margin-top: 20px; }
+  .cards { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .card { border: 1px solid var(--hair); border-radius: 6px; padding: 10px 12px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .card .h { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .card .h b { font-size: 14px; } .card .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+  .card .kv span:nth-child(odd) { color: var(--ink-dim); } .card .live { margin-top: 6px; font-weight: 600; }
+  .long { color: #4cc24c; } .short { color: #ef7d7d; }
+  .cal { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; font-variant-numeric: tabular-nums; }
+  .cal th { font-size: 11px; color: var(--ink-dim); font-weight: 600; padding: 2px; }
+  .cal td { height: 54px; vertical-align: top; border-radius: 5px; padding: 4px 5px; font-size: 11px; background: rgba(255,255,255,.03); }
+  .cal td .d { color: var(--ink-dim); font-size: 10.5px; } .cal td .r { font-size: 13px; font-weight: 700; margin-top: 4px; } .cal td .n { color: var(--ink-muted); font-size: 10px; }
+  .cal td.p { background: rgba(76,194,76,.16); } .cal td.p .r { color: #4cc24c; } .cal td.m { background: rgba(239,125,125,.16); } .cal td.m .r { color: #ef7d7d; }
+  .cal td.today { outline: 1px solid var(--axis); } .cal td.wk { background: transparent; text-align: right; }
+  .calbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  details > summary { cursor: pointer; font-weight: 600; margin: 6px 0; }
   .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
 </style>
 </head>
@@ -36,17 +51,14 @@
   <footer><strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
 <script type="module">
+import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen } from './src/ui/signals-lib.js';
+import { okxGet } from './src/data/okx.js';
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–');
 const fp = (p) => { if (!Number.isFinite(p)) return '–'; const a = Math.abs(p); const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : Math.min(8, Math.ceil(-Math.log10(a)) + 3); return fmt(p, d); };
 const dt = (ms) => (ms ? new Date(ms).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–');
 const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
 const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const ST = { waiting: 'bekliyor', active: 'aktif', tp1: 'TP1', done: 'tamam', stopped: 'stop', expired: 'süresi doldu', missed: 'kaçtı', confirming: 'teyit bekliyor', knife: 'düşen bıçak – iptal', timeout: 'zaman stopu', early: 'erken kâr alındı', be: 'erken kâr + başabaş' };
-const CLOSED = new Set(['done', 'stopped', 'expired', 'missed', 'knife', 'timeout', 'be']);
-const realizedR = (s) => (s.status === 'stopped' ? -1 : s.status === 'done' ? 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5) : s.status === 'tp1' || s.status === 'tp1_be' ? null : null);
-/** Kapanmış işlemlerin R'si; TP1 sonrası stop (başabaş) için +½R1: takipte 'stopped' TP1'den sonra geldiyse tp1At dolu. */
-const earlyR = (s) => Math.abs(s.early - s.entry) / Math.abs(s.entry - s.stop);
-const finalR = (s) => { if (s.early) { const p = s.earlyPortion ?? 0.8; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * earlyR(s); if (s.status === 'done') return p * earlyR(s) + (1 - p) * (s.rr || 2.5); return null; } if (s.status === 'timeout') return s.exitR ?? null; if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1; if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5); return null; };
 function stats(list) {
   const n = list.length;
   const filled = list.filter((s) => s.status !== 'waiting' && s.status !== 'expired' && s.status !== 'missed' && s.status !== 'confirming' && s.status !== 'knife');
@@ -76,6 +88,49 @@ function renderList() {
   document.querySelector('#prev')?.addEventListener('click', () => { page--; renderList(); });
   document.querySelector('#next')?.addEventListener('click', () => { page++; renderList(); });
 }
+const RECENT = 20, LIVE_FROM = Date.UTC(2026, 9, 24); // canlı düzen (yalnız 4H) 24.10.2026'dan beri
+const STALE_MS = 7 * 864e5; const isStale = (s) => s.sentAt < LIVE_FROM || Date.now() - (s.activeAt || s.sentAt) > STALE_MS; // takip dışı kalmış açık kayıt
+let calY, calM, calScope = 'live', prices = {};
+const sgn = (x, d = 2) => (Number.isFinite(x) ? (x > 0 ? '+' : '') + fmt(x, d) : '–');
+const tvLink = (s) => `<a href="https://www.tradingview.com/chart/?symbol=OKX:${esc(s.coin)}USDT.P" target="_blank" rel="noopener">${esc(s.coin)}</a>`;
+function renderOpen() {
+  const all = items.filter(isOpen).sort((a, b) => b.sentAt - a.sentAt), stale = all.filter(isStale), open = all.filter((s) => !isStale(s));
+  document.querySelector('#openCount').textContent = `(${open.length})`;
+  document.querySelector('#stale').innerHTML = stale.length ? `<details><summary>Eski düzenden kalan ${stale.length} açık kayıt (takip dışı)</summary><p class="note">24.10 öncesi (15m/1H) ya da 7 günden eski açık kayıtlar: bot bu mumları artık taramadığı (TF kapalı / coin listeden düştü) için kapanmadılar; sonuçları bilinmiyor.</p><div class="tablewrap"><table class="grid"><thead><tr><th>Gönderim</th><th>Coin</th><th>Yön</th><th>Giriş</th><th>Stop</th><th>Durum</th></tr></thead><tbody>${stale.map((s) => `<tr><td>${dt(s.sentAt)}</td><td>${tvLink(s)} ${esc(s.tf)}</td><td class="${s.direction}">${s.direction}</td><td>${fp(s.entry)}</td><td>${fp(s.stop)}</td><td><span class="st ${s.status}">${ST[s.status] || s.status}</span></td></tr>`).join('')}</tbody></table></div></details>` : '';
+  document.querySelector('#open').innerHTML = open.length ? open.map((s) => {
+    const px = prices[s.coin], li = liveInfo(s, px), filled = s.status !== 'waiting' && s.status !== 'confirming';
+    const live = !li ? 'fiyat yok' : filled ? `Fiyat ${fp(px)} · <span class="${cls(li.uR)}">${sgn(li.uR)}R</span> (gerçekleşmemiş)` : `Fiyat ${fp(px)} · girişe ${fmt(Math.abs(li.toEntryPct), 2)}% ${li.toEntryPct > 0 ? 'uzakta' : '(bölgede/öte)'}`;
+    return `<div class="card"><div class="h"><b>${tvLink(s)} ${esc(s.tf)} <span class="${s.direction}">${s.direction === 'long' ? 'LONG' : 'SHORT'}</span></b><span class="st ${s.status}">${ST[s.status] || s.status}</span></div>
+      <div class="kv"><span>Giriş</span><span>${fp(s.entry)}${s.zone ? ` (bölge ${fp(s.zone[0])}–${fp(s.zone[1])})` : ''}</span><span>Stop</span><span>${fp(s.stop)} (%${fmt((Math.abs(s.entry - s.stop) / s.entry) * 100, 2)})</span>${s.early ? `<span>Erken kâr</span><span>${fp(s.early)} (%${fmt((s.earlyPortion ?? 0.8) * 100, 0)})</span>` : ''}<span>TP1 / TP2</span><span>${fp(s.tp1)} / ${fp(s.tp2)}</span><span>Gönderim</span><span>${dt(s.sentAt)}${s.activeAt ? ` · dolum ${dt(s.activeAt)}` : ''}</span></div>
+      <div class="live">${live}</div></div>`;
+  }).join('') : '<p class="empty">Şu an açık sinyal yok.</p>';
+}
+async function loadPrices() {
+  try { const t = await okxGet('/api/v5/market/tickers', { instType: 'SWAP' }); prices = Object.fromEntries(t.filter((x) => x.instId.endsWith('-USDT-SWAP')).map((x) => [x.instId.replace('-USDT-SWAP', ''), +x.last])); document.querySelector('#openNote').textContent = `Bekleyen (limit dolmadı) ve aktif sinyaller · fiyat OKX ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`; }
+  catch (e) { document.querySelector('#openNote').textContent = `Canlı fiyat alınamadı (${e.message}); kartlar fiyatsız.`; }
+  renderOpen();
+}
+function renderCal() {
+  const scoped = calScope === 'live' ? items.filter((s) => s.sentAt >= LIVE_FROM) : items;
+  const m = dailyR(scoped), weeks = monthGrid(calY, calM), today = new Date().toISOString().slice(0, 10);
+  const monthKey = `${calY}-${String(calM + 1).padStart(2, '0')}`; let mR = 0, mN = 0, mW = 0, pd = 0, nd = 0;
+  for (const [k, v] of Object.entries(m)) if (k.startsWith(monthKey)) { mR += v.R; mN += v.n; mW += v.win; if (v.R > 0) pd++; else if (v.R < 0) nd++; }
+  const name = new Date(Date.UTC(calY, calM, 1)).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const cell = (c) => { if (!c) return '<td></td>'; const v = m[c.key]; const k = v ? (v.R > 0 ? 'p' : v.R < 0 ? 'm' : '') : ''; return `<td class="${k}${c.key === today ? ' today' : ''}"><div class="d">${c.day}</div>${v ? `<div class="r">${sgn(v.R, 1)}</div><div class="n">${v.n} işlem</div>` : ''}</td>`; };
+  const wk = (w) => { let r = 0, n = 0; for (const c of w) if (c && m[c.key]) { r += m[c.key].R; n += m[c.key].n; } return `<td class="wk"><div class="d">hafta</div>${n ? `<div class="r ${cls(r)}">${sgn(r, 1)}</div>` : ''}</td>`; };
+  document.querySelector('#cal').innerHTML = `<div class="calbar"><div><button type="button" class="btn" id="cPrev">‹</button> <b style="text-transform:capitalize">${name}</b> <button type="button" class="btn" id="cNext">›</button></div>
+    <select id="cScope"><option value="live" ${calScope === 'live' ? 'selected' : ''}>Canlı düzen (24.10'dan beri)</option><option value="all" ${calScope === 'all' ? 'selected' : ''}>Tüm sinyaller</option></select></div>
+    <div class="tiles" style="margin-bottom:8px"><div class="stat"><div class="k">Ay toplamı</div><div class="v ${cls(mR)}">${sgn(mR, 1)}R</div></div><div class="stat"><div class="k">Kapanan işlem</div><div class="v">${mN}</div></div><div class="stat"><div class="k">Kazanma</div><div class="v">${mN ? fmt((mW / mN) * 100, 0) + '%' : '–'}</div></div><div class="stat"><div class="k">Artı / eksi gün</div><div class="v">${pd} / ${nd}</div></div><div class="stat"><div class="k">Ort. R / işlem</div><div class="v ${cls(mR)}">${mN ? sgn(mR / mN) : '–'}</div></div></div>
+    <div class="tablewrap"><table class="cal"><thead><tr>${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz', ''].map((d) => `<th>${d}</th>`).join('')}</tr></thead><tbody>${weeks.map((w) => `<tr>${w.map(cell).join('')}${wk(w)}</tr>`).join('')}</tbody></table></div>
+    <p class="note">Gün = kapanış günü (UTC). R, sayfanın sonuç R kuralıyla (stop −1, erken kâr payı × erken R, TP2 …). Kaçan/süresi dolan sinyaller işlem sayılmaz. %1 riskle 1R ≈ hesabın %1'i.</p>`;
+  document.querySelector('#cPrev').addEventListener('click', () => { if (--calM < 0) { calM = 11; calY--; } renderCal(); });
+  document.querySelector('#cNext').addEventListener('click', () => { if (++calM > 11) { calM = 0; calY++; } renderCal(); });
+  document.querySelector('#cScope').addEventListener('change', (e) => { calScope = e.target.value; renderCal(); });
+}
+function renderRecent() {
+  const list = closedTrades(items).slice(0, RECENT);
+  document.querySelector('#recent').innerHTML = list.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Kapanış</th><th>Coin</th><th>Yön</th><th>Giriş</th><th>Stop</th><th>Durum</th><th>R</th></tr></thead><tbody>${list.map((s) => { const R = finalR(s); return `<tr><td>${dt(s.closedAt || s.updatedAt)}</td><td>${tvLink(s)} ${esc(s.tf)}</td><td class="${s.direction}">${s.direction}</td><td>${fp(s.entry)}</td><td>${fp(s.stop)}</td><td><span class="st ${s.status}">${ST[s.status] || s.status}</span></td><td class="${cls(R)}">${sgn(R)}</td></tr>`; }).join('')}</tbody></table></div><p class="note">Son ${RECENT} kapanan; daha eskiler aşağıda "Arşiv"de.</p>` : '<p class="empty">Henüz kapanan işlem yok.</p>';
+}
 async function main() {
   let h;
   try { const r = await fetch('docs/signals/history.json', { cache: 'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); h = await r.json(); }
@@ -86,21 +141,29 @@ async function main() {
   const tiles = [['Gönderilen', s.n], ['Bölgeye geldi', `${s.filled} (${fmt(s.fillRate * 100, 0)}%)`], ['TP1 gördü', s.tp1], ['TP2 tamam', s.done, 'pos'], ['Stop', s.stopped, 'neg'], ['Süresi doldu', s.expired], ['Kaçtı', s.missed], ['Açık', s.open], ['Kazanma (kapanan)', `${fmt(s.winRate * 100, 0)}%`], ['Toplam R', fmt(s.totalR, 1), cls(s.totalR)]];
   document.querySelector('#root').innerHTML = `
     <section><div class="tiles">${tiles.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div></section>
+    <section><h2>Şu an açık <span class="count" id="openCount"></span></h2><p class="note" id="openNote">Bekleyen (limit dolmadı) ve aktif sinyaller; fiyat OKX'ten 60 sn'de bir yenilenir.</p><div id="open" class="cards"></div><div id="stale"></div></section>
+    <section><h2>R takvimi</h2><div id="cal"></div></section>
+    <section><h2>Son kapananlar</h2><div id="recent"></div></section>
+    <details><summary>İstatistik kırılımları (TF, yön, BTC, ay)</summary>
     <section><h2>Zaman dilimi</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.tf)}</tbody></table></div></section>
     <section><h2>Yön · karar · güven</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.direction)}${by(items, (x) => `karar: ${x.trade || '–'}`)}${by(items, (x) => `güven: ${x.confidence || '–'}`)}</tbody></table></div></section>
     <section><h2>BTC bağımlılığı</h2><p class="note">İşlem süresince (gönderimden kapanışa) BTC'nin hareketi. "Ters": long iken BTC düştü ya da short iken BTC yükseldi. Korelasyon: sonuç R ile işaretli BTC getirisi (long +, short −); 1'e yakınsa sonuç BTC'yi izliyor, 0'a yakınsa kurulum BTC'den bağımsız. Kayıt bu alanlar eklendikten sonra kapanan sinyallerle dolar.</p>${(() => { const withBtc = items.filter((x) => btcPct(x) != null); const adv = items.filter(adverse), fav = withBtc.filter((x) => !adverse(x)); const corr = btcCorr(items); return withBtc.length ? `<div class="tiles"><div class="stat"><div class="k">BTC verisi olan</div><div class="v">${withBtc.length}</div></div><div class="stat"><div class="k">BTC ters giderken</div><div class="v">${adv.length}</div><div class="k">ort. R ${fmt(stats(adv).avgR)} · kazanma %${fmt(stats(adv).winRate * 100, 0)}</div></div><div class="stat"><div class="k">BTC lehte giderken</div><div class="v">${fav.length}</div><div class="k">ort. R ${fmt(stats(fav).avgR)} · kazanma %${fmt(stats(fav).winRate * 100, 0)}</div></div><div class="stat"><div class="k">Korelasyon (R ~ BTC)</div><div class="v">${corr == null ? '–' : fmt(corr)}</div><div class="k">${corr == null ? 'en az 10 kapanış gerekli' : corr > 0.5 ? 'güçlü bağımlılık' : corr > 0.2 ? 'orta' : 'zayıf'}</div></div></div><div class="tablewrap" style="margin-top:10px"><table class="grid">${head}<tbody>${by(withBtc, btcBucket)}${by(withBtc, (x) => (adverse(x) ? 'BTC ters' : 'BTC lehte'))}${by(withBtc, (x) => `${x.direction} · ${adverse(x) ? 'BTC ters' : 'BTC lehte'}`)}</tbody></table></div>` : '<p class="empty">Henüz BTC verili kapanmış sinyal yok.</p>'; })()}</section>
     <section><h2>Ay</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => new Date(x.sentAt).toISOString().slice(0, 7))}</tbody></table></div></section>
-    <section><h2>Tüm sinyaller</h2>
+    </details>
+    <details id="arch"><summary>Arşiv: tüm sinyaller</summary>
+    <section>
       <div class="filters">
         <select id="fTf"><option value="">TF: hepsi</option>${[...new Set(items.map((x) => x.tf))].map((t) => `<option>${esc(t)}</option>`).join('')}</select>
         <select id="fDir"><option value="">Yön: hepsi</option><option value="long">Long</option><option value="short">Short</option></select>
         <select id="fSt"><option value="">Durum: hepsi</option><option value="open">Açık</option>${Object.entries(ST).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
         <input type="text" id="fQ" placeholder="Coin" size="10">
       </div>
-      <div id="list"></div></section>`;
+      <div id="list"></div></section></details>`;
   for (const id of ['fTf', 'fDir', 'fSt']) document.querySelector(`#${id}`).addEventListener('change', () => { page = 0; renderList(); });
   document.querySelector('#fQ').addEventListener('input', () => { page = 0; renderList(); });
   renderList();
+  const now = new Date(); calY = now.getUTCFullYear(); calM = now.getUTCMonth();
+  renderOpen(); renderCal(); renderRecent(); loadPrices(); setInterval(loadPrices, 60e3);
 }
 main();
 </script>
