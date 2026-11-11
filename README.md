@@ -542,4 +542,10 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
   ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır
   (gerçek / plana sadakat / 1,5R kuralı / ara TP / iz süren stop). CSV'ler kişisel veridir, repoya konmaz (`.gitignore`).
+- **Hyperliquid trader incelemesi (`tools/hyperliquid/`, 11.11)**: `portfolio.mjs` lider tablosu adaylarının hesap/PnL
+  geçmişini, `fills.mjs` son 180 günün dolumlarını (API en fazla ~10.000 dolum verir) çeker; `analyze.mjs` dolumlardan
+  düz→düz pozisyonları (`episodes.js`, test: `tests/hyperliquid.test.js`) çıkarıp kazanma, kazanç/kayıp oranı, ortalama
+  kayıp birimiyle R, kayıp kuyruğu, tutma süresi, kaldıraç (pozisyon / hesap), long/short, BTC günlük yönü (EMA20) ve
+  4H giriş sınıfını (trend / geri çekilme / kırılım / ters, EMA20/50 + 20 mum aralığı) hesaplar. Bulut oturumunda Node
+  için `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` gerekir. Ham veri repoya konmaz.
 

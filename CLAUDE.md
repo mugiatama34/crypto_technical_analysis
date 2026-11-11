@@ -89,11 +89,9 @@ ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe ya
 `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.
 
 ## Açık işler (11.11.2026)
-- **Sıradaki (kullanıcı onayladı): Hyperliquid başarılı trader incelemesi.** Ortama `api.hyperliquid.xyz` izni iste
-  (update_environment, Default; şu an izinli: data.binance.vision). Lider tablosundan 20–30 cüzdan (≥ 6 ay, yüzlerce
-  işlem, kârlı, makul düşüş; tek işlemle zirvedekiler hariç) → dolumlar → kullanıcının ölçüldüğü metrikler (işlem başı risk
-  tutarlılığı, kazanç/kayıp R, tutma süresi, erken kesme, long/short ve BTC yönü, sıklık, kaldıraç) → kullanıcıyla yan yana.
-  Sınır: "neden girdi" görünmez; giriş anı mumlarla kaba sınıflanır (trend/geri çekilme/kırılım). X/Grok önerilmedi (beyan).
+- **Hyperliquid incelemesi yapıldı (11.11, DURUM.md):** 16 kârlı cüzdan; ders = küçük pozisyon (medyan pozisyon hesabın
+  %1–40'ı), çok küçük kayıp + nadir büyük kayıp, kazananı uzun tutma; seçilim yanlılığı büyük (48 bin hesaptan kazananlar).
+  Ortam izni: api.hyperliquid.xyz + stats-data.hyperliquid.xyz (Default). Node fetch proxy'yi ancak `NODE_USE_ENV_PROXY=1` ile kullanır.
 - **Deney B sürüyor (gerçek işlemler, 30 işlem):** risk 1 $ (short/ilk işlem 0,5 $), stop ≥ %1, TP1 1,5R'de %50 + SL girişe,
   kaldıraç ≤ ⌊100/(stop%×1,5)⌋ ve tasfiye stopun ötesinde; ikinci kol iz süren stop (Retracement 1R, Activation TP1). Bot
   sinyallerinde botun planı (erken %1,2'de %80). Her kısmi TP'den sonra SL ve trailing stop elle kontrol (Bybit ikisini de
