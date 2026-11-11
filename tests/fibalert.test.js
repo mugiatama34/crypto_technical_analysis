@@ -96,3 +96,24 @@ test('fib uyarısı: puan eşiği yalnız "bölgede" aşamasına uygulanır', ()
   for (let i = 1; i <= next.length; i++) zones += fibAlerts([row([...base, ...next.slice(0, i)])], state, T0 + i * 3600e3, { minScore: 99 }).filter((a) => a.stage === 'zone').length;
   assert.equal(zones, 0, 'eşiği geçmeyen bölge mesajı gönderilmez');
 });
+
+test('fibPlan: tek fib kesişimi kümesinde plan = detektörün giriş/stop/H1/H2 (grafikle aynı)', async () => {
+  const { buildPlan } = await import('../bot/plan.js');
+  const { makeWatch } = await import('../src/watch/watch.js');
+  const p = PRESET_MAP.fib_cluster;
+  const r = analyzeRow({ coin: 'XRP', instId: 'XRP-USDT-SWAP', tf: '1H', candles: base, live: null }, { ids: p.detectors, weights: p.weights, settings: { detectorOpts: p.detectorOpts } });
+  const sig = r.best.signals[0];
+  assert.ok(String(sig.id).startsWith('fib|cluster'));
+  const LOOSE = { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 };
+  const f = buildPlan(r, { ...LOOSE, fibPlan: true });
+  assert.ok(f.ok, f.reason);
+  assert.equal(f.entry, +sig.entry.toPrecision(6)); assert.equal(f.stop, +sig.stop.toPrecision(6));
+  assert.equal(f.tp1, +sig.target.toPrecision(6)); assert.equal(f.tp2, +sig.meta.target2.toPrecision(6));
+  const g = buildPlan(r, LOOSE); // bot yolu değişmedi: bölge kenarı + dar stop
+  assert.ok(!g.ok || g.stop !== f.stop);
+  const w = makeWatch(r);
+  assert.equal(w.stop, f.stop); assert.equal(w.tp1, f.tp1);
+  // Fiyat H1'i geçtiyse ret nedeni H1'i söyler
+  const past = buildPlan({ ...r, price: sig.target + (sig.direction === 'long' ? 1 : -1) * r.atr }, { ...LOOSE, fibPlan: true });
+  assert.equal(past.ok, false); assert.match(past.reason, /H1/);
+});

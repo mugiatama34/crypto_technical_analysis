@@ -280,6 +280,10 @@ half_be çıkış. Üst dilim eğilimine ters işlemde `sizeMult` 0,5 (R ölçek
 - **Fib uyarısı "yaklaşıyor" aşaması (10.11)**: puan eşiği artık yalnız "bölgede" mesajına uygulanır; "📐⏳ yaklaşıyor"
   mesajı fiyat bölgeye `FIB_ALERT_NEAR_ATR` (vars. 4) × ATR içine girdiğinde gelir ve "alarm kur / limit + stop'u önceden gir"
   hatırlatması taşır. (Önceden eşik, uzakta puan düşük olduğu için bu mesajı fiilen kapatıyordu.)
+- **Tarayıcıda fib kesişimi planı (11.11)**: en iyi küme tek bir 0,618×1,272 kesişimiyse takip, check list ve senaryo okları
+  detektörün planını kullanır (giriş = kesişim, stop = detektör stopu, TP1/TP2 = H1/H2; `buildPlan(..., { fibPlan: true })`).
+  Önceden botun genel planı (bölge kenarı + dar stop, TP1 = 1,5R) kullanılıyordu; grafikteki H1 geçilmeden "fiyat TP1 ötesinde"
+  denebiliyordu (BNB 15m 11.11). Bot (Telegram sinyalleri) değişmedi.
 - **API kredi uyarısı** (`bot/agent/manager.js` `apiHealth`/`creditAlert`): Claude çağrısı "credit balance is too low"
   (faturalama/kota) hatası verirse Telegram'a "⚠️ Anthropic API kredisi bitti" (24 saatte en fazla bir); kredi gelip
   ilk başarılı çağrıda "✅ yeniden çalışıyor". Sinyal botu, momentum ve rejim kuralı API kullanmaz, etkilenmez.

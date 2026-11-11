@@ -276,7 +276,7 @@ function withStruct(sigs, r) {
   if (state.settings.showStructure && r.candles?.length) { try { out = [...out, structureOverlay(makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} }))]; } catch { /* yapı çizilemedi */ } }
   // Senaryo okları: botun planı (gevşek eşikle) → ana (yeşil) / alternatif (kırmızı) yol
   if (state.settings.showScenario !== false && r.best && r.candles?.length) {
-    try { const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 }); if (plan.ok) out = [...out, scenarioSignal(plan, r.candles.length - (r.live ? 0 : 1), r.price)]; } catch { /* plan yok */ }
+    try { const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true }); if (plan.ok) out = [...out, scenarioSignal(plan, r.candles.length - (r.live ? 0 : 1), r.price)]; } catch { /* plan yok */ }
   }
   return out;
 }
@@ -350,7 +350,7 @@ async function candlesOf(instId, tf, count) {
 
 /** Satırın check list'i: plan (botun buildPlan'ı, gevşek), BTC 1D, coin'in üst TF'si, FVG/OB/likidite (preset'ten bağımsız). */
 async function checklistFor(r) {
-  const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 });
+  const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true });
   if (!plan.ok) return { error: plan.reason };
   const safe = (p) => p.catch(() => null);
   const up = UP_TF[r.tf];

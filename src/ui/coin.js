@@ -111,7 +111,7 @@ function renderTf() {
   if (S.layers.has('struct')) { try { sigs.push(structureOverlay(makeContext({ candles: x.candles, live: x.live, tf: S.view }))); } catch { /* yapı çizilemedi */ } }
   // Senaryo okları: odaktaki küme için botun planı (gevşek eşik) → ana (yeşil) / alternatif (kırmızı) yol
   if (S.scen && top[S.focus]) {
-    try { const c = top[S.focus], plan = buildPlan({ ...x, best: c, direction: c.direction, score: c.score }, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 }); if (plan.ok) sigs.push(scenarioSignal(plan, x.candles.length - (x.live ? 0 : 1), x.price)); } catch { /* plan yok */ }
+    try { const c = top[S.focus], plan = buildPlan({ ...x, best: c, direction: c.direction, score: c.score }, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true }); if (plan.ok) sigs.push(scenarioSignal(plan, x.candles.length - (x.live ? 0 : 1), x.price)); } catch { /* plan yok */ }
   }
   renderLayers(x, all);
   requestAnimationFrame(() => drawRow($('#chart'), x.candles, x.live, sigs, ref, { clean: true, onLegend: (items) => renderLegend(items, ref) }));

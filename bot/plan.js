@@ -38,7 +38,15 @@ export function mergeRule(tf, direction, rules = {}, shortRule = null, base = {}
 }
 const r4 = (x) => +x.toPrecision(6);
 
-/** Satırdan plan; uygun değilse { ok:false, reason }. */
+/** En iyi küme yalnız bir fib kesişimi (0,618×1,272) sinyalinden oluşuyorsa o sinyal; değilse null. */
+export function fibSignalOf(best, direction) {
+  const sigs = best?.signals || [];
+  if (sigs.length !== 1) return null;
+  const s = sigs[0];
+  return String(s.id || '').startsWith('fib|cluster') && s.direction === direction && Number.isFinite(s.entry) && Number.isFinite(s.stop) && s.zone ? s : null;
+}
+
+/** Satırdan plan; uygun değilse { ok:false, reason }. opts.fibPlan: tek fib kesişimi kümesinde detektörün planı. */
 export function buildPlan(row, opts = {}) {
   const o = { ...PLAN_DEFAULTS, ...opts };
   const b = row.best;
@@ -68,35 +76,53 @@ export function buildPlan(row, opts = {}) {
     if (!o.regime) return { ok: false, reason: 'BTC rejimi bilinmiyor' };
     if ((d === 1) !== (o.regime === 'up')) return { ok: false, reason: 'BTC rejimi ters' };
   }
-  const [lo, hi] = entryZone(b, d, atr, o.maxZoneAtr);
-  // Giriş: bölgenin fiyata yakın kenarı (long: üst kenar, short: alt kenar); fiyat bölgedeyse fiyat
-  const inZone = price >= lo && price <= hi;
-  const entry = inZone ? price : d === 1 ? hi : lo;
-  const dist = d === 1 ? (price - hi) / atr : (lo - price) / atr; // fiyat bölgeye bu kadar uzak (ATR)
-  if (dist > o.maxDistAtr) return { ok: false, reason: `bölge ${dist.toFixed(1)}×ATR uzakta` };
-  if (dist < -0.5) return { ok: false, reason: 'fiyat bölgeyi geçmiş' };
-  // Stop: her zaman bölge kenarının ötesi (kenar − pad). Kümedeki bir geçersizlik seviyesi daha UZAKTA ve
-  // maxRiskAtr içindeyse stop oraya genişler (yapının arkası); bölgenin içine asla çekilmez.
-  let stop = d === 1 ? lo - o.stopPadAtr * atr : hi + o.stopPadAtr * atr;
-  const invs = b.signals.map((s) => s.invalidation).filter((x) => Number.isFinite(x) && d * (entry - x) > 0);
-  for (const inv of invs) {
-    const cand = inv - d * 0.1 * atr;
-    const risk = d * (entry - cand) / atr;
-    if (risk <= o.maxRiskAtr && d * (stop - cand) > 0 && risk <= d * (entry - stop) / atr + 1.5) stop = cand; // en fazla 1,5 ATR daha geniş
+  // Fib kesişimi (fibPlan, tarayıcı): en iyi küme tek bir 0,618×1,272 kesişimiyse detektörün kendi planı —
+  // giriş = kesişim seviyesi, stop = detektör stopu, TP1/TP2 = H1/H2. Grafik, takip ve check list aynı sayıları gösterir.
+  const fib = o.fibPlan ? fibSignalOf(b, row.direction) : null;
+  let lo, hi, inZone, entry, stop, risk, tp1, tp2;
+  if (fib) {
+    [lo, hi] = fib.zone;
+    entry = fib.entry; stop = fib.stop; risk = d * (entry - stop);
+    if (!(risk > 0)) return { ok: false, reason: 'fib stopu girişin yanlış tarafında' };
+    inZone = price >= lo && price <= hi;
+    const dist = d === 1 ? (price - hi) / atr : (lo - price) / atr;
+    if (dist > o.maxDistAtr) return { ok: false, reason: `bölge ${dist.toFixed(1)}×ATR uzakta` };
+    if (d * (price - stop) <= 0) return { ok: false, reason: 'fiyat stopun ötesinde' };
+    if ((risk / entry) * 100 > o.maxRiskPct) return { ok: false, reason: `risk %${((risk / entry) * 100).toFixed(1)} > %${o.maxRiskPct}` };
+    tp1 = Number.isFinite(fib.target) && d * (fib.target - entry) > 0 ? fib.target : entry + d * 1.5 * risk;
+    const t2 = fib.meta?.target2;
+    tp2 = Number.isFinite(t2) && d * (t2 - tp1) > 0 ? t2 : entry + d * Math.max(2, (d * (tp1 - entry)) / risk + 1) * risk;
+  } else {
+    [lo, hi] = entryZone(b, d, atr, o.maxZoneAtr);
+    // Giriş: bölgenin fiyata yakın kenarı (long: üst kenar, short: alt kenar); fiyat bölgedeyse fiyat
+    inZone = price >= lo && price <= hi;
+    entry = inZone ? price : d === 1 ? hi : lo;
+    const dist = d === 1 ? (price - hi) / atr : (lo - price) / atr; // fiyat bölgeye bu kadar uzak (ATR)
+    if (dist > o.maxDistAtr) return { ok: false, reason: `bölge ${dist.toFixed(1)}×ATR uzakta` };
+    if (dist < -0.5) return { ok: false, reason: 'fiyat bölgeyi geçmiş' };
+    // Stop: her zaman bölge kenarının ötesi (kenar − pad). Kümedeki bir geçersizlik seviyesi daha UZAKTA ve
+    // maxRiskAtr içindeyse stop oraya genişler (yapının arkası); bölgenin içine asla çekilmez.
+    stop = d === 1 ? lo - o.stopPadAtr * atr : hi + o.stopPadAtr * atr;
+    const invs = b.signals.map((s) => s.invalidation).filter((x) => Number.isFinite(x) && d * (entry - x) > 0);
+    for (const inv of invs) {
+      const cand = inv - d * 0.1 * atr;
+      const risk = d * (entry - cand) / atr;
+      if (risk <= o.maxRiskAtr && d * (stop - cand) > 0 && risk <= d * (entry - stop) / atr + 1.5) stop = cand; // en fazla 1,5 ATR daha geniş
+    }
+    risk = d * (entry - stop);
+    if (risk < o.minRiskAtr * atr) { stop = entry - d * o.minRiskAtr * atr; risk = o.minRiskAtr * atr; }
+    if (risk > o.maxRiskAtr * atr) return { ok: false, reason: `stop ${(risk / atr).toFixed(1)}×ATR uzakta` };
+    if ((risk / entry) * 100 > o.maxRiskPct) return { ok: false, reason: `risk %${((risk / entry) * 100).toFixed(1)} > %${o.maxRiskPct}` };
+    const R = (p) => (d * (p - entry)) / risk;
+    // Hedefler: kümedeki hedefler + 2R/3R; TP1 ≥ minRR1, TP2 ≥ minRR
+    const tgts = [...new Set(b.signals.map((s) => s.target).filter((x) => Number.isFinite(x) && d * (x - entry) > 0))].sort((a, c) => d * (a - c));
+    tp1 = tgts.find((t) => R(t) >= o.minRR1 && R(t) < o.minRR) ?? entry + d * Math.max(o.minRR1, 1.5) * risk;
+    tp2 = tgts.find((t) => R(t) >= o.minRR && R(t) >= R(tp1) + 0.5) ?? entry + d * Math.max(o.minRR, R(tp1) + 1) * risk;
   }
-  let risk = d * (entry - stop);
-  if (risk < o.minRiskAtr * atr) { stop = entry - d * o.minRiskAtr * atr; risk = o.minRiskAtr * atr; }
-  if (risk > o.maxRiskAtr * atr) return { ok: false, reason: `stop ${(risk / atr).toFixed(1)}×ATR uzakta` };
-  if ((risk / entry) * 100 > o.maxRiskPct) return { ok: false, reason: `risk %${((risk / entry) * 100).toFixed(1)} > %${o.maxRiskPct}` };
-  // Hedefler: kümedeki hedefler + 2R/3R; TP1 ≥ minRR1, TP2 ≥ minRR
-  const tgts = [...new Set(b.signals.map((s) => s.target).filter((x) => Number.isFinite(x) && d * (x - entry) > 0))].sort((a, c) => d * (a - c));
-  const R = (p) => (d * (p - entry)) / risk;
-  const tp1 = tgts.find((t) => R(t) >= o.minRR1 && R(t) < o.minRR) ?? entry + d * Math.max(o.minRR1, 1.5) * risk;
-  const tp2 = tgts.find((t) => R(t) >= o.minRR && R(t) >= R(tp1) + 0.5) ?? entry + d * Math.max(o.minRR, R(tp1) + 1) * risk;
-  const rr1 = R(tp1), rr = R(tp2);
+  const rr1 = (d * (tp1 - entry)) / risk, rr = (d * (tp2 - entry)) / risk;
   if (rr < o.minRR) return { ok: false, reason: `R:R ${rr.toFixed(1)} < ${o.minRR}` };
   // Fiyat zaten TP1'i geçmişse anlamsız
-  if (d * (price - tp1) >= 0) return { ok: false, reason: 'fiyat TP1 ötesinde' };
+  if (d * (price - tp1) >= 0) return { ok: false, reason: fib ? 'fiyat H1 (itki ucu) ötesinde' : 'fiyat TP1 ötesinde' };
   const key = `${row.coin}|${row.tf}|${row.direction}|${Math.round(((lo + hi) / 2) / atr)}`;
   return {
     ok: true,

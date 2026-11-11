@@ -12,7 +12,7 @@ export const WATCH_LABEL = {
 
 /** Taramadaki satırdan takip kaydı; plan kurulamazsa { error }. Eşikler gevşek: kullanıcı ne gördüyse onu dondurur. */
 export function makeWatch(row, now = Date.now()) {
-  const p = buildPlan(row, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99 });
+  const p = buildPlan(row, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true });
   if (!p.ok) return { error: p.reason };
   return {
     id: `${p.key}|${now}`, key: p.key, coin: p.coin, instId: p.instId, tf: p.tf, direction: p.direction, d: p.d,
