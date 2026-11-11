@@ -4,3 +4,6 @@ node_modules/
 backtest/cache/
 docs/backtest/plans.json.gz
 bot/chart-*.svg
+
+# Kişisel işlem verisi (Bybit CSV) — repo herkese açık
+tools/trades/*.csv

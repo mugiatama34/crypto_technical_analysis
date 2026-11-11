@@ -88,8 +88,19 @@ yalnız limit + erken %80 kâr + günlük trend aynı yön (hedge'li doğr. +0,0
 ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe yaramadı; hafta sonu kötü. Momentum
 `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.
 
-## Açık işler (09.11.2026)
-- FIB_ALERT=1 açık (15m/1H/4H, puan > 10, grafik): mesaj sıklığını kontrol et (≈ 8–10/gün bekleniyor).
-- Kullanıcının gerçek işlemleri DURUM.md'ye etiketli kaydedilir (kendi / arkadaş / bot); 30+ olunca istatistik (kazanma, ort. R, long/short, TF) ve backtest'le kıyas.
+## Açık işler (11.11.2026)
+- **Sıradaki (kullanıcı onayladı): Hyperliquid başarılı trader incelemesi.** Ortama `api.hyperliquid.xyz` izni iste
+  (update_environment, Default; şu an izinli: data.binance.vision). Lider tablosundan 20–30 cüzdan (≥ 6 ay, yüzlerce
+  işlem, kârlı, makul düşüş; tek işlemle zirvedekiler hariç) → dolumlar → kullanıcının ölçüldüğü metrikler (işlem başı risk
+  tutarlılığı, kazanç/kayıp R, tutma süresi, erken kesme, long/short ve BTC yönü, sıklık, kaldıraç) → kullanıcıyla yan yana.
+  Sınır: "neden girdi" görünmez; giriş anı mumlarla kaba sınıflanır (trend/geri çekilme/kırılım). X/Grok önerilmedi (beyan).
+- **Deney B sürüyor (gerçek işlemler, 30 işlem):** risk 1 $ (short/ilk işlem 0,5 $), stop ≥ %1, TP1 1,5R'de %50 + SL girişe,
+  kaldıraç ≤ ⌊100/(stop%×1,5)⌋ ve tasfiye stopun ötesinde; ikinci kol iz süren stop (Retracement 1R, Activation TP1). Bot
+  sinyallerinde botun planı (erken %1,2'de %80). Her kısmi TP'den sonra SL ve trailing stop elle kontrol (Bybit ikisini de
+  korumadı: 10.11 SAND/KAITO SL, 11.11 BCH trailing kayboldu). Kullanıcı CSV'leri 10.11'den itibaren gönderecek →
+  `tools/trades/rtable.mjs` + `replay.mjs`, önceki 65 pozisyonla tekrarları ayıkla, tablo (etiket kendi/arkadaş/bot/izlenen).
+- Deney C: BTC günlük yönü etiketi (history.json btcRead) — ilk 61'de "BTC'ye ters" +0,29R (n 14), gürültü olabilir.
+- FIB_ALERT=1 açık; 10.11'den beri "yaklaşıyor" aşaması 4 ATR'de (puan eşiği yalnız "bölgede"); mesaj sıklığını say.
+- Tarayıcı takip listesi (kullanıcının "izlenen" kâğıt işlemleri, localStorage): ara sıra "Dışa aktar" ile al; kapananları silme.
 - QML / "kesişim + QML" ölçümü **askıda** (kullanıcı açmadıkça başlama).
 - Pazartesi haftalık sinyal raporu (WEEKLY_REPORT) birlikte okunur; P5 canlı 4H düzeninde n ≥ 100 beklenir.

@@ -539,3 +539,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   tutulur (stop yok, fonlama işler); her yeniden dengelemede ve bir alt stop olduğunda hedefe çekilir. `MOMENTUM_RANK=rel`
   ile birlikte laboratuvarda hedge'li kesitlerin tamamında pozitif kalan tek aile (`xsmom_l28_k5_short_rel`) canlıya
   taşınmış olur. Sayfada "alt net maruziyet" ve hedge satırı görünür.
+- **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
+  ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır
+  (gerçek / plana sadakat / 1,5R kuralı / ara TP / iz süren stop). CSV'ler kişisel veridir, repoya konmaz (`.gitignore`).
+
