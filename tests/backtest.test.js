@@ -193,3 +193,12 @@ test('engine fillBarTp: dolum mumunda hedef — count (iyimser) / skip / lower (
   // dolum alt mumunda stop → stop
   assert.equal(fillOrder(plan, 1, 1 * H4, H4, [c1(4, 101, 101, 96.5, 98)], plan.tp1), 'stop');
 });
+
+import { waitBucket } from '../backtest/sweep.mjs';
+test('waitBucket: 4H dolum gecikmesi saat kovası; dolmayanlar hariç', () => {
+  assert.equal(waitBucket({ tf: '4H', waitBars: 1, outcome: 'stop' }), 'a ≤4 saat');
+  assert.equal(waitBucket({ tf: '4H', waitBars: 5, outcome: 'tp2' }), 'c 12–24 saat');
+  assert.equal(waitBucket({ tf: '4H', waitBars: 12, outcome: 'be' }), 'd 24–48 saat');
+  assert.equal(waitBucket({ tf: '4H', waitBars: 18, outcome: 'stop' }), 'e 48–72 saat');
+  assert.equal(waitBucket({ tf: '4H', waitBars: 3, outcome: 'expired' }), null);
+});

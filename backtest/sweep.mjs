@@ -202,6 +202,12 @@ const SINGLE = [
 /** Temel kırılımı: üst TF eğilimi işlem yönüne göre. */
 const htfBucket = (t) => (t.htf == null ? 'üst TF: veri yok' : t.htf === 'flat' ? 'üst TF: yatay' : (t.htf === 'up') === (t.d === 1) ? 'üst TF: aynı yön' : 'üst TF: ters');
 /** TP1'e ulaşma süresi kovası (mum; TF × kova). */
+/** Dolum gecikmesi (sinyal kararından dolum mumuna, saat; üst sınır): yalnız dolan işlemler. Bekleme süresi çalışması (11.11). */
+export const waitBucket = (t) => {
+  if (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' || t.waitBars == null) return null;
+  const h = t.waitBars * (TIMEFRAMES[t.tf].ms / 3600e3);
+  return h <= 4 ? 'a ≤4 saat' : h <= 12 ? 'b 4–12 saat' : h <= 24 ? 'c 12–24 saat' : h <= 48 ? 'd 24–48 saat' : 'e 48–72 saat';
+};
 const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
 
 async function main() {
@@ -239,7 +245,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count' };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
     const LOWER = { '4H': '1H', '1H': '15m' };
     const trades = [];
     for (const [k, list] of groups) {
@@ -264,6 +270,7 @@ async function main() {
       byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
       byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
       byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
+      byWait: { train: by(tr, waitBucket), valid: by(va, waitBucket) },
       stack: { train: stackOf(tr), valid: stackOf(va) },
       ...hedgedOfTrades(tr, va) };
   };
@@ -274,7 +281,7 @@ async function main() {
     const ht = h(tr), hv = h(va);
     const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
     if (!ht.length && !hv.length) return {};
-    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
+    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
   };
 
   const results = [];
@@ -306,6 +313,8 @@ async function main() {
       ['erken %80: 1R', { tp1R: 1, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 1,5R', { tp1R: 1.5, tp1Portion: 0.8, keepTp2: true }],
       ['erken %50: 1R', { tp1R: 1, tp1Portion: 0.5, keepTp2: true }], ['standart: TP1 yarı (plan), başabaş', {}]]
       .map(([name, x]) => [guard, wk, lim, only4h, hw, { name: `${name} · sıra 1H`, fillBarTp: 'lower', ...x }]),
+    // Bekleme süresi çalışması (11.11): canlı 4H düzeni, gerçek sıra (1H); limit 24 / 48 / 72 saat açık kalırsa dolum gecikmesine göre R
+    ...[24, 48, 72].map((hrs) => [...live4h, { name: `bekleme ${hrs} saat · sıra 1H`, fillBarTp: 'lower', expireHours: hrs }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
   ];
   for (const list of CAPS) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }
@@ -323,7 +332,7 @@ function writeOut(results, all, meta, split, t0) {
   const base = results[0];
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
-  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; }
+  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; if (!/bekleme/.test(r.name)) { delete r.byWait; delete r.hedgedByWait; } }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, OUTFILE), JSON.stringify(out));
