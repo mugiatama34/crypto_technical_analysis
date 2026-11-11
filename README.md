@@ -548,4 +548,8 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   kayıp birimiyle R, kayıp kuyruğu, tutma süresi, kaldıraç (pozisyon / hesap), long/short, BTC günlük yönü (EMA20) ve
   4H giriş sınıfını (trend / geri çekilme / kırılım / ters, EMA20/50 + 20 mum aralığı) hesaplar. Bulut oturumunda Node
   için `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt` gerekir. Ham veri repoya konmaz.
+- **Ani hareket (spike) ölçümü (`tools/spike/`, 11.11)**: `run.mjs <klasör>` Binance USDT-M 15m aylık CSV'lerinden (BTC/ETH/SOL)
+  gövdesi ≥ k×ATR14 mumları bulur (15m ve 1H, k = 2/3/4); sonraki 1–96 mumda yönlü getiri (ATR), devam oranı, gövdenin
+  %50'sinin geri alınması ve "önce yeni uç" oranı; günlük EMA20 trendine göre ayrım; bekle-w-mum ters (fade) / devam işlemi
+  (stop payı, hedef m×R, 64 mum, maliyetli/maliyetsiz, eğitim/doğrulama 2/3). Saf fonksiyonlar `spike.js` (test: `tests/spike.test.js`).
 
