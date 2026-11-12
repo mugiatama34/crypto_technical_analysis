@@ -14,7 +14,7 @@
   Ekran görüntüsü yorumu: kullanıcının kendi Anthropic API anahtarı (yalnızca bu tarayıcının localStorage'ında).
   ?fixture=1 → OKX yerine sentetik veri (geliştirme/test).
 -->
-<link rel="stylesheet" href="src/ui/styles.css?v=1">
+<link rel="stylesheet" href="src/ui/styles.css?v=2">
 </head>
 <body>
 <div class="wrap">
@@ -71,6 +71,22 @@
         <span class="note">Giriş/stop/hedefler takibe alındığı anda dondurulur; bot kurallarıyla izlenir (bekleyen emir 24 saat). ☁ Bulut kaydı açıksa liste tüm cihazlarında aynıdır; kapalıysa yalnız bu tarayıcıda. Sayfa açıkken 5 dakikada bir güncellenir.</span>
       </div>
       <div id="watchCloud" style="margin-bottom:10px"></div>
+      <details class="manual" style="margin-bottom:10px"><summary>＋ Elle işlem ekle (arkadaşın / kendi PA işlemin)</summary>
+        <div class="manual-grid">
+          <label>Coin <input id="mCoin" placeholder="WLD" autocomplete="off"></label>
+          <label>TF <select id="mTf"><option>15m</option><option selected>1H</option><option>4H</option><option>1D</option></select></label>
+          <label>Yön <select id="mDir"><option value="long">Long</option><option value="short">Short</option></select></label>
+          <label>Etiket <select id="mTag"><option>arkadaş</option><option>kendi</option><option>izlenen</option><option>bot</option></select></label>
+          <label>Giriş <input id="mEntry" inputmode="decimal"></label>
+          <label>Stop <input id="mStop" inputmode="decimal"></label>
+          <label>TP1 <input id="mTp1" inputmode="decimal"></label>
+          <label>TP2 <input id="mTp2" inputmode="decimal" placeholder="boş = TP1"></label>
+          <label>Kurulum zamanı <input id="mTime" type="datetime-local"></label>
+          <label>Limit geçerlilik (saat) <input id="mExp" inputmode="numeric" value="24"></label>
+          <label class="wide">Not <input id="mNote" placeholder="ör. range dibi + likidite süpürme"></label>
+        </div>
+        <div class="set-actions"><button type="button" class="btn" id="mAdd">Takibe ekle</button><span class="note" id="mMsg">Fiyatlar OKX vadeli ile izlenir (Binance/Bybit'ten birkaç pip farklı olabilir). Geçmiş tarihli kurulum o andan sonraki mumlarla değerlendirilir.</span></div>
+      </details>
       <div id="watchList" class="rows"></div>
     </div>
   </details>

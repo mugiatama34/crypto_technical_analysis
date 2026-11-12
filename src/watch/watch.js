@@ -23,15 +23,41 @@ export function makeWatch(row, now = Date.now()) {
   };
 }
 
+export const WATCH_TAGS = ['kendi', 'arkadaş', 'bot', 'izlenen'];
+const num = (v) => (typeof v === 'number' ? v : +String(v ?? '').trim().replace(/\s/g, '').replace(',', '.'));
+/**
+ * Elle takip kaydı (taramada olmayan işlem: arkadaşın, kendi PA işlemin…): giriş/stop/TP verilir, bot kurallarıyla izlenir.
+ * tp2 boşsa tp1 (tek hedef). sentAt: kurulumun zamanı (geçmiş olabilir: o andan sonraki mumlar takip edilir).
+ * expireHours: limit emrin geçerlilik süresi (vars. 24, bot ile aynı). → kayıt ya da { error }.
+ */
+export function makeManualWatch(f, now = Date.now()) {
+  const coin = String(f.coin || '').trim().toUpperCase().replace(/[-/]?USDT(\.P)?$|-USDT-SWAP$/, '');
+  const tf = f.tf || '1H', direction = f.direction === 'short' ? 'short' : 'long', d = direction === 'long' ? 1 : -1;
+  const entry = num(f.entry), stop = num(f.stop), tp1 = num(f.tp1), tp2 = f.tp2 === '' || f.tp2 == null ? tp1 : num(f.tp2);
+  if (!/^[A-Z0-9]{1,15}$/.test(coin)) return { error: 'Coin adı geçersiz (ör. WLD)' };
+  if (![entry, stop, tp1, tp2].every((x) => Number.isFinite(x) && x > 0)) return { error: 'Giriş, stop ve TP sayı olmalı' };
+  if (d * (entry - stop) <= 0) return { error: `Stop ${direction === 'long' ? 'girişin altında' : 'girişin üstünde'} olmalı` };
+  if (d * (tp1 - entry) <= 0 || d * (tp2 - tp1) < 0) return { error: 'Hedefler kâr yönünde ve TP2 ≥ TP1 olmalı' };
+  const sentAt = Number.isFinite(f.sentAt) ? Math.min(f.sentAt, now) : now, risk = d * (entry - stop);
+  const label = WATCH_TAGS.includes(f.label) ? f.label : 'kendi';
+  return {
+    id: `${coin}|${tf}|${direction}|elle|${sentAt}`, key: `${coin}|${tf}|${direction}|elle`, coin, instId: `${coin}-USDT-SWAP`, tf, direction, d,
+    entry, stop, tp1, tp2, rr1: +((d * (tp1 - entry)) / risk).toFixed(2), rr: +((d * (tp2 - entry)) / risk).toFixed(2), zone: [entry, entry], atr: risk, score: null,
+    priceAtAdd: null, sentAt, addedAt: now, status: 'waiting', activeAt: null, signals: [`elle · ${label}`], label, manual: true,
+    expireHours: Number.isFinite(num(f.expireHours)) && num(f.expireHours) > 0 ? num(f.expireHours) : PLAN_DEFAULTS.expireHours,
+    note: String(f.note || ''), updatedAt: now, lastPrice: null,
+  };
+}
+
 /** Güncelle: candles (kapanmış + canlı) ile durum; değişen olaylar döner. Kapalı kayıtlar değişmez. */
 export function updateWatch(item, candles, now = Date.now()) {
   if (CLOSED.has(item.status) || !candles?.length) return { item, events: [] };
-  const r = trackPlan(item, candles, now, { expireHours: PLAN_DEFAULTS.expireHours });
+  const r = trackPlan(item, candles, now, { expireHours: item.expireHours ?? PLAN_DEFAULTS.expireHours });
   const next = { ...item, ...r.patch, status: r.status, lastPrice: candles[candles.length - 1].close, updatedAt: now };
   for (const ev of r.events) {
     if (ev === 'active') next.activeAt = r.patch.filledAt ?? now;
     else if (ev === 'tp1') next.tp1At = now;
-    else next.closedAt = now;
+    else next.closedAt = r.patch.closedBar ?? now; // geçmiş tarihli kayıtta gerçek kapanış mumu
   }
   return { item: next, events: r.events };
 }

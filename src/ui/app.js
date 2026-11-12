@@ -7,7 +7,7 @@ import { runDetectors } from '../scan/registry.js';
 import { UP_TF } from '../scan/regime.js';
 import { buildPlan } from '../../bot/plan.js';
 import { scenarioSignal } from '../scan/scenario.js';
-import { makeWatch, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL, syncWatchCloud, onWatchCloud } from '../watch/watch.js';
+import { makeWatch, makeManualWatch, WATCH_TAGS, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL, syncWatchCloud, onWatchCloud } from '../watch/watch.js';
 import { mountCloudForm } from '../sync/cloud-ui.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
@@ -395,8 +395,11 @@ async function refreshWatch() {
   for (const key of new Set(open.map((w) => `${w.instId}|${w.tf}`))) {
     const [instId, tf] = key.split('|');
     let data = state.cache.get(key);
-    if (!data || now - data.at > TIMEFRAMES[tf].ms / 4) {
-      try { const r = await provider.candles(instId, tf, barsFor(tf)); data = { candles: r.candles, live: r.live, at: now }; state.cache.set(key, data); } catch { continue; }
+    // Geçmiş tarihli (elle) kayıtlar için kurulumdan bu yana yetecek kadar mum (en fazla ~1400)
+    const since = Math.min(...open.filter((w) => `${w.instId}|${w.tf}` === key).map((w) => w.sentAt));
+    const need = Math.min(1400, Math.max(barsFor(tf), Math.ceil((now - since) / TIMEFRAMES[tf].ms) + 5));
+    if (!data || now - data.at > TIMEFRAMES[tf].ms / 4 || (data.candles[0]?.time ?? Infinity) > since) {
+      try { const r = await provider.candles(instId, tf, need); data = { candles: r.candles, live: r.live, at: now }; state.cache.set(key, data); } catch { continue; }
     }
     const cs = data.live ? [...data.candles, data.live] : data.candles;
     state.watch = state.watch.map((w) => {
@@ -422,7 +425,7 @@ function renderWatch() {
     const st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
     return `<article class="watch ${isOpen(w) ? '' : 'closed'}${state.selected === `watch|${w.id}` ? ' sel' : ''}" data-id="${esc(w.id)}" role="button" tabindex="0" title="Ayrıntı ve grafik için dokun">
       <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
-        <span class="badge">${esc(st)}</span>${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
+        <span class="badge">${esc(st)}</span>${w.label ? `<span class="badge tag">${esc(w.label)}</span>` : ''}${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
         <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
       <div class="row-grid">
         <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>
@@ -506,6 +509,17 @@ function bindWatch() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(state.watch, null, 1)], { type: 'application/json' }));
     a.download = `takip-listesi-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+  });
+  // ＋ Elle işlem ekle (arkadaşın / kendi PA işlemin): bot kurallarıyla izlenir, etiketli
+  $('#mTime').value = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
+  $('#mAdd').addEventListener('click', () => {
+    const v = (id) => $(id).value;
+    const t = Date.parse(v('#mTime')); // datetime-local = cihazın yerel saati
+    const w = makeManualWatch({ coin: v('#mCoin'), tf: v('#mTf'), direction: v('#mDir'), entry: v('#mEntry'), stop: v('#mStop'), tp1: v('#mTp1'), tp2: v('#mTp2'), label: v('#mTag'), expireHours: v('#mExp'), note: v('#mNote'), sentAt: Number.isFinite(t) ? t : Date.now() });
+    if (w.error) { $('#mMsg').textContent = w.error; return; }
+    state.watch = saveWatch([w, ...state.watch]); $('#mMsg').textContent = `${w.coin} ${w.tf} ${w.direction} eklendi (${w.rr1}R / ${w.rr}R).`;
+    for (const id of ['#mEntry', '#mStop', '#mTp1', '#mTp2', '#mNote']) $(id).value = '';
+    renderWatch(); refreshWatch();
   });
   $('#watchImport').addEventListener('change', async (e) => {
     const f = e.target.files?.[0]; if (!f) return;

@@ -42,3 +42,18 @@ test('diffWatch: silinen id ve not değişikliğinde updatedAt güncellenir', ()
   assert.deepEqual(removed, ['b']); assert.equal(list[0].updatedAt, 99);
   assert.equal(diffWatch(prev, prev, 99).list[0].updatedAt, 1);
 });
+
+import { makeManualWatch } from '../src/watch/watch.js';
+test('makeManualWatch: elle kayıt, virgüllü sayı, doğrulama, R:R', () => {
+  const w = makeManualWatch({ coin: 'wldusdt', tf: '15m', direction: 'short', entry: '0,3153', stop: '0.3194', tp1: '0.3043', tp2: '', label: 'arkadaş', sentAt: 1000 }, 5000);
+  assert.equal(w.coin, 'WLD'); assert.equal(w.instId, 'WLD-USDT-SWAP'); assert.equal(w.tp2, 0.3043); assert.equal(w.rr, 2.68); assert.equal(w.label, 'arkadaş'); assert.equal(w.sentAt, 1000);
+  assert.match(makeManualWatch({ coin: 'WLD', direction: 'short', entry: 1, stop: 0.9, tp1: 0.8 }).error, /Stop/);
+  assert.match(makeManualWatch({ coin: 'WLD', direction: 'long', entry: 1, stop: 0.9, tp1: 0.95 }).error, /Hedef/);
+});
+test('elle kayıt geçmiş mumlarla izlenir: dolum → hedef, kapanış zamanı gerçek mum', () => {
+  const H = 3600e3, t0 = Date.UTC(2026, 10, 10, 8);
+  const w = makeManualWatch({ coin: 'ICP', tf: '1H', direction: 'long', entry: 2.363, stop: 2.294, tp1: 2.456, tp2: 2.505, label: 'arkadaş', sentAt: t0 }, t0 + 30 * H);
+  const c = (i, lo, hi) => ({ time: t0 + i * H, open: 2.4, high: hi, low: lo, close: 2.4 });
+  const { item } = updateWatch(w, [c(1, 2.37, 2.40), c(2, 2.34, 2.39), c(3, 2.38, 2.47), c(4, 2.45, 2.52)], t0 + 30 * H);
+  assert.equal(item.status, 'done'); assert.equal(item.closedAt, t0 + 4 * H); assert.ok(watchR(item) > 1.5);
+});

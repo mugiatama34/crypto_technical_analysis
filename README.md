@@ -547,6 +547,10 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   `1000PEPEUSDT`, `SHIB1000USDT`… olarak işlem görür. Telegram sinyal/takip/fib mesajlarına ve sinyal sayfası kartlarına
   "Bybit <sembol> (fiyat ×1000)" satırı eklenir: giriş/stop/erken/TP'ler OKX ham fiyatından 6 anlamlı haneyle (yuvarlanmış metinden
   değil) ve adet ÷ çarpan. Liste elle tutulur; düzeltme/ekleme Variables `BYBIT_MULT` (JSON, ör. `{"PEPE":{"sym":"1000PEPEUSDT","mult":1000}}`).
+- **Elle takip kaydı (`index.html` → ★ Takip listem → ＋ Elle işlem ekle, 12.11)**: taramada olmayan işlemler (arkadaşın PA
+  işlemleri, kendi işlemin) coin/TF/yön/giriş/stop/TP1/TP2 + etiket (arkadaş/kendi/izlenen/bot) + kurulum zamanı (geçmiş olabilir) +
+  limit geçerliliğiyle eklenir; bot kurallarıyla (`trackPlan`) izlenir, kurulumdan bu yana yeterli mum indirilir, kapanış zamanı
+  gerçek mum. Virgüllü sayı kabul eder. `makeManualWatch` (test: `tests/watch.test.js`). Bulut açıksa tüm cihazlarda.
 - **☁ Bulut kaydı (`src/sync/`, 11.11)**: takip listesi (`watch.json`) ve gerçek işlemler (`trades.json`) kullanıcının **özel**
   GitHub deposunda (REST contents API) → telefon / iş / ev bilgisayarında aynı. Ayar (depo + ince taneli token, yalnız o depo
   Contents RW) her cihazın localStorage'ında; herkese açık depo reddedilir. Birleştirme id başına son `updatedAt`, silinenler
