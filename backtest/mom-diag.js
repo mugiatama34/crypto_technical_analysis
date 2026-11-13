@@ -6,6 +6,7 @@ import * as I from '../src/data/indicators.js';
 import { XS_DEFAULTS, XS_STRATEGIES, momentumAt, selectAt, quoteVolOf, slotsOf } from './lab/xsmom.js';
 import { blockCi, seedOf, sampleK } from './diag.js';
 import { mulberry32, CI_DEFAULTS } from './report.js';
+import { replayReport } from './mom-replay.js';
 
 export const DAY = 86400e3, WEEK = 7 * DAY, HOUR = 3600e3;
 export const DEV_START = Date.UTC(2024, 10, 24); // geliştirme dilimi başı (pazar)
@@ -450,7 +451,7 @@ export function liveVsBtWeekly(mom, btWeekly) {
  * lockedTimes: Map coin → zaman damgaları (kasa varlık sayımı), live: momentum.json | null, btcHourly: 1H BTC mumları | null,
  * funding: Map coin → rows | null, now. → { meta, m0a, m0b, m0c, m0d }
  */
-export function runAll({ series, lockedTimes = new Map(), live = null, btcHourly = null, funding = new Map(), now, pool = 150, fee = 0.05, slip = 0.05, fundingPct8h = ASSUMED_FUNDING_PCT8H, draws = 1000, ci = {}, meta = {} }) {
+export function runAll({ series, lockedTimes = new Map(), live = null, btcHourly = null, funding = new Map(), replay = null, now, pool = 150, fee = 0.05, slip = 0.05, fundingPct8h = ASSUMED_FUNDING_PCT8H, draws = 1000, ci = {}, meta = {} }) {
   for (const s of series) if (s.candles.length && s.candles[0].time < DEV_START) throw new Error(`kasa verisi girdi: ${s.coin}`);
   const lp = live?.params || {};
   const livePool = lp.universe || 80, pitN = lp.pitN || 50;
@@ -511,6 +512,8 @@ export function runAll({ series, lockedTimes = new Map(), live = null, btcHourly
       hedge: { snapshots: selections.map((s) => { const sn = shortNotionalAt(s.time); return { time: s.time, equity: s.equity, hedgeNotional: s.hedgeNotional, shortNotionalEst: rd(sn, 2), hedgeToShort: s.hedgeNotional && sn ? rd(s.hedgeNotional / sn, 2) : null, shortToEquity: s.equity ? rd(sn / s.equity, 3) : null }; }), btSizing: 'eşit nominal: short nominal / özsermaye = n_short / 5, hedge = short nominali' },
       decomposition: dec, realFunding: liveRealFunding(legs, funding),
       weekly: liveVsBtWeekly(live, (rep._weekly || []).filter((x) => x.start >= liveFrom - WEEK)),
+      // Yeniden oynatma (backtest/mom-replay.js): canlı kodun fonksiyonları, 15m adım, canlının listeleri; replay = { m15, d1 } (Map coin → mumlar)
+      replay: replay && replay.m15?.size && replay.d1?.size ? { def: 'bot/momentum/portfolio.js fonksiyonları (import), 15 dk adım (canlı başlangıcından), fiyat = kapanmış son 15m kapanışı, günlük = son 69 kapanmış 1D + bugünün 15m mumlarından canlı mum, seçim = canlı rebalances listeleri (zorlanmış), hedge canlı hedge bacağının girişinden itibaren; canlı eğri noktası saat içindeki son turun değeri sayılır', ...replayReport(live, replay.m15, replay.d1) } : { available: false, reason: '15m / 1D veri yok' },
     };
   }
 
