@@ -358,6 +358,32 @@ export function liveVariants() {
 /** Yön kırılımı: { long: { train, valid }, short: { train, valid } } (t.d). */
 export const dirSplit = (tr, va) => Object.fromEntries([['long', 1], ['short', -1]].map(([k, d]) => [k, { train: stats(tr.filter((t) => t.d === d)), valid: stats(va.filter((t) => t.d === d)) }]));
 
+/**
+ * Üst TF eğilim serileri (coin'in kendi eğilimi): 1H/4H yüklü seriden ya da önbellekten; 1D ağdan (getHistoryCached), yoksa o TF
+ * filtreden muaf. → Map('coin|upTf' → { hs, ms }). (13.11: main'den çıkarıldı, diag.mjs de kullanır; davranış aynı.)
+ */
+export async function loadHtf(all, times, series) {
+  const htf = new Map();
+  const tMin = times[0], tMax = times[times.length - 1];
+  const need = new Set(all.map((t) => `${t.coin}|${UP_TF[t.tf]}`).filter((k) => k.split('|')[1]));
+  let miss = 0;
+  for (const k of need) {
+    const [coin, up] = k.split('|');
+    let cs = series.get(k)?.candles || null;
+    if (!cs) {
+      if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); cs = (await fixtureProvider.candles(`${coin}-USDT-SWAP`, up, 400)).candles; }
+      else if (up === '1D') { try { cs = await getHistoryCached(`${coin}-USDT-SWAP`, '1D', tMin - 120 * 86400e3, tMax + 86400e3, { cacheDir: CACHE }); } catch (e) { miss++; } }
+      else { const s = await loadSeries(coin, up, `${coin}-USDT-SWAP`); cs = s?.candles || null; }
+    }
+    if (cs && cs.length) htf.set(k, { hs: horizonSeries(cs), ms: TIMEFRAMES[up].ms }); else miss++;
+  }
+  log(`Üst TF serisi: ${htf.size} yüklendi, ${miss} eksik`);
+  return htf;
+}
+
+/** Varyant → simulateTrade seçenekleri (sweep evaluate ile aynı; 13.11: diag.mjs de kullanır). */
+export const optsOf = (v, meta = {}) => ({ ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, knifeBar: v.knifeBar || BT_DEFAULTS.knifeBar, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours });
+
 async function main() {
   const t0 = Date.now();
   const { all, meta, times, split } = loadPlans(IN);
@@ -368,23 +394,7 @@ async function main() {
   const series = new Map();
   for (const k of groups.keys()) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); else log(`  ${k}: mum yok, atlandı`); }
   // Üst TF serileri (coin'in kendi eğilimi): 1H/4H önbellekten; 1D ağdan (getHistoryCached), yoksa o TF filtreden muaf
-  const htf = new Map();
-  {
-    const tMin = times[0], tMax = times[times.length - 1];
-    const need = new Set(all.map((t) => `${t.coin}|${UP_TF[t.tf]}`).filter((k) => k.split('|')[1]));
-    let miss = 0;
-    for (const k of need) {
-      const [coin, up] = k.split('|');
-      let cs = series.get(k)?.candles || null;
-      if (!cs) {
-        if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); cs = (await fixtureProvider.candles(`${coin}-USDT-SWAP`, up, 400)).candles; }
-        else if (up === '1D') { try { cs = await getHistoryCached(`${coin}-USDT-SWAP`, '1D', tMin - 120 * 86400e3, tMax + 86400e3, { cacheDir: CACHE }); } catch (e) { miss++; } }
-        else { const s = await loadSeries(coin, up, `${coin}-USDT-SWAP`); cs = s?.candles || null; }
-      }
-      if (cs && cs.length) htf.set(k, { hs: horizonSeries(cs), ms: TIMEFRAMES[up].ms }); else miss++;
-    }
-    log(`Üst TF serisi: ${htf.size} yüklendi, ${miss} eksik`);
-  }
+  const htf = await loadHtf(all, times, series);
   // BTC serileri (hedge'li R için; TF başına)
   const btcByTf = new Map();
   for (const tf of new Set(all.map((t) => t.tf))) { const b = series.get(`BTC|${tf}`) || await loadSeries('BTC', tf, 'BTC-USDT-SWAP'); if (b) btcByTf.set(tf, b.candles); }
@@ -405,7 +415,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, knifeBar: v.knifeBar || BT_DEFAULTS.knifeBar, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
+    const o = optsOf(v, meta);
     const LOWER = { '4H': '1H', '1H': '15m' };
     // Seçim. Canlıya eşit (v.live): bekleme süresi atlanan planlar da adaydır; filtreler → canlı kural → canlı bekleme süresi.
     // Veri yoksa (alan/seri) plan elenir ve liveInfo.unknown'da sayılır (sessiz geçirme/eleme yok).
