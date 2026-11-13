@@ -53,3 +53,23 @@ kullanılmaz. Değerlendirme: ~13.12.2026 (n ≥ 100 dolum), short tarafının c
   yalnız eğilimden (momentum) gelebilir. D1 kararı (verdict) değişmedi: A ve B'ye göre. A-eğilim yorumu: sinyal A'yı geçip A-eğilimi
   geçemiyorsa bilgi eğilim filtresindedir, yapı sinyalinde değil.
 - 13.11.2026: canlı gölge etiketlere `fundingIntH` (fonlama dönemi, saat) eklendi; OKX'te dönem coin'e göre 1 / 4 / 8 saat.
+- 13.11.2026 **Aşama 0 sonucu (koşu 43482081412, `docs/backtest/diag.json`; evren 901 / 934 sinyal, eğitim / doğrulama):**
+  - **D1 karar: "yön bilgisi yok"** (plasebo A ve B, tümü / long / short). Sinyalin e-oranı eğitimde 1,00–1,04 (yazı-tura), doğrulamada
+    1,12–1,20 ama aynı andaki rastgele coin de 1,16–1,35 (piyasa rüzgârı). Plasebo B farkı (ATR): eğitim +0,08 / **+0,18 [0,04; 0,34]** /
+    **+0,27 [0,05; 0,52]** (6 / 12 / 24 mum), doğrulama +0,02 / −0,00 / −0,28 → tekrarlanmadı. Short: eğitim 24 mum +0,40 [0,15; 0,65],
+    doğrulama 6 mum +0,18 [0,04; 0,33] → ortak ufuk yok, kural gereği "yok"; coin seçimi (H1) için zayıf ipucu.
+  - **Plasebo A yanlı çıktı (tasarım hatası, sonuçtan sonra fark edildi):** yön sinyal anındaki eğilimden alınıp ÖNCEKİ anlara
+    uygulanınca, eğilimi oluşturan yükselişin içinden örnek çekiliyor → plasebo getirisi yapay yüksek (+0,2…+0,6 ATR, e 1,2–1,5).
+    Bu yüzden A'ya göre farkların eksi çıkması anlam taşımaz. Karar değişmiyor (zaten "yok"). Adil zamanlama ölçütü A-eğilim: fark
+    eğitim −0,07 / −0,02 / −0,07, doğrulama +0,08 / +0,08 / +0,03, tüm aralıklar sıfırı içeriyor → **sinyalin zamanlaması, aynı
+    eğilimde rastgele bir andan farksız.**
+  - **D2:** "kaçan" planlar piyasa girişiyle +0,25…+0,27R (tanım gereği kazanan; tek başına anlam taşımaz). Adil karşılaştırma sinyal
+    başına: yalnız limit −0,053 / +0,005 · hepsi piyasa −0,053 / −0,006 · yarı-yarı −0,053 / −0,001 → **giriş biçimi fark etmiyor**
+    (limitin iyi fiyatı = kaçırdığı kazananlar). **H2 listeden çıkar.**
+  - **D3 karar: "H6 girmez".** Stop sonrası 24 mumda özgün TP1'e ulaşma: eğitim %16 (taban %35, fark −18,7 puan), doğrulama %41 (taban
+    %40, +1,8 puan). Stop sonrası aşım medyanı 1,2–1,5R → stoplar "avlanmıyor", hareket sürüyor.
+  - **D4:** maliyet 0,046R / işlem (iki dilimde aynı); brüt −0,045 / +0,054R. Stop mesafesi dilimleri dilimler arası TERS (eğitimde dar
+    stop iyi, doğrulamada geniş stop iyi) → stop mesafesi alt sınırı desteklenmiyor. **H5 yalnız "limit emir komisyon modeli"ne iner**
+    (beklenen ≈ +0,02R).
+  - **Aşama 1 listesi (güncel):** H1 (BTC'ye göre güç), H3 (fonlama + açık pozisyon; canlı gölge etiket), H4 (portföy sınırı), H5
+    (yalnız komisyon modeli). H2 ve H6 düştü. Kullanıcı onayı bekleniyor.
