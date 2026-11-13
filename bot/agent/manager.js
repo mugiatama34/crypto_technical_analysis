@@ -136,6 +136,7 @@ export function decidePrompt(acct, profile, candidates, stats, market = {}) {
     market: { btcRegimeDaily: market.regime === 'up' ? 'yükseliş' : market.regime === 'down' ? 'düşüş' : 'bilinmiyor', btcPrice: market.btcPrice ?? null, btcRead: market.read ? { daily: market.read.daily, h4: market.read.h4, h1: market.read.h1, adx4h: market.read.adx4h, adx1h: market.read.adx1h, ret4h: market.read.ret4h, ret24h: market.read.ret24h, summary: market.read.summary } : null },
     dirStats: dirStatsOf(acct),
     ...(market.vsSignal ? { vsSignal: market.vsSignal } : {}),
+    ...(market.avoidOverride?.length ? { systemNote: `params.avoidTfs içindeki ${market.avoidOverride.join(', ')} yasağı uygulanmadı: sistemde açık olan tek zaman dilimi bu; yasak tüm adayları eliyordu. Bu zaman dilimindeki adayları normal ölçütlerinle değerlendir (istersen hepsini geçebilirsin); yasağı sürdürmek yerine dersini giriş koşulu olarak yaz.` } : {}),
     account: { equity: acct.equity, cash: acct.cash, startEquity: acct.startEquity, returnPct: stats.returnPct, dayHalted: acct.day.halted, openPositions: acct.positions.length, pendingOrders: acct.orders.length },
     stats: { trades: stats.trades, winRate: stats.winRate, avgR: stats.avgR, profitFactor: stats.profitFactor, maxDD: stats.maxDD, liquidations: stats.liquidations },
     params: acct.params, lessons: acct.lessons,

@@ -119,6 +119,28 @@ export function fmtDaily(acct, stats) {
  * @param ctx { rows (tarama), candidates (plan listesi, htf dahil), prices {coin: fiyat}, now, cfg, notify(text), log, llm {apiKey, model, fetchImpl}, stateFile, publishDir, summaryDue,
  *   health(id, ok, { kind: 'decide'|'reflect'|'review', error }) isteğe bağlı sağlık sayacı }
  */
+/**
+ * Ajanın adayları. Öğrenilen zaman dilimi yasağı (params.avoidTfs) AÇIK olan tüm zaman dilimlerini kapsıyorsa geçersiz sayılır
+ * (13.11: Agresif "4H yasağı" koymuştu, canlıda yalnız 4H açık → aday listesi hep boş, ajan hiç karar vermiyordu). Kısmi yasak
+ * (açık TF'lerden en az biri serbest) aynen uygulanır. liveTfs boşsa adayların TF'leri esas alınır.
+ * @returns {{ cands: object[], avoidOverride: string[]|null }}
+ */
+export function candidatesFor(acct, candidates = [], liveTfs = []) {
+  const avoid = acct.params?.avoidTfs || [];
+  const live = liveTfs?.length ? liveTfs : [...new Set(candidates.map((p) => p.tf).filter(Boolean))];
+  const avoidAll = avoid.length > 0 && live.length > 0 && live.every((tf) => avoid.includes(tf));
+  const eff = avoidAll ? [] : avoid;
+  const cands = candidates.filter((p) => !eff.includes(p.tf) && !acct.positions.some((x) => x.coin === p.coin)).slice(0, 10);
+  return { cands, avoidOverride: avoidAll ? avoid.filter((tf) => live.includes(tf)) : null };
+}
+/** Aday kümesinin imzası (sıra bağımsız): aynı adaylar tekrar sorulmasın diye. */
+export const candSig = (cands = []) => cands.map((p) => p.key || `${p.coin}|${p.tf}|${p.direction}`).sort().join(',');
+export const IDLE_REASK_MS = 4 * 3600e3; // pozisyon/emir yokken aynı aday kümesi için yeniden karar aralığı (bir 4H mum)
+/** Boşta ve aynı adaylar: son karardan beri aday kümesi değişmediyse ve pozisyon/emir yoksa çağrı atlanır (maliyet). */
+export function idleSame(acct, sig, now) {
+  return !acct.positions.length && !(acct.orders || []).length && !!acct.lastDecision && acct.lastCandSig === sig && now - acct.lastDecision < IDLE_REASK_MS;
+}
+
 export async function runAgents(ctx) {
   const { now, cfg, notify, log } = ctx;
   const info = {};
@@ -164,15 +186,17 @@ export async function runAgents(ctx) {
       }
     }
     // 2) Karar
-    const cands = ctx.candidates.filter((p) => !acct.params.avoidTfs?.includes(p.tf) && !acct.positions.some((x) => x.coin === p.coin)).slice(0, 10);
-    const dueDecision = (cands.length || acct.positions.length) && (!acct.lastDecision || now - acct.lastDecision >= (cfg.agentEveryMin || 15) * 60e3 - 60e3);
-    if (!cands.length && ctx.candidates.length && !acct.positions.length && acct.params.avoidTfs?.length) log(`  ajan ${id}: ${ctx.candidates.length} adayın tümü avoidTfs (${acct.params.avoidTfs.join(',')}) ile elendi → karar çağrılmadı`);
+    const { cands, avoidOverride } = candidatesFor(acct, ctx.candidates, cfg.liveTfs);
+    const sig = candSig(cands), same = idleSame(acct, sig, now);
+    const dueDecision = (cands.length || acct.positions.length) && !same && (!acct.lastDecision || now - acct.lastDecision >= (cfg.agentEveryMin || 15) * 60e3 - 60e3);
+    if (avoidOverride) log(`  ajan ${id}: avoidTfs (${avoidOverride.join(',')}) açık olan tüm zaman dilimlerini kapsıyor → geçersiz sayıldı`);
+    if (same && cands.length) log(`  ajan ${id}: adaylar son karardan beri aynı, pozisyon yok → karar çağrısı atlandı (${Math.round((now - acct.lastDecision) / 60e3)} dk önce soruldu)`);
     if (dueDecision && ctx.llm.apiKey && !cfg.dry) {
       try {
         const stats = statsOf(acct);
         const vs = ctx.history ? agentVsSignal(acct.trades, ctx.history, acct.resetAt || 0) : null;
-        const dec = await decide(acct, profile, cands, stats, ctx.llm, { ...(ctx.market || {}), exitOn: !!cfg.agentExit, vsSignal: vs ? { sameSignal: vs.taken, skippedSignals: vs.skipped, nonSignal: vs.agentOnly } : null });
-        acct.lastDecision = now; acct.lastAssessment = dec.assessment;
+        const dec = await decide(acct, profile, cands, stats, ctx.llm, { ...(ctx.market || {}), exitOn: !!cfg.agentExit, avoidOverride, vsSignal: vs ? { sameSignal: vs.taken, skippedSignals: vs.skipped, nonSignal: vs.agentOnly } : null });
+        acct.lastDecision = now; acct.lastAssessment = dec.assessment; acct.lastCandSig = sig;
         health(id, true, 'decide');
         log(`  ajan ${id}: ${dec.actions.length} eylem (${dec._usage?.input_tokens}+${dec._usage?.output_tokens} tok) — ${dec.assessment.slice(0, 120)}`);
         for (const a of dec.actions) {
