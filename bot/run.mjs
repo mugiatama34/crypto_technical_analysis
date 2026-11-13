@@ -451,7 +451,7 @@ async function main() {
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, history: history.items, cfg: { dry: CFG.dry, reset: CFG.agentReset, agentExit: CFG.agentExit, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue, health: (id, ok, o) => recordAgent(state, id, ok, now, o) });
+      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, history: history.items, cfg: { dry: CFG.dry, reset: CFG.agentReset, agentExit: CFG.agentExit, agentEveryMin: CFG.agentEveryMin, liveTfs: CFG.tfs.filter((tf) => !ruleFor(tf, 'long').off || !ruleFor(tf, 'short').off), knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue, health: (id, ok, o) => recordAgent(state, id, ok, now, o) });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); recordError(state, 'ajan turu', now); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)
