@@ -543,6 +543,8 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   ya da gerçekleşmemiş R; 24.10 öncesi ya da 7 günden eski takip dışı açık kayıtlar ayrı katlanır), Bybit tarzı **R takvimi**
   (kapanış gününe göre günlük ΣR, hafta ve ay toplamı, artı/eksi gün; "Canlı düzen"/"Tümü"), son 20 kapanan, istatistik
   kırılımları ve tüm sinyaller "Arşiv"de katlı. Yardımcılar `src/ui/signals-lib.js` (test: `tests/signals-lib.test.js`).
+- **Sinyal sayfası: Kural kitabı + Analiz yöntemleri (13.11)**: katlanır kural kitabı (etkin kural `review.json`'dan) ve sinyal
+  adlarını 12 analiz ailesine eşleyen performans tablosu (`familyOf`/`familyStats`; kırılım BTC günlük yönü / long-short / ay).
 - **Ajan kaynağı `AGENT_SOURCE=signals` (13.11)**: ajanlar Telegram'ın canlı kurallarının tümünden geçen planları (yalnız açık
   TF'ler, puan eşiği, MTF, hafta sonu yok, yalnız limit, üst TF yönü; long + short; bekleme süresi hariç → kurulum geçerli kaldıkça
   görünür) + ölçülmüş kural adaylarını (rejim-Donchian) görür; coin başına tek, en fazla 10 (`mergeAgentCands`, test: `tests/bot.test.js`).

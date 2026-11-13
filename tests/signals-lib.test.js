@@ -31,3 +31,21 @@ test('liveInfo: short için kâr tarafı ve gerçekleşmemiş R', () => {
   const i = liveInfo({ direction: 'short', entry: 100, stop: 102 }, 99);
   assert.equal(i.uR, 0.5); assert.ok(i.toEntryPct > 0);
 });
+
+import { familyOf, familyStats } from '../src/ui/signals-lib.js';
+test('familyOf: sinyal adı → analiz ailesi', () => {
+  assert.equal(familyOf('Fib çakışması'), 'Fibonacci'); assert.equal(familyOf('iFVG ↓'), 'FVG'); assert.equal(familyOf('EW Zigzag (5-3-5) B\'de'), 'Elliott');
+  assert.equal(familyOf('PDL süpürüldü'), 'Likidite (EQH/EQL, PDH/PDL, süpürme)'); assert.equal(familyOf('BOS ↓'), 'Piyasa yapısı (BOS/CHoCH, premium/discount)');
+  assert.equal(familyOf('Bearish engulfing'), 'Mum formasyonu'); assert.equal(familyOf('ADX 31 trend ↓'), 'İndikatör (EMA, MACD, ADX, RSI, VWAP…)');
+  assert.equal(familyOf('Gizli uyumsuzluk ↓ (MACD)'), 'Uyumsuzluk'); assert.equal(familyOf('Bearish AB=CD'), 'Harmonik');
+});
+test('familyStats: aile başına bir kez, kırılımlı', () => {
+  const items = [
+    { status: 'stopped', closedAt: 1, signals: ['FVG ↓', 'iFVG ↓', 'Fib çakışması'], btcRead: { daily: 'down' } },
+    { status: 'done', closedAt: 2, rr1: 1.5, rr: 2.5, signals: ['FVG ↑'], btcRead: { daily: 'up' } },
+    { status: 'waiting', signals: ['FVG ↑'] },
+  ];
+  const st = familyStats(items, (s) => s.btcRead?.daily);
+  const fvg = st.find((x) => x.family === 'FVG');
+  assert.equal(fvg.all.n, 2); assert.equal(fvg.all.avgR, 0.5); assert.equal(fvg.parts.down.avgR, -1); assert.equal(fvg.parts.up.n, 1);
+});

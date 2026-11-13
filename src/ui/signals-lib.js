@@ -40,3 +40,36 @@ export function liveInfo(s, price) {
   const uR = risk > 0 ? ((price - s.entry) * d) / risk : null;
   return { toEntryPct, uR, toStopPct: (Math.abs(price - s.stop) / price) * 100 };
 }
+
+// ---- Analiz yöntemi performansı: sinyal adı → aile (src/scan/registry.js gruplarına göre) ----
+const FAMILIES = [
+  ['Elliott', /^EW /],
+  ['Harmonik', /AB=CD|Gartley|Bat\b|Crab|Butterfly|Shark|Cypher/i],
+  ['Uyumsuzluk', /uyumsuzluk/i],
+  ['Wyckoff', /Spring|Upthrust|\bSOS\b|\bSOW\b|Wyckoff/],
+  ['Fibonacci', /Fib|OTE/],
+  ['FVG', /FVG/],
+  ['Order Block / Breaker', /Order Block|Breaker/],
+  ['Likidite (EQH/EQL, PDH/PDL, süpürme)', /EQ[HL]|PD[HL]|PW[HL]|süpür|likidite/i],
+  ['Piyasa yapısı (BOS/CHoCH, premium/discount)', /BOS|CHoCH|yapısı|Premium|Discount/],
+  ['Mum formasyonu', /engulfing|pin bar|doji|star|soldiers|crows|Inside bar|harami|hammer|marubozu/i],
+  ['Klasik formasyon', /tepe|dip|OBO|omuz|üçgen|wedge|takoz|kanal|bayrağı|bayrak|flama|fincan/i],
+  ['İndikatör (EMA, MACD, ADX, RSI, VWAP…)', /EMA|MACD|RSI|ADX|VWAP|POC|VAL|VAH|Değer alanı|Bollinger|BB |Supertrend|Donchian|Ichimoku|Kumo|Tenkan|Kijun|cross|hacim|pitchfork|sıkışma|Stoch/i],
+];
+export function familyOf(name) { for (const [f, re] of FAMILIES) if (re.test(name)) return f; return 'Diğer'; }
+/**
+ * Kapanan işlemleri sinyalin içerdiği analiz ailelerine göre gruplar (bir işlem her ailede bir kez sayılır).
+ * split(s) → kırılım anahtarı (ör. BTC günlük yönü) ya da null. → [{ family, all:{n,win,avgR}, parts:{key:{n,win,avgR}} }]
+ */
+export function familyStats(items, split = () => null) {
+  const m = new Map(), add = (o, r) => { o.n++; o.sum += r; if (r > 0) o.w++; };
+  for (const s of closedTrades(items)) {
+    const r = finalR(s); const fams = new Set((s.signals || []).map(familyOf)); const k = split(s);
+    for (const f of fams) {
+      if (!m.has(f)) m.set(f, { family: f, all: { n: 0, w: 0, sum: 0 }, parts: {} });
+      const e = m.get(f); add(e.all, r); if (k != null) add((e.parts[k] ||= { n: 0, w: 0, sum: 0 }), r);
+    }
+  }
+  const fin = (o) => ({ n: o.n, win: o.n ? o.w / o.n : null, avgR: o.n ? o.sum / o.n : null });
+  return [...m.values()].map((e) => ({ family: e.family, all: fin(e.all), parts: Object.fromEntries(Object.entries(e.parts).map(([k, v]) => [k, fin(v)])) })).sort((a, b) => b.all.n - a.all.n);
+}

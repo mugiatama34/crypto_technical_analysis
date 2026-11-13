@@ -53,7 +53,7 @@
   <footer><strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
 <script type="module">
-import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen } from './src/ui/signals-lib.js';
+import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen, familyStats } from './src/ui/signals-lib.js';
 import { okxGet } from './src/data/okx.js';
 import { parseClosedPnl, dailyTrades } from './src/trades/bybit.js';
 import { bybitOf, bybitPx } from './src/data/bybit-symbols.js';
@@ -167,6 +167,37 @@ function renderRecent() {
   const list = closedTrades(items).slice(0, RECENT);
   document.querySelector('#recent').innerHTML = list.length ? `<div class="tablewrap"><table class="grid"><thead><tr><th>Kapanış</th><th>Coin</th><th>Yön</th><th>Giriş</th><th>Stop</th><th>Durum</th><th>R</th></tr></thead><tbody>${list.map((s) => { const R = finalR(s); return `<tr><td>${dt(s.closedAt || s.updatedAt)}</td><td>${tvLink(s)} ${esc(s.tf)}</td><td class="${s.direction}">${s.direction}</td><td>${fp(s.entry)}</td><td>${fp(s.stop)}</td><td><span class="st ${s.status}">${ST[s.status] || s.status}</span></td><td class="${cls(R)}">${sgn(R)}</td></tr>`; }).join('')}</tbody></table></div><p class="note">Son ${RECENT} kapanan; daha eskiler aşağıda "Arşiv"de.</p>` : '<p class="empty">Henüz kapanan işlem yok.</p>';
 }
+let famScope = 'live', famSplit = 'btc';
+function renderFam() {
+  const scoped = famScope === 'live' ? items.filter((s) => s.sentAt >= LIVE_FROM) : items;
+  const SPL = { btc: { f: (s) => (s.btcRead?.daily === 'up' ? 'BTC günlük ↑' : s.btcRead?.daily === 'down' ? 'BTC günlük ↓' : null), keys: ['BTC günlük ↑', 'BTC günlük ↓'] },
+    dir: { f: (s) => s.direction, keys: ['long', 'short'] },
+    month: { f: (s) => new Date(s.closedAt || s.sentAt).toISOString().slice(0, 7), keys: [...new Set(scoped.filter((s) => s.closedAt).map((s) => new Date(s.closedAt).toISOString().slice(0, 7)))].sort().slice(-3) } };
+  const sp = SPL[famSplit], rows = familyStats(scoped, sp.f);
+  const cell = (o) => (o && o.n ? `<td>${o.n}</td><td>${fmt(o.win * 100, 0)}%</td><td class="${cls(o.avgR)}">${sgn(o.avgR)}</td>` : '<td>–</td><td>–</td><td>–</td>');
+  document.querySelector('#fam').innerHTML = `<div class="calbar"><select id="fScope"><option value="live" ${famScope === 'live' ? 'selected' : ''}>Canlı düzen (26.10'dan beri)</option><option value="all" ${famScope === 'all' ? 'selected' : ''}>Tüm sinyaller</option></select>
+    <select id="fSplit"><option value="btc" ${famSplit === 'btc' ? 'selected' : ''}>Kırılım: BTC günlük yönü</option><option value="dir" ${famSplit === 'dir' ? 'selected' : ''}>Kırılım: long / short</option><option value="month" ${famSplit === 'month' ? 'selected' : ''}>Kırılım: son 3 ay</option></select></div>
+    <div class="tablewrap"><table class="grid"><thead><tr><th rowspan="2">Analiz ailesi</th><th colspan="3">Hepsi</th>${sp.keys.map((k) => `<th colspan="3">${esc(k)}</th>`).join('')}</tr><tr>${['', ...sp.keys].map(() => '<th>n</th><th>Kaz.</th><th>Ort. R</th>').join('')}</tr></thead>
+    <tbody>${rows.map((r) => `<tr><td>${esc(r.family)}</td>${cell(r.all)}${sp.keys.map((k) => cell(r.parts[k])).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="note">Her kapanan işlem, sinyalinde geçen her analiz ailesine bir kez sayılır (bir sinyalde genelde 3–6 aile birlikte olduğu için aileler birbirinden bağımsız değildir). n &lt; 30 sonuçsuz; 12 aile arasından en iyisini seçmek iyimserliktir — bir aile ancak dönemler boyunca tutarlıysa anlamlıdır. R, sayfanın sonuç kuralıyla.</p>`;
+  document.querySelector('#fScope').addEventListener('change', (e) => { famScope = e.target.value; renderFam(); });
+  document.querySelector('#fSplit').addEventListener('change', (e) => { famSplit = e.target.value; renderFam(); });
+}
+async function renderRules() {
+  let rv = null; try { const r = await fetch('docs/agent/review.json', { cache: 'no-store' }); if (r.ok) rv = await r.json(); } catch { /* yok */ }
+  const m = rv?.latest?.metrics?.rules || rv?.reports?.[0]?.metrics?.rules, cur = m?.currentRules;
+  document.querySelector('#rulesBody').innerHTML = `
+    <h3>Şu an etkin kural (botun yayınladığı)</h3><p class="note">${esc(m?.label || 'okunamadı')}${m?.since ? ` · ${dt(m.since)}'den beri` : ''}${cur ? ` · ${cur.sent} gönderim, ${cur.closed} kapanış, kazanma %${fmt(cur.winRate * 100, 0)}, ort. ${sgn(cur.avgR)}R` : ''}</p>
+    <ol class="note">
+      <li><b>Tarama:</b> 15 dakikada bir OKX vadelilerinde hacme göre ilk 100 coin × 15m/1H/4H taranır; 12 analiz ailesi (aşağıdaki tablo) yapı bulur, aynı fiyat bölgesindeki yapılar kümelenip ağırlıklı puanlanır. Telegram'a yalnız <b>4H</b> gider (15m/1H kapalı).</li>
+      <li><b>Long filtreleri (4H):</b> puan ≥ 65 · çoklu TF uyumu serbest · coin'in günlük eğilimi long yönünde (üst TF) · fiyat bölgede değilse (yalnız limit) · hafta sonu (UTC Cmt/Paz) gönderim yok · aynı coin/yön 6 saat tekrar yok.</li>
+      <li><b>Short filtreleri (ek, varsayılan; Variables SHORT_RULE ile değişebilir):</b> puan ≥ 75 · çoklu TF uyumu zorunlu · ADX ≥ 30 ve yön uyumlu · EMA200'ün altında · BTC rejimi düşüş · 12 saat tekrar yok.</li>
+      <li><b>Plan:</b> giriş = küme bölgesinin fiyata yakın kenarı (limit) · stop = yapının ötesi + 0,3 ATR (0,6–3 ATR, fiyatın ≤ %5'i) · TP1/TP2 küme hedefleri, TP2 en az 2R · fiyat bölgeden 3 ATR'den uzaksa plan yok.</li>
+      <li><b>Yönetim:</b> girişten %1,2 kârda (erken hedef) pozisyonun %80'i kapanır, stop girişe; kalan %20 TP2'ye ya da başa baş. Limit <b>24 saatte</b> dolmazsa iptal ("süresi doldu"); fiyat girişe gelmeden TP1'e giderse "kaçtı". Düşen bıçak: bölgeye çok hızlı gelirse (yaklaşma &gt; 2 ATR ya da dolum mumu &gt; 1,5 ATR) teyit mumu beklenir.</li>
+      <li><b>R hesabı:</b> stop −1R · erken kâr + başa baş = 0,8 × erken R · erken kâr + TP2 = 0,8 × erken R + 0,2 × TP2 R. Kaldıraç tavanı ⌊100 ÷ (stop % × 1,5)⌋ (≤ 20x), izole marjin, adet = risk $ ÷ (giriş − stop). Bybit'te çarpanlı sembollerde (1000PEPE, SHIB1000…) mesajdaki "Bybit" satırını kullan.</li>
+      <li><b>Ölçüm durumu:</b> 12 ay tarama (gerçekçi dolum sırası) ≈ 0R (eğitim −0,04 / doğr. +0,07R); canlı 26.10'dan beri bkz. üstteki sayı. Kural değişikliği yalnız ölçümle ve Variables'tan.</li>
+    </ol>`;
+}
 async function main() {
   let h;
   try { const r = await fetch('docs/signals/history.json', { cache: 'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); h = await r.json(); }
@@ -180,6 +211,8 @@ async function main() {
     <section><h2>Şu an açık <span class="count" id="openCount"></span></h2><p class="note" id="openNote">Bekleyen (limit dolmadı) ve aktif sinyaller; fiyat OKX'ten 60 sn'de bir yenilenir.</p><div id="open" class="cards"></div><div id="stale"></div></section>
     <section><h2>R takvimi</h2><p class="note">Bot sinyalleri ya da kendi Bybit işlemlerin; ☁ bulut kaydı açıksa işlemlerin tüm cihazlarında görünür.</p><div id="cal"></div></section>
     <section><h2>Son kapananlar</h2><div id="recent"></div></section>
+    <section><h2>Analiz yöntemleri</h2><div id="fam"></div></section>
+    <details id="rules"><summary>📖 Kural kitabı: sinyal neye göre veriliyor?</summary><div id="rulesBody"><p class="empty">Yükleniyor…</p></div></details>
     <details><summary>İstatistik kırılımları (TF, yön, BTC, ay)</summary>
     <section><h2>Zaman dilimi</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.tf)}</tbody></table></div></section>
     <section><h2>Yön · karar · güven</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.direction)}${by(items, (x) => `karar: ${x.trade || '–'}`)}${by(items, (x) => `güven: ${x.confidence || '–'}`)}</tbody></table></div></section>
@@ -199,7 +232,7 @@ async function main() {
   document.querySelector('#fQ').addEventListener('input', () => { page = 0; renderList(); });
   renderList();
   const now = new Date(); calY = now.getUTCFullYear(); calM = now.getUTCMonth();
-  renderOpen(); renderCal(); renderRecent(); loadPrices(); setInterval(loadPrices, 60e3);
+  renderOpen(); renderCal(); renderRecent(); renderFam(); renderRules(); loadPrices(); setInterval(loadPrices, 60e3);
 }
 main();
 </script>
