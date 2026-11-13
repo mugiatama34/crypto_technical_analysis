@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { simulateTrade, BT_DEFAULTS } from './engine.js';
-import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf, entryDayOf } from './report.js';
+import { stats, statsCi, meetsStrict, CI_DEFAULTS, MIN_N, by, approachBucket, sessionOf, weekpartOf, entryTimeOf, entryDayOf } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 import { horizonSeries, htfTrendAt, htfOk, UP_TF, dailyTrendAt } from '../src/scan/regime.js';
@@ -61,21 +61,29 @@ export function closeAt(cs, time) {
 /**
  * Hedge'li R (lab attachBtc ile aynı mantık, kısmi çıkışlı): pozisyonun yanında eşit nominal ters BTC. Erken kısım (portion)
  * TP1'e kadar (tp1Bars), kalan çıkışa kadar hedge'lenir. t: { time, tf, waitBars, bars, tp1Bars, d, entryFill, stop, R }.
- * → { btcPct, hedgedR } (BTC verisi yoksa null'lar).
+ * → { btcPct, hedgedR, hedgedROpen } (BTC verisi yoksa null'lar).
+ * hedgedR (eski, aynen korunur): BTC bacağı dolum mumunun KAPANIŞINDAN başlar; işlem ise mum içinde (limit fiyatında) açılır →
+ * dolum mumundaki BTC hareketi hedge'e girmez. hedgedROpen (13.11, yeni alan): BTC bacağı dolum mumunun AÇILIŞINDAN (= bir
+ * önceki mumun kapanışı; vadeli seri kesintisiz) başlar. Hangisinin esas alınacağı kullanıcı kararı; çıkış ucu ikisinde aynı.
  */
 export function hedgeOf(t, btc, feePct, portion) {
   const ms = TIMEFRAMES[t.tf]?.ms;
   if (!btc || !ms || !(t.entryFill > 0) || t.R == null) return { btcPct: null, hedgedR: null };
-  const t0 = t.time + (t.waitBars || 1) * ms, a = closeAt(btc, t0);
-  const pct = (bars) => { const b = closeAt(btc, t0 + Math.max(0, bars) * ms); return a && b ? (b / a - 1) * 100 : null; };
-  const full = pct(t.bars || 0);
-  if (full == null) return { btcPct: null, hedgedR: null };
-  const early = t.tp1Bars != null ? pct(t.tp1Bars - 1) : null;
-  const p = early != null ? portion : 0;
-  const hedgePct = p * (early ?? 0) + (1 - p) * full;
+  const t0 = t.time + (t.waitBars || 1) * ms;
   const stopPct = Math.abs(t.entryFill - t.stop) / t.entryFill;
-  if (!(stopPct > 0)) return { btcPct: null, hedgedR: null };
-  return { btcPct: +full.toFixed(2), hedgedR: +(t.R - (t.d * (hedgePct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) };
+  // a: BTC başlangıç fiyatı → hedge'li R (aynı çıkış uçları); başlangıç yoksa null
+  const leg = (a) => {
+    const pct = (bars) => { const b = closeAt(btc, t0 + Math.max(0, bars) * ms); return a && b ? (b / a - 1) * 100 : null; };
+    const full = pct(t.bars || 0);
+    if (full == null || !(stopPct > 0)) return null;
+    const early = t.tp1Bars != null ? pct(t.tp1Bars - 1) : null;
+    const p = early != null ? portion : 0;
+    const hedgePct = p * (early ?? 0) + (1 - p) * full;
+    return { full, R: +(t.R - (t.d * (hedgePct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) };
+  };
+  const old = leg(closeAt(btc, t0)), open = leg(closeAt(btc, t0 - ms));
+  if (!old) return { btcPct: null, hedgedR: null, hedgedROpen: open ? open.R : null };
+  return { btcPct: +old.full.toFixed(2), hedgedR: old.R, hedgedROpen: open ? open.R : null };
 }
 
 /**
@@ -278,7 +286,7 @@ export const waitBucket = (t) => {
 const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
 
 /** Varyant listesini tek varyanta birleştirir (ad ' + ' ile; değerlendirme sonucu alanları taşınmaz). */
-export const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'stack', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted', 'byDir', 'hedgedByDir', 'liveInfo'].includes(k)) out[k] = val; return out; };
+export const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'stack', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted', 'byDir', 'hedgedByDir', 'liveInfo', 'realistic', 'strict', 'meetsStrict', 'hedgedOpen'].includes(k)) out[k] = val; return out; };
 // Hedefli birleşimlerin yapı taşları (SINGLE'dan, adla). live4h = canlı 4H düzeninin ölçülen yaklaşığı (adları denetçi expectedOf arar).
 const parts = () => {
   const V = (name) => SINGLE.find((v) => v.name === name);
@@ -431,8 +439,12 @@ async function main() {
       trades.push(tr);
     }
     if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
-    const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
+    // Dilim özetleri + %90 güven aralığı (gün bloklu bootstrap) + sonuçsuz (n < 100); diğer alanlar stats ile birebir aynı
+    const train = statsCi(tr), valid = statsCi(va);
+    // Gerçekçi: limit dolum mumunda sıra alt TF ile ('lower'; alt TF yoksa hedef sayılmaz) ya da hedef hiç sayılmaz ('skip').
+    // 'count' iyimser (önce dolum sonra hedef varsayılır) → sıkı ölçüt dışı. strict yalnız gerçekçi satırda true olabilir.
+    const realistic = o.fillBarTp === 'lower' || o.fillBarTp === 'skip', meets = meetsStrict(train, valid);
     const hd = (a) => a.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
     return { ...v, train, valid, all: stats(trades), byDir: dirSplit(tr, va), hedgedByDir: dirSplit(hd(tr), hd(va)), ...(info ? { liveInfo: info } : {}), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
       bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
@@ -443,7 +455,7 @@ async function main() {
       byWait: { train: by(tr, waitBucket), valid: by(va, waitBucket) },
       byWeekday: { train: by(tr, entryDayOf), valid: by(va, entryDayOf) },
       stack: { train: stackOf(tr), valid: stackOf(va) },
-      ...hedgedOfTrades(tr, va) };
+      ...hedgedOfTrades(tr, va), realistic, meetsStrict: meets, strict: realistic && meets };
   };
 
   // Hedge'li istatistikler (R yerine hedgedR) ve R ~ yönlü BTC% korelasyonu
@@ -452,7 +464,9 @@ async function main() {
     const ht = h(tr), hv = h(va);
     const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
     if (!ht.length && !hv.length) return {};
-    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, hedgedByWeekday: { train: by(ht, entryDayOf), valid: by(hv, entryDayOf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
+    // hedgedOpen (13.11): BTC bacağı dolum mumunun açılışından (hedgeOf); eski hedged alanı aynen kalır
+    const ho = (a) => a.filter((t) => t.hedgedROpen != null).map((t) => ({ ...t, R: t.hedgedROpen }));
+    return { hedged: { train: statsCi(ht), valid: statsCi(hv) }, hedgedOpen: { train: statsCi(ho(tr)), valid: statsCi(ho(va)) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, hedgedByWeekday: { train: by(ht, entryDayOf), valid: by(hv, entryDayOf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
   };
 
   const results = [];
@@ -478,15 +492,26 @@ async function main() {
   writeOut(results, all, meta, split, t0);
 }
 
+/** Sıralama (yerinde): önce gerçekçi dolum mumu satırları (en iyi seçimi onların arasından), sonra iyimserler; her grupta doğrulama ort. R. */
+export const rankResults = (results) => results.sort((a, b) => (b.realistic === true) - (a.realistic === true) || (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
+/** Sıkı ölçüt özeti: gerçekçi geçen / yalnız iyimser dolum mumuyla geçen / toplam varyant (çok varyanttan seçim = iyimserlik). */
+export const strictPassOf = (results) => ({
+  realistic: results.filter((r) => r.strict).length, optimisticOnly: results.filter((r) => r.meetsStrict && !r.realistic).length, variants: results.length,
+  criterion: `iki dilimde n ≥ ${MIN_N}, ort. R > 0, PF > 1,1; yalnız gerçekçi dolum mumu sırası ('lower' / 'skip')`,
+  ci: { method: 'giriş gününe (UTC) göre bloklu bootstrap, ort. R, %90 (yüzdelik)', reps: CI_DEFAULTS.reps, seed: CI_DEFAULTS.seed, rows: 'tüm satırların train/valid, hedged ve hedgedOpen dilimleri' },
+});
+
 function writeOut(results, all, meta, split, t0) {
   const base = results[0];
-  results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
+  rankResults(results);
+  const strictPass = strictPassOf(results);
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
   for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; if (!/bekleme/.test(r.name)) { delete r.byWait; delete r.hedgedByWait; delete r.byWeekday; delete r.hedgedByWeekday; } }
-  const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
+  const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, variantsTested: results.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, strictPass, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, OUTFILE), JSON.stringify(out));
-  log('En iyi (doğrulama):');
-  for (const r of results.slice(0, 8)) log(`  ${r.name.padEnd(60)} eğitim n${r.train.n} ${r.train.avgR}R | doğrulama n${r.valid.n} ${r.valid.avgR}R PF ${r.valid.profitFactor}`);
+  log(`Sıkı ölçüt: gerçekçi ${strictPass.realistic} · yalnız iyimser ${strictPass.optimisticOnly} · ${strictPass.variants} varyant arasından`);
+  log('En iyi (doğrulama; önce gerçekçi satırlar):');
+  for (const r of results.slice(0, 8)) log(`  ${r.name.padEnd(60)} eğitim n${r.train.n} ${r.train.avgR}R | doğrulama n${r.valid.n} ${r.valid.avgR}R PF ${r.valid.profitFactor}${r.valid.ci90 ? ` %90 [${r.valid.ci90.join(', ')}]` : ''}${r.realistic ? '' : ' (iyimser dolum mumu)'}${r.strict ? ' ← SIKI' : ''}`);
 }
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) main().catch((e) => { console.error(e); process.exit(1); });

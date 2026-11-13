@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Strateji laboratuvarı koşusu: her strateji × coin × TF → sinyaller simüle edilir (aynı coinde açık işlem varken yeni
 // sinyal alınmaz) → eğitim/doğrulama raporu → docs/backtest/lab.json (lab.html okur).
-//   node backtest/lab/run.mjs [--months 6 --top 50] [--universe 150] [--funding 0.01] [--strategies donchian,meanrev] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fixture]
+//   node backtest/lab/run.mjs [--months 6 --top 50] [--universe 150] [--funding 0.01] [--strategies donchian,meanrev | all] [--tfs 4H] [--fee 0.05 --slip 0.05] [--fillbar skip|count] [--fixture]
+// --strategies verilmezse varsayılan liste (strategies.js DEFAULT_STRATEGIES: kenar vermediği kayıtlı aileler dışarıda); 'all' = 66 aile.
+// --fillbar varsayılanı 'skip' (13.11): lab'de alt TF yok, limit dolum mumunda hedef sayılmaz; 'count' iyimser (eski varsayılan).
+// --funding (8 saatlik %, varsayılan 0,01): xsmom portföyünde ve 13.11'den beri motorda (simulateTrade fundingPct8h) her işlemde maliyet.
 import fs from 'node:fs';
 import path from 'node:path';
 import { getTopCoins, instIdOf, TIMEFRAMES } from '../../src/data/okx.js';
@@ -9,16 +12,23 @@ import { getHistoryCached } from '../data.js';
 import { simulateTrade, BT_DEFAULTS } from '../engine.js';
 import { regimeAt } from '../../src/scan/btcRegime.js';
 import { walkForward } from './selector.js';
-import { stats, sessionOf, weekpartOf, entryTimeOf } from '../report.js';
-import { STRATEGIES, STRATEGY_MAP } from './strategies.js';
+import { stats, statsCi, meetsStrict, MIN_N, CI_DEFAULTS, sessionOf, weekpartOf, entryTimeOf } from '../report.js';
+import { STRATEGIES, STRATEGY_MAP, DEFAULT_STRATEGIES, DEFAULT_OFF } from './strategies.js';
 import { portfolioOf, benchmarks, slotsOf } from './xsmom.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 // --months N ya da N@E: son N ay ya da E ay önce biten N ay (örneklem dışı doğrulama için; workflow girdisi sınırı yüzünden tek alanda)
 const [MONTHS_N, END_AGO] = String(arg('months', 6)).split('@').map(Number);
-const CFG = { months: MONTHS_N, endAgo: END_AGO || 0, top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01), fillbar: String(arg('fillbar', 'count')) };
+const CFG = { months: MONTHS_N, endAgo: END_AGO || 0, top: +arg('top', 50), fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true, coins: arg('coins', '') ? String(arg('coins')).split(',') : null, strategies: arg('strategies', '') ? String(arg('strategies')).split(',') : null, tfs: arg('tfs', '') ? String(arg('tfs')).split(',').map((t) => t.trim()).filter(Boolean) : null, universe: +arg('universe', 0), funding: +arg('funding', 0.01), fillbar: String(arg('fillbar', 'skip')) };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
+
+/** --strategies değeri → aile listesi: boş/yok = varsayılan, 'all' = hepsi, virgüllü id listesi = yalnız onlar (bilinmeyen id atlanır). */
+export function pickStrategies(ids) {
+  if (!ids || !ids.length) return DEFAULT_STRATEGIES;
+  if (ids.length === 1 && ids[0] === 'all') return STRATEGIES;
+  return ids.map((id) => STRATEGY_MAP[id]).filter(Boolean);
+}
 
 /** Bir seri üzerinde strateji: sinyal → simülasyon; işlem sürerken yeni sinyal yok. */
 export function runStrategy(strategy, { coin, tf, candles, extra }, o) {
@@ -86,6 +96,13 @@ export function attachBtc(trades, btcCloseAt, feePct = 0.05) {
     const stopPct = t.entry && t.stop ? Math.abs(t.entry - t.stop) / t.entry : (t.risk || null);
     const d = t.direction === 'long' ? 1 : -1;
     t.hedgedR = t.btcPct != null && stopPct > 0 && t.R != null ? +(t.R - (d * (t.btcPct / 100) + 2 * (feePct / 100)) / stopPct).toFixed(3) : null;
+    // hedgedROpen (13.11, yeni alan; hedgedR aynen kalır): BTC bacağı dolum mumunun AÇILIŞINDAN (= bir önceki mumun kapanışı)
+    // başlar — hedgedR dolum mumunun kapanışından başlıyor, işlem ise o mumun açılışında/içinde açılıyor. Stop uzaklığı gerçek
+    // dolum fiyatından (entryFill; teyitli girişte planlanan girişten farklı), yoksa plan girişi.
+    const a0 = btcCloseAt(t.tf, entryT - (TIMEFRAMES[t.tf]?.ms || 0));
+    const fill = t.entryFill ?? t.entry, stopPctO = fill && t.stop ? Math.abs(fill - t.stop) / fill : (t.risk || null);
+    const pctO = a0 && b ? (b / a0 - 1) * 100 : null;
+    t.hedgedROpen = pctO != null && stopPctO > 0 && t.R != null ? +(t.R - (d * (pctO / 100) + 2 * (feePct / 100)) / stopPctO).toFixed(3) : null;
   }
   return trades;
 }
@@ -94,10 +111,10 @@ export function attachBtc(trades, btcCloseAt, feePct = 0.05) {
 const hedgedOf = (trades) => trades.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
 
 /** BTC hedge'li (piyasa-nötr) istatistikler; btcPct'si olmayan işlemler dışarıda. */
-export function hedgedReport(trades, split) {
-  const h = hedgedOf(trades);
+export function hedgedReport(trades, split, field = 'hedgedR') {
+  const h = trades.filter((t) => t[field] != null).map((t) => ({ ...t, R: t[field] }));
   const tr = h.filter((t) => t.time < split), va = h.filter((t) => t.time >= split);
-  const rep = { all: stats(h), train: stats(tr), valid: stats(va), robust: robustStats(va), robustTrain: robustStats(tr) };
+  const rep = { all: stats(h), train: statsCi(tr), valid: statsCi(va), robust: robustStats(va), robustTrain: robustStats(tr) };
   return { ...rep, ...acceptance(rep) };
 }
 
@@ -106,7 +123,7 @@ export function report(trades, split) {
   let eq = 0; const curve = sorted.filter((t) => TRADED.has(t.outcome)).map((t) => { eq += t.R; return [t.time, +eq.toFixed(2)]; });
   const thin = curve.length > 500 ? curve.filter((_, i) => i % Math.ceil(curve.length / 500) === 0 || i === curve.length - 1) : curve;
   const validTrades = sorted.filter((t) => t.time >= split);
-  return { all: stats(trades), train: stats(sorted.filter((t) => t.time < split)), valid: stats(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), byRegime: by(trades, (t) => t.regime || 'rejim yok', split), byRegimeDir: by(trades, (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), byRegimeDirHedged: by(hedgedOf(trades), (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), curve: thin };
+  return { all: stats(trades), train: statsCi(sorted.filter((t) => t.time < split)), valid: statsCi(validTrades), robust: robustStats(validTrades), robustTrain: robustStats(sorted.filter((t) => t.time < split)), byTf: by(trades, (t) => t.tf, split), byDirection: by(trades, (t) => t.direction, split), byTfDir: by(trades, (t) => `${t.tf} ${t.direction}`, split), byMonth: by(trades, (t) => new Date(t.time).toISOString().slice(0, 7), split), byBtc: by(trades, btcBucket, split), byRegime: by(trades, (t) => t.regime || 'rejim yok', split), byRegimeDir: by(trades, (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), byRegimeDirHedged: by(hedgedOf(trades), (t) => `${t.regime || 'rejim yok'} ${t.direction}`, split), bySession: by(trades, (t) => sessionOf(entryTimeOf(t)), split), byWeekpart: by(trades, (t) => weekpartOf(entryTimeOf(t)), split), btcBeta: { all: btcBeta(trades), valid: btcBeta(validTrades) }, hedged: hedgedReport(trades, split), hedgedOpen: hedgedReport(trades, split, 'hedgedROpen'), curve: thin };
 }
 
 async function main() {
@@ -121,9 +138,10 @@ async function main() {
   const pit = CFG.universe > CFG.top;
   const topSet = new Set(coins.slice(0, CFG.top).map((c) => c.coin));
   // --tfs: stratejilerin TF'leri bu kümeyle kesişir; kesişimi boş olan strateji atlanır (yalnız bu TF'lerin mumları çekilir)
-  const strategies = (CFG.strategies ? CFG.strategies.map((id) => STRATEGY_MAP[id]).filter(Boolean) : STRATEGIES)
+  const strategies = pickStrategies(CFG.strategies)
     .map((s) => (CFG.tfs ? { ...s, tfs: s.tfs.filter((t) => CFG.tfs.includes(t)) } : s)).filter((s) => s.tfs.length);
   const tfs = [...new Set(strategies.flatMap((s) => s.tfs))];
+  if (!CFG.strategies) log(`Varsayılan liste: ${DEFAULT_STRATEGIES.length}/${STRATEGIES.length} aile (${DEFAULT_OFF.size} aile kenar vermediği için dışarıda; hepsi için --strategies all)`);
   log(`Laboratuvar: ${strategies.map((s) => s.id).join(', ')} × ${coins.length} coin × ${tfs.join(',')}; ${CFG.months} ay`);
   const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip, fundingPct8h: CFG.funding, fillBarTp: CFG.fillbar === 'lower' ? 'skip' : CFG.fillbar }; // lab'de alt TF yok: 'lower' → 'skip' (kötümser)
   const needDaily = strategies.some((s) => s.needs?.includes('1D'));
@@ -168,7 +186,9 @@ async function main() {
   const btcCloseAt = (tf, time) => { const c = btcMaps.get(tf); if (!c) return null; let lo = 0, hi = c.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (c[m].time <= time) { k = m; lo = m + 1; } else hi = m - 1; } return k >= 0 ? c[k].close : null; };
   const allTimes = series.flatMap((s) => [s.candles[0].time, s.candles[s.candles.length - 1].time]);
   const split = Math.min(...allTimes) + (Math.max(...allTimes) - Math.min(...allTimes)) * 2 / 3;
-  const out = { meta: { ...CFG, tfs, pit, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
+  // Gerçekçi: limit dolum mumunda hedef sayılmıyor ('skip'; lab'de alt TF yok, 'lower' da 'skip'e döner). 'count' iyimser.
+  const realistic = o.fillBarTp !== 'count';
+  const out = { meta: { ...CFG, realistic, strategiesTested: strategies.length, defaultList: !CFG.strategies, tfs, pit, coins: coins.map((c) => c.coin), split, startMs, endMs, generatedAt: Date.now() }, strategies: {} };
   const allTrades = []; // rejim seçici için (tüm stratejiler)
   for (const st of strategies) {
     const ts = Date.now(); const trades = [];
@@ -181,7 +201,7 @@ async function main() {
     for (const t of trades) t.regime = regimeOf(t);
     for (const t of trades) allTrades.push({ strategy: st.id, regime: t.regime, direction: t.direction, time: t.time, outcome: t.outcome, R: t.R, hedgedR: t.hedgedR, coin: t.coin, tf: t.tf, mfe: t.mfe });
     const rep = report(trades, split);
-    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
+    out.strategies[st.id] = { id: st.id, label: st.label, tfs: st.tfs, exit: st.exit, ...rep, elapsedSec: Math.round((Date.now() - ts) / 1000), ...acceptance(rep), realistic, meetsStrict: meetsStrict(rep.train, rep.valid), strict: realistic && meetsStrict(rep.train, rep.valid), ...(st.kind === 'portfolio' ? { kind: 'portfolio', params: st.params, slots: slotsOf(st.params), portfolio: portfolioOf(trades, slotsOf(st.params), split) } : {}) };
     log(`  ${st.id.padEnd(14)} işlem ${String(trades.length).padStart(5)} | eğitim ${rep.train.avgR}R PF ${rep.train.profitFactor} | doğrulama n${rep.valid.n} ${rep.valid.avgR}R PF ${rep.valid.profitFactor} win %${(rep.valid.winRate * 100).toFixed(0)} | sağlam(${rep.robust.droppedMonth || '-'} hariç) ${rep.robust.avgR}R PF ${rep.robust.profitFactor} | eğitim sağlam(${rep.robustTrain.droppedMonth || '-'} hariç) ${rep.robustTrain.avgR}R | BTC beta ${rep.btcBeta.all.beta ?? '-'} (r ${rep.btcBeta.all.corr ?? '-'}) | hedge'li doğr. n${rep.hedged.valid.n} ${rep.hedged.valid.avgR}R PF ${rep.hedged.valid.profitFactor}${rep.hedged.candidate ? ' ← HEDGE\'Lİ ADAY' : ''} ${out.strategies[st.id].candidate ? '← ADAY' : out.strategies[st.id].weak ? '← zayıf (yalnız doğrulama)' : ''} (${Math.round((Date.now() - ts) / 1000)} sn)`);
   }
   // Yürüyen rejim seçici: her ay yalnız geçmişe bakarak hücre seç (R ile ve hedge'li R ile ayrı ayrı)
@@ -191,6 +211,10 @@ async function main() {
     const a = out.selector.byR.all, h = out.selector.byHedged.all;
     log(`  REJİM SEÇİCİ (yürüyen): n${a.n} ${a.avgR}R PF ${a.profitFactor} | hedge'li seçim: n${h.n} ${h.avgR}R PF ${h.profitFactor}`);
   }
+  // Sıkı ölçüt özeti (tarama ile aynı biçim): gerçekçi geçen / yalnız iyimser dolum mumuyla geçen / denenen aile sayısı
+  const S = Object.values(out.strategies);
+  out.strictPass = { realistic: S.filter((s) => s.strict).length, optimisticOnly: S.filter((s) => s.meetsStrict && !s.realistic).length, variants: S.length,
+    criterion: `iki dilimde n ≥ ${MIN_N}, ort. R > 0, PF > 1,1; yalnız gerçekçi dolum mumu (fillbar skip)`, ci: { method: 'giriş gününe (UTC) göre bloklu bootstrap, ort. R, %90 (yüzdelik)', reps: CI_DEFAULTS.reps, seed: CI_DEFAULTS.seed } };
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });
   fs.writeFileSync(path.join(CFG.out, 'lab.json'), JSON.stringify(out));
