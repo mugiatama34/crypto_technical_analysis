@@ -11,11 +11,38 @@ import { esc, fp, pctFrom } from '../telegram.js';
 
 const r2 = (x) => +Number(x).toFixed(2);
 
-export function loadAgents(file, now) {
+/**
+ * Durum dosyası (yoksa ya da profil eksikse): önce yayınlanan docs/agent/<profil>.json'dan geri kurulur (Actions önbelleği
+ * kaybında hesap sessizce 300 $'a dönmesin; rejim-Donchian'daki yaklaşım), o da yoksa yeni hesap. info.restored'a
+ * { id, lost[] } yazılır (yayında olmayan, geri gelmeyen bilgiler).
+ */
+export function loadAgents(file, now, publishDir = null, info = {}) {
   let st = {};
   try { st = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* yeni */ }
-  for (const id of Object.keys(PROFILES)) if (!st[id]) st[id] = newAccount(PROFILES[id], now);
+  info.restored = [];
+  for (const id of Object.keys(PROFILES)) {
+    if (st[id]) continue;
+    const r = publishDir ? accountFromPublished(readJson(path.join(publishDir, `${id}.json`)), id) : null;
+    if (r) { st[id] = r.acct; info.restored.push({ id, lost: r.lost }); } else st[id] = newAccount(PROFILES[id], now);
+  }
   return st;
+}
+const readJson = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
+const DERIVED_STATS = ['winRate', 'avgR', 'profitFactor', 'returnPct']; // statsOf'un eklediği türetilmiş alanlar
+/**
+ * Yayın dosyasından (publish: hesabın tamamı, ama işlemler son 100, günlük son 50, stats = statsOf) hesap → { acct, lost } | null.
+ * Pozisyon/emir/eğri/dersler/parametreler/sayaçlar yayında tam; ham istatistikler (stats) tam olduğundan eksik işlem sayısı bilinir.
+ */
+export function accountFromPublished(pub, id) {
+  if (!pub || typeof pub !== 'object' || pub.profile !== id || !Number.isFinite(pub.equity) || !Array.isArray(pub.trades) || !Array.isArray(pub.positions) || !Array.isArray(pub.orders) || !pub.stats) return null;
+  const { publishedAt, ...acct } = pub;
+  acct.stats = Object.fromEntries(Object.entries(pub.stats).filter(([k]) => !DERIVED_STATS.includes(k)));
+  for (const k of ['journal', 'lessons', 'notes', 'curve', 'paramsHistory']) if (!Array.isArray(acct[k])) acct[k] = [];
+  const lost = [];
+  const tradesLost = (acct.stats.trades || 0) - acct.trades.length;
+  if (tradesLost > 0) lost.push(`${tradesLost} eski işlem kaydı (yayında son 100; istatistikler tam)`);
+  if (acct.journal.length >= 50) lost.push('günlüğün (journal) son 50 kaydından eskileri');
+  return { acct, lost, publishedAt: publishedAt ?? null };
 }
 export function saveAgents(file, st) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(st)); }
 
@@ -89,11 +116,14 @@ export function fmtDaily(acct, stats) {
 }
 
 /**
- * @param ctx { rows (tarama), candidates (plan listesi, htf dahil), prices {coin: fiyat}, now, cfg, notify(text), log, llm {apiKey, model, fetchImpl}, stateFile, publishDir, summaryDue }
+ * @param ctx { rows (tarama), candidates (plan listesi, htf dahil), prices {coin: fiyat}, now, cfg, notify(text), log, llm {apiKey, model, fetchImpl}, stateFile, publishDir, summaryDue,
+ *   health(id, ok, { kind: 'decide'|'reflect'|'review', error }) isteğe bağlı sağlık sayacı }
  */
 export async function runAgents(ctx) {
   const { now, cfg, notify, log } = ctx;
-  const st = loadAgents(ctx.stateFile, now);
+  const info = {};
+  const st = loadAgents(ctx.stateFile, now, ctx.publishDir, info);
+  const health = (id, ok, kind, err) => { try { ctx.health?.(id, ok, { kind, error: err?.message || '' }); } catch { /* sayaç hatası akışı durdurmaz */ } };
   const candlesByCoin = {};
   for (const r of ctx.rows) { if (r.error || r.tf !== ctx.trackTf) continue; candlesByCoin[r.coin] = r.live ? [...r.candles, r.live] : r.candles; }
   // Takip mumu süresi: son mum canlıysa kısmi işlenir, lastTime yalnız kapanmış mumla ilerler (account.updatePositions)
@@ -101,6 +131,11 @@ export async function runAgents(ctx) {
   const anchor = (x) => x && anchorToLive(x, candlesByCoin[x.coin], now, barMs); // yeni pozisyon/emir: açıldığı canlı mumun kalanı izlenir
   for (const id of Object.keys(PROFILES)) {
     const profile = PROFILES[id], acct = st[id];
+    const rest = info.restored.find((r) => r.id === id);
+    if (rest) {
+      log(`  ajan ${id}: durum dosyası yok → yayından geri kuruldu (özsermaye ${r2(acct.equity)} USDT, ${acct.positions.length} pozisyon, ${acct.orders.length} emir)${rest.lost.length ? `; kayıp: ${rest.lost.join('; ')}` : ''}`);
+      await notify(`♻️ <b>Ajan [${esc(acct.label)}] durumu yayından geri kuruldu</b> (önbellek yok)\nÖzsermaye ${fp(acct.equity)} USDT · ${acct.positions.length} pozisyon · ${acct.orders.length} emir · ${acct.trades.length} işlem kaydı${rest.lost.length ? `\nGeri gelmeyen: ${esc(rest.lost.join('; '))}` : ''}`);
+    }
     if (needsReset(acct, cfg.reset)) {
       const label = safeLabel(cfg.reset);
       if (!acct.trades.length && !acct.positions.length && !acct.orders.length) { acct.resetLabel = cfg.reset; acct.resetAt = now; } // boş hesap (ör. önbellek kaybı): yalnız etiketle, arşivi ezme
@@ -124,19 +159,21 @@ export async function runAgents(ctx) {
         const trade = acct.trades[acct.trades.length - 1];
         if (trade && !trade.botPlan) { const bp = botPlanOf(trade, ctx.history || []); if (bp) trade.botPlan = bp; }
         if (trade && !trade.reflection && ctx.llm.apiKey && !cfg.dry) {
-          try { const r = await reflect(trade, acct, ctx.llm); trade.reflection = r.lesson; acct.journal.push({ at: now, tradeId: trade.id, lesson: r.lesson, tags: r.tags }); } catch (err) { log(`  ajan ${id} yansıma hatası: ${err.message}`); }
+          try { const r = await reflect(trade, acct, ctx.llm); trade.reflection = r.lesson; acct.journal.push({ at: now, tradeId: trade.id, lesson: r.lesson, tags: r.tags }); } catch (err) { log(`  ajan ${id} yansıma hatası: ${err.message}`); health(id, false, 'reflect', err); }
         }
       }
     }
     // 2) Karar
     const cands = ctx.candidates.filter((p) => !acct.params.avoidTfs?.includes(p.tf) && !acct.positions.some((x) => x.coin === p.coin)).slice(0, 10);
     const dueDecision = (cands.length || acct.positions.length) && (!acct.lastDecision || now - acct.lastDecision >= (cfg.agentEveryMin || 15) * 60e3 - 60e3);
+    if (!cands.length && ctx.candidates.length && !acct.positions.length && acct.params.avoidTfs?.length) log(`  ajan ${id}: ${ctx.candidates.length} adayın tümü avoidTfs (${acct.params.avoidTfs.join(',')}) ile elendi → karar çağrılmadı`);
     if (dueDecision && ctx.llm.apiKey && !cfg.dry) {
       try {
         const stats = statsOf(acct);
         const vs = ctx.history ? agentVsSignal(acct.trades, ctx.history, acct.resetAt || 0) : null;
         const dec = await decide(acct, profile, cands, stats, ctx.llm, { ...(ctx.market || {}), exitOn: !!cfg.agentExit, vsSignal: vs ? { sameSignal: vs.taken, skippedSignals: vs.skipped, nonSignal: vs.agentOnly } : null });
         acct.lastDecision = now; acct.lastAssessment = dec.assessment;
+        health(id, true, 'decide');
         log(`  ajan ${id}: ${dec.actions.length} eylem (${dec._usage?.input_tokens}+${dec._usage?.output_tokens} tok) — ${dec.assessment.slice(0, 120)}`);
         for (const a of dec.actions) {
           if (a.type === 'hold') continue;
@@ -161,7 +198,7 @@ export async function runAgents(ctx) {
             log(`  ajan ${id}: ayar ${a.coin} → ${r.ok ? r.notes.join(', ') : r.reason}`);
           }
         }
-      } catch (err) { log(`  ajan ${id} karar hatası: ${err.message}`); }
+      } catch (err) { log(`  ajan ${id} karar hatası: ${err.message}`); health(id, false, 'decide', err); }
     }
     // 3) Gözden geçirme
     // 3) Gözden geçirme: her 10 kapanışta ara (kurallar yalnız çok önemli bulguda değişir), 30'da tam
@@ -183,7 +220,7 @@ export async function runAgents(ctx) {
         acct.closedSinceReview = 0; acct.lastReview = now;
         acct.closedSinceFull = mode === 'full' ? 0 : (acct.closedSinceFull || 0);
         await notify(`🤖 <b>Ajan [${esc(acct.label)}] ${mode === 'full' ? 'tam gözden geçirme (30 işlem)' : 'ara değerlendirme (10 işlem)'}</b>\n${esc(rv.summary)}${apply ? `\n${mode === 'full' ? 'Kurallar güncellendi' : `⚠️ Önemli bulgu — kurallar beklemeden güncellendi: ${esc(rv.evidence)}`}: risk ${acct.params.riskAppetite}, kaldıraç ${acct.params.preferredLeverage.join('–')}x, marjin ≤ %${acct.params.maxMarginPctPerTrade}${acct.params.avoidDetectors.length ? `, kaçın: ${esc(acct.params.avoidDetectors.join(', '))}` : ''}` : '\nKurallar değişmedi (plan: 30 işlemde tam gözden geçirme).'}${remind}`);
-      } catch (err) { log(`  ajan ${id} gözden geçirme hatası: ${err.message}`); }
+      } catch (err) { log(`  ajan ${id} gözden geçirme hatası: ${err.message}`); health(id, false, 'review', err); }
     }
     // 4) Koşu sonu
     endOfRun(acct, ctx.prices, now, profile.guards);

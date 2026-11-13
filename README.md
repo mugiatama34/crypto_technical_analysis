@@ -207,6 +207,11 @@ iyimser)" ve "bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H".
 
 **Yeniden puanlama katmanı** (`docs/signals/rescored.json`): canlı takip hatasından etkilenen sinyallerin düzeltilmiş durum/R'si; ham kayıt (`history.json`) değişmez. Sayfa, denetçi ve haftalık rapor `applyRescore` (`src/ui/signals-lib.js`) ile bu değerleri kullanır; sayfada ↻ işareti. Ölçüt: düzeltilmiş takip kodu ve motor gerçek 4H + 15m mumlarla aynı sonucu veriyor ve kayıttan farklı (`backtest/replay`).
 
+**Bot sağlığı** (`bot/health.js`, 13.11): günlük özetin sonunda `Sağlık 24s: koşu · OKX hata % · Telegram · ajan karar/hata` satırı; ajan art arda 3
+karar hatası, bir turda OKX hata oranı > %20 ya da 24 saatlik koşu sayısı beklenenin yarısının altındaysa `⚠️ Sağlık` mesajı (tür başına 6 saatte
+bir). Telegram 429 / geçici hatada en fazla 2 yeniden deneme. Ajan ve momentum durum dosyası (Actions önbelleği) kaybolursa hesap yayınlanan
+`docs/agent/*.json`'dan geri kurulur ve bildirilir; momentumu bilerek sıfırlamak için yayın dosyası da kaldırılmalıdır.
+
 **TradingView + Bybit skill'i** (`.claude/skills/tradingview-bybit/SKILL.md`): doğrulanmış telefon/masaüstü menü adları, palet, alarm, Bybit TP/SL ve
 trailing stop notları; `CLAUDE.md`'den taşındı (her oturumda değil, yalnız gerektiğinde yüklenir). Günlük: `docs/DURUM.md` (güncel özet + son
 girişler), eski girişler `docs/DURUM-arsiv.md`.

@@ -11,8 +11,41 @@ export function dataSource(provider) {
   return { top: (n) => getTopCoins(n, {}), daily: (instId, n) => getCandles(instId, TIMEFRAMES['1D'], n) };
 }
 
-export function loadPortfolio(file, now, o) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return newPortfolio(now, o); }
+/**
+ * Durum dosyası; yoksa (Actions önbelleği kaybı) yayınlanan <publishDir>/momentum.json'dan geri kurulur (rejim-Donchian'daki
+ * yaklaşım), o da yoksa yeni portföy. Geri kurulduysa info.restored = { lost[] }.
+ */
+export function loadPortfolio(file, now, o, publishDir = null, info = {}) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* yok */ }
+  let pub = null;
+  if (publishDir) { try { pub = JSON.parse(fs.readFileSync(path.join(publishDir, 'momentum.json'), 'utf8')); } catch { /* yok */ } }
+  const r = portfolioFromPublished(pub);
+  if (r) { info.restored = { lost: r.lost }; return r.pf; }
+  return newPortfolio(now, o);
+}
+
+/**
+ * Yayın nesnesinden (publishOf) portföy → { pf, lost } | null. Yayında olmayanlar: pozisyon adedi (qty = nominal ÷ giriş,
+ * nominal 2 haneye yuvarlı), ilk stop (stop0) ve giriş riski (risk → kapanışta R yazılamaz), izleyen stop günü (trailDay:
+ * son kapanmış mumla yeniden hesaplanır, stop yalnız ilerler), son fonlama tahakkuku (yayın zamanı alınır), 200'den eski
+ * işlemler ve 12'den eski yeniden dengeleme kayıtları.
+ */
+export function portfolioFromPublished(pub) {
+  if (!pub || typeof pub !== 'object' || !Array.isArray(pub.positions) || !Number.isFinite(pub.startEquity) || !Number.isFinite(pub.realized) || !Number.isFinite(pub.updatedAt)) return null;
+  const positions = pub.positions.map((q) => ({
+    coin: q.coin, instId: q.hedge ? 'BTC-USDT-SWAP' : instIdOf(q.coin), ...(q.hedge ? { hedge: true } : {}), d: q.direction === 'long' ? 1 : -1,
+    entry: q.entry, qty: q.notional / q.entry, notional: q.notional, stop: q.stop ?? null, stop0: null, risk: null,
+    stopPct: q.stopPct ?? null, riskUsd: q.riskUsd ?? 0, entryTime: q.entryTime, funding: q.funding || 0, trailDay: 0, lastPrice: q.price ?? q.entry,
+  }));
+  const trades = Array.isArray(pub.trades) ? [...pub.trades].reverse() : [];
+  const pf = { version: 1, start: pub.start ?? pub.updatedAt, startEquity: pub.startEquity, realized: pub.realized, positions, trades, curve: Array.isArray(pub.curve) ? pub.curve : [],
+    lastRebalance: pub.lastRebalance || 0, lastAccrual: pub.updatedAt, rebalances: Array.isArray(pub.rebalances) ? [...pub.rebalances].reverse() : [], btcStart: pub.btc?.start ?? null };
+  const lost = [];
+  if (positions.some((q) => !q.hedge)) lost.push('açık pozisyonların ilk stopu ve giriş riski (kapanışta R boş kalır; K/Z ve % tam)');
+  const tradesLost = (pub.stats?.trades || 0) - trades.length;
+  if (tradesLost > 0) lost.push(`${tradesLost} eski kapanan işlem kaydı (yayında son 200)`);
+  if ((pub.rebalances || []).length >= 12) lost.push('12\'den eski yeniden dengeleme kayıtları');
+  return { pf, lost };
 }
 
 const dirTxt = (d) => (d === 1 ? '🟢 long' : '🔴 short');
@@ -20,7 +53,8 @@ const dirTxt = (d) => (d === 1 ? '🟢 long' : '🔴 short');
 export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publishDir, provider, summaryDue = false }) {
   const o = { ...MOM_DEFAULTS, ...(cfg.variant ? { side: cfg.variant } : {}), ...(cfg.rank ? { rank: cfg.rank } : {}), ...(cfg.hedge != null ? { hedge: !!cfg.hedge } : {}) };
   const src = dataSource(provider);
-  const pf = loadPortfolio(stateFile, now, o);
+  const info = {};
+  const pf = loadPortfolio(stateFile, now, o, publishDir, info);
   const fresh = !pf.lastRebalance && !pf.positions.length && !pf.trades.length;
   const due = rebalanceDue(pf, now);
   // Evren: yeniden dengelemede o günün hacimde ilk N'i (canlıda sağ kalanlık yanlılığı yok); aksi halde yalnız açık pozisyonlar
@@ -68,6 +102,10 @@ export async function runMomentum({ now, cfg = {}, notify, log, stateFile, publi
     } else log('Momentum: evren yetersiz, yeniden dengeleme atlandı');
   }
   const eq = markCurve(pf, prices, now, o);
+  if (info.restored) {
+    log(`Momentum: durum dosyası yok → yayından geri kuruldu${info.restored.lost.length ? ` (kayıp: ${info.restored.lost.join('; ')})` : ''}`);
+    msgs.unshift(`♻️ <b>Momentum durumu yayından geri kuruldu</b> (önbellek yok)\nÖzsermaye ${eq.toFixed(2)} USDT · açık ${pf.positions.filter((q) => !q.hedge).length}${pf.positions.some((q) => q.hedge) ? ' + BTC hedge' : ''} · kapanan ${pf.trades.length}${info.restored.lost.length ? `\nGeri gelmeyen: ${esc(info.restored.lost.join('; '))}` : ''}`);
+  }
   if (fresh) msgs.unshift(`📈 Momentum kâğıt portföyü başladı: ${pf.startEquity} USDT sanal sermaye, ${o.side === 'ls' ? 'en güçlü 5 long + en zayıf 5 short' : o.side === 'short' ? 'en zayıf 5 short' : 'en güçlü 5 long'}, haftalık yeniden dengeleme.`);
   if (summaryDue) msgs.push(`📈 Momentum portföyü: ${eq.toFixed(2)} USDT (%${(((eq / pf.startEquity) - 1) * 100).toFixed(2)}) · açık ${pf.positions.filter((q) => !q.hedge).length}${o.hedge ? ` + BTC hedge ${pf.positions.find((q) => q.hedge)?.notional ?? 0} USDT` : ''} · kapanan ${pf.trades.length}`);
   for (const m of msgs) await notify(m);
