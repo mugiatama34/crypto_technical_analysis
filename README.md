@@ -199,6 +199,10 @@ Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2
 TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_long_smt` / `_long_nosmt` (SMT ✓ / değil),
 `_tb3` / `_tb4` / `_tb_low` (ders kitabı ≥ 3/4, 4/4, ≤ 2/4). Tarama mum başına bir kez (aileler paylaşır).
 
+**Orkestrasyon skill'i** (`.claude/skills/orkestrasyon/SKILL.md`): Claude oturumlarında iş dağıtımı — ana oturum planlar ve
+doğrular; Opus orta–yüksek zorluk (gevşek brief), Sonnet basit–orta (sıkı brief), Haiku büyük veri temizliği (en sıkı brief +
+sayım kontrolü). Brief şablonları, yükseltme kuralı ve doğrulama listesi dosyada. Actions'taki ajan modelleri kapsam dışı.
+
 **SMC analiz skill'i** (`.claude/skills/smc-analiz/SKILL.md`): "SMC'ye göre analiz et <COIN>" denince coin kontrol listesi
 (`docs/egitim/coin-kontrol-listesi.md`) gerçek veriyle sırayla uygulanır; öğrenme modunda önce sorular sorulur. Seviyeleri
 `node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,

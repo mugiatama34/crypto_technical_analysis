@@ -16,6 +16,12 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
 ## Sabit kurallar
 - **Sorgula ve geri bildir:** Kullanıcının isteği ya da önerisi mantıksızsa, ölçümlerle çelişiyorsa, eksik ya da riskliyse bunu
   uygulamadan önce açıkça söyle (neden, kanıt, daha iyi seçenek); körü körüne uygulama. Karar yine kullanıcınındır.
+- **Model orkestrasyonu (13.11.2026, maliyet):** birkaç araç çağrısından uzun her işte önce `orkestrasyon` skill'ini yükle
+  (`.claude/skills/orkestrasyon/SKILL.md`). Ana oturum planlar, brief yazar, doğrular, commit eder; işi `Agent` aracıyla dağıtır:
+  **Opus** = orta–yüksek zorluk, gevşek brief (hedef + kısıt + bitti ölçütü) · **Sonnet** = basit–orta, sıkı brief (numaralı adım,
+  dosya yolu, dokunma listesi, rapor biçimi) · **Haiku** = çok büyük veri temizliği, en sıkı brief (şema + kural + sayım kontrolü;
+  kural mekanikse betik). ≤ ~3 araç çağrılık işi delege etme. Alt ajan commit/push yapmaz; testleri ve ölçüm sayılarını ana oturum
+  teyit eder. Cevap sonunda tek satır "Dağılım: …".
 - Testler: `node --test tests/*.test.js` (hepsi geçmeli; sayı DURUM.md'de). Yeni özellik = test + README notu.
 - Git: dal `claude/awesome-heisenberg-mmuyod` (repo HEAD). Commit → `git pull -q --rebase origin <dal>` → push. PR açma.
   Commit mesajı Türkçe; model adı yazılmaz; sonuna Co-Authored-By ve Claude-Session satırları (oturumun verdiği).
