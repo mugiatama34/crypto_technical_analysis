@@ -45,7 +45,9 @@ export function rebuild(plan, v) {
   const tp1 = v.tp1Pct != null ? entry * (1 + d * v.tp1Pct / 100) : entry + d * (v.tp1R ?? 1.5) * risk;
   let tp2 = v.keepTp2 ? plan.tp2 : entry + d * (v.tp2R ?? 2.5) * risk;
   if (d * (tp2 - tp1) < 0) tp2 = tp1;
-  return { ...plan, stop, tp1, tp2 };
+  // midTp: plandaki özgün TP1 ara hedef olur (erken hedefin ötesindeyse; değilse yok sayılır)
+  const tpMid = v.midTp && d * (plan.tp1 - tp1) > 0 && d * (tp2 - plan.tp1) > 0 ? plan.tp1 : null;
+  return { ...plan, stop, tp1, tp2, ...(tpMid ? { tpMid } : {}) };
 }
 
 /** Sıralı mum dizisinde time'a kadar (dahil) son kapanış; yoksa null. */
@@ -245,7 +247,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
     const LOWER = { '4H': '1H', '1H': '15m' };
     const trades = [];
     for (const [k, list] of groups) {
@@ -253,7 +255,7 @@ async function main() {
       for (const t of list) {
         if (!passes(t, v, s, mtfIndex, htf)) continue;
         const i = s.idx.get(t.time);
-        const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null) ? rebuild(t.plan, v) : t.plan;
+        const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null || v.midTp) ? rebuild(t.plan, v) : t.plan;
         const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o);
         const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
         const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
@@ -323,6 +325,8 @@ async function main() {
       .map(([name, x]) => [...live4h, { name: `kalan: ${name} · sıra 1H`, fillBarTp: 'lower', tpScheme: 'be_trail', ...x }]),
     // Erken hedef ızgarası (13.11, kullanıcı sorusu): fiyat % × kapatılan pay, kalan başa baş → TP2; gerçek sıra (1H)
     ...[1.0, 1.2, 1.5, 1.8, 2.0].flatMap((pct) => [0.5, 0.7, 0.8].map((por) => [...live4h, { name: `ızgara erken %${pct} · %${por * 100} kapat · sıra 1H`, fillBarTp: 'lower', tp1Pct: pct, tp1Portion: por, keepTp2: true }])),
+    // Üç kademe (13.11, kullanıcı sorusu): erken hedefte %50 + stop girişe, plandaki TP1'de %25, kalan %25 TP2 / başa baş
+    ...[1.2, 1.5].map((pct) => [...live4h, { name: `3 kademe: erken %${pct} %50 · TP1 %25 · TP2 %25 · sıra 1H`, fillBarTp: 'lower', tp1Pct: pct, tp1Portion: 0.5, keepTp2: true, midTp: true, midPortion: 0.25 }]),
     // Bekleme süresi çalışması (11.11): canlı 4H düzeni, gerçek sıra (1H); limit 24 / 48 / 72 saat açık kalırsa dolum gecikmesine göre R
     ...[24, 48, 72].map((hrs) => [...live4h, { name: `bekleme ${hrs} saat · sıra 1H`, fillBarTp: 'lower', expireHours: hrs }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],

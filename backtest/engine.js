@@ -20,6 +20,8 @@ export const BT_DEFAULTS = {
   // 'be_trail' (13.11): TP1/erken hedefte kısım kapanır + stop girişe; kalan, en iyi kapanışın trailAtr × ATR gerisinden izlenir
   // (yalnız MFE ≥ trailActR olunca başlar, stop yalnız lehe gider). trailKeepTp2: TP2'de yine tam çıkış.
   trailActR: 0,
+  // Ara hedef (13.11): plan.tpMid varsa ilk kısmi çıkıştan sonra orada midPortion (başlangıç adedinin payı) kapanır
+  midPortion: 0.25,
   trailKeepTp2: false,
   knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
   // Limit dolum mumunda hedef (TP1 / tek hedef): 'count' (varsayılan, iyimser: önce dolum sonra hedef varsayılır) |
@@ -75,7 +77,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   if (!(risk > 0)) return { outcome: 'invalid', R: 0 };
   const Rof = (p) => (d * (p - entry)) / risk;
   const feeR = (fee * 2 * entry) / risk; // giriş + çıkış komisyonu (birim başına)
-  let stop = plan.stop, portion = 1, R = 0, mfe = 0, mae = 0, outcome = 'timeout', exitI = fillI, tp1Bars = null;
+  let stop = plan.stop, portion = 1, R = 0, mfe = 0, mae = 0, outcome = 'timeout', exitI = fillI, tp1Bars = null, midDone = false;
   const ts = o.timeStop && o.timeStop.bars > 0 ? { minMfeR: Infinity, ...o.timeStop } : null;
   const stopFill = (s) => s * (1 - d * slip);
   const scheme = o.tpScheme || 'half_be';
@@ -98,9 +100,11 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
       R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion; tp1Bars = k - fillI + 1;
       if (scheme === 'half_be' || scheme === 'be_trail') stop = entry; // başabaş
       if (scheme === 'trail') stop = d === 1 ? Math.max(stop, c.close - o.trailAtr * atr) : Math.min(stop, c.close + o.trailAtr * atr);
+      if (plan.tpMid && portion > 0 && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); portion -= q; midDone = true; }
       if (tp2Hit && scheme !== 'trail' && (scheme !== 'be_trail' || o.trailKeepTp2)) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
       continue;
     }
+    if (portion < 1 && portion > 0 && plan.tpMid && !midDone && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); portion -= q; midDone = true; if (portion <= 1e-9) { outcome = 'tp2'; exitI = k; portion = 0; break; } }
     if (portion < 1 && portion > 0) {
       if (scheme === 'trail') { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
       else if (scheme === 'be_trail') {

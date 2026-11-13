@@ -221,3 +221,13 @@ test('be_trail: TP1 sonrası başa baş, aktivasyondan sonra ATR izi; TP2 yok', 
   const keep = simulateTrade(p, cs, 0, '1H', { ...o1, trailKeepTp2: true }); // TP2 tutulursa 106'da çıkış
   assert.equal(keep.outcome, 'tp2'); assert.equal(keep.R, +(0.5 * 1.5 + 0.5 * 3).toFixed(3));
 });
+
+test('ara hedef (tpMid): erken %50, TP1 %25, kalan TP2', () => {
+  const p = { ...plan, tp1: 101, tpMid: 103, tp2: 106 }; // risk 2: erken 0,5R, ara 1,5R, TP2 3R
+  const cs = [c(1, 101, 101, 99.5, 100.5), c(2, 100.5, 101.2, 100.4, 101), c(3, 101, 103.5, 101, 103), c(4, 103, 106.5, 103, 106)];
+  const r = simulateTrade(p, cs, 0, '1H', { ...o, tp1Portion: 0.5, midPortion: 0.25 });
+  assert.equal(r.outcome, 'tp2'); assert.equal(r.R, +(0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 3).toFixed(3));
+  const back = [...cs.slice(0, 3), c(4, 103, 103, 99.9, 100)]; // ara hedeften sonra girişe dönüş: kalan %25 başa baş
+  const b = simulateTrade(p, back, 0, '1H', { ...o, tp1Portion: 0.5, midPortion: 0.25 });
+  assert.equal(b.R, +(0.5 * 0.5 + 0.25 * 1.5).toFixed(3));
+});
