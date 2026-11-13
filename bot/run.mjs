@@ -416,7 +416,7 @@ async function main() {
     const shadow = safeShadow(() => { if (shadowFail) throw new Error('test: gölge hatası'); return shadowBase({ now, tfMs: TIMEFRAMES[plan.tf]?.ms, row, rec, sent: state.sent, rows: res.rows }); }, (err) => log(`Gölge etiket hatası (yerel): ${err.message}`));
     shadowItems.push({ coin: plan.coin, shadow });
     state.sent.push(rec);
-    historyAdd(history, rec, { shadow, zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
+    historyAdd(history, rec, { shadow, bd: plan.bd ?? null, zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;
     sentNow++; sentPerTf[plan.tf] = (sentPerTf[plan.tf] || 0) + 1;
   }

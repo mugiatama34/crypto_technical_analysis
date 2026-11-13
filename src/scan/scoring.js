@@ -54,6 +54,7 @@ export function clusterSignals(signals, { atr, price, weights = {}, opts = {} })
 
 function scoreCluster(members, dir, zone, { price, atr, weights, o, width }) {
   let sum = 0;
+  const parts = {};
   const types = new Set(), groups = new Set(), seen = {};
   // Aynı detektörün tekrarları azalan katkıyla (en güçlüden başlayarak)
   const ordered = [...members].sort((a, b) => b.strength - a.strength);
@@ -63,7 +64,9 @@ function scoreCluster(members, dir, zone, { price, atr, weights, o, width }) {
     const neutral = dirSign(s.direction) === 0 ? 0.4 : 1;
     const k = seen[s.detector] = (seen[s.detector] || 0) + 1;
     const decay = o.repeatDecay[Math.min(k - 1, o.repeatDecay.length - 1)];
-    sum += s.strength * w * sw * neutral * decay;
+    const contrib = s.strength * w * sw * neutral * decay;
+    sum += contrib;
+    parts[s.detector] = (parts[s.detector] || 0) + contrib;
     types.add(s.detector); groups.add(s.group);
   }
   // Çeşitlilik bonusu: farklı gruplar aynı bölgede → daha sağlam
@@ -76,7 +79,9 @@ function scoreCluster(members, dir, zone, { price, atr, weights, o, width }) {
   const widthPen = width > 4 ? 0.7 : width > 2.5 ? 0.85 : 1;
   const raw = sum * diversity * proximity * widthPen;
   const score = Math.round(100 * (1 - Math.exp(-raw / o.scale))); // 0–100 doygunluk eğrisi
-  return { direction: dir === 1 ? 'long' : 'short', score, zone, signals: members, types, groups, price, dist, raw };
+  return { direction: dir === 1 ? 'long' : 'short', score, zone, signals: members, types, groups, price, dist, raw,
+    // Puan dökümü (yalnız gösterim; puanı etkilemez)
+    breakdown: { parts: Object.fromEntries(Object.entries(parts).map(([k, v]) => [k, +v.toFixed(2)])), sum: +sum.toFixed(3), diversity: +diversity.toFixed(3), proximity: +proximity.toFixed(3), widthPen, raw: +raw.toFixed(3) } };
 }
 
 /**
