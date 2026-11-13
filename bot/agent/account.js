@@ -179,9 +179,37 @@ function finalizeTrade(acct, pos, kind, now) {
   return trade;
 }
 
+/** Mum süresi: opts.barMs ya da son iki mumun farkı (bilinmiyorsa 0 → her mum kapanmış sayılır, eski davranış). */
+const barMsOf = (all, barMs) => barMs || (all.length > 1 ? all[all.length - 1].time - all[all.length - 2].time : 0);
+const isClosed = (c, bms, now) => !bms || c.time + bms <= now;
+/**
+ * Canlı mumun daha önce görülmüş kısmından (seen: {time, high, low, close}) sonraki parçası: açılış = görülen son fiyat,
+ * uç değerler yalnız görülen aralığın ötesine geçtiyse yeni (o kısım sonradan geldi), yoksa görülen kapanış↔yeni kapanış.
+ * Böylece canlı mumda zaten işlenmiş olaylar (TP1, erken hedef, stop taşıma) mum kapanınca eski uçlarla yeniden sınanmaz.
+ */
+export function restOf(seen, c) {
+  if (!seen || seen.time !== c.time) return c;
+  return { ...c, open: seen.close, high: c.high > seen.high ? c.high : Math.max(seen.close, c.close), low: c.low < seen.low ? c.low : Math.min(seen.close, c.close) };
+}
+const snap = (seen, c) => ({ time: c.time, high: seen?.time === c.time ? Math.max(seen.high, c.high) : c.high, low: seen?.time === c.time ? Math.min(seen.low, c.low) : c.low, close: c.close });
+/**
+ * Yeni açılan pozisyon/emri o anki canlı muma bağlar: mumun açılıştan önceki kısmı sayılmaz, kalanı (sonraki turlarda, kapanınca
+ * tam haliyle) işlenir. Pozisyonda lastTime = canlı mum − 1 (o mum işlenecek), seen = görülen kısım. Canlı mum yoksa değişiklik yok.
+ */
+export function anchorToLive(item, candles, now, barMs) {
+  const all = candles || [], c = all[all.length - 1], bms = barMsOf(all, barMs);
+  if (!item || !c || !bms || isClosed(c, bms, now) || c.time > now) return item;
+  item.seen = snap(null, c);
+  if ('lastTime' in item && item.lastTime >= c.time) item.lastTime = c.time - 1;
+  return item;
+}
+
 /**
  * Bekleyen emirleri ve açık pozisyonları yeni mumlarla günceller.
- * @param candlesByCoin { [coin]: candles (eskiden yeniye; pozisyonun lastTime'ından sonrakiler işlenir) }
+ * @param candlesByCoin { [coin]: candles (eskiden yeniye; son eleman kapanmamış canlı mum olabilir) }
+ * Canlı mum her turda kısmi haliyle işlenir ama lastTime yalnız kapanmış mumla ilerler; canlı mumda görülen kısım pos.seen'de
+ * tutulur, sonraki turda aynı mumun yalnız kalanı (restOf) sınanır → mumun kalanındaki stop/hedef/tasfiye kaçmaz, olay iki kez sayılmaz.
+ * @param opts { barMs (mum süresi; yoksa mumlardan), knifeGuard, timeStop, earlyTp }
  */
 export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   const events = [];
@@ -191,24 +219,28 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
   // Limit emirler (düşen bıçak koruması açıksa: bölgeye hızlı gelişte dolmaz, kapanmış teyit mumunun kapanışından dolar)
   for (const o of [...acct.orders]) {
     const all = candlesByCoin[o.coin] || [];
-    const ms = all.length > 1 ? all[all.length - 1].time - all[all.length - 2].time : 0;
+    const ms = barMsOf(all, opts.barMs);
     const d = dirSign(o.direction);
     const fill = (price, c, lastTime) => {
       acct.orders = acct.orders.filter((x) => x !== o);
-      const pos = fillPosition(acct, { ...o, type: undefined, price: undefined, expiresAt: undefined, knifeAt: undefined }, price, c.time);
+      const pos = fillPosition(acct, { ...o, type: undefined, price: undefined, expiresAt: undefined, knifeAt: undefined, seen: undefined }, price, c.time);
       pos.lastTime = lastTime;
+      if (o.seen && o.seen.time === c.time && lastTime < c.time) pos.seen = o.seen; else delete pos.seen; // dolum mumunun emirden önceki kısmı sayılmaz
       if (o.hedge) pos.pendingHedge = true; // BTC bacağı koşu içinde güncel BTC fiyatıyla açılır (openPendingHedges)
       events.push({ type: 'filled', pos, price, ...(o.knifeAt ? { confirmed: true } : {}) });
     };
     const cancel = (type) => { acct.orders = acct.orders.filter((x) => x !== o); events.push({ type, order: o }); };
     let done = false;
     for (let j = 0; j < all.length && !done; j++) {
-      const c = all[j];
-      if (c.time <= o.createdAt) continue;
+      // Emir her turda baştan taranır (durum yalnız dolum/teyitte değişir); oluşturulduğu canlı mumun yalnız emirden sonraki kısmı
+      const c = restOf(o.seen, all[j]);
+      if (c.time <= o.createdAt && o.seen?.time !== c.time) continue;
+      if (!o.knifeAt && c.time >= o.expiresAt) break; // süresi dolduktan sonraki mumlar dolum sayılmaz
       const stopHit = d === 1 ? c.low <= o.stop : c.high >= o.stop;
       if (o.knifeAt) { // teyit bekleniyor
-        if (c.time <= o.knifeAt) continue;
-        if (stopHit) { cancel('knife'); done = true; break; }
+        if (c.time < o.knifeAt) continue;
+        if (stopHit) { cancel('knife'); done = true; break; } // bıçak mumunun kalanında da (canlı görüldüyse) stop sınanır
+        if (c.time === o.knifeAt) continue;
         if (ms && c.time + ms > now) continue; // yalnız kapanmış mum
         if (confirmsTurn(c, all[j - 1], { d, entry: o.price })) { fill(r6(c.close * (1 + d * FEES.slipPct / 100)), c, c.time); done = true; break; }
         if (ms && Math.round((c.time - o.knifeAt) / ms) >= g.confirmBars) { cancel('knife_expired'); done = true; break; }
@@ -232,9 +264,13 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
     // Ölçülmüş rejim-Donchian kuralı: hedef yok, 2 ATR izleyen stop, en fazla 100 mum (kendi TF'sinde). Eski kayıtlarda
     // trail alanı yoksa ATR açılıştaki stop mesafesinden (2 ATR) türetilir.
     if (pos.source === 'regime_donchian' && !pos.trail && !pos.hedgeOf) pos.trail = { atr: r6(Math.abs(pos.entry - pos.stop) / 2), mult: 2, maxBars: 100 };
-    const cs = (candlesByCoin[pos.coin] || []).filter((c) => c.time > pos.lastTime);
-    for (const c of cs) {
+    const all = candlesByCoin[pos.coin] || [], bms = barMsOf(all, opts.barMs);
+    const cs = all.filter((c) => c.time > pos.lastTime);
+    for (const raw of cs) {
       if (!acct.positions.includes(pos)) break;
+      const c = restOf(pos.seen, raw), closed = isClosed(raw, bms, now);
+      // Mum sonu: kapanmışsa lastTime ilerler; canlıysa yalnız görülen kısım kaydedilir (sonraki turda kalanı işlenir)
+      const step = () => { pos.lastPrice = raw.close; if (closed) { pos.lastTime = raw.time; delete pos.seen; } else pos.seen = snap(pos.seen, raw); };
       const d = dirSign(pos.direction);
       const liqHit = d === 1 ? c.low <= pos.liq : c.high >= pos.liq;
       const stopHit = d === 1 ? c.low <= pos.stop : c.high >= pos.stop;
@@ -258,11 +294,8 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
           if (x.afterTp1 === 'early' && pos.earlyPrice) pos.stop = pos.earlyPrice; else if (x.afterTp1 !== 'keep' && d * (pos.entry - pos.stop) > 0) pos.stop = r6(pos.entry);
         } else if (tp1Hit) { closePart(acct, pos, 1, pos.tp1, 'tp2', c.time, events); break; }
         if (tp2Hit && (pos.tp1Done || !pos.tp1)) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
-        if (x.trailAtr > 0 && (pos.earlyDone || pos.tp1Done) && pos.atrRef > 0) {
-          const bms = cs.length > 1 ? cs[1].time - cs[0].time : (TIMEFRAMES[pos.tf]?.ms || 0);
-          if (c.time + bms <= now) { const ns = r6(c.close - d * x.trailAtr * pos.atrRef); if (d * (ns - pos.stop) > 0) pos.stop = ns; }
-        }
-        pos.lastTime = c.time; pos.lastPrice = c.close; continue;
+        if (x.trailAtr > 0 && (pos.earlyDone || pos.tp1Done) && pos.atrRef > 0 && closed) { const ns = r6(c.close - d * x.trailAtr * pos.atrRef); if (d * (ns - pos.stop) > 0) pos.stop = ns; }
+        step(); continue;
       }
       // Erken kâr al: pozisyon TF'si listedeyse erken hedefte %portion kapat, stop girişe; kalan TP2'ye (tp1 mantığı devre dışı)
       if (et && !pos.trail && et.tfs.includes(pos.tf) && !pos.tp1Done && !stopHit) {
@@ -270,7 +303,7 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
         if (d === 1 ? c.high >= ep : c.low <= ep) {
           closePart(acct, pos, et.portion, r6(ep), 'early', c.time, events); pos.tp1Done = true; pos.earlyDone = true; pos.stop = r6(pos.entry);
           if (tp2Hit) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
-          pos.lastTime = c.time; pos.lastPrice = c.close; continue;
+          step(); continue;
         }
       }
       if (stopHit) { closePart(acct, pos, 1, pos.stop * (1 - d * FEES.slipPct / 100), pos.tp1Done ? 'tp1_stop' : 'stop', c.time, events); break; }
@@ -278,13 +311,12 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
         if (pos.tp2) { closePart(acct, pos, 0.5, pos.tp1, 'tp1', c.time, events); pos.tp1Done = true; if (pos.beAfterTp1) pos.stop = r6(pos.entry); }
         else { closePart(acct, pos, 1, pos.tp1, 'tp2', c.time, events); break; }
         if (tp2Hit) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
-        continue;
+        step(); continue;
       }
       if (tp2Hit && pos.tp1Done) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
       // İzleyen stop (pos.trail): yalnız kapanmış mumda, stop yalnız kâr yönüne taşınır; süre dolunca kapanıştan çıkış
       if (pos.trail) {
-        const bms = cs.length > 1 ? cs[1].time - cs[0].time : (TIMEFRAMES[pos.tf]?.ms || 0);
-        if (c.time + bms <= now) {
+        if (closed) {
           const ns = r6(c.close - d * pos.trail.mult * pos.trail.atr);
           if (d * (ns - pos.stop) > 0) pos.stop = ns;
           const tfMs = TIMEFRAMES[pos.tf]?.ms;
@@ -295,12 +327,10 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
       const tfMs = TIMEFRAMES[pos.tf]?.ms, risk0 = Math.abs(pos.entry - pos.stop);
       if (ts && tfMs && !pos.tp1Done && risk0 > 0) {
         pos.mfeR = Math.max(pos.mfeR || 0, (d * ((d === 1 ? c.high : c.low) - pos.entry)) / risk0);
-        const barMs = cs.length > 1 ? cs[1].time - cs[0].time : 0;
-        if (c.time + barMs - pos.openedAt >= ts.bars * tfMs && c.time + barMs <= now && pos.mfeR < ts.minMfeR) { closePart(acct, pos, 1, c.close * (1 - d * FEES.slipPct / 100), 'time', c.time, events); break; }
+        if (closed && c.time + bms - pos.openedAt >= ts.bars * tfMs && pos.mfeR < ts.minMfeR) { closePart(acct, pos, 1, c.close * (1 - d * FEES.slipPct / 100), 'time', c.time, events); break; }
       }
-      pos.lastTime = c.time; pos.lastPrice = c.close;
+      step();
     }
-    if (acct.positions.includes(pos) && cs.length) pos.lastTime = cs[cs.length - 1].time;
   }
   return events;
 }
