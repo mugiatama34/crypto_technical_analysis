@@ -111,3 +111,7 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
 - **Geçme ölçütü (özet tablodaki ile aynı, kesinleştirilmiş):** T → kasa-M'de haftalık ortalama > 0, %90 aralığının alt ucu > 0, Sharpe ≥ 0,5.
   HM1–HM3 → eğitim ve doğrulamada ortalama > 0 ve Sharpe > T; kasa-M'de ortalama > 0, alt uç > 0, Sharpe > T; ve pencere 14 ile 56 günde
   kasa-M + geliştirme toplamında aynı işaret (plato). T'nin kendisi için de 14 / 56 gün işareti raporlanır.
+- 13.11.2026 (M1 ilk koşusundan ÖNCE) uygulama notları: HM2 ağırlığı her hafta yeniden hesaplanır (σ = karar gününe kadar 28 günlük
+  getirinin örnek std'si), yeniden ağırlıklandırma maliyeti sıfır sayıldı (HM2 lehine hafif iyimser); kasa ısınması kasa başından 100 gün
+  önceki mumlardan; plato = geliştirme + kasa haftalarının birleşik ortalaması (L 14 ve 56); havuz koşu anındaki ilk 150 (M0d koşusundaki
+  listeden az farklı olabilir — sağlamlık denetimi ±0,05 puanı bu yüzden tutmazsa fark belgelenir, tanım değişmez).
