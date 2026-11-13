@@ -6,6 +6,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { askBrain, validateDecision } from '../bot/brain.js';
 import { stats } from './report.js';
+import { readPlansFile } from './plans.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 const N = +arg('n', 250), SEED = +arg('seed', 7), OUT = String(arg('out', 'docs/backtest'));
@@ -14,7 +15,7 @@ if (!apiKey) { console.error('ANTHROPIC_API_KEY gerekli'); process.exit(1); }
 const rng = (seed) => { let x = seed >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 
 async function main() {
-  const all = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(OUT, 'plans.json.gz'))).toString());
+  const all = readPlansFile(path.join(OUT, 'plans.json.gz'));
   const traded = all.filter((t) => ['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout'].includes(t.outcome));
   const r = rng(SEED);
   const sample = [...traded].sort(() => r() - 0.5).slice(0, N);
