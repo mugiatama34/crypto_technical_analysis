@@ -16,10 +16,13 @@ export const XS_DEFAULTS = { lookback: 28, k: 5, stopAtr: 3, rebalanceDow: 0, mi
 /** USDT hacim (OKX volCcyQuote); yoksa hacim × kapanış. */
 export const quoteVolOf = (x) => (Number.isFinite(x.quoteVol) && x.quoteVol > 0 ? x.quoteVol : x.volume * x.close);
 
-/** Bir coinin i. (kapanmış) mumundaki momentum adayı: { coin, r, vol } ya da null (geçmiş yetersiz / ATR yok). */
+/**
+ * Bir coinin i. (kapanmış) mumundaki momentum adayı: { coin, r, vol } ya da null (geçmiş yetersiz / ATR yok).
+ * p.skip (isteğe bağlı, varsayılan 0): sıralama getirisi close[i − skip] / close[i − lookback] − 1 (son skip gün hariç; momentum M1 HM3).
+ */
 export function momentumAt(coin, candles, i, atrArr, p, vol) {
   if (i == null || i < p.lookback + p.minHistory || !atrArr[i]) return null;
-  return { coin, r: candles[i].close / candles[i - p.lookback].close - 1, vol };
+  return { coin, r: candles[i - (p.skip || 0)].close / candles[i - p.lookback].close - 1, vol };
 }
 
 /**
