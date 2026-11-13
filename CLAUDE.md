@@ -89,6 +89,9 @@ ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe ya
 `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.
 
 ## Açık işler (11.11.2026)
+- **Ajan adım 3 (13.11'de ertelendi):** ilk ajan ara değerlendirmesinde (10 kapanış; Telegram'da "📌 Hatırlatma") ajanın ek bilgi
+  isteyebilmesini (sınırlı menü, karar başına ≤ 2) kullanıcıyla değerlendir. Önce 1–2. adımın (AGENT_EXIT=1, 13.11'de açıldı)
+  ilk 10 işlemdeki etkisi: signals.html "Ajan vs sinyal" + ajanların `reviews`. "Devam edelim"de agent `reviews` uzunluğuna bak.
 - **Hyperliquid incelemesi yapıldı (11.11, DURUM.md):** 16 kârlı cüzdan; ders = küçük pozisyon (medyan pozisyon hesabın
   %1–40'ı), çok küçük kayıp + nadir büyük kayıp, kazananı uzun tutma; seçilim yanlılığı büyük (48 bin hesaptan kazananlar).
   Ortam izni: api.hyperliquid.xyz + stats-data.hyperliquid.xyz (Default). Node fetch proxy'yi ancak `NODE_USE_ENV_PROXY=1` ile kullanır.

@@ -41,6 +41,8 @@ export function botPlanOf(trade, items = []) {
   const R = finalR(s);
   return { status: s.status, R: R == null ? null : +R.toFixed(2), entry: s.entry, stop: s.stop, early: s.early ?? null, tp1: s.tp1, tp2: s.tp2, exits: s.early ? `erken %${Math.round((s.earlyPortion ?? 0.8) * 100)}${s.midPortion ? ` · TP1 %${Math.round(s.midPortion * 100)}${s.midStop === 'early' ? ' · stop erkene' : ''}` : ''} → TP2` : 'TP1 yarı → TP2' };
 }
+/** İlk ara değerlendirmede (10 işlem) kullanıcıya bekleyen 3. adımı hatırlat (ilerleme.md §4). */
+export const stepThreeReminder = (reviews = []) => (reviews.length === 1 ? '\n📌 Hatırlatma: 10 işlem doldu — ilerleme planı §4 adım 3 (ajanın ek bilgi isteyebilmesi) değerlendirilecek. Claude oturumunda "devam edelim" yaz.' : '');
 /** Ara (her REVIEW_EVERY kapanış) ya da tam (REVIEW_FULL'a ulaşınca) gözden geçirme gerekli mi → 'interim' | 'full' | null. */
 export function reviewDue(acct) {
   const since = acct.closedSinceReview || 0;
@@ -172,9 +174,10 @@ export async function runAgents(ctx) {
           acct.paramsHistory.push({ at: now, params: acct.params, reason: `${mode === 'full' ? 'tam' : 'ara (önemli bulgu)'}: ${rv.summary}${rv.evidence ? ` | kanıt: ${rv.evidence}` : ''}` });
         }
         (acct.reviews ||= []).push({ at: now, mode, applied: apply, summary: rv.summary, evidence: rv.evidence || '' });
+        const remind = stepThreeReminder(acct.reviews);
         acct.closedSinceReview = 0; acct.lastReview = now;
         acct.closedSinceFull = mode === 'full' ? 0 : (acct.closedSinceFull || 0);
-        await notify(`🤖 <b>Ajan [${esc(acct.label)}] ${mode === 'full' ? 'tam gözden geçirme (30 işlem)' : 'ara değerlendirme (10 işlem)'}</b>\n${esc(rv.summary)}${apply ? `\n${mode === 'full' ? 'Kurallar güncellendi' : `⚠️ Önemli bulgu — kurallar beklemeden güncellendi: ${esc(rv.evidence)}`}: risk ${acct.params.riskAppetite}, kaldıraç ${acct.params.preferredLeverage.join('–')}x, marjin ≤ %${acct.params.maxMarginPctPerTrade}${acct.params.avoidDetectors.length ? `, kaçın: ${esc(acct.params.avoidDetectors.join(', '))}` : ''}` : '\nKurallar değişmedi (plan: 30 işlemde tam gözden geçirme).'}`);
+        await notify(`🤖 <b>Ajan [${esc(acct.label)}] ${mode === 'full' ? 'tam gözden geçirme (30 işlem)' : 'ara değerlendirme (10 işlem)'}</b>\n${esc(rv.summary)}${apply ? `\n${mode === 'full' ? 'Kurallar güncellendi' : `⚠️ Önemli bulgu — kurallar beklemeden güncellendi: ${esc(rv.evidence)}`}: risk ${acct.params.riskAppetite}, kaldıraç ${acct.params.preferredLeverage.join('–')}x, marjin ≤ %${acct.params.maxMarginPctPerTrade}${acct.params.avoidDetectors.length ? `, kaçın: ${esc(acct.params.avoidDetectors.join(', '))}` : ''}` : '\nKurallar değişmedi (plan: 30 işlemde tam gözden geçirme).'}${remind}`);
       } catch (err) { log(`  ajan ${id} gözden geçirme hatası: ${err.message}`); }
     }
     // 4) Koşu sonu

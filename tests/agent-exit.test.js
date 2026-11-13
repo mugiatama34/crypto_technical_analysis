@@ -65,3 +65,8 @@ test('ara değerlendirme: önemli bulgu yoksa kurallar değişmez, varsa değiş
   st = await runAgents({ ...base, notify: async () => {}, llm: fakeLlm({ summary: 's', lessons: ['yeni'], params, strong_finding: true, evidence: '6 işlemde 2 likidasyon, ort. −1,4R' }) });
   assert.deepEqual(st.temkinli.lessons, ['yeni']); assert.equal(st.temkinli.params.riskAppetite, 'low');
 });
+
+import { stepThreeReminder } from '../bot/agent/run.js';
+test('3. adım hatırlatması yalnız ilk ara değerlendirmede', () => {
+  assert.match(stepThreeReminder([{}]), /adım 3/); assert.equal(stepThreeReminder([{}, {}]), ''); assert.equal(stepThreeReminder([]), '');
+});
