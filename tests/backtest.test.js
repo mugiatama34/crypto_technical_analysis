@@ -69,7 +69,10 @@ const drop = [c(1, 102.5, 102.8, 102.2, 102.5), c(2, 102.5, 102.5, 100.5, 100.6)
 test('simulateTrade: yaklaşma hızı ölçülür; yavaş yaklaşmada koruma normal dolum yapar', () => {
   const slow = [c(1, 100.6, 100.8, 100.4, 100.6), c(2, 100.5, 100.7, 100.3, 100.5), c(3, 100.4, 100.5, 99.9, 100.2), c(4, 100.2, 104.5, 100.1, 104.2), c(5, 104, 108.5, 103.8, 108)];
   const a = simulateTrade(kplan, slow, 0, '1H', o), b = simulateTrade(kplan, slow, 0, '1H', kGuard);
-  assert.equal(a.approachAtr, 0.9); assert.equal(a.fillBarAtr, 0.6);
+  // dokunma anına kadar (varsayılan): dip = giriş 100 → 0,8 / 0,5; eski tam mum (knifeBar full): dip 99,9 → 0,9 / 0,6
+  assert.equal(a.approachAtr, 0.8); assert.equal(a.fillBarAtr, 0.5);
+  const af = simulateTrade(kplan, slow, 0, '1H', { ...o, knifeBar: 'full' });
+  assert.equal(af.approachAtr, 0.9); assert.equal(af.fillBarAtr, 0.6);
   assert.deepEqual([b.outcome, b.R, b.entryFill], [a.outcome, a.R, 100]);
   assert.equal(simulateTrade({ ...kplan, inZone: true }, slow, 0, '1H', o).approachAtr, null);
 });
@@ -77,7 +80,8 @@ test('simulateTrade: yaklaşma hızı ölçülür; yavaş yaklaşmada koruma nor
 test('simulateTrade: hızlı yaklaşma + teyit mumu → teyit kapanışından giriş; teyitsiz stop → knife (R 0); skip', () => {
   const up = [c(4, 99.4, 99.8, 98.9, 99.6), c(5, 99.6, 100.4, 99.5, 100.3), c(6, 100.3, 104.5, 100.2, 104.2), c(7, 104, 108.5, 103.8, 108)];
   const plain = simulateTrade(kplan, [...drop, ...up], 0, '1H', o);
-  assert.equal(plain.entryFill, 100); assert.equal(plain.approachAtr, 3.6);
+  assert.equal(plain.entryFill, 100); assert.equal(plain.approachAtr, 2.8); // 102,8 − giriş 100 (tam mumla 102,8 − 99,2 = 3,6)
+  assert.equal(simulateTrade(kplan, [...drop, ...up], 0, '1H', { ...o, knifeBar: 'full' }).approachAtr, 3.6);
   const g = simulateTrade(kplan, [...drop, ...up], 0, '1H', kGuard);
   assert.equal(g.outcome, 'tp2'); assert.equal(g.entryFill, 100.3); assert.equal(g.confirmed, true);
   const risk = 100.3 - 97;
