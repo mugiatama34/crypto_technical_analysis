@@ -78,3 +78,36 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
     USDT sıçramalar. Ön kayıt kuralı: kaynak bulunmadan M1'e geçilmez → canlı kodun kendi fonksiyonlarıyla 15 dk adımlı yeniden oynatma
     ekleniyor.
   - Kasa-M veri varlığı: dengeleme başına uygun coin 32–66 (medyan 46), hepsi ≥ 20 → kasa kısaltılmaz.
+- 13.11.2026 **M0a kaynağı bulundu (koşu 43505304886, `m0a.replay`; canlı kodun kendi fonksiyonlarıyla 15 dk adımlı yeniden oynatma, 2.251 adım,
+  muhasebe farkı 0,009 USDT):**
+  - Bugünkü kodla baştan oynatma: **−1,19 USDT** (298,81) ↔ canlı −23,04 (276,96). Fark −21,85 USDT'nin tamamı ilk haftada: dengeleme
+    anlarında oynatma ↔ canlı özsermaye 300,21 ↔ 278,64 · 295,71 ↔ 273,57 · 303,85 ↔ 281,35 · 298,81 ↔ 276,96 → 26.10'dan sonra haftalık
+    değişimler ±0,6 USDT içinde aynı.
+  - **Neden:** portföy 21.10.2026 10:00 UTC'de, "eşit risk boyutlama" değişikliğinden (commit 4896acd3, 11:39 UTC) ÖNCE açıldı → ilk
+    pozisyonlar eski düzenle eşit nominal 60 USDT (UNI ve ZEC kayıtlarında nominal 60). APR short'u 24–25.10'da sıkıştı (saatlik +%43, +%33,
+    −%31); 60 USDT'lik pozisyon özsermayeyi saatte ±20–31 USDT oynattı. 26.10 dengelemesinde APR eşit riske (~7 USDT) küçültüldü ve zarar
+    `realized`'a yazıldı ama `trades`'e düşmedi ("yeniden boyutlamada gerçekleşen −26,63"). Yani **bir geçiş artığı; bugünkü kodda muhasebe
+    hatası yok.** Karşı-olgusallar: hedge yeniden boyutlaması kapalı −0,35 USDT fark, haftalık yeniden boyutlama kapalı +2,18 → mekanik etkiler küçük.
+  - **Çıkan dersler:** (1) canlı (eşit risk; nominal özsermayenin %17–53'ü) ile backtest (eşit nominal, 1×) farklı risk profili — yüzdeler
+    doğrudan karşılaştırılamaz. (2) 3 ATR günlük stop küçük coinlerde giriş fiyatının %65–200'ü: eşit nominalde TEK işlem özsermayenin
+    %20–30'unu götürebilir (APR −%116). M1 raporuna "en kötü tek işlem" ve "en kötü hafta" eklenir. (3) Kayıt eksikleri (düzeltme önerisi,
+    kullanıcı kararı): yeniden boyutlamada gerçekleşen K/Z `trades`'e yazılmıyor; `curve` noktasının saati ilk turun, değeri son turun.
+  - Ön kayıt koşulu sağlandı (fark kaynağı bulundu, kod hatası yok) → M1'e geçilir.
+
+## Aşama M1 — kesin tanımlar (13.11.2026, koşudan ÖNCE)
+- **Satırlar (hepsi haftalık, 28 gün, K = 5, dönem evreni `pitN` 50 / havuz 150, 3 ATR stop, maliyet + varsayılan fonlama):**
+  - **T** = `xsmom_l28_k5_short_rel` + işlem başına eşit nominal ters BTC (M0d'deki "hedge'li" seri; canlının ölçülen hali). Hedge'siz seri
+    bilgi amaçlı.
+  - **HM1** = `xsmom_l28_k5_ls_rel` (long güçlü 5 + short zayıf 5, BTC'ye göre), BTC hedge yok.
+  - **HM2** = T'nin seçimi; short nominalleri ∝ 1 / (coin'in son 28 günlük günlük getiri standart sapması), toplam short nominali T ile aynı;
+    BTC hedge = toplam short nominali.
+  - **HM3** = T; sıralama getirisi t−28 → t−7 kapanışları arası (son 7 gün hariç), BTC getirisi aynı pencereden.
+  - Bilgi amaçlı (karara girmez): canlının eşit risk boyutlaması (%2 risk, üst sınır özsermaye / 5); her satır için en kötü tek işlem
+    (özsermaye %), en kötü hafta, long / short bacak ayrımı.
+- **Dilimler:** geliştirme 24.11.2024 → 13.11.2026 (ilk 2/3 eğitim, son 1/3 doğrulama; M0 ile aynı); kasa-M 24.11.2022 → 24.11.2024
+  (ısınma verisi kasadan ÖNCEKİ mumlardan; kısaltma yok: dengeleme başına 32–66 uygun coin).
+- **İki aşamalı koşu:** `lock=0` yalnız geliştirme + sağlamlık denetimi (T, M0d ile aynı: eğitim +%2,65 / doğrulama +%3,64 hafta, ±0,05
+  puan); geçerse `lock=1` kasa dahil tam rapor (tek bakış).
+- **Geçme ölçütü (özet tablodaki ile aynı, kesinleştirilmiş):** T → kasa-M'de haftalık ortalama > 0, %90 aralığının alt ucu > 0, Sharpe ≥ 0,5.
+  HM1–HM3 → eğitim ve doğrulamada ortalama > 0 ve Sharpe > T; kasa-M'de ortalama > 0, alt uç > 0, Sharpe > T; ve pencere 14 ile 56 günde
+  kasa-M + geliştirme toplamında aynı işaret (plato). T'nin kendisi için de 14 / 56 gün işareti raporlanır.
