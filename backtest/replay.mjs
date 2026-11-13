@@ -36,15 +36,21 @@ async function main() {
     try {
       candles = fixture ? (await fixture.candles(instIdOf(coin), tf, 400)).candles : await getHistoryCached(instIdOf(coin), tf, start, now, { cacheDir: CFG.cacheDir });
     } catch (err) { errors.push({ key: k, error: err.message }); continue; }
-    for (const s of list) rows.push({ ...replayItem(s, candles, now, { knifeGuard: s.sentAt >= knifeSince ? guard : null, feePct: CFG.fee, slipPct: CFG.slip }), regime: ruleSince && s.sentAt >= ruleSince ? 'current' : 'legacy', orphan: !!s.orphan });
+    let lower = null;
+    if (tf === '4H' || tf === '1H') {
+      try {
+        lower = fixture ? (await fixture.candles(instIdOf(coin), '15m', 400)).candles : await getHistoryCached(instIdOf(coin), '15m', start, now, { cacheDir: CFG.cacheDir });
+      } catch (err) { errors.push({ key: k + '|15m', error: err.message }); lower = null; }
+    }
+    for (const s of list) rows.push({ ...replayItem(s, candles, now, { lower, knifeGuard: s.sentAt >= knifeSince ? guard : null, feePct: CFG.fee, slipPct: CFG.slip }), regime: ruleSince && s.sentAt >= ruleSince ? 'current' : 'legacy', orphan: !!s.orphan });
     if (++done % 25 === 0) log(`  ${done}/${groups.size}`);
   }
 
   const by = (f) => { const o = {}; for (const r of rows) (o[f(r)] ??= []).push(r); return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, summarize(v)])); };
   const mismatches = rows.filter((r) => r.match === false).map((r) => ({ id: r.id, tf: r.tf, direction: r.direction, market: r.market, sentAt: new Date(r.sentAt).toISOString().slice(0, 16), recorded: r.recorded, track: r.track, engine: r.engine }));
   const report = {
-    meta: { generatedAt: now, fee: CFG.fee, slip: CFG.slip, ruleSince, knifeSince: Number.isFinite(knifeSince) ? knifeSince : null, items: items.length, errors },
-    note: 'recorded = canlıda kaydedilen sonuç (finalR); track = canlı takip kodu tam mum verisiyle; engine = backtest motoru aynı planla (komisyonsuz). recorded ≈ track ≠ engine → kural farkı; recorded ≠ track → canlı takip/veri sorunu.',
+    meta: { generatedAt: now, fee: CFG.fee, slip: CFG.slip, ruleSince, knifeSince: Number.isFinite(knifeSince) ? knifeSince : null, items: items.length, errors, lowerTf: '15m' },
+    note: 'recorded = canlıda kaydedilen sonuç (finalR); track = canlı takip kodu tam mum verisiyle; engine = backtest motoru aynı planla (komisyonsuz). recorded ≈ track ≠ engine → kural farkı; recorded ≠ track → canlı takip/veri sorunu. Dolum mumundaki sıra 15m mumlarla (satırda lower: true); 15m yoksa dolum mumunda hedef sayılır (iyimser).',
     all: summarize(rows), byRegime: by((r) => r.regime), byRegimeDir: by((r) => `${r.regime} ${r.direction}`), byTf: by((r) => `${r.regime} ${r.tf}`),
     statusPairs: Object.entries(rows.reduce((a, r) => { const k = `${r.recorded.status}→${r.track.status}`; a[k] = (a[k] || 0) + 1; return a; }, {})).sort((a, b) => b[1] - a[1]),
     mismatches: mismatches.slice(0, 200), rows,

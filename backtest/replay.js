@@ -16,7 +16,7 @@ export function planOfItem(s) {
     atr: s.atr, zone: s.zone, sentAt: s.sentAt, status: market ? 'active' : 'waiting', inZone: market,
     rr1: risk > 0 ? +((s.d * (s.tp1 - entry)) / risk).toFixed(2) : s.rr1, rr: risk > 0 ? +((s.d * (s.tp2 - entry)) / risk).toFixed(2) : s.rr,
   };
-  if (s.early) Object.assign(plan, { early: s.early, earlyPortion: s.earlyPortion ?? 0.8, ...(s.midPortion ? { midPortion: s.midPortion, midStop: s.midStop } : {}) });
+  if (s.early) Object.assign(plan, { early: s.earlyPlanned ?? s.early, earlyPortion: s.earlyPortion ?? 0.8, ...(s.midPortion ? { midPortion: s.midPortion, midStop: s.midStop } : {}) });
   return plan;
 }
 
@@ -24,12 +24,12 @@ export function planOfItem(s) {
  * Canlı takibi taklit eder: önce yalnız ilk expireHours içindeki mumlar (bekleyen emir o sürede düşer), sonra
  * mevcut durumla tüm mumlar (canlı bot her turda sentAt'tan yeniden tarar). candles: kapanmış mumlar, eskiden yeniye.
  */
-export function replayTrack(plan, candles, now, { knifeGuard = null, expireHours = PLAN_DEFAULTS.expireHours } = {}) {
+export function replayTrack(plan, candles, now, { knifeGuard = null, expireHours = PLAN_DEFAULTS.expireHours, lower = null } = {}) {
   const exp = plan.sentAt + expireHours * 3600e3;
   let p = { ...plan };
   const events = [];
   const step = (cs, t) => {
-    const r = trackPlan(p, cs, t, { knifeGuard, expireHours });
+    const r = trackPlan(p, cs, t, { knifeGuard, expireHours, lower });
     p = { ...p, ...r.patch, status: r.status };
     if (r.events.some((e) => e === 'tp1' || e === 'early')) p.tp1At = p.tp1At ?? 1;
     events.push(...r.events);
@@ -40,12 +40,12 @@ export function replayTrack(plan, candles, now, { knifeGuard = null, expireHours
 }
 
 /** Motor: aynı plan; erken kâr varsa TP1 = erken hedef, kısım = earlyPortion (half_be ile aynı mekanik). */
-export function replayEngine(plan, candles, { knifeGuard = null, feePct = 0, slipPct = 0 } = {}) {
+export function replayEngine(plan, candles, { knifeGuard = null, feePct = 0, slipPct = 0, lower = null } = {}) {
   const from = candles.findIndex((c) => c.time > plan.sentAt);
   if (from < 0) return { outcome: 'nodata', R: null };
   const mid = plan.early && plan.midPortion > 0 && plan.d * (plan.tp1 - plan.early) > 0 && plan.d * (plan.tp2 - plan.tp1) > 0;
   const p = { ...plan, ...(plan.early ? { tp1: plan.early, missTp: plan.tp1 } : {}), ...(mid ? { tpMid: plan.tp1 } : {}) };
-  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5, ...(mid ? { midPortion: plan.midPortion, midStopToTp1: plan.midStop === 'early' } : {}) };
+  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5, ...(mid ? { midPortion: plan.midPortion, midStopToTp1: plan.midStop === 'early' } : {}), ...(lower ? { fillBarTp: 'lower', lowerCandles: lower } : {}) };
   const r = simulateTrade(p, candles, from, plan.tf, o);
   // Açık kalan (veri sonu) işlemler sonuçsuz sayılır
   const open = (r.outcome === 'timeout' || r.outcome === 'tp1_timeout') && from + (r.bars ?? 0) >= candles.length - 1;
@@ -63,7 +63,7 @@ export function replayItem(s, candles, now, opts = {}) {
   const e = replayEngine(plan, candles, opts);
   const rec = CLOSED.has(s.status) ? finalR(s) : null;
   return {
-    id: s.id, coin: s.coin, tf: s.tf, direction: s.direction, sentAt: s.sentAt, market: plan.inZone,
+    id: s.id, coin: s.coin, tf: s.tf, direction: s.direction, sentAt: s.sentAt, market: plan.inZone, lower: !!opts.lower,
     recorded: { status: s.status, R: r3(rec) }, track: { status: t.status, R: r3(t.R) }, engine: { outcome: e.outcome, R: r3(e.R) },
     match: !CLOSED.has(s.status) ? null : s.status === t.status,
   };
