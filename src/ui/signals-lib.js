@@ -102,3 +102,15 @@ export function agentVsSignal(trades, items, since = 0) {
     rows,
   };
 }
+
+/**
+ * Açık sinyalin plana göre R'si (13.11): erken hedef görüldüyse %portion kilitli (portion × erken R), kalan (1 − portion)
+ * fiyatla, stop girişte; TP1 görüldüyse (erkensiz düzen) ½·R1 kilitli + ½ fiyatla. uR = fiyat hareketi (tam pozisyon R).
+ * → { R, locked, openShare, beStop } | null
+ */
+export function planOpenR(s, uR) {
+  if (!Number.isFinite(uR)) return null;
+  if (s.status === 'early' && s.early) { const p = s.earlyPortion ?? 0.8, locked = p * earlyR(s); return { R: locked + (1 - p) * uR, locked, openShare: 1 - p, beStop: true }; }
+  if (s.status === 'tp1') { const locked = 0.5 * (s.rr1 || 1.5); return { R: locked + 0.5 * uR, locked, openShare: 0.5, beStop: true }; }
+  return { R: uR, locked: 0, openShare: 1, beStop: false };
+}

@@ -49,3 +49,11 @@ test('familyStats: aile başına bir kez, kırılımlı', () => {
   const fvg = st.find((x) => x.family === 'FVG');
   assert.equal(fvg.all.n, 2); assert.equal(fvg.all.avgR, 0.5); assert.equal(fvg.parts.down.avgR, -1); assert.equal(fvg.parts.up.n, 1);
 });
+
+import { planOpenR } from '../src/ui/signals-lib.js';
+test('planOpenR: erken hedef sonrası %80 kilitli, kalan %20 fiyatla', () => {
+  const s = { status: 'early', entry: 100, stop: 101, early: 99, earlyPortion: 0.8 }; // erken R = 1
+  const r = planOpenR(s, 5);
+  assert.ok(Math.abs(r.R - (0.8 + 0.2 * 5)) < 1e-9); assert.equal(r.beStop, true);
+  assert.equal(planOpenR({ status: 'active' }, -0.3).R, -0.3);
+});
