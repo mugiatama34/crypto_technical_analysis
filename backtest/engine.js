@@ -27,6 +27,9 @@ export const BT_DEFAULTS = {
   knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
   // Bıçak kararının girdisi (13.11): 'touch' (varsayılan, canlı gibi: dolum mumunun yalnız girişe dokunma anına kadarki kısmı;
   // o.lowerCandles varsa dokunma anı alt TF'den) | 'full' (eski: tam dolum mumu, dokunmadan sonraki dip de karara girer → iyimser)
+  // | 'lowerBar' (13.11, K1): üst mumun başından girişe ilk dokunan alt TF mumunun SONUNA kadar (o alt mum tam dahil; 15 dk'lık
+  // turdaki bot dokunan 15m mum kapanınca bunu görür). Alt TF 15m ise canlıyla aynı; 1H ise dokunmadan sonraki ≤ 1 saati de
+  // görür → canlıya göre hafif iyimser. Alt TF yoksa 'touch' gibi. Varsayılan 'touch' (kötümser sınır) kalır.
   knifeBar: 'touch',
   // Limit dolum mumunda hedef (TP1 / tek hedef): 'count' (varsayılan, iyimser: önce dolum sonra hedef varsayılır) |
   // 'skip' (kötümser: dolum mumunda hedef sayılmaz) | 'lower' (alt TF mumlarıyla sıra: o.lowerCandles, dolumdan SONRAKİ
@@ -67,6 +70,28 @@ export function touchBar(plan, d, c, ms, lower) {
   return { time: c.time, open: c.open, close: e, ...part(c, null) };
 }
 
+/**
+ * knifeBar 'lowerBar': üst mumun başından girişe ilk dokunan alt TF mumunun sonuna kadarki kısım (tepe/dip o aralığın uçları,
+ * kapanış o alt mumun kapanışı). Canlı bot 15 dk'lık turda kapanmamış 4H mumu tam bu haliyle görüp karar verir.
+ * Alt TF mumları üst mumun başından yoksa ya da hiçbiri girişe dokunmuyorsa touchBar (yedek kural).
+ */
+export function lowerBar(plan, d, c, ms, lower) {
+  const e = plan.entry;
+  if (lower?.length && ms) {
+    let lo = 0, hi = lower.length - 1, s0 = lower.length;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (lower[m].time >= c.time) { s0 = m; hi = m - 1; } else lo = m + 1; }
+    if (s0 < lower.length && lower[s0].time === c.time) {
+      let h = -Infinity, l = Infinity;
+      for (let j = s0; j < lower.length && lower[j].time < c.time + ms; j++) {
+        const x = lower[j];
+        h = Math.max(h, x.high); l = Math.min(l, x.low);
+        if (d === 1 ? x.low <= e : x.high >= e) return { time: c.time, open: c.open, high: h, low: l, close: x.close };
+      }
+    }
+  }
+  return touchBar(plan, d, c, ms, lower);
+}
+
 /** Tek plan simülasyonu. candles: tüm seri; from: planın oluştuğu mumdan sonraki ilk indeks. */
 export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   const d = plan.d, ms = TIMEFRAMES[tf].ms;
@@ -86,7 +111,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
       if (touched) {
         const aAtr = plan.atr || Math.abs(plan.entry - plan.stop);
         appr = o.knifeBar === 'full' ? approachOf(candles, i, d, aAtr)
-          : approachOf([candles[i - 2], candles[i - 1], touchBar(plan, d, c, ms, o.lowerCandles)], 2, d, aAtr);
+          : approachOf([candles[i - 2], candles[i - 1], (o.knifeBar === 'lowerBar' ? lowerBar : touchBar)(plan, d, c, ms, o.lowerCandles)], 2, d, aAtr);
         if (!isKnife(appr, g)) { entry = plan.entry; fillI = i; break; }
         // Hızlı yaklaşma: emir dolmaz; teyit mumu beklenir (kapanışından giriş), teyitten önce stop = iptal
         const stopOf = (x) => (d === 1 ? x.low <= plan.stop : x.high >= plan.stop);
@@ -96,7 +121,15 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
           if (stopOf(x)) return { outcome: 'knife', R: 0, ...appr };
           if (confirmsTurn(x, candles[k - 1], plan)) {
             if (d * ((plan.missTp ?? plan.tp1) - x.close) <= 0) return { outcome: 'missed', R: 0, ...appr };
-            entry = x.close * (1 + d * slip); fillI = k + 1; mkt = true; break;
+            entry = x.close * (1 + d * slip); fillI = k + 1; mkt = true;
+            // CE (13.11): erken hedefli planda (plan.tp1 = erken hedef, missTp = özgün TP1) erken hedef yeni girişe aynı %
+            // uzaklıkla taşınır (canlı A2: kapanış × erken / planlanan giriş). Ara kademe (tpMid = özgün TP1) taşınmaz; taşınan
+            // erken hedef onu geçtiyse ara kademe yok (canlı midOk). Erken hedefsiz planda (missTp yok) tp1 özgün TP1: dokunulmaz.
+            if (plan.missTp != null) {
+              const tp1 = +(x.close * (plan.tp1 / plan.entry)).toPrecision(8);
+              plan = { ...plan, tp1, ...(plan.tpMid && !(d * (plan.tpMid - tp1) > 0) ? { tpMid: null } : {}) };
+            }
+            break;
           }
         }
         if (entry == null) return { outcome: 'expired', R: 0, knifeWait: true, ...appr };

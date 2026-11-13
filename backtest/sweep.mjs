@@ -313,6 +313,8 @@ async function main() {
     [...live4h, { name: 'dolum mumunda hedef sayılmaz (kötümser)', fillBarTp: 'skip' }], [...live4h, { name: 'dolum mumunda sıra 1H ile', fillBarTp: 'lower' }],
     // Bıçak kararı (13.11): varsayılan dokunma anına kadarki yarım mum (canlı gibi); karşılaştırma için eski tam mum kararı
     [...live4h, { name: 'eski bıçak kararı (tam mum, iyimser)', knifeBar: 'full' }],
+    // Bıçak kararı iki yandan (13.11, K1): 'touch' (varsayılan) kötümser sınır; dokunan 1H mumun sonuna kadar iyimser sınır (canlı 15m arada)
+    [...live4h, { name: 'bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H', knifeBar: 'lowerBar', fillBarTp: 'lower' }],
     // Erken hedef mesafesi, gerçek sırayla (dolum mumunda 1H): %1,2 yerine R cinsinden; erken kısmı yoksa standart yarı/başabaş
     ...[['erken %80: 0,5R', { tp1R: 0.5, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 0,75R', { tp1R: 0.75, tp1Portion: 0.8, keepTp2: true }],
       ['erken %80: 1R', { tp1R: 1, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 1,5R', { tp1R: 1.5, tp1Portion: 0.8, keepTp2: true }],

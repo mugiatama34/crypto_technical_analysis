@@ -45,7 +45,7 @@ export function replayEngine(plan, candles, { knifeGuard = null, feePct = 0, sli
   if (from < 0) return { outcome: 'nodata', R: null };
   const mid = plan.early && plan.midPortion > 0 && plan.d * (plan.tp1 - plan.early) > 0 && plan.d * (plan.tp2 - plan.tp1) > 0;
   const p = { ...plan, ...(plan.early ? { tp1: plan.early, missTp: plan.tp1 } : {}), ...(mid ? { tpMid: plan.tp1 } : {}) };
-  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5, ...(mid ? { midPortion: plan.midPortion, midStopToTp1: plan.midStop === 'early' } : {}), ...(lower ? { fillBarTp: 'lower', lowerCandles: lower } : {}) };
+  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5, ...(mid ? { midPortion: plan.midPortion, midStopToTp1: plan.midStop === 'early' } : {}), ...(lower ? { fillBarTp: 'lower', lowerCandles: lower, knifeBar: 'lowerBar' } : {}) }; // lower = 15m: bıçak kararı canlı gibi dokunan 15m mumun sonuna kadar
   const r = simulateTrade(p, candles, from, plan.tf, o);
   // Açık kalan (veri sonu) işlemler sonuçsuz sayılır
   const open = (r.outcome === 'timeout' || r.outcome === 'tp1_timeout') && from + (r.bars ?? 0) >= candles.length - 1;

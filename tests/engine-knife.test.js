@@ -3,7 +3,7 @@
 // aynı mumda stop görülünce işlem 0R 'knife' sayılıyordu (canlıda −1R) → koruma iyimser ölçülüyordu.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { simulateTrade, touchBar, BT_DEFAULTS } from '../backtest/engine.js';
+import { simulateTrade, touchBar, lowerBar, BT_DEFAULTS } from '../backtest/engine.js';
 
 const c = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
 const o = { ...BT_DEFAULTS, feePct: 0, slipPct: 0 };
@@ -78,4 +78,39 @@ test('touchBar: boşlukla açılış (açılış girişin ötesinde) → dokunma
   assert.deepEqual(touchBar(long, 1, c(0, 99.5, 101, 96, 100), H, null), { time: 0, open: 99.5, close: 100, high: 99.5, low: 99.5 });
   assert.deepEqual(touchBar(short, -1, c(0, 100.5, 104, 99, 100), H, null), { time: 0, open: 100.5, close: 100, high: 100.5, low: 100.5 });
   assert.deepEqual(touchBar(short, -1, c(0, 99.4, 103.5, 99.2, 103), H, null), { time: 0, open: 99.4, close: 100, high: 100, low: 99.2 });
+});
+
+// knifeBar 'lowerBar' (13.11, K1): girişe ilk dokunan alt TF mumunun sonuna kadar (o alt mum tam) — 15 dk'lık turdaki bot gibi
+test("bıçak kararı: knifeBar lowerBar → dokunan alt mumun dibi karara girer (touch: dip = giriş); alt TF yoksa touch gibi", () => {
+  const bars = [c(0, 100.6, 100.8, 100.4, 100.6), c(H4, 100.5, 100.7, 100.3, 100.5), c(2 * H4, 100.4, 100.5, 96.5, 97), c(3 * H4, 97, 98, 96, 97.5)];
+  const low1h = [c(2 * H4, 100.4, 100.5, 97.5, 97.8), c(2 * H4 + H, 97.8, 98, 96.5, 97), c(2 * H4 + 2 * H, 97, 97.2, 96.8, 97), c(2 * H4 + 3 * H, 97, 97.1, 96.9, 97)];
+  const t = simulateTrade(long, bars, 0, '4H', { ...guard, lowerCandles: low1h }); // touch: 0,8 / 0,5 → dolar, stop
+  assert.deepEqual([t.outcome, t.R, t.approachAtr, t.fillBarAtr], ['stopped', -1, 0.8, 0.5]);
+  const lb = simulateTrade(long, bars, 0, '4H', { ...guard, knifeBar: 'lowerBar', lowerCandles: low1h }); // 100,8 − 97,5 = 3,3
+  assert.deepEqual([lb.outcome, lb.R, lb.approachAtr, lb.fillBarAtr], ['knife', 0, 3.3, 3]);
+  assert.deepEqual(lowerBar(long, 1, bars[2], H4, low1h), { time: 2 * H4, open: 100.4, high: 100.5, low: 97.5, close: 97.8 });
+  // alt TF yok / üst mumun başından yok → touchBar
+  assert.deepEqual(lowerBar(long, 1, bars[2], H4, null), touchBar(long, 1, bars[2], H4, null));
+  assert.deepEqual(lowerBar(long, 1, bars[2], H4, low1h.slice(1)), touchBar(long, 1, bars[2], H4, low1h.slice(1)));
+  // short ayna
+  const m = (x) => ({ ...x, open: 200 - x.open, high: 200 - x.low, low: 200 - x.high, close: 200 - x.close });
+  const s = simulateTrade(short, bars.map(m), 0, '4H', { ...guard, knifeBar: 'lowerBar', lowerCandles: low1h.map(m) });
+  assert.deepEqual([s.outcome, s.approachAtr, s.fillBarAtr], ['knife', 3.3, 3]);
+});
+
+// CE (13.11): bıçak teyitli girişte erken hedef (plan.tp1, missTp = özgün TP1) yeni girişe aynı % uzaklıkla taşınır (canlı A2)
+test('bıçak teyidi: erken hedefli planda tp1 yeni girişe taşınır; erkensiz planda (missTp yok) TP1 yerinde', () => {
+  const p = { ...long, stop: 95, tp1: 101.2, missTp: 106, tp2: 110, zone: [99, 100] };
+  const cs = [c(1, 104, 104, 99.5, 99.8), c(2, 99.8, 102.2, 99.6, 102), c(3, 102, 102.5, 101.6, 102.2), c(4, 102.2, 103.4, 102, 103)];
+  const r = simulateTrade(p, cs, 0, '1H', guard);
+  // giriş 102 (teyit kapanışı), erken hedef 102 × 101,2 / 100 = 103,224: 3. mum (102,5) değmez, 4. mum değer (eski: 101,2 →
+  // 3. mumda, girişin altında); kalan yarı veri sonunda dolum mumu kapanışı 102,2
+  assert.equal(r.confirmed, true); assert.equal(r.entryFill, 102); assert.equal(r.tp1Bars, 2);
+  assert.ok(Math.abs(r.R - (0.5 * 1.224 / 7 + 0.5 * 0.2 / 7)) < 0.0011, String(r.R));
+  // ara kademe: taşınan erken hedef özgün TP1'i (tpMid) geçerse ara kademe yok
+  const q = simulateTrade({ ...p, tpMid: 103 }, cs, 0, '1H', { ...guard, midPortion: 0.25 });
+  assert.equal(q.R, r.R);
+  // erkensiz: tp1 = özgün TP1 (104), taşınmaz
+  const n = simulateTrade({ ...p, tp1: 104, missTp: undefined }, [...cs, c(5, 103, 104.1, 102.9, 104)], 0, '1H', guard);
+  assert.equal(n.tp1Bars, 3); // 104'e 5. mumda (dolumdan 3. mum)
 });

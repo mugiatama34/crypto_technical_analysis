@@ -137,3 +137,42 @@ for (const [name, base, cs0, d] of [['long', L, LC, 1], ['short', S, SC, -1]]) {
     assert.deepEqual(trackPlan({ ...p2, midStop: 'entry' }, [...cs, k(10, 103.5, 103.6, 101, 101.1)], t0 + 11 * H + 60e3).events, []);
   });
 }
+
+// K2 (13.11): 15 dk'lık turda bıçak kapanmamış mumda tespit edilir; sonraki turlarda o mumun dokunmadan SONRAKİ kısmında stop
+// görülürse teyitten önce stop = iptal ('knife'). Eskiden mum tümüyle atlanıyor, sonra teyitle giriliyordu. Teyit yalnız sonraki mumda.
+test('K2: bıçak mumunun kalanında stop → knife; stop yoksa o mumda teyit aranmaz, sonraki kapanmış mumda aranır', () => {
+  const plan = { ...L, entry: 100, stop: 97, tp1: 106, tp2: 110, early: undefined, zone: [99, 100], sentAt: 0, atr: 1 };
+  const kb = { time: H, open: 104, high: 104, low: 99.5, close: 99.8 }; // bıçak mumu (yarım haliyle)
+  const r1 = trackPlan(plan, [kb], H + 2 * M15, { knifeGuard: 1 });
+  assert.deepEqual(r1.events, ['confirming']); assert.equal(r1.patch.knifeAt, H);
+  const p = next(plan, r1);
+  // aynı 4H mumun sonraki hali stopa iniyor → knife
+  const r2 = trackPlan(p, [{ ...kb, low: 96.8, close: 97.5 }], H + 8 * M15, { knifeGuard: 1 });
+  assert.deepEqual(r2.events, ['knife']); assert.equal(r2.status, 'knife');
+  // stop yok, bıçak mumu kapanışı bölgenin üstünde (teyit gibi) → o mumda teyit yok; sonraki kapanmış mumda teyit
+  const kc = { ...kb, close: 100.5, high: 104 };
+  assert.deepEqual(trackPlan(p, [kc], 2 * H + 60e3, { knifeGuard: 1 }).events, []);
+  const r3 = trackPlan(p, [kc, { time: 2 * H, open: 100.5, high: 101.5, low: 100.2, close: 101.2 }], 3 * H + 60e3, { knifeGuard: 1 });
+  assert.deepEqual(r3.events, ['active']); assert.equal(r3.patch.entry, 101.2);
+  // short ayna: bıçak mumunun kalanında stop (103 üstü) → knife
+  const ps = next({ ...plan, d: -1, direction: 'short', stop: 103, tp1: 94, tp2: 90, zone: [100, 101] }, { status: 'confirming', patch: { knifeAt: H } });
+  assert.deepEqual(trackPlan(ps, [{ time: H, open: 96, high: 103.2, low: 96, close: 102.5 }], H + 8 * M15, { knifeGuard: 1 }).events, ['knife']);
+});
+
+// EL (13.11): erken hedef kapanmamış mumda yazıldıysa sonraki turlar o mumun kalanında TP1 (ara kademe) ve TP2'yi görür;
+// tek geçişin kuralı: erken hedef mumunda girişe dönüş sayılmaz. Dolum mumu = erken hedef mumu ise mum atlanır (tek geçiş gibi).
+test('EL: erken hedef mumunun kalanında mid ve TP2 sayılır, girişe dönüş sayılmaz; dolum mumunda atlanır', () => {
+  const P = { ...L, earlyPortion: 0.5, midPortion: 0.25, midStop: 'entry', status: 'early', filledAt: t0 + 4 * H, earlyAt: t0 + 6 * H };
+  const cs = [...LC, c(6, 99.5, 104.7, 99.4, 104.2)]; // erken hedef mumu: tam haliyle TP1 (104,5) de var, dip girişin altında
+  const r = trackPlan(P, cs, t0 + 6 * H + 12 * M15);
+  assert.deepEqual(r.events, ['mid']); assert.equal(r.status, 'early'); assert.equal(r.patch.midAt, t0 + 6 * H); // eski: [] (mum atlanır)
+  // aynı mumda TP2 de → done (mid de yazılır)
+  const r2 = trackPlan(P, [...LC, c(6, 99.5, 107.6, 99.4, 107)], t0 + 7 * H + 60e3);
+  assert.equal(r2.status, 'done'); assert.equal(r2.patch.midAt, t0 + 6 * H);
+  // mid önceki turda yazıldıysa tekrar yazılmaz
+  assert.deepEqual(trackPlan({ ...P, midAt: t0 + 6 * H }, cs, t0 + 7 * H + 60e3).events, []);
+  // tek geçiş (dolumdan) aynı mumu aynı sayar
+  assert.deepEqual(trackPlan({ ...P, status: 'active', earlyAt: undefined }, cs, t0 + 7 * H + 60e3).events, ['early', 'mid']);
+  // dolum mumu = erken hedef mumu (alt TF sırası): atlanır
+  assert.deepEqual(trackPlan({ ...P, filledAt: t0 + 6 * H, fillRes: 'tp' }, cs, t0 + 7 * H + 60e3).events, []);
+});

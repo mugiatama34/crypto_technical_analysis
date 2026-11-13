@@ -308,8 +308,12 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       else continue;
     }
     if (status === 'confirming') {
-      if (c.time <= knifeAt()) continue;
+      if (c.time < knifeAt()) continue;
+      // Bıçak mumunun dokunmadan SONRAKİ kısmı da izlenir (13.11 K2): 15 dk'lık turda bıçak kapanmamış mumda tespit edilir;
+      // mumun kalanında stop geçilirse teyitten önce stop = iptal (long'da stop girişin altında → dokunmadan sonradır).
+      // Kapanmış mumla karar verilen turda bu mumda stop zaten 'knife' sayılmıştır (değişiklik yok). Teyit yalnız sonraki mumlarda.
       if (hitStop) { status = 'knife'; events.push('knife'); break; }
+      if (c.time === knifeAt()) continue;
       if (ms && c.time + ms > now) continue; // teyit yalnız kapanmış mumla
       if (confirmsTurn(c, candles[j - 1], plan)) {
         const risk = d * (c.close - plan.stop);
@@ -349,8 +353,18 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
     // Erken kâr al (P.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be).
     // 3 kademe (plan.midPortion): TP1'de ara kapanış (midAt); midStop 'early' ise sonra stop erken hedefe.
     if (status === 'early') {
-      if (c.time <= (patch.earlyAt ?? P.earlyAt ?? bars?.earlyAt)) continue;
+      const eAt = patch.earlyAt ?? P.earlyAt ?? bars?.earlyAt;
+      if (c.time < eAt) continue;
       const midAt = patch.midAt ?? plan.midAt;
+      if (c.time === eAt) {
+        // Erken hedef mumu (13.11 EL): erken hedef önceki turda kapanmamış mumda yazıldıysa mumun kalanında TP1 (ara kademe) ve
+        // TP2 de görülür — tek geçişin kuralı (active dalı: erken hedef mumunda mid + TP2 sayılır, girişe dönüş sayılmaz).
+        // Dolum mumu = erken hedef mumu ise (alt TF sırası, fillRes) tek geçiş o mumda mid/TP2 saymaz: atlanır.
+        if (eAt === bars?.fillAt) continue;
+        if (!midAt && midOk(P) && hitTp1) { patch.midAt = c.time; events.push('mid'); }
+        if (hitTp2) { if (midOk(P) && !(patch.midAt ?? plan.midAt)) patch.midAt = c.time; status = 'done'; events.push('done'); break; }
+        continue;
+      }
       // Stop erken hedefe yalnız mid mumundan SONRA (13.11 MR): midAt önceki turda yazıldıysa earlyAt–midAt arası mumlarda
       // stop hâlâ girişteydi; mid mumunun kendisinde de giriş (sıra bilinmez → stop önce, motor midStopToTp1 ile aynı).
       const lvl = midAt != null && c.time > midAt && plan.midStop === 'early' ? P.early : P.entry;
