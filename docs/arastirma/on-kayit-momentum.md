@@ -62,3 +62,19 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
   yazılır ↔ backtest'te BTC adedi işlem boyunca sabit; canlı ilk ~30 saat hedge'sizdi; ilk dengeleme hafta ortasında. Canlı kaybın
   kimliği (fiyat gerektirmez): kapanan short +6,88 · açık short +3,95 · açık hedge −7,31 · hedge yeniden boyutlamada gerçekleşen −26,63
   = −23,11 USDT.
+- 13.11.2026 **M0 sonucu (koşu 43503125194, `docs/backtest/mom-diag.json`; yalnız geliştirme dilimi, eğitim 62 hafta / doğrulama 34 hafta):**
+  - **M0b karar: "bilgi var".** En zayıf beşte birliğin sonraki hafta getirisi evren ortalamasına göre −%1,26 [−2,10; −0,46] / −%1,79
+    [−3,42; −0,34]; zayıf-5 −%1,88 / −%5,01, rastgele 5 coin plasebosunun %0,2'lik / %0'lık diliminde. Dilimler kesin tekdüze değil
+    (Spearman 0,9 / 0,7); en güçlü dilim +%0,66 / +%1,46 (aralık sıfırı içeriyor) → bilgi zayıf tarafta.
+  - **M0c:** short'lar ortalamada fonlama ALMIŞ (gerçek maliyet −%0,0074 / 8 saat ↔ varsayılan +%0,01 maliyet; 35 coin, 445 pozisyon günü;
+    dönemlerin %19'unda negatif oran) → varsayılan ihtiyatlı, model değişmez.
+  - **M0d (haftalık %, 1× nominal; eğitim / doğrulama):** canlı varyant `short_rel` +3,38 [1,07; 5,90] / +3,57 [1,38; 5,88], Sharpe 2,1 /
+    3,2; hedge'li +2,65 [0,98; 4,44] / +3,64 [1,64; 6,16], Sharpe 2,3 / 3,2, maks. düşüş %22 / %13. Diğerleri: short +3,43 / +3,50 · ls
+    +1,35 / +1,90 · ls_rel +1,22 / +1,97 · long l28 −0,74 / +0,30 · long l14 −3,28 / −0,31 · long + BTC rejimi +0,15 / +0,94. Not: 7
+    varyanttan seçim + dönem alt-coinler için düşüş piyasası; sayılar kasa görülmeden "kanıt" sayılmaz.
+  - **M0a: canlı ↔ backtest AYRIŞIYOR.** Seçimler uyumlu (20 coinin 18'i). Canlı −23,2 USDT = short brüt +11,6 · hedge (BTC yolundan tahmin)
+    −10,4 · komisyon −0,2 · fonlama −0,9 · **açıklanamayan −23,3**. Aynı haftalarda backtest hedge'li −5,1 / −15,2 / +14,9 / +6,0 %
+    (1× nominal), canlı −7,1 / −1,7 / +2,6 / −1,5 % (nominal özsermayenin %17–53'ü). Canlı özsermaye yolunda 24–25.10'da saatlik ±20…31
+    USDT sıçramalar. Ön kayıt kuralı: kaynak bulunmadan M1'e geçilmez → canlı kodun kendi fonksiyonlarıyla 15 dk adımlı yeniden oynatma
+    ekleniyor.
+  - Kasa-M veri varlığı: dengeleme başına uygun coin 32–66 (medyan 46), hepsi ≥ 20 → kasa kısaltılmaz.
