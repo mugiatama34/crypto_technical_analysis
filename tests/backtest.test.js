@@ -231,3 +231,10 @@ test('ara hedef (tpMid): erken %50, TP1 %25, kalan TP2', () => {
   const b = simulateTrade(p, back, 0, '1H', { ...o, tp1Portion: 0.5, midPortion: 0.25 });
   assert.equal(b.R, +(0.5 * 0.5 + 0.25 * 1.5).toFixed(3));
 });
+
+test('ara hedef sonrası stop erken hedefe (midStopToTp1)', () => {
+  const p = { ...plan, tp1: 101, tpMid: 103, tp2: 106 };
+  const cs = [c(1, 101, 101, 99.5, 100.5), c(2, 100.5, 101.2, 100.4, 101), c(3, 101, 103.5, 101, 103), c(4, 103, 103, 99.9, 100)];
+  const r = simulateTrade(p, cs, 0, '1H', { ...o, tp1Portion: 0.5, midPortion: 0.25, midStopToTp1: true });
+  assert.equal(r.R, +(0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 0.5).toFixed(3)); // kalan %25 erken hedefte (0,5R) çıkar
+});
