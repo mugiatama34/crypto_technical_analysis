@@ -67,6 +67,18 @@ async function main() {
   if (live?.start && !CFG.fixture) {
     try { btcHourly = await getHistoryCached(instIdOf('BTC'), '1H', Math.floor(live.start / DAY) * DAY - DAY, now, { cacheDir: path.join(CFG.cacheDir, 'momdiag') }); log(`BTC 1H: ${btcHourly.length} mum`); } catch (e) { log(`BTC 1H: ${e.message}`); }
   }
+  // M0a yeniden oynatma: canlı coinler (işlemler, pozisyonlar, dengeleme listeleri) + BTC — 15m (canlı başı − 1 gün → bugün) ve 1D (− 100 gün)
+  let replay = null;
+  if (live?.start && !CFG.fixture) {
+    const rc = new Set(['BTC', ...(live.trades || []).map((q) => q.coin), ...(live.positions || []).map((q) => q.coin), ...(live.rebalances || []).flatMap((r) => [...(r.shorts || []), ...(r.longs || [])])]);
+    const m15 = new Map(), d1 = new Map(), dir = path.join(CFG.cacheDir, 'momdiag'), d0 = Math.floor(live.start / DAY) * DAY;
+    for (const c of rc) {
+      try { m15.set(c, await getHistoryCached(instIdOf(c), '15m', d0 - DAY, now, { cacheDir: dir })); } catch (e) { log(`  replay ${c} 15m: ${e.message}`); }
+      try { d1.set(c, await getHistoryCached(instIdOf(c), '1D', d0 - 100 * DAY, now, { cacheDir: dir })); } catch (e) { log(`  replay ${c} 1D: ${e.message}`); }
+    }
+    replay = { m15, d1 };
+    log(`Replay verisi: ${m15.size} coin 15m, ${d1.size} coin 1D`);
+  }
   // Fonlama: önce fonlamasız koşu ile taban short coinlerini bul (son fundingDays gün), canlı coinler + BTC eklenir
   const funding = new Map();
   if (!CFG.fixture) {
@@ -85,7 +97,7 @@ async function main() {
     }
     log(`  verisi olan: ${[...funding.values()].filter(Boolean).length} / ${want.size}`);
   }
-  const out = runAll({ series, lockedTimes, live, btcHourly, funding, now, pool: CFG.pool, draws: CFG.draws, meta: { fixture: CFG.fixture, coinsFetched: coins.length, fundingDays: CFG.fundingDays, fundingEndpoint: '/api/v5/public/funding-rate-history (realizedRate, yoksa fundingRate; fundingTime)' } });
+  const out = runAll({ series, lockedTimes, live, btcHourly, funding, replay, now, pool: CFG.pool, draws: CFG.draws, meta: { fixture: CFG.fixture, coinsFetched: coins.length, fundingDays: CFG.fundingDays, fundingEndpoint: '/api/v5/public/funding-rate-history (realizedRate, yoksa fundingRate; fundingTime)' } });
   const leaks = lockedLeaks(out);
   if (leaks.length) throw new Error(`kasa dönemine ait alan çıktıda: ${leaks.slice(0, 5).join(', ')}`);
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
@@ -129,6 +141,16 @@ function printTables(o) {
     const D = a.decomposition;
     console.log(`  ayrışma (USDT): toplam ${D.totalUsd} (%${D.totalPct}) = short brüt ${D.components.shortsGross} + hedge brüt (tahmin) ${D.components.hedgeGrossEst} + komisyon ${D.components.fees} + fonlama ${D.components.funding} + açıklanamayan ${D.components.unexplained}; kayma (fiyatlarda, tahmin) ${D.slippageEstUsd}`);
     console.log(`  kimlik: kapanan short ${D.identity.shortsClosedNet} + açık short ${D.identity.shortsOpenNet} + açık hedge ${D.identity.hedgeOpenNet} + yeniden boyutlama gerçekleşeni ${D.identity.resizeRealized} (fark ${D.identity.check})`);
+    const P = a.replay;
+    if (P?.available) {
+      const it = P.items;
+      console.log(`  REPLAY (${P.steps} adım): replay ${P.equity.replay} ↔ canlı ${P.equity.live} USDT | short kapanan ${it.shortClosedNet} (stop ${it.shortStopped.n}: ${it.shortStopped.usd}) açık ${it.shortOpenNet} yeniden boyut ${it.shortResize.n}: ${it.shortResize.realizedUsd} | hedge açık ${it.hedgeOpenNet} kapanan ${it.hedgeClosed.usd} ayar ${it.hedgeResize.n}: ${it.hedgeResize.realizedUsd} | komisyon ${it.feesUsd} fonlama ${it.fundingUsd} | muhasebe ${P.accountingCheck}`);
+      console.log(`  karşı-olgusal: hedge ayarı yok ${P.counterfactuals.noHedgeResize.equity} (${P.counterfactuals.noHedgeResize.diffVsBase}) · haftalık yeniden boyut yok ${P.counterfactuals.noWeeklyResize.equity} (${P.counterfactuals.noWeeklyResize.diffVsBase}) | seçim uyuşmazlığı ${P.selectionMismatches.length}`);
+      for (const x of P.curve.top10) console.log(`    sapma ${new Date(x.time).toISOString().slice(0, 16)} canlı ${x.live} replay ${x.replay} fark ${x.diff}`);
+      for (const x of P.liveJumpsTop10) console.log(`    canlı sıçrama ${new Date(x.from).toISOString().slice(5, 16)}→${new Date(x.to).toISOString().slice(11, 16)} ${x.liveUsd} | replay ${x.replayUsd} (en çok ${x.replayTop?.key} ${x.replayTop?.usd})`);
+      for (const x of P.topHourly) console.log(`    saatlik ${new Date(x.from).toISOString().slice(5, 16)} ${x.key} ${x.usd} USDT (fiyat %${x.pricePct})`);
+      console.log(`  bulgu: ${P.finding}`);
+    } else if (P) console.log(`  replay: ${P.reason}`);
     for (const w of a.weekly) console.log(`  ${d10(w.from)} → ${d10(w.to)}: canlı %${w.livePct} | bt %${w.btPct} (hedge'li %${w.btHedgedPct}, ${w.btWeeks} hafta)`);
   }
 }
