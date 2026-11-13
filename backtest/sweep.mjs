@@ -247,7 +247,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, knifeBar: v.knifeBar || BT_DEFAULTS.knifeBar, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
     const LOWER = { '4H': '1H', '1H': '15m' };
     const trades = [];
     for (const [k, list] of groups) {
@@ -311,6 +311,8 @@ async function main() {
     [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
     // Dolum mumunda hedef: iyimser (varsayılan) / kötümser / 1H sırasıyla (aynı 4H mumda giriş + erken hedef)
     [...live4h, { name: 'dolum mumunda hedef sayılmaz (kötümser)', fillBarTp: 'skip' }], [...live4h, { name: 'dolum mumunda sıra 1H ile', fillBarTp: 'lower' }],
+    // Bıçak kararı (13.11): varsayılan dokunma anına kadarki yarım mum (canlı gibi); karşılaştırma için eski tam mum kararı
+    [...live4h, { name: 'eski bıçak kararı (tam mum, iyimser)', knifeBar: 'full' }],
     // Erken hedef mesafesi, gerçek sırayla (dolum mumunda 1H): %1,2 yerine R cinsinden; erken kısmı yoksa standart yarı/başabaş
     ...[['erken %80: 0,5R', { tp1R: 0.5, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 0,75R', { tp1R: 0.75, tp1Portion: 0.8, keepTp2: true }],
       ['erken %80: 1R', { tp1R: 1, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 1,5R', { tp1R: 1.5, tp1Portion: 0.8, keepTp2: true }],

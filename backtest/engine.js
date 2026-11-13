@@ -25,6 +25,9 @@ export const BT_DEFAULTS = {
   midStopToTp1: false, // ara hedef görülünce stop ilk kısmi çıkış fiyatına (erken hedef) çekilir
   trailKeepTp2: false,
   knifeGuard: null, // düşen bıçak koruması (bot/plan.js KNIFE_DEFAULTS); null = kapalı
+  // Bıçak kararının girdisi (13.11): 'touch' (varsayılan, canlı gibi: dolum mumunun yalnız girişe dokunma anına kadarki kısmı;
+  // o.lowerCandles varsa dokunma anı alt TF'den) | 'full' (eski: tam dolum mumu, dokunmadan sonraki dip de karara girer → iyimser)
+  knifeBar: 'touch',
   // Limit dolum mumunda hedef (TP1 / tek hedef): 'count' (varsayılan, iyimser: önce dolum sonra hedef varsayılır) |
   // 'skip' (kötümser: dolum mumunda hedef sayılmaz) | 'lower' (alt TF mumlarıyla sıra: o.lowerCandles, dolumdan SONRAKİ
   // alt mumlarda stop görülmeden hedef görülürse sayılır; dolumun alt mumunda stop varsa stop)
@@ -34,6 +37,35 @@ export const BT_DEFAULTS = {
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
 };
+
+/**
+ * Dolum mumunun girişe dokunma anına kadarki kısmı (canlı bot 15 dk'lık turda bu yarım mumla bıçak kararı verir).
+ * Long: dip = min(giriş, açılış) (dokunmadan sonraki düşüş bilinmez); tepe = dokunmadan önceki en yüksek. Short ayna.
+ * Alt TF mumları (lower) varsa: dokunmadan önceki alt mumların tepesi + dokunan alt mumun açılışı ya da (açılış girişin
+ * berisindeyse) tepesi. Alt TF yoksa dokunan mumun tepesi tamamı sayılır: dokunmadan sonraki tepki de bıçak saydırabilir →
+ * korumaya karşı kötümser, iyimser değil. Açılış girişin ötesindeyse (boşluk) dokunma açılışta: tepe = dip = açılış.
+ */
+export function touchBar(plan, d, c, ms, lower) {
+  const e = plan.entry, gap = (x) => (d === 1 ? x.open <= e : x.open >= e);
+  const part = (x, pre) => { // x: dokunan mum; pre: dokunmadan önceki uç (yoksa null)
+    if (gap(x)) { const p = pre == null ? x.open : d === 1 ? Math.max(pre, x.open) : Math.min(pre, x.open); return d === 1 ? { high: p, low: x.open } : { high: x.open, low: p }; }
+    const far = d === 1 ? x.high : x.low, p = pre == null ? far : d === 1 ? Math.max(pre, far) : Math.min(pre, far);
+    return d === 1 ? { high: p, low: e } : { high: e, low: p };
+  };
+  if (lower?.length && ms) {
+    let lo = 0, hi = lower.length - 1, s0 = lower.length;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (lower[m].time >= c.time) { s0 = m; hi = m - 1; } else lo = m + 1; }
+    if (s0 < lower.length && lower[s0].time === c.time) { // alt TF mumu üst mumun başından itibaren var
+      let pre = null;
+      for (let j = s0; j < lower.length && lower[j].time < c.time + ms; j++) {
+        const x = lower[j];
+        if (d === 1 ? x.low <= e : x.high >= e) return { time: c.time, open: c.open, close: e, ...part(x, pre) };
+        pre = pre == null ? (d === 1 ? x.high : x.low) : d === 1 ? Math.max(pre, x.high) : Math.min(pre, x.low);
+      }
+    }
+  }
+  return { time: c.time, open: c.open, close: e, ...part(c, null) };
+}
 
 /** Tek plan simülasyonu. candles: tüm seri; from: planın oluştuğu mumdan sonraki ilk indeks. */
 export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
@@ -52,7 +84,9 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
       const c = candles[i];
       const touched = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
       if (touched) {
-        appr = approachOf(candles, i, d, plan.atr || Math.abs(plan.entry - plan.stop));
+        const aAtr = plan.atr || Math.abs(plan.entry - plan.stop);
+        appr = o.knifeBar === 'full' ? approachOf(candles, i, d, aAtr)
+          : approachOf([candles[i - 2], candles[i - 1], touchBar(plan, d, c, ms, o.lowerCandles)], 2, d, aAtr);
         if (!isKnife(appr, g)) { entry = plan.entry; fillI = i; break; }
         // Hızlı yaklaşma: emir dolmaz; teyit mumu beklenir (kapanışından giriş), teyitten önce stop = iptal
         const stopOf = (x) => (d === 1 ? x.low <= plan.stop : x.high >= plan.stop);
