@@ -9,9 +9,10 @@ import { simulateTrade, BT_DEFAULTS } from './engine.js';
 import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf, entryDayOf } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
-import { horizonSeries, htfTrendAt, htfOk, UP_TF } from '../src/scan/regime.js';
+import { horizonSeries, htfTrendAt, htfOk, UP_TF, dailyTrendAt } from '../src/scan/regime.js';
+import { mergeRule, onCooldown } from '../bot/plan.js';
 import { getHistoryCached } from './data.js';
-import { loadPlans } from './plans.js';
+import { loadPlans, cooldownSkippedOf } from './plans.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const IN = String(arg('in', 'docs/backtest')), OUT = String(arg('out', 'docs/backtest')), CACHE = String(arg('cache', 'backtest/cache')), FIXTURE = arg('fixture', false) === true;
@@ -154,6 +155,8 @@ export function passes(t, v, series, mtfIndex, htf) {
   }
   if (v.htfTrend) { // coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D), karar anında kapanmış mumlarla
     const h = htf?.get(`${t.coin}|${UP_TF[t.tf]}`);
+    // Seri yoksa eski varyantlarda filtre uygulanmaz (geçer); htfStrict (canlıya eşit) elenir — canlı: 'üst TF verisi yok' (bot/run.mjs:328)
+    if (!h && v.htfStrict) return false;
     if (h && !htfOk(v.htfTrend, htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms), t.plan.d)) return false;
   }
   if (v.mtf) {
@@ -166,6 +169,68 @@ export function passes(t, v, series, mtfIndex, htf) {
     if (!times.some((x) => Math.abs(x - t.time) <= ms)) return false;
   }
   return true;
+}
+
+// ---- Canlı kural zinciri (13.11, "canlıya eşit" birleşimleri). bot/run.mjs içe aktarılamaz (yüklenince main() koşar) → kural
+// sabitleri kopya; birleştirme ve bekleme süresi bot/plan.js'ten (mergeRule, onCooldown: tek kaynak).
+// Canlı karşılığı: bot/run.mjs:59-60 (MIN_SCORE 70, REQUIRE_MTF 1), :68 (COOLDOWN_H 6), :129-137 (TF_RULES_DEFAULT, SHORT_RULE_DEFAULT,
+// ruleFor) + Variables TF_RULES={"15m":{"off":true},"1H":{"off":true}} (üst düzeyde birleşir: 15m/1H tamamen ezilir, 4H varsayılan kalır).
+export const LIVE_BASE = { minScore: 70, requireMtf: true, cooldownHours: 6 };
+export const LIVE_TF_RULES = { '15m': { off: true }, '1H': { off: true }, '4H': { minScore: 65, requireMtf: false } };
+export const LIVE_SHORT_RULE = { scoreAdd: 10, requireMtf: true, trendAdxMin: 30, trendEma: true, btcRegime: 'with', cooldownHours: 12 };
+/** Canlı kural (4H long: puan ≥ 65, MTF serbest, 6 s; 4H short: puan ≥ 75, MTF, ADX ≥ 30 yön uyumlu, EMA200 tarafı, BTC günlük rejimi, 12 s). */
+export const liveRuleOf = (tf, direction) => mergeRule(tf, direction, LIVE_TF_RULES, LIVE_SHORT_RULE, LIVE_BASE);
+
+/**
+ * Plan canlı TF/yön kuralından geçer mi (buildPlan'ın canlıda ek uyguladığı kısım; geometri/R:R/risk planda zaten aynı).
+ * t: { tf, time, plan, mtfBt? }; ctx.btcDaily: BTC 1D mumları (yoksa rejim bilinmiyor).
+ * → { ok, reason?, unknown?: 'mtf'|'trend'|'regime', cooldownHours }. Veri yoksa (eski plan dosyası) ok=false + unknown: sessizce
+ * geçirilmez; çağıran sayar ve varyant adı "veri yoksa elenir" der.
+ */
+export function liveCheck(t, ctx = {}) {
+  const p = t.plan, d = p.d, rule = liveRuleOf(t.tf, p.direction);
+  const out = (ok, reason, unknown) => ({ ok, ...(reason ? { reason } : {}), ...(unknown ? { unknown } : {}), cooldownHours: rule.cooldownHours });
+  if (rule.off) return out(false, 'TF kapalı');
+  // Puan ve MTF (canlı karşılığı: bot/plan.js:54-57): puan = max(küme, MTF puanı). Plan dosyasında plan.score = küme puanı
+  // (tam koşu satırında MTF yok); mtfBt karar anında diğer TF'lerden (backtest/plans.js mtfAt).
+  const m = t.mtfBt;
+  const mtfOk = m ? !!(m.align && m.align.direction === p.direction && m.align.tfs.length > 1) : null;
+  const score = Math.max(p.score, mtfOk ? m.align.score : 0);
+  if (score < rule.minScore) return mtfOk == null ? out(false, 'puan (MTF bilinmiyor)', 'mtf') : out(false, 'puan');
+  if (rule.requireMtf) { if (mtfOk == null) return out(false, 'MTF bilinmiyor', 'mtf'); if (!mtfOk) return out(false, 'MTF uyumu yok'); }
+  // Trend (canlı karşılığı: bot/plan.js:60-67; plan.trend aynı buildPlan'ın yazdığı ADX / DI uyumu / EMA200 tarafı)
+  const tr = p.trend;
+  if (rule.trendAdxMin) {
+    if (!tr) return out(false, 'trend bilinmiyor', 'trend');
+    if (tr.adx == null || tr.adx < rule.trendAdxMin) return out(false, 'ADX');
+    if (!tr.aligned) return out(false, 'DI yönü uyumsuz');
+  }
+  if (rule.trendEma) { if (!tr) return out(false, 'trend bilinmiyor', 'trend'); if (!tr.emaSide) return out(false, 'EMA200'); }
+  // BTC rejimi (canlı karşılığı: bot/plan.js:75-78 + src/scan/regime.js regimeFor: 4H → günlük kapanış vs EMA50, kapanmış günler)
+  if (rule.btcRegime === 'with') {
+    if (!ctx.btcDaily?.length) return out(false, 'BTC günlük serisi yok', 'regime');
+    const r = dailyTrendAt(ctx.btcDaily, t.time + TIMEFRAMES[t.tf].ms);
+    if (!r) return out(false, 'BTC rejimi bilinmiyor'); // canlı da eler
+    if ((d === 1) !== r.up) return out(false, 'BTC rejimi ters');
+  }
+  return out(true);
+}
+
+/**
+ * Canlı bekleme süresi (canlı karşılığı: bot/run.mjs:333 onCooldown(plan, state.sent, now, rule.cooldownHours)): yalnız GÖNDERİLEN
+ * planlar süreyi tüketir; aynı anahtar ya da aynı coin + yön + TF. items: [{ t, hours }] (tüm canlı filtrelerden geçmiş) →
+ * kalanlar (karar zamanı sırasıyla). Karar anı = plan mumu (motorla aynı ölçek).
+ */
+export function liveCooldown(items) {
+  const sorted = [...items].sort((a, b) => a.t.time - b.t.time);
+  const sent = [], kept = [];
+  for (const x of sorted) {
+    const p = x.t.plan, now = x.t.time;
+    if (onCooldown(p, sent, now, x.hours)) continue;
+    sent.push({ key: p.key, coin: p.coin ?? x.t.coin, direction: p.direction, tf: p.tf ?? x.t.tf, sentAt: now });
+    kept.push(x);
+  }
+  return kept;
 }
 
 const BASE = { name: 'temel (mevcut kurallar)' };
@@ -212,100 +277,24 @@ export const waitBucket = (t) => {
 };
 const tp1Bucket = (t) => (t.outcome === 'expired' || t.outcome === 'missed' || t.outcome === 'knife' ? null : `${t.tf} · ${t.tp1Bars == null ? 'e TP1 yok' : t.tp1Bars <= 4 ? 'a ≤4 mum' : t.tp1Bars <= 8 ? 'b 5–8 mum' : t.tp1Bars <= 16 ? 'c 9–16 mum' : 'd >16 mum'}`);
 
-async function main() {
-  const t0 = Date.now();
-  const { all, meta, times, split } = loadPlans(IN);
-  log(`Plan: ${all.length}; bölünme ${new Date(split).toISOString().slice(0, 10)}`);
-  // Seriler
-  const groups = new Map();
-  for (const t of all) { const k = `${t.coin}|${t.tf}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
-  const series = new Map();
-  for (const k of groups.keys()) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); else log(`  ${k}: mum yok, atlandı`); }
-  // Üst TF serileri (coin'in kendi eğilimi): 1H/4H önbellekten; 1D ağdan (getHistoryCached), yoksa o TF filtreden muaf
-  const htf = new Map();
-  {
-    const tMin = times[0], tMax = times[times.length - 1];
-    const need = new Set(all.map((t) => `${t.coin}|${UP_TF[t.tf]}`).filter((k) => k.split('|')[1]));
-    let miss = 0;
-    for (const k of need) {
-      const [coin, up] = k.split('|');
-      let cs = series.get(k)?.candles || null;
-      if (!cs) {
-        if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); cs = (await fixtureProvider.candles(`${coin}-USDT-SWAP`, up, 400)).candles; }
-        else if (up === '1D') { try { cs = await getHistoryCached(`${coin}-USDT-SWAP`, '1D', tMin - 120 * 86400e3, tMax + 86400e3, { cacheDir: CACHE }); } catch (e) { miss++; } }
-        else { const s = await loadSeries(coin, up, `${coin}-USDT-SWAP`); cs = s?.candles || null; }
-      }
-      if (cs && cs.length) htf.set(k, { hs: horizonSeries(cs), ms: TIMEFRAMES[up].ms }); else miss++;
-    }
-    log(`Üst TF serisi: ${htf.size} yüklendi, ${miss} eksik`);
-  }
-  // BTC serileri (hedge'li R için; TF başına)
-  const btcByTf = new Map();
-  for (const tf of new Set(all.map((t) => t.tf))) { const b = series.get(`BTC|${tf}`) || await loadSeries('BTC', tf, 'BTC-USDT-SWAP'); if (b) btcByTf.set(tf, b.candles); }
-  // MTF indeksi
-  const mtfIndex = new Map();
-  for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
-
-  const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, knifeBar: v.knifeBar || BT_DEFAULTS.knifeBar, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
-    const LOWER = { '4H': '1H', '1H': '15m' };
-    const trades = [];
-    for (const [k, list] of groups) {
-      const s = series.get(k); if (!s) continue;
-      for (const t of list) {
-        if (!passes(t, v, s, mtfIndex, htf)) continue;
-        const i = s.idx.get(t.time);
-        const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null || v.midTp) ? rebuild(t.plan, v) : t.plan;
-        const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' || o.knifeGuard ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o); // alt TF: dolum mumu sırası ('lower') ve bıçak kararının dokunma anı (knifeBar 'touch')
-        const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
-        const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
-        if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
-        trades.push(tr);
-      }
-    }
-    if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
-    const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
-    const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
-    return { ...v, train, valid, all: stats(trades), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
-      bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
-      byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
-      byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
-      byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
-      byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
-      byWait: { train: by(tr, waitBucket), valid: by(va, waitBucket) },
-      byWeekday: { train: by(tr, entryDayOf), valid: by(va, entryDayOf) },
-      stack: { train: stackOf(tr), valid: stackOf(va) },
-      ...hedgedOfTrades(tr, va) };
-  };
-
-  // Hedge'li istatistikler (R yerine hedgedR) ve R ~ yönlü BTC% korelasyonu
-  const hedgedOfTrades = (tr, va) => {
-    const h = (a) => a.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
-    const ht = h(tr), hv = h(va);
-    const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
-    if (!ht.length && !hv.length) return {};
-    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, hedgedByWeekday: { train: by(ht, entryDayOf), valid: by(hv, entryDayOf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
-  };
-
-  const results = [];
-  log('Temel…'); results.push(evaluate(BASE));
-  const extra = VARIANTS_FILE ? JSON.parse(fs.readFileSync(String(VARIANTS_FILE), 'utf8')) : [];
-  for (const v of extra) { log(`  [araştırma] ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, research: true }); }
-  if (ONLY) { writeOut(results, all, meta, split, t0); return; }
-  for (const v of SINGLE) { log(`  ${v.name}`); results.push(evaluate(v)); }
-  // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
-  const base = results[0];
-  const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
-  const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'stack', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted'].includes(k)) out[k] = val; return out; };
-  // Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX)
+/** Varyant listesini tek varyanta birleştirir (ad ' + ' ile; değerlendirme sonucu alanları taşınmaz). */
+export const merge = (list) => { const out = { name: list.map((v) => v.name).join(' + ') }; for (const v of list) for (const [k, val] of Object.entries(v)) if (!['name', 'train', 'valid', 'all', 'byApproach', 'bySession', 'byWeekpart', 'byTp1Time', 'byTf', 'byHtfTrend', 'stack', 'hedged', 'hedgedByTf', 'btcCorr', 'requestId', 'research', 'combo', 'targeted', 'byDir', 'hedgedByDir', 'liveInfo'].includes(k)) out[k] = val; return out; };
+// Hedefli birleşimlerin yapı taşları (SINGLE'dan, adla). live4h = canlı 4H düzeninin ölçülen yaklaşığı (adları denetçi expectedOf arar).
+const parts = () => {
   const V = (name) => SINGLE.find((v) => v.name === name);
   const guard = V('düşen bıçak koruması (teyit mumu)'), wk = V('hafta sonu hariç'), lim = V('yalnız limit giriş'), h14 = V('yalnız 1H+4H'), adx = V('trend: ADX≥35'), t8 = V('zaman stopu 8 mum'), t16 = V('zaman stopu 16 mum'), man = V('elle yönetim: +%1,2 fiyatta %80 kapat, kalan başabaş → TP2'), hw = V('üst TF eğilimi aynı yön'), hn = V('üst TF eğilimi ters değil');
-  const TARGETED = [[guard, wk], [guard, wk, lim], [guard, wk, h14], [guard, wk, lim, h14], [guard, wk, lim, h14, adx], [guard, wk, lim, h14, t8], [guard, wk, lim, h14, t16], [guard, wk, lim, h14, man], [guard, wk, lim, h14, man, hw], [guard, wk, lim, h14, man, hn]];
-  for (const list of TARGETED) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
-  // Yön yığılması sınırı: canlı 4H düzeni (ve eski 1H+4H düzeni) üstüne aynı yönde açık/yeni sinyal tavanı
   const only4h = { name: 'yalnız 4H', tfs: ['4H'] };
-  const live4h = [guard, wk, lim, only4h, man, hw];
-  const CAPS = [
+  return { guard, wk, lim, h14, adx, t8, t16, man, hw, hn, only4h, live4h: [guard, wk, lim, only4h, man, hw] };
+};
+/** Hedefli birleşimler: kayıp azaltan filtrelerin birlikte etkisi (düşen bıçak, hafta sonu, limit, TF, ADX) */
+export function targetedLists() {
+  const { guard, wk, lim, h14, adx, t8, t16, man, hw, hn } = parts();
+  return [[guard, wk], [guard, wk, lim], [guard, wk, h14], [guard, wk, lim, h14], [guard, wk, lim, h14, adx], [guard, wk, lim, h14, t8], [guard, wk, lim, h14, t16], [guard, wk, lim, h14, man], [guard, wk, lim, h14, man, hw], [guard, wk, lim, h14, man, hn]];
+}
+/** Yön yığılması sınırı: canlı 4H düzeni (ve eski 1H+4H düzeni) üstüne aynı yönde açık/yeni sinyal tavanı (ve gerçekçi sıra, bıçak kararı, erken hedef, iz, 3 kademe, bekleme çalışmaları). */
+export function capLists() {
+  const { guard, wk, lim, h14, man, hw, only4h, live4h } = parts();
+  return [
     live4h, [...live4h, { name: 'aynı yönde ≤ 3 açık', maxOpenSameDir: 3 }], [...live4h, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }],
     [...live4h, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }], [...live4h, { name: 'mum başına aynı yönde ≤ 1 yeni', maxNewSameDir: 1 }],
     [...live4h, { name: 'mum başına aynı yönde ≤ 2 yeni', maxNewSameDir: 2 }],
@@ -339,7 +328,146 @@ async function main() {
     ...[24, 48, 72].map((hrs) => [...live4h, { name: `bekleme ${hrs} saat · sıra 1H`, fillBarTp: 'lower', expireHours: hrs }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
   ];
-  for (const list of CAPS) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }
+}
+/** Canlıya eşit (13.11) birleşimlerinin adları. Denetçinin aradığı live4h sonekleriyle BİTMEZ (expectedOf karışmasın). */
+export const LIVE_NAME_A = 'canlıya eşit: long puan ≥ 65 · short kuralı · cooldown 6/12s · 3 kademe + stop erken hedefe %1.2 · sıra 1H · veri yoksa elenir';
+export const LIVE_NAME_B = 'canlıya eşit: long puan ≥ 65 · short kuralı · cooldown 6/12s · erken %1.2 %80 (eski) · sıra 1H · veri yoksa elenir';
+/**
+ * Canlıya eşit birleşimler: live4h filtreleri (bıçak koruması, hafta sonu, yalnız limit, yalnız 4H, üst TF eğilimi aynı yön — seri
+ * yoksa elenir) + canlı TF/yön kuralı (liveCheck: long puan ≥ 65; short puan ≥ 75 + MTF + ADX ≥ 30 yön uyumlu + EMA200 + BTC günlük
+ * rejimi) + canlı bekleme süresi (liveCooldown; long 6 s, short 12 s, yalnız gönderilenler tüketir). Gerçek sıra (1H). A: bugünkü
+ * canlı çıkış (3 kademe + TP1 sonrası stop erken hedefe, %1,2), B: eski %80 düzeni (karşılaştırma).
+ */
+export function liveVariants() {
+  const { guard, wk, lim, only4h, man, hw } = parts();
+  const live = { live: true, htfStrict: true, fillBarTp: 'lower' };
+  return [
+    { ...merge([guard, wk, lim, only4h, hw, { name: '', ...live, tp1Pct: 1.2, tp1Portion: 0.5, keepTp2: true, midTp: true, midPortion: 0.25, midStopToTp1: true }]), name: LIVE_NAME_A },
+    { ...merge([guard, wk, lim, only4h, man, hw, { name: '', ...live }]), name: LIVE_NAME_B },
+  ];
+}
+
+/** Yön kırılımı: { long: { train, valid }, short: { train, valid } } (t.d). */
+export const dirSplit = (tr, va) => Object.fromEntries([['long', 1], ['short', -1]].map(([k, d]) => [k, { train: stats(tr.filter((t) => t.d === d)), valid: stats(va.filter((t) => t.d === d)) }]));
+
+async function main() {
+  const t0 = Date.now();
+  const { all, meta, times, split } = loadPlans(IN);
+  log(`Plan: ${all.length}; bölünme ${new Date(split).toISOString().slice(0, 10)}`);
+  // Seriler
+  const groups = new Map();
+  for (const t of all) { const k = `${t.coin}|${t.tf}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
+  const series = new Map();
+  for (const k of groups.keys()) { const [coin, tf] = k.split('|'); const s = await loadSeries(coin, tf, `${coin}-USDT-SWAP`); if (s) series.set(k, s); else log(`  ${k}: mum yok, atlandı`); }
+  // Üst TF serileri (coin'in kendi eğilimi): 1H/4H önbellekten; 1D ağdan (getHistoryCached), yoksa o TF filtreden muaf
+  const htf = new Map();
+  {
+    const tMin = times[0], tMax = times[times.length - 1];
+    const need = new Set(all.map((t) => `${t.coin}|${UP_TF[t.tf]}`).filter((k) => k.split('|')[1]));
+    let miss = 0;
+    for (const k of need) {
+      const [coin, up] = k.split('|');
+      let cs = series.get(k)?.candles || null;
+      if (!cs) {
+        if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); cs = (await fixtureProvider.candles(`${coin}-USDT-SWAP`, up, 400)).candles; }
+        else if (up === '1D') { try { cs = await getHistoryCached(`${coin}-USDT-SWAP`, '1D', tMin - 120 * 86400e3, tMax + 86400e3, { cacheDir: CACHE }); } catch (e) { miss++; } }
+        else { const s = await loadSeries(coin, up, `${coin}-USDT-SWAP`); cs = s?.candles || null; }
+      }
+      if (cs && cs.length) htf.set(k, { hs: horizonSeries(cs), ms: TIMEFRAMES[up].ms }); else miss++;
+    }
+    log(`Üst TF serisi: ${htf.size} yüklendi, ${miss} eksik`);
+  }
+  // BTC serileri (hedge'li R için; TF başına)
+  const btcByTf = new Map();
+  for (const tf of new Set(all.map((t) => t.tf))) { const b = series.get(`BTC|${tf}`) || await loadSeries('BTC', tf, 'BTC-USDT-SWAP'); if (b) btcByTf.set(tf, b.candles); }
+  // Canlıya eşit: bekleme süresi yüzünden atlanmış planlar (plan dosyasında cd alanı; eski dosyada yok) ve BTC günlük serisi (rejim)
+  const cdList = cooldownSkippedOf(all), cdGroups = new Map();
+  for (const t of cdList) { const k = `${t.coin}|${t.tf}`; if (!cdGroups.has(k)) cdGroups.set(k, []); cdGroups.get(k).push(t); }
+  const hasCd = Array.isArray(meta.planFields) && meta.planFields.includes('cd');
+  let btcDaily = htf.get('BTC|1D')?.hs.candles || null;
+  if (!btcDaily && all.some((t) => t.tf === '4H')) {
+    try {
+      if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); btcDaily = (await fixtureProvider.candles('BTC-USDT-SWAP', '1D', 400)).candles; }
+      else btcDaily = await getHistoryCached('BTC-USDT-SWAP', '1D', times[0] - 120 * 86400e3, times[times.length - 1] + 86400e3, { cacheDir: CACHE });
+    } catch (e) { btcDaily = null; }
+  }
+  log(`Canlıya eşit: bekleme süresi atlanan plan ${hasCd ? cdList.length : 'yok (eski plan dosyası)'}, MTF alanı ${all.filter((t) => t.mtfBt).length}/${all.length}, BTC 1D ${btcDaily?.length || 0} mum`);
+  // MTF indeksi
+  const mtfIndex = new Map();
+  for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
+
+  const evaluate = (v) => {
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, midPortion: v.midPortion ?? 0.25, midStopToTp1: !!v.midStopToTp1, knifeGuard: v.knifeGuard || null, knifeBar: v.knifeBar || BT_DEFAULTS.knifeBar, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
+    const LOWER = { '4H': '1H', '1H': '15m' };
+    // Seçim. Canlıya eşit (v.live): bekleme süresi atlanan planlar da adaydır; filtreler → canlı kural → canlı bekleme süresi.
+    // Veri yoksa (alan/seri) plan elenir ve liveInfo.unknown'da sayılır (sessiz geçirme/eleme yok).
+    const info = v.live ? { unknown: { mtf: 0, trend: 0, regime: 0, htf: 0 }, rejected: {}, candidates: 0, mtfField: 0, mtfTfs: {}, cdPlans: hasCd ? cdList.length : null, cdUsed: 0, cooldownDropped: 0 } : null;
+    let picked = [];
+    for (const [k, list0] of groups) {
+      const s = series.get(k); if (!s) continue;
+      const list = v.live ? [...list0, ...(cdGroups.get(k) || [])] : list0;
+      for (const t of list) {
+        if (!v.live) { if (passes(t, v, s, mtfIndex, htf)) picked.push({ t }); continue; }
+        if (!passes(t, { ...v, htfTrend: null }, s, mtfIndex, htf)) continue;
+        if (v.htfTrend && !htf.get(`${t.coin}|${UP_TF[t.tf]}`)) { info.unknown.htf++; continue; }
+        if (!passes(t, v, s, mtfIndex, htf)) continue;
+        info.candidates++;
+        if (t.mtfBt) { info.mtfField++; const tk = t.mtfBt.tfs.join('+'); info.mtfTfs[tk] = (info.mtfTfs[tk] || 0) + 1; }
+        const lc = liveCheck(t, { btcDaily });
+        if (!lc.ok) { if (lc.unknown) info.unknown[lc.unknown]++; else info.rejected[lc.reason] = (info.rejected[lc.reason] || 0) + 1; continue; }
+        picked.push({ t, hours: lc.cooldownHours });
+      }
+    }
+    if (v.live) { const kept = liveCooldown(picked); info.cooldownDropped = picked.length - kept.length; info.cdUsed = kept.filter((x) => x.t.cd).length; picked = kept; }
+    const trades = [];
+    for (const { t } of picked) {
+      const s = series.get(`${t.coin}|${t.tf}`);
+      const i = s.idx.get(t.time);
+      const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null || v.midTp) ? rebuild(t.plan, v) : t.plan;
+      const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' || o.knifeGuard ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o); // alt TF: dolum mumu sırası ('lower') ve bıçak kararının dokunma anı (knifeBar 'touch')
+      const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
+      const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
+      if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
+      trades.push(tr);
+    }
+    if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
+    const train = stats(trades.filter((t) => t.time < split)), valid = stats(trades.filter((t) => t.time >= split));
+    const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
+    const hd = (a) => a.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
+    return { ...v, train, valid, all: stats(trades), byDir: dirSplit(tr, va), hedgedByDir: dirSplit(hd(tr), hd(va)), ...(info ? { liveInfo: info } : {}), byApproach: { train: by(tr, approachBucket), valid: by(va, approachBucket) },
+      bySession: { train: by(tr, (x) => sessionOf(entryTimeOf(x))), valid: by(va, (x) => sessionOf(entryTimeOf(x))) },
+      byWeekpart: { train: by(tr, (x) => weekpartOf(entryTimeOf(x))), valid: by(va, (x) => weekpartOf(entryTimeOf(x))) },
+      byTp1Time: { train: by(tr, tp1Bucket), valid: by(va, tp1Bucket) },
+      byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
+      byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
+      byWait: { train: by(tr, waitBucket), valid: by(va, waitBucket) },
+      byWeekday: { train: by(tr, entryDayOf), valid: by(va, entryDayOf) },
+      stack: { train: stackOf(tr), valid: stackOf(va) },
+      ...hedgedOfTrades(tr, va) };
+  };
+
+  // Hedge'li istatistikler (R yerine hedgedR) ve R ~ yönlü BTC% korelasyonu
+  const hedgedOfTrades = (tr, va) => {
+    const h = (a) => a.filter((t) => t.hedgedR != null).map((t) => ({ ...t, R: t.hedgedR }));
+    const ht = h(tr), hv = h(va);
+    const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
+    if (!ht.length && !hv.length) return {};
+    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, hedgedByWeekday: { train: by(ht, entryDayOf), valid: by(hv, entryDayOf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
+  };
+
+  const results = [];
+  log('Temel…'); results.push(evaluate(BASE));
+  const extra = VARIANTS_FILE ? JSON.parse(fs.readFileSync(String(VARIANTS_FILE), 'utf8')) : [];
+  for (const v of extra) { log(`  [araştırma] ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, research: true }); }
+  if (ONLY) { writeOut(results, all, meta, split, t0); return; }
+  for (const v of SINGLE) { log(`  ${v.name}`); results.push(evaluate(v)); }
+  // Birleşimler: eğitimde ort. R'yi en çok artıran 4 tek değişikliğin ikili/üçlü/dörtlü birleşimleri
+  const base = results[0];
+  const gains = results.slice(1).filter((r) => r.train.n >= 300).map((r) => ({ r, gain: r.train.avgR - base.train.avgR })).sort((a, b) => b.gain - a.gain).slice(0, 4).map((x) => x.r);
+  for (const list of targetedLists()) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true }); }
+  for (const list of capLists()) { const v = merge(list); log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }
+  // Canlıya eşit (13.11): canlı 4H kural zinciri (puan, short kuralı, bekleme süresi) plan verisinin izin verdiği ölçüde
+  for (const v of liveVariants()) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, cap: true }); }
   const combos = [];
   for (let i = 0; i < gains.length; i++) for (let j = i + 1; j < gains.length; j++) { combos.push(merge([gains[i], gains[j]])); for (let k = j + 1; k < gains.length; k++) combos.push(merge([gains[i], gains[j], gains[k]])); }
   if (gains.length === 4) combos.push(merge(gains));

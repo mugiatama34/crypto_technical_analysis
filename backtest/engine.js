@@ -192,7 +192,14 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
 }
 
-/** Bir sembol+TF serisini baştan sona tarar; planları simüle eder. */
+/** plans.json.gz'ye yazılan plan: sinyaller kısaltılmış (yalnız ad/grup/detektör/yön/güç/durum/bölge/not). */
+export const slimPlan = (plan) => ({ ...plan, signals: plan.signals.map((s) => ({ name: s.name, group: s.group, detector: s.detector, direction: s.direction, strength: s.strength, status: s.status, zone: s.zone, note: s.note })) });
+
+/**
+ * Bir sembol+TF serisini baştan sona tarar; planları simüle eder.
+ * hooks.onTrade(trade): her simüle edilen plan; hooks.onCooldownSkip({ plan, time }): bekleme süresi (cooldown) yüzünden
+ * atlanan geçerli plan (simüle edilmez; 13.11: taramada canlı cooldown sırasını yeniden kurmak için saklanır, run.mjs).
+ */
 export function simulateSeries({ coin, instId, tf, candles }, o = BT_DEFAULTS, hooks = {}) {
   const W = barsFor(tf), step = o.step[tf] || 1;
   const trades = [], sent = [];
@@ -203,14 +210,14 @@ export function simulateSeries({ coin, instId, tf, candles }, o = BT_DEFAULTS, h
     const plan = buildPlan(row, o.plan);
     if (!plan.ok) continue;
     const now = candles[t].time;
-    if (onCooldown(plan, sent, now, o.cooldownHours)) continue;
+    if (onCooldown(plan, sent, now, o.cooldownHours)) { hooks.onCooldownSkip?.({ plan, time: now }); continue; }
     sent.push({ key: plan.key, coin, direction: plan.direction, tf, sentAt: now });
     const sim = simulateTrade(plan, candles, t + 1, tf, o);
     trades.push({
       coin, tf, direction: plan.direction, time: now, score: plan.score, rr: plan.rr, rr1: plan.rr1, riskPct: plan.riskPct, inZone: plan.inZone,
       groups: plan.groups, detectors: [...new Set(plan.signals.map((s) => s.detector))], names: [...new Set(plan.signals.map((s) => s.name))],
       entry: plan.entry, stop: plan.stop, tp1: plan.tp1, tp2: plan.tp2, zone: plan.zone, price: plan.price, atr: plan.atr,
-      ...sim, plan: { ...plan, signals: plan.signals.map((s) => ({ name: s.name, group: s.group, detector: s.detector, direction: s.direction, strength: s.strength, status: s.status, zone: s.zone, note: s.note })) },
+      ...sim, plan: slimPlan(plan),
     });
     hooks.onTrade?.(trades[trades.length - 1]);
   }

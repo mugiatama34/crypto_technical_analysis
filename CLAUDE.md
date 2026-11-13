@@ -6,7 +6,8 @@ araştırmacı ajanlar. **Her şey kâğıt (sanal) işlem; gerçek emir yok ve 
 mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kural değişikliği) kendisi verir.
 
 ## "Devam edelim" protokolü (yeni sohbet)
-1. `docs/DURUM.md`'yi oku (tarihli durum günlüğü: bulgular, canlı ayarlar, açık işler, sıradaki adım).
+1. `docs/DURUM.md`'yi oku (üstte "Güncel durum" özeti + son günlük). Eski günlük `docs/DURUM-arsiv.md` dosyasında: baştan sona
+   OKUMA, gerektiğinde `grep` ile bak.
 2. Son koşuları kontrol et: `docs/agent/review.json` (denetçi), `docs/agent/research.json` (araştırmacı),
    `docs/backtest/{sweep,lab,results}.json` `meta.generatedAt/sweepAt`, `docs/signals/history.json` (canlı sinyaller).
    Gerekirse `gh run list --workflow scan.yml --limit 3` / `backtest.yml`.
@@ -33,33 +34,14 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   yönünden mi coin seçiminden mi geldiğini gösterir; çok varyant arasından seçim = iyimserlik, n < 100 = sonuçsuz;
   **ölçmeden canlıya kural konmaz**; canlı değişiklik = Variables bayrağı, varsayılan kapalı.
 - Küçük örneklem (n < 30) ile iddia yok. Günlük R dalgalanması normal.
-- **TradingView talimatı (eğitim/pratik):** Kullanıcı çoğu zaman telefondan çizer. Her TradingView talimatında
-  **hem masaüstü hem telefon uygulaması** yolunu yaz (ör. "Masaüstü: sol araç çubuğu → … · Telefon: alt menü → …").
-  Telefon menü adlarından emin değilsen öyle söyle, kullanıcıdan doğrulamasını iste ve doğrulananı buraya işle.
-  Standart ayar: sembol **OKX:BTCUSDT.P / OKX:ETHUSDT.P** (bot verisiyle aynı), **lineer** ölçek (log kapalı), saat
-  dilimi **UTC**. Çizimler hesapla eşitlenir; telefonda çizilen masaüstünde görünür. Pratik sayfası `pratik.html`.
-  **Doğrulanmış telefon arayüzü (iOS, 25.10.2026):** alt menü İzleme Listesi / Grafik / Keşfet / Topluluk / Menü; bir
-  çizimin ayar penceresi sekmeleri **Stil / Kordinatlar / Görünürlük**, sol altta "…" düğmesi, sağ altta İptal /
-  Tamam; fib aracının adı "Fib düzeltmesi". Kordinatlar sekmesinde noktaların fiyatı elle yazılabilir. Yatay
-  grafikte alt araç çubuğu: kalem (çizim) · göstergeler · düzen · … · + · alarm · mum tipi · tekrar oynat (⏪) ·
-  katmanlar · "…" · geri al; kaleme basınca grafiğin üstünde yüzen çizim çubuğu açılır (fib, çizgiler, kanal, ABCD,
-  Elliott, dikdörtgen, fırça, ok/yol). Sembol başlığı borsayı ele verir: OKX "…USDT Perpetual Swap Contract",
-  Binance "… / TetherUS PERPETUAL CONTRACT", Bybit "…USDT Perpetual Contract" (fitiller OKX'ten birkaç pip farklı;
-  ör. ARB 8 Eki dibi OKX 0,16142 / Bybit 0,16164 / Binance 0,15979). Kullanıcının TradingView indikatörleri (29.10): **ICT Killzones [LuxAlgo]**, **LuxAlgo - Smart Money Concepts**, LuxAlgo - Previous Highs & Lows, LuxAlgo - Fair Value Gap (öneri: SMC tek başına yeter; killzone yalnız 15m/1H; ayar sekmeleri Eingaben / Stil / Sichtbarkeit). Kullanıcının **masaüstü TradingView arayüzü Almanca** (28.10: üst çubuk Indikatoren / Alarm / **Wiedergabe** = Bar Replay). Telefonda grafiğe uzun basınca mum değerleri **A / Y / D / K** (açılış /
-  yüksek / düşük / kapanış) yazar; masaüstü İngilizce O / H / L / C. Telefon grafik ayarları → **Sembol** sayfası:
-  MUMLAR = Temel hat / Kenarlar / Fitil, her birinde iki kutu (sol yükselen, sağ düşen); renk seçici hex almaz:
-  10 sütun × 8 satır tablo (1. satır griler, 2. satır canlı renkler, altı açık→koyu tonlar), altında "+" (özel renk)
-  ve Şeffaflık kaydırıcısı. Renk tarifini "satır/sütun" ile ver. Standart palet (26.10'da uygulandı, okunaklı): yükselen 2/5 turkuaz, düşen 2/1
-  kırmızı, likidite 4/8 lavanta %80, kutular/fib 1/5 gri; arka plan ≈ #131722 (yoksa 1/8). Kullanıcı karanlık mod sever.
-  Telefon grafik ayarları → **Alarmlar**: "Grafik çizgisi görünürlüğü" → "Alarm çizgileri" kutusu (+ renk) ve
-  "Yalnızca etkin alarmları"; "Bildirimler" → "Tost bildirimleri otomatik olarak gizle". Kullanıcı alarm çizgilerini
-  kapattı (alarmlar çalışır). Alarm kurma: alt araç çubuğu → alarm simgesi. Kullanıcı işlemleri Bybit'te açar (uygulama İngilizce; doğrulandı 26.10: Futures → pozisyon → **TP/SL** penceresi, sekmeler **Entire Position / Partial Position**; Partial'da Qty/Proportion, TP ve SL Trigger Price (Last), "Exit at Market", **"Set SL at entry price after TP is filled"** kutusu = otomatik başa baş; kademeli çıkış: Entire'da TP2+SL, Partial'da TP1 adedi; tüm TP/SL'ler tek listede: Trade → **Orders** sekmesi (All Markets, "Close Short/Long" kartları); kapanan işlemler: Orders ekranı → geçmiş → **All Orders → P&L** sekmesi → Closed Positions (özet) / **Closed Orders** (her kademe ayrı)); Bybit **Trailing Stop** (doğrulandı 10.11, telefon): pozisyon kartı → Trailing Stop → "Set Trailing Stop": **Retracement** (By Distance, fiyat farkı) + **Activation Price** kutusu; kartta "Trailing Stop  Active: x  Retracement: y" satırı, SL ile birlikte durur. Aktivasyonsuz kurulursa izleme o andan başlar (geçmiş en iyi fiyatı bilmez). Deney B iz süren kol: Retracement = 1R, Activation = TP1 (1,5R), SL yerinde; kısmi TP'de "Set SL at entry price after TP is filled" işaretliyse Bybit Entire Position SL'sini DEĞİŞTİRMEZ; kalan adet için **Partial Position** sekmesinde ayrı bir "SL at Entry" etiketli SL (giriş fiyatı, Last, Market) açar — Entire SL eski yerinde yedek kalır (doğrulandı 12.11 STRK; 10.11 SAND/KAITO'da da muhtemelen böyleydi). Kontrol: TP/SL → Partial Position. Bybit küçük fiyatlı coinler çarpanlı (11.11): PEPE → 1000PEPEUSDT, SHIB → SHIB1000USDT, BONK → 1000BONKUSDT; mesajlarda "Bybit …" satırı hazır fiyat verir (`src/data/bybit-symbols.js`, düzeltme `BYBIT_MULT`). TradingView telefon Türkçe pozisyon aracı etiketleri: Hedef / Durdur / Kapalı K&Z / Mktr / Risk/ödül oranı; Bybit grafiği
-  için sembolde BYBIT seçili olmalı (OKX ile karışabiliyor). Gerçek para sorularında modül 03 kuralı: %1 risk (ters
-  işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
-  **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
-  Sayfalarda ve cevaplarda hep bu düzeni kullan. Kullanıcının varsayılan fib ayarı Elliott'a göre; SMC için şablon
-  ("SMC Çeyrek": 0/0,25/0,5/0,75/1 · "SMC OTE": 0/0,5/0,618/0,705/0,786/1) kullanılır, varsayılan değiştirilmez.
-
+- **TradingView / Bybit talimatı:** ayrıntılı arayüz notları (doğrulanmış telefon/masaüstü menü adları, renk paleti, alarm ayarları,
+  Bybit TP/SL · kısmi kapanış · trailing stop davranışı, çarpanlı semboller, indikatörler, fib şablonları) `tradingview-bybit` skill'inde
+  (`.claude/skills/tradingview-bybit/SKILL.md`). TradingView ya da Bybit ekranı tarif edeceğin her cevaptan önce yükle; yeni doğrulanan
+  arayüz bilgisini oraya işle. Her zaman geçerli çekirdek: her talimatta **hem masaüstü hem telefon** yolu (emin olmadığın menü adını
+  söyle, doğrulat); sembol **OKX:BTCUSDT.P / OKX:ETHUSDT.P** (bot verisiyle aynı), **lineer** ölçek, saat dilimi **UTC**; **fib düzeni:**
+  dipten tepeye çekilen fib'te 0 = tepe, 1 = dip; kullanıcı çoğu zaman telefondan (iOS, Türkçe) çizer, masaüstü TradingView Almanca,
+  işlemleri Bybit'te (İngilizce uygulama) açar. Gerçek para sorularında: %1 risk (ters işlem / hafta sonu / ilk işlem → %0,5),
+  adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
 ## Mimari harita
 - Tarayıcı: `index.html` + `src/` (detectors, scan, ew, ui). Presetler `src/scan/presets.js` (ICT/SMC, EW, zigzag/flat,
   diyagonal, Fib kesişimi…). Detektörler `src/detectors/*.js` (signal(ctx) → Signal[]), `src/scan/registry.js`.
@@ -85,14 +67,25 @@ TF_RULES={"15m":{"off":true},"1H":{"off":true}} HTF_TREND=with AUDIT=1 MOMENTUM=
 MOMENTUM_RANK=rel MOMENTUM_HEDGE=1`. `AGENT_SOURCE=signals AGENT_EXIT=1 AGENT_RESET=2026-11-13`. Yani yalnız 4H sinyalleri; güncel beklenti (13.11 taraması, gerçekçi sıra + düzeltilmiş bıçak kararı)
 eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; ayda ~25 sinyal.
 
-## Kısa bulgu özeti (ayrıntı DURUM.md)
-Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG, uyumsuzluk, kanal, range sapması 03.11) sıkı
-ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). **13.11 canlı takip düzeltmesi:** `trackPlan` dolum öncesi mumları yeniden işleyip sahte 'erken hedef → başa baş' yazıyordu, motor bıçak kararını tam mumla veriyordu (ikisi de düzeltildi; `tests/parity.test.js` motor = canlı eşliğini kilitler, 6 açık fark `todo`). Canlı 4H kaydı (26.10–13.11) +0,02R şişikti; yeniden oynatmayla düzeltilmiş ≈ −0,04…−0,11R (n ~72), motor aynı sinyallerde −0,087R. Düzeltme sonrası 12 ay tarama (sıra 1H): canlı 4H düzeni %80 kapat eğ −0,148 / doğr −0,017R (hedge'li −0,105 / −0,057), 3 kademe + stop erkene −0,138 / +0,012 → **bıçak korumasının ölçülen kazancı büyük ölçüde ileriye bakmaydı; düzenin kenarı yok** (aşağıdaki daha eski sayılar bu düzeltmeden öncedir). Son tarama (13.11, koşu 43431346650): koruma yok −0,124 / −0,001R · koruma var −0,132 / −0,018 ('touch', kötümser) … −0,111 / +0,006 ('lowerBar' 1H, iyimser) → korumanın net katkısı ≈ 0. Yeni ölçümlerde bıçak için `knifeBar` ('touch' varsayılan; 15m alt TF ile 'lowerBar' = canlı), dolum için `fillBarTp: 'lower'`. Düzeltilmiş canlı kayıtlar `docs/signals/rescored.json` (ham history değişmez). **13.11 düzeltme:** motor erken hedefli ölçümlerde 'kaçtı'yı erken hedefe göre veriyordu (canlı: özgün TP1) → canlı 4H düzeni gerçek beklentisi eğ −0,080 / doğr +0,052R (n 430/422), hedge'li −0,031 / +0,019; çıkış seçenekleri (DURUM 13.11): 3 kademe + stop erken hedefe ve %50 kapatma iki dilimde mevcut %80'den biraz iyi, sıkı ölçüt yok. **29.10 düzeltme:** motor limit dolum mumunda hedefi iyimser sayıyordu;
-1H sırasıyla canlı 4H düzeni eğitim/doğr. +0,025/+0,028R, hedge'li ≈ 0 (sıkı ölçüt geçilmiyor) — yeni ölçümler `fillBarTp: 'lower'`
-ile yapılmalı; erken hedef mesafesi (0,5R–1,5R) de gerçek sırayla ≤ 0 → 4H düzeninin gerçekçi kenarı yok. Eski iyimser değerlerle bulunan kesit: 4H + düşen bıçak koruması + hafta sonu yok +
-yalnız limit + erken %80 kâr + günlük trend aynı yön (hedge'li doğr. +0,08R, n 293) — zayıf ama iki dilimde pozitif;
-ileriye dönük kâğıt test sürüyor. Zaman stopu ve seans filtreleri işe yaramadı; hafta sonu kötü. Momentum
-`xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı.
+## Kısa bulgu özeti (ayrıntı `docs/DURUM.md`; 13.11 öncesi günlük `docs/DURUM-arsiv.md`)
+- Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG, uyumsuzluk, kanal,
+  range sapması, spike sonrası) sıkı ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7).
+- **Canlı 4H düzeninin kenarı yok** (13.11 taraması, koşu 43431346650, 12 ay, sıra 1H; eğ / doğr): %1,2'de %80 kapat −0,132 / −0,018R
+  (hedge'li −0,095 / −0,061) · bugünkü 3 kademe + stop erkene −0,125 / +0,010 (hedge'li −0,089 / −0,045) · bıçak koruması YOK −0,124 /
+  −0,001 · koruma iyimser sınır ('lowerBar' 1H) −0,111 / +0,006 → **bıçak korumasının net katkısı ≈ 0**. Canlı kayıt 26.10–13.11:
+  +0,02R yazılmış, yeniden oynatmayla düzeltilmiş ≈ −0,04…−0,11R (n ~72). Düzen kullanıcı kararıyla **deneme** olarak kâğıtta sürüyor;
+  `KNIFE_GUARD` 30 kapanış sonrası yeniden değerlendirilecek.
+- **Motor ↔ canlı sapmaları (hepsi ölçümü/kaydı iyimser yapıyordu, düzeltildi):** 29.10 dolum mumunda hedef sırası (`fillBarTp: 'lower'`) ·
+  13.11 'kaçtı' özgün TP1'e göre (`missTp`) · 13.11 `trackPlan` dolum öncesi mumlar (sahte erken hedef → başa baş) · 13.11 motor bıçak
+  kararı tam mumla (`knifeBar`: 'touch' varsayılan/kötümser sınır · 'lowerBar' + 15m alt TF = canlı · 'full' eski hatalı).
+  `tests/parity.test.js` (1200 rastgele yol) "motor = canlı takip" ve "artımlı tur = tek geçiş" eşitliğini kilitler; açık 2 fark erken
+  hedefsiz düzende (NB, F1). **Bu düzeltmelerden önceki tüm 4H sayıları (arşiv) iyimserdir; alıntılama.**
+- Ölçüm kuralı: gerçekçi satır = `fillBarTp: 'lower'` + `knifeBar` 'touch' ↔ 'lowerBar' sınırları. İyimser dolum mumu ('count') satırı
+  sıkı ölçütü geçse de sayılmaz (13.11'de 6 varyant böyle geçti).
+- Düzeltilmiş canlı kayıtlar `docs/signals/rescored.json` (ham history değişmez; `applyRescore`, sayfada ↻).
+- Etkisiz bulunanlar: zaman stopu, seans ve gün filtreleri, bekleme süresi (24→72 s), kalan pay için iz süren stop. Hafta sonu kötü.
+  Çıkışta 3 kademe / %50 kapatma ≈ %80'den biraz iyi, fark gürültüye yakın.
+- Momentum `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı (ayrı kod yolu; yukarıdaki düzeltmelerden etkilenmedi).
 
 ## Açık işler (11.11.2026)
 - **13.11 inceleme listesinden kalanlar** (DURUM 13.11 son giriş: B1–B6, C3–C6, D1–D4, E1–E3) ve karar: `KNIFE_GUARD` 3 kademe denemesi (30 kapanış) sonrası yeniden değerlendirilir. Canlı 4H düzeni **deneme** (kenar yok); n ≥ 30 kapanışta mevcut düzenin yeniden oynatmasıyla karşılaştır. Agresif ajan karar kaydı Actions logundan kontrol edilecek.
