@@ -73,3 +73,28 @@ kullanılmaz. Değerlendirme: ~13.12.2026 (n ≥ 100 dolum), short tarafının c
     (beklenen ≈ +0,02R).
   - **Aşama 1 listesi (güncel):** H1 (BTC'ye göre güç), H3 (fonlama + açık pozisyon; canlı gölge etiket), H4 (portföy sınırı), H5
     (yalnız komisyon modeli). H2 ve H6 düştü. Kullanıcı onayı bekleniyor.
+
+## Aşama 1 — kesin tanımlar (13.11.2026, koşudan ÖNCE; kullanıcı onayı: "Aşama 1'i üç hipotezle koş")
+**Veri:** 24 ay, bugünün ilk 50 coini, yalnız 4H planları (1H mumları yalnız dolum mumu sırası için; 15m / çoklu TF uyumu yok).
+- **Geliştirme dilimi:** son 12 ay; bölünme 31.07.2026 (eğitim / doğrulama) — aşama 0 ile aynı.
+- **Kilitli dilim (kasa):** ondan önceki 12 ay. Bilinen kısıt: bugünün ilk 50 coininin bir kısmı o dönemde yoktu (hayatta kalma
+  yanlılığı; kasadaki coin sayısı raporlanır).
+- Plan dosyası ayrı klasörde üretilir, yayınlanmaz; mevcut `sweep.json` / `results.json` (12 ay) değişmez. Tarama (109 varyant)
+  kasada KOŞMAZ.
+- **Taban satır:** canlı 4H evreni + bugünkü 3 kademe çıkış, gerçekçi (`fillBarTp: 'lower'`, bıçak 'touch', `missTp`), maliyet
+  %0,05 komisyon / taraf + %0,05 kayma (bugünkü model).
+
+**İki aşamalı koşu (kasaya tek bakış):** (1) `lock=0`: yalnız geliştirme dilimi hesaplanır ve yazılır; sağlamlık denetimi = taban
+satır aşama 0 ile uyumlu mu (eğitim ≈ −0,09R n ≈ 520, doğrulama ≈ +0,01R n ≈ 516; ±%5 n farkı kabul). (2) Denetim geçerse `lock=1`:
+kasa dahil tam rapor. Kasa sonucu görüldükten sonra tanım / eşik değişmez; yeniden koşu yalnız belgelenmiş hata düzeltmesi için.
+
+| # | Tanım (tek varyant; ayar taraması yok) | Geçme ölçütü |
+|---|---|---|
+| **H1** BTC'ye göre güç | Karar anında (plan mumu kapanışı) coin'in 28 günlük (168 × 4H) getirisi − BTC'nin aynı dönem getirisi; o an verisi olan evren coinleri (≥ 10) arasında yüzdelik sıra. **Long yalnız üst üçte birde (sıra ≥ 2/3), short yalnız alt üçte birde (sıra ≤ 1/3).** 28 gün = canlı momentum portföyünün (`xsmom_l28`) penceresi. BTC'nin kendi sinyalleri hariç. | Geliştirme: iki dilimde ort. R > 0, PF > 1,1, n ≥ 100. Kasa: ort. R > 0, %90 GA alt ucu > −0,05R, hedge'li R (`hedged`, eski tanım) ≥ 0. |
+| **H4** Portföy sınırı | Sinyaller zaman sırasıyla (aynı anda: yüksek puan önce); o an aynı yönde kapanmamış plan (bekleyen + açık) sayısı ≥ N ise sinyal atlanır. **N = 3 ve N = 5** (iki varyant). | İki geliştirme diliminde ve kasada: ort. R tabandan düşük değil **ve** en kötü 7 gün ile maks. düşüş (R) ≥ %30 iyileşir. Not: R toplamları işlem sayısı azaldığı için kısmen mekanik iyileşir; bu yüzden ayrıca atlanan sinyallerin ort. R'si ve "girişte açık plan sayısı" dilimleri raporlanır (bilgi amaçlı). |
+| **H5** Komisyon modeli | Hipotez değil, maliyet sınırı: (a) bugünkü model; (b) en iyi durum = limit giriş ve limit hedefler %0,02 (yapıcı), stop / piyasa çıkışı %0,055 + %0,05 kayma (Bybit standart oranları). | Ölçüt yok; taban ve H1 / H4 için (a) ve (b) altında ort. R raporlanır. Geçme kararları (a) ile verilir. |
+
+İkincil (bilgi amaçlı, geçme kararına girmez): H1 ∧ H4 (N = 5) birleşimi; H1'in üç dilimi (uyumlu / orta / ters) — tekdüzelik
+denetimi; long / short kırılımı.
+
+Çoklu sınama: birincil 3 test (H1, H4 N = 3, H4 N = 5). Hiçbiri geçmezse sonuç bölümündeki 4. madde uygulanır.
