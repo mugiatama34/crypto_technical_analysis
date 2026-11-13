@@ -61,7 +61,7 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
           const x = candles[k];
           if (stopOf(x)) return { outcome: 'knife', R: 0, ...appr };
           if (confirmsTurn(x, candles[k - 1], plan)) {
-            if (d * (plan.tp1 - x.close) <= 0) return { outcome: 'missed', R: 0, ...appr };
+            if (d * ((plan.missTp ?? plan.tp1) - x.close) <= 0) return { outcome: 'missed', R: 0, ...appr };
             entry = x.close * (1 + d * slip); fillI = k + 1; mkt = true; break;
           }
         }
@@ -69,7 +69,8 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
         if (fillI >= candles.length) return { outcome: 'expired', R: 0, ...appr };
         break;
       }
-      const tp1Hit = d === 1 ? c.high >= plan.tp1 : c.low <= plan.tp1;
+      const missAt = plan.missTp ?? plan.tp1; // canlı takip gibi: 'kaçtı' plandaki özgün TP1'e göre (erken hedefe göre değil)
+      const tp1Hit = d === 1 ? c.high >= missAt : c.low <= missAt;
       if (tp1Hit) return { outcome: 'missed', R: 0 };
     }
     if (entry == null) return { outcome: 'expired', R: 0 };

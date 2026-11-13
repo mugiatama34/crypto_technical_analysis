@@ -238,3 +238,10 @@ test('ara hedef sonrası stop erken hedefe (midStopToTp1)', () => {
   const r = simulateTrade(p, cs, 0, '1H', { ...o, tp1Portion: 0.5, midPortion: 0.25, midStopToTp1: true });
   assert.equal(r.R, +(0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 0.5).toFixed(3)); // kalan %25 erken hedefte (0,5R) çıkar
 });
+
+test('kaçtı kuralı özgün TP1e göre (missTp): erken hedef girişten önce görülse de emir bekler', () => {
+  const p = { ...plan, tp1: 100.5, missTp: 103, price: 101 }; // erken hedef 100,5 limit 100'ün hemen üstünde
+  const cs = [c(1, 101, 101.5, 100.6, 101), c(2, 101, 101, 99.8, 100.2), c(3, 100.2, 100.8, 100, 100.7)];
+  assert.notEqual(simulateTrade(p, cs, 0, '1H', { ...o, tp1Portion: 0.8 }).outcome, 'missed');
+  assert.equal(simulateTrade({ ...p, missTp: undefined, tp1: 101.2 }, cs, 0, '1H', o).outcome, 'missed');
+});

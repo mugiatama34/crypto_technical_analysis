@@ -47,7 +47,7 @@ export function rebuild(plan, v) {
   if (d * (tp2 - tp1) < 0) tp2 = tp1;
   // midTp: plandaki özgün TP1 ara hedef olur (erken hedefin ötesindeyse; değilse yok sayılır)
   const tpMid = v.midTp && d * (plan.tp1 - tp1) > 0 && d * (tp2 - plan.tp1) > 0 ? plan.tp1 : null;
-  return { ...plan, stop, tp1, tp2, ...(tpMid ? { tpMid } : {}) };
+  return { ...plan, stop, tp1, tp2, ...(v.tp1Pct != null ? { missTp: plan.tp1 } : {}), ...(tpMid ? { tpMid } : {}) };
 }
 
 /** Sıralı mum dizisinde time'a kadar (dahil) son kapanış; yoksa null. */
