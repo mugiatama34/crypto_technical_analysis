@@ -107,3 +107,14 @@ Uygulama notları (13.11.2026, ilk koşudan ÖNCE):
   yapılır; hipotez ölçütleri tam geliştirme diliminde.
 - H1 sırası: (küçük + (eşit − 1) / 2) / (M − 1), BTC sıraya girmez. H4 ve H1'in kasa ölçütünde de n ≥ 100 aranır. Hedge'li R (a)
   maliyet modeliyle. H4 sayımı geliştirme ve kasada ayrı akış (lock 0 / 1 geliştirme sonuçları aynı).
+- 13.11.2026 **Aşama 1, geliştirme dilimi (koşu 43487309748, `lock=0`; kasa sonucu görülmeden yazıldı):**
+  - Sağlamlık denetimi geçti: aşama 0 penceresinde eğitim n 510 (−%1,9) −0,089R, doğrulama n 520 (+%0,8) +0,003R. Evren 50 coin (43'ü tam
+    kapsam). Tam 12 aylık geliştirme dilimi: taban eğitim −0,092R (n 1.003, %90 GA −0,16…−0,02), doğrulama +0,003R (n 520).
+  - **H1 geçmedi** (eğitimde ort. R < 0): −0,040 / +0,026R (n 440 / 194, PF 0,87 / 1,10; hedge'li −0,087 / +0,009). Tabana göre +0,05 /
+    +0,02R iyileşme; dilimler tekdüze: uyumlu −0,040 / +0,026 · orta −0,137 / +0,002 · ters −0,138 / −0,011.
+  - **H4 geçmedi** (doğrulamada ort. R tabandan düşük): N = 3 −0,069 / −0,048R, N = 5 −0,087 / −0,045R. En kötü 7 gün %53–69, maks. düşüş
+    %22–70 iyileşiyor ama bu işlem sayısındaki azalmadan; atlanan sinyaller doğrulamada tabandan iyi (+0,03 / +0,05R) → kalabalık anlar
+    daha kötü değil, sınırın seçim değeri yok.
+  - **H5:** en iyi durum komisyon modeli +0,012…+0,013R kazandırıyor (taban −0,079 / +0,016R).
+  - Üç birincil test de geliştirmede geçmedi → kasa koşusu (`lock=1`) yalnız bilgi amaçlı (taban düzenin bağımsız bir yılda davranışı,
+    H1 iyileşmesinin yönü); hiçbir hipotez kasada "geçti" sayılamaz.
