@@ -54,3 +54,11 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
 ## Günlük
 - 13.11.2026: taslak yazıldı (ölçüm yok).
 - 13.11.2026: kullanıcı onayladı; M0 teşhis betiği yazılıyor.
+- 13.11.2026 (ilk koşudan ÖNCE) uygulama notları: ısınma geliştirme diliminden (ilk dengeleme ~12.01.2025); hafta = pazartesi açılışı →
+  pazartesi açılışı; her işlem 1 / slot nominal; M0b zayıf-5 = `selectAt` short listesi (r < 0 süzgeci dahil), plasebo aynı sayıda coin;
+  M0c "2 kattan fazla" (tam 2 kat = varsayılan korunur), son ~100 günde kapanan short'lar; M0d havuz 150, M0a canlının kendi
+  parametreleri (havuz 80). Kod okumasından (ölçümden önce) canlı ↔ backtest yapısal farkları: canlı eşit RİSK boyutlar (%2, üst sınır
+  özsermaye / 5) ↔ backtest eşit nominal; canlı hedge net maruziyete göre %20 sapmada yeniden boyutlanır ve küçültmeler `realized`'a
+  yazılır ↔ backtest'te BTC adedi işlem boyunca sabit; canlı ilk ~30 saat hedge'sizdi; ilk dengeleme hafta ortasında. Canlı kaybın
+  kimliği (fiyat gerektirmez): kapanan short +6,88 · açık short +3,95 · açık hedge −7,31 · hedge yeniden boyutlamada gerçekleşen −26,63
+  = −23,11 USDT.
