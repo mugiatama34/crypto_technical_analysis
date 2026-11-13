@@ -125,3 +125,19 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
   - Bilgi: hedge'siz T +3,37 / +3,57 (Sharpe 2,1 / 3,2; en kötü hafta −%24,7) · canlının eşit risk boyutlaması +0,63 / +0,41 (Sharpe 2,05 /
     2,31; maks. düşüş %8,6 / %3,9; en kötü tek işlem −%2,0) → benzer Sharpe, çok daha küçük kuyruk.
   - Üç hipotez de geliştirmede geçmediği için kasa-M'de yalnız **T'nin doğrulaması** karar taşır; HM satırları kasada bilgi amaçlıdır.
+  (Zaman notu: yukarıdaki geliştirme girişi `lock=0` dosyasından yazıldı; commit 21:05:30 UTC, kasa dosyasının yayınından (21:05:19) 11 sn
+  sonra — içerik kasa okunmadan önce hazırdı.)
+- 13.11.2026 **M1 kilitli dilim (koşu 43507446xx `lock=1`, tek bakış; kasa-M 24.11.2022 → 24.11.2024, 104 hafta, dengeleme başına 32–66 coin):**
+  - **T geçmedi (kıl payı):** haftalık **+%0,90**, %90 aralığı **[−0,16; +2,12]** (alt uç ≤ 0), Sharpe 0,98 (≥ 0,5 ✓), maks. düşüş %35,6, en kötü
+    hafta −%18,7, en kötü tek işlem −%14,6. Bacaklar: short'lar −%0,45 / hafta (toplam −%47), BTC hedge toplam +%141 → kasa döneminde
+    (yükseliş piyasası) kazanç "zayıf coinler BTC'den az yükseldi" farkından; hedge'siz T −%0,45 / hafta (Sharpe −0,32).
+  - Pencere: L 14 +%0,32 (Sharpe 0,32) · L 56 +%0,61 (0,68) → kasada üç pencere de artı, küçük.
+  - HM satırları (geliştirmede geçmemişti; bilgi): HM1 +%0,95 [−0,15; 2,05] Sharpe 1,00 · HM2 +%1,03 [−0,01; 2,21] Sharpe 1,15 · HM3 +%0,49
+    Sharpe 0,47. Kasadaki 12 satırın 11'i artı; hiçbirinin alt ucu sıfırın üstünde değil.
+  - Bilgi: canlının eşit risk boyutlaması kasada +%0,46 / hafta **[+0,05; +0,93]**, Sharpe 1,25, maks. düşüş %15,5, en kötü tek işlem −%2,1
+    (geliştirmede +0,63 / +0,41, Sharpe 2,05 / 2,31). Ön kayıtlı hipotez DEĞİLDİ → "geçti" sayılamaz; aynı veride yeniden sınanamaz.
+  - **Genel karar (ön kayıt): birincil 4 testin hiçbiri geçmedi.** Canlı momentum "ölçülmüş" etiketini kaybeder → "deneme". Geliştirme
+    dilimindeki +%2,6…3,6 / hafta, kasada +%0,9'a iniyor: beklenen seçim + dönem iyimserliği. 4H düzeninden farkı: işaret üç dilimde de artı,
+    sıralama bilgisi plaseboyu geçiyor (M0b); kanıt eşiğinin altında, sıfırdan ayırt edilemiyor.
+  - Temiz veri kalmadı (kasa-M açıldı). Bundan sonraki tek temiz sınama ileriye dönük kâğıt kayıt; Sharpe ≈ 1 ile %90 güven için ~150 hafta
+    gerekir → kısa sürede "kanıt" beklenmemeli.
