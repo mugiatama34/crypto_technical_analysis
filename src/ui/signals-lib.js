@@ -127,3 +127,21 @@ export function planOpenR(s, uR) {
   if (s.status === 'tp1') { const locked = 0.5 * (s.rr1 || 1.5); return { R: locked + 0.5 * uR, locked, openShare: 0.5, beStop: true }; }
   return { R: uR, locked: 0, openShare: 1, beStop: false };
 }
+
+const BD_NAMES = { structure: 'Yapı', fvg: 'FVG', orderblock: 'OB', liquidity: 'Likidite', fibonacci: 'Fib', elliott: 'Elliott', patterns: 'Formasyon', triangles: 'Üçgen', harmonic: 'Harmonik', candlesticks: 'Mum', divergence: 'Uyumsuzluk', wyckoff: 'Wyckoff', indicator: 'İndikatör' };
+const trNum = (x) => String(+x.toFixed(2)).replace('.', ',');
+/** Puan dökümü tek satır metni (HTML'siz). s.bd (plan ya da geçmiş kaydı) yoksa ''. MTF: plan.mtf.tfs ya da kayıttaki dizi. */
+export function breakdownText(s) {
+  const bd = s?.bd; if (!bd?.parts) return '';
+  const ent = Object.entries(bd.parts).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const tot = ent.reduce((t, [, v]) => t + v, 0);
+  if (!(tot > 0)) return '';
+  const top = ent.slice(0, 4).map(([k, v]) => [BD_NAMES[k] || k, Math.round(100 * v / tot)]);
+  const pieces = top.map(([n, p]) => `${n} %${p}`);
+  if (ent.length > 4) pieces.push(`diğer %${Math.max(0, 100 - top.reduce((t, [, p]) => t + p, 0))}`);
+  const mult = [`çeşitlilik ×${trNum(bd.div)}`, `yakınlık ×${trNum(bd.prox)}`];
+  if (bd.wpen != null && bd.wpen !== 1) mult.push(`genişlik ×${trNum(bd.wpen)}`);
+  const tfs = Array.isArray(s.mtf) ? s.mtf : s.mtf?.tfs;
+  const last = bd.mtf != null && bd.cluster != null && bd.mtf > bd.cluster ? `küme ${bd.cluster} → ${tfs?.length ?? '?'} TF uyumu ${bd.mtf}` : `küme ${bd.cluster}`;
+  return `Döküm: ${pieces.join(' · ')} | ${mult.join(' · ')} | ${last}`;
+}

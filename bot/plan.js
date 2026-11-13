@@ -127,6 +127,7 @@ export function buildPlan(row, opts = {}) {
   return {
     ok: true,
     key, coin: row.coin, instId: row.instId, tf: row.tf, direction: row.direction, d,
+    bd: b.breakdown ? { parts: b.breakdown.parts, div: b.breakdown.diversity, prox: b.breakdown.proximity, wpen: b.breakdown.widthPen, raw: b.breakdown.raw, cluster: row.score, mtf: mtfOk ? row.mtf.score : null } : null,
     score, clusterScore: row.score, mtf: mtfOk ? { tfs: row.mtf.tfs, score: row.mtf.score, conflicting: row.mtf.conflicting } : null,
     price: r4(price), atr: r4(atr), zone: [r4(lo), r4(hi)], inZone,
     entry: r4(entry), stop: r4(stop), tp1: r4(tp1), tp2: r4(tp2), risk: r4(risk), rr1: +rr1.toFixed(2), rr: +rr.toFixed(2),

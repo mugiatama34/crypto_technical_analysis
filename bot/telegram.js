@@ -59,6 +59,7 @@ export async function sendTelegramPhotoEx(png, caption, { token, chatId, fetchIm
 export async function sendTelegramPhoto(png, caption, o = {}) { return (await sendTelegramPhotoEx(png, caption, o)).ok; }
 
 import { bybitOf, bybitPx } from '../src/data/bybit-symbols.js';
+import { breakdownText } from '../src/ui/signals-lib.js';
 
 /** Fiyat biçimi: büyüklüğe göre ondalık. */
 export function fp(p) {
@@ -83,6 +84,9 @@ export function bybitLine(coin, levels, qty) {
   return `<b>Bybit ${esc(b.sym)}</b> (fiyat ×${b.mult.toLocaleString('tr-TR')}): ${levels.filter(([, v]) => (Array.isArray(v) ? v.every(Number.isFinite) : Number.isFinite(v))).map(([k, v]) => f(k, v)).join(' · ')}${qty ? ` · adet ${+(qty / b.mult).toPrecision(6)}` : ''}`;
 }
 
+/** Puan dökümü tek satır (HTML kaçışlı); plan.bd yoksa ''. Metin src/ui/signals-lib.js breakdownText ile tek kaynak. */
+export function formatBreakdown(plan) { return esc(breakdownText(plan)); }
+
 const CONF_ICON = { 'düşük': '○', 'orta': '◐', 'yüksek': '●' };
 
 /** Yeni setup mesajı. */
@@ -94,6 +98,7 @@ export function formatSetup(plan, dec, size) {
   const lines = [
     `<b>${head}</b> — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}  ${CONF_ICON[dec.confidence] || ''} güven ${esc(dec.confidence)}`,
     `Puan ${plan.score}${plan.mtf ? ` · MTF ${esc(plan.mtf.tfs.join('+'))}` : ''} · fiyat ${fp(plan.price)}`,
+    formatBreakdown(plan),
     '',
     `Giriş: <code>${fp(dec.entry_low)} – ${fp(dec.entry_high)}</code>${plan.inZone ? ' (fiyat bölgede)' : ''}`,
     `Stop: <code>${fp(dec.stop)}</code>  (${pctFrom(dec.entry, dec.stop)})`,
