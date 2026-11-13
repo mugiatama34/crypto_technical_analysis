@@ -199,6 +199,8 @@ Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2
 TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_long_smt` / `_long_nosmt` (SMT ✓ / değil),
 `_tb3` / `_tb4` / `_tb_low` (ders kitabı ≥ 3/4, 4/4, ≤ 2/4). Tarama mum başına bir kez (aileler paylaşır).
 
+**Yeniden puanlama katmanı** (`docs/signals/rescored.json`): canlı takip hatasından etkilenen sinyallerin düzeltilmiş durum/R'si; ham kayıt (`history.json`) değişmez. Sayfa, denetçi ve haftalık rapor `applyRescore` (`src/ui/signals-lib.js`) ile bu değerleri kullanır; sayfada ↻ işareti. Ölçüt: düzeltilmiş takip kodu ve motor gerçek 4H + 15m mumlarla aynı sonucu veriyor ve kayıttan farklı (`backtest/replay`).
+
 **Orkestrasyon skill'i** (`.claude/skills/orkestrasyon/SKILL.md`): Claude oturumlarında iş dağıtımı — ana oturum planlar ve
 doğrular; Opus orta–yüksek zorluk (gevşek brief), Sonnet basit–orta (sıkı brief), Haiku büyük veri temizliği (en sıkı brief +
 sayım kontrolü). Brief şablonları, yükseltme kuralı ve doğrulama listesi dosyada. Actions'taki ajan modelleri kapsam dışı.

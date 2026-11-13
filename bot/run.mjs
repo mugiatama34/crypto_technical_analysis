@@ -37,6 +37,7 @@ import { runMomentum } from './momentum/run.js';
 import { runRegimeDonchian, regimeCandidates } from './regime/donchian.js';
 import { cfgLabel, weeklyReport } from './review/periods.js';
 import { finalR } from './review/metrics.js';
+import { applyRescore } from '../src/ui/signals-lib.js';
 import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenarioOf, panelOf } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
 import { setBybitOverrides } from '../src/data/bybit-symbols.js';
@@ -154,6 +155,7 @@ function saveState(file, st) {
 
 // ---- Sinyal geçmişi (sayfa için; append-only, en fazla 3000 kayıt)
 function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return { items: [] }; } }
+function readRescore() { try { return JSON.parse(fs.readFileSync(path.join(path.dirname(CFG.historyFile), 'rescored.json'), 'utf8')); } catch { return null; } }
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { const { chart, ...q } = p; if (!h.items.some((x) => x.id === histId(q))) h.items.push({ id: histId(q), ...q, ...extra }); } // grafik çizimleri yalnız state.json'da
@@ -463,7 +465,7 @@ async function main() {
     state.lastSummary = now;
     // Haftalık sinyal kalitesi (Pazartesi): geçen 7 günün sinyalleri bugünkü sonuçlarıyla, önceki hafta ve dönemle kıyas
     if (CFG.weeklyReport && new Date(now).getUTCDay() === 1 && now - (state.lastWeekly || 0) > 6 * 24 * 3600e3) {
-      try { await notify(weeklyReport(history.items, now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); }
+      try { await notify(weeklyReport(applyRescore(history.items, readRescore()), now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); }
     }
   }
   // API kredisi uyarısı: kredi hatası görülünce Telegram'a bir kez (24 saatte en fazla bir), başarılı çağrı gelince "düzeldi"
