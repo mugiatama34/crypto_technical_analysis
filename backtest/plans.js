@@ -26,9 +26,39 @@ export function planMismatch(all, meta, tolDays = 3) {
   return out;
 }
 
+/**
+ * Plan dosyası yazımı (13.11): girdi başına bir satır, 2.000'lik parçalar ayrı gzip üyesi. Tek parça JSON.stringify 12 ay × 50
+ * coin'de V8 dize sınırını (~512 MB) aşıp koşuyu 36. dakikada düşürdü (koşu 43435631728). İçerik yine geçerli bir JSON dizisi.
+ */
+export function writePlansFile(file, entries, chunk = 2000) {
+  const fd = fs.openSync(file, 'w');
+  try {
+    fs.writeSync(fd, zlib.gzipSync('[\n'));
+    for (let i = 0; i < entries.length; i += chunk) {
+      const part = entries.slice(i, i + chunk).map((e, j) => JSON.stringify(e) + (i + j < entries.length - 1 ? ',' : '')).join('\n');
+      fs.writeSync(fd, zlib.gzipSync(part + '\n'));
+    }
+    fs.writeSync(fd, zlib.gzipSync(']\n'));
+  } finally { fs.closeSync(fd); }
+}
+
+/** Plan dosyası okuma: satır satır (dize sınırına takılmaz); eski tek satırlık dosya ('[{…}]') tek parça okunur. */
+export function readPlansFile(file) {
+  const buf = zlib.gunzipSync(fs.readFileSync(file));
+  if (!(buf[0] === 0x5b && buf[1] === 0x0a)) return JSON.parse(buf.toString());
+  const out = [];
+  for (let a = 2; a < buf.length;) {
+    let b = buf.indexOf(0x0a, a); if (b < 0) b = buf.length;
+    let e = b; if (buf[e - 1] === 0x2c) e--;
+    if (e > a && buf[a] !== 0x5d) out.push(JSON.parse(buf.toString('utf8', a, e)));
+    a = b + 1;
+  }
+  return out;
+}
+
 /** plans.json.gz + results.json meta → { all, meta, times, split }. Uyumsuzlukta hata fırlatır. */
 export function loadPlans(dir) {
-  const all = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(dir, 'plans.json.gz'))).toString());
+  const all = readPlansFile(path.join(dir, 'plans.json.gz'));
   const meta = (() => { try { return JSON.parse(fs.readFileSync(path.join(dir, 'results.json'), 'utf8')).meta || {}; } catch { return {}; } })();
   const bad = planMismatch(all, meta);
   if (bad.length) throw new Error(`plans.json.gz ile results.json aynı koşudan değil: ${bad.join('; ')} → önce mode=full koş`);
@@ -68,7 +98,7 @@ export const cooldownSkippedOf = (all) => all.flatMap((t) => (t.cd || []).map((c
 /**
  * Tam koşu (run.mjs) için seri simülasyonu + canlıya eşit tarama alanları: others verilirse her plana (ve atlanan plana) mtfBt;
  * bekleme süresi yüzünden atlanan geçerli planlar, onu atlatan aynı yöndeki son planın kaydına cd: [{ time, plan, mtfBt? }]
- * olarak eklenir (simüle edilmez). Simüle edilen planlar ve sonuçları simulateSeries ile aynıdır (yalnız ek alanlar).
+ * olarak eklenir (simüle edilmez; yalnız others verilen TF'lerde = run.mjs --mtfTfs, canlı 4H: 1H'de de saklamak dosyayı ~0,5 GB yapıyordu). Simüle edilen planlar ve sonuçları simulateSeries ile aynıdır (yalnız ek alanlar).
  */
 export function simulateWithExtras(job, o, others = null) {
   const ms = TIMEFRAMES[job.tf].ms;
@@ -76,6 +106,6 @@ export function simulateWithExtras(job, o, others = null) {
   const last = {};
   return simulateSeries(job, o, {
     onTrade: (t) => { const m = mtfOf(t.plan, t.time); if (m) t.mtfBt = m; last[t.direction] = t; },
-    onCooldownSkip: ({ plan, time }) => { const host = last[plan.direction]; if (!host) return; const m = mtfOf(plan, time); (host.cd ||= []).push({ time, plan: slimPlan(plan), ...(m ? { mtfBt: m } : {}) }); },
+    onCooldownSkip: ({ plan, time }) => { if (!others) return; const host = last[plan.direction]; if (!host) return; const m = mtfOf(plan, time); (host.cd ||= []).push({ time, plan: slimPlan(plan), ...(m ? { mtfBt: m } : {}) }); },
   });
 }

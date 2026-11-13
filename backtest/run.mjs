@@ -7,7 +7,7 @@ import zlib from 'node:zlib';
 import { getTopCoins, TIMEFRAMES, instIdOf } from '../src/data/okx.js';
 import { getHistoryCached } from './data.js';
 import { BT_DEFAULTS } from './engine.js';
-import { simulateWithExtras } from './plans.js';
+import { simulateWithExtras, writePlansFile } from './plans.js';
 import { buildReport } from './report.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
@@ -60,11 +60,11 @@ async function main() {
     }
   }
   // planFields (13.11): plans.json.gz girdilerinde ek alanlar — mtfBt (karar anı çoklu TF uyumu), cd (bekleme süresi yüzünden atlanan planlar)
-  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, planFields: ['mtfBt', 'cd'], cooldownSkipped: cdSkipped, mtfComputed: mtfDone, elapsedSec: Math.round((Date.now() - t0) / 1000) };
+  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, planFields: ['mtfBt', 'cd'], cdTfs: CFG.mtfTfs.filter((tf) => CFG.tfs.includes(tf)), cooldownSkipped: cdSkipped, mtfComputed: mtfDone, elapsedSec: Math.round((Date.now() - t0) / 1000) };
   const report = buildReport(trades.map(({ plan, cd, mtfBt, ...t }) => t), meta);
   fs.mkdirSync(CFG.out, { recursive: true });
   fs.writeFileSync(path.join(CFG.out, 'results.json'), JSON.stringify(report));
-  fs.writeFileSync(path.join(CFG.out, 'plans.json.gz'), zlib.gzipSync(JSON.stringify(trades.map((t) => ({ coin: t.coin, tf: t.tf, time: t.time, outcome: t.outcome, R: t.R, plan: t.plan, ...(t.mtfBt ? { mtfBt: t.mtfBt } : {}), ...(t.cd ? { cd: t.cd } : {}) })))));
+  writePlansFile(path.join(CFG.out, 'plans.json.gz'), trades.map((t) => ({ coin: t.coin, tf: t.tf, time: t.time, outcome: t.outcome, R: t.R, plan: t.plan, ...(t.mtfBt ? { mtfBt: t.mtfBt } : {}), ...(t.cd ? { cd: t.cd } : {}) })));
   const s = report.overall;
   log(`Bitti: ${trades.length} plan, ${s.n} dolum, kazanma %${(s.winRate * 100).toFixed(0)}, ort ${s.avgR}R, toplam ${s.totalR}R, PF ${s.profitFactor}, maxDD ${s.maxDD}R; ${meta.elapsedSec} sn`);
 }

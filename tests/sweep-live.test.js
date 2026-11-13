@@ -141,7 +141,10 @@ test('simulateWithExtras: simüle edilen planlar simulateSeries ile aynı; bekle
     assert.equal(x.plan.direction, t.direction); assert.ok(x.mtfBt);
   }
   for (const x of skipped) { assert.equal(x.cd, true); assert.equal(x.tf, '1H'); assert.ok(x.plan.entry > 0); }
-  // others yoksa ek alan yok (yalnız cd)
+  // others yoksa (canlıda kapalı TF) ek alan yok: ne mtfBt ne cd — plan dosyası 1H atlananlarıyla şişmesin (koşu 43435631728)
   const plain = simulateWithExtras({ coin: 'T', instId: 'T', tf: '1H', candles: c1h }, o, null);
-  assert.ok(plain.every((t) => t.mtfBt === undefined));
+  assert.ok(plain.every((t) => t.mtfBt === undefined && t.cd === undefined));
+  // tek TF'lik koşu (others = {}): cd saklanır, mtfBt yok
+  const solo = simulateWithExtras({ coin: 'T', instId: 'T', tf: '1H', candles: c1h }, o, {});
+  assert.equal(cooldownSkippedOf(solo).length, skipped.length);
 });
