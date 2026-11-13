@@ -17,6 +17,7 @@
 //   AUDIT=1 AUDIT_MODEL=...: denetçi ajan (günlük rapor + araştırma kuyruğu; bot/review)
 //   HTF_TREND=with|notAgainst: coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D) aynı yön / ters değil
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
+//     3 kademe (yalnız sinyal takibi): {"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"} → TP1'de %25, sonra stop erken hedefe
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
 //   AGENT_RESET=<etiket> (ör. 2026-11-13): etiket değişince ajan hesapları arşivlenir (docs/agent/archive/<etiket>/) ve 300 $'a sıfırlanır; dersler/parametreler korunur
@@ -154,7 +155,7 @@ function loadHistory(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8
 function saveHistory(file, h) { fs.mkdirSync(path.dirname(file), { recursive: true }); h.items = h.items.slice(-3000); h.updatedAt = Date.now(); fs.writeFileSync(file, JSON.stringify(h)); }
 const histId = (p) => `${p.key}|${p.sentAt}`;
 function historyAdd(h, p, extra = {}) { const { chart, ...q } = p; if (!h.items.some((x) => x.id === histId(q))) h.items.push({ id: histId(q), ...q, ...extra }); } // grafik çizimleri yalnız state.json'da
-function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}), ...(p.lateClose ? { lateClose: p.lateClose } : {}) }); }
+function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion, ...(p.midPortion ? { midPortion: p.midPortion, midStop: p.midStop, midAt: p.midAt ?? null } : {}) } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}), ...(p.lateClose ? { lateClose: p.lateClose } : {}) }); }
 
 async function notify(text, state) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
@@ -269,7 +270,7 @@ async function main() {
       if (!scanned) p.lateClose = own?.tf || true; // geç takip: ayrı indirilen mumla (hangi TF)
       for (const ev of events) {
         if (!quiet) state.stats[ev] = (state.stats[ev] || 0) + 1;
-        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev !== 'confirming') p.closedAt = !scanned && p.closedBar ? p.closedBar : now;
+        if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev === 'mid') p.midAt = p.midAt ?? now; else if (ev !== 'confirming') p.closedAt = !scanned && p.closedBar ? p.closedBar : now;
       }
       // Aynı turda birden çok olay (ör. giriş + erken hedef) → tek mesaj
       if (!quiet) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
@@ -365,8 +366,8 @@ async function main() {
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
-    await notify(formatSetup(early ? { ...plan, early } : plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; kalan TP2` : ''), state);
-    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
+    await notify(formatSetup(early ? { ...plan, early } : plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; ${CFG.earlyTp.mid > 0 && plan.d * (v.tp1 - early) > 0 && plan.d * (v.tp2 - v.tp1) > 0 ? `TP1'de %${Math.round(CFG.earlyTp.mid * 100)} daha kapat${CFG.earlyTp.midStop === 'early' ? ', stopu erken hedefe çek' : ''}; kalan TP2` : 'kalan TP2'}` : ''), state);
+    const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion, ...(CFG.earlyTp.mid > 0 ? { midPortion: CFG.earlyTp.mid, midStop: CFG.earlyTp.midStop === 'early' ? 'early' : 'entry' } : {}) } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     if (CFG.signalChart && row && !row.error) {
       try {
         const cl = row.clusters.find((c) => c.direction === plan.direction) || row.best;

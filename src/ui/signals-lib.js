@@ -4,7 +4,7 @@ const TRADED = new Set(['stopped', 'done', 'timeout', 'be']);
 export const earlyR = (s) => Math.abs(s.early - s.entry) / Math.abs(s.entry - s.stop);
 /** Kapanmış işlemin R'si (TP1 sonrası başabaş +½R1; erken kâr düzeninde payı × erken R). Açık/işlemsiz → null. */
 export function finalR(s) {
-  if (s.early) { const p = s.earlyPortion ?? 0.8; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * earlyR(s); if (s.status === 'done') return p * earlyR(s) + (1 - p) * (s.rr || 2.5); return null; }
+  if (s.early) { const p = s.earlyPortion ?? 0.8, eR = earlyR(s), mOk = s.midPortion > 0 && s.d * (s.tp1 - s.early) > 0 && s.d * (s.tp2 - s.tp1) > 0, m = mOk && s.midAt ? s.midPortion : 0, rest = 1 - p - m; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * eR + m * (s.rr1 || 1.5) + (m && s.midStop === 'early' ? rest * eR : 0); if (s.status === 'done') return p * eR + m * (s.rr1 || 1.5) + rest * (s.rr || 2.5); return null; }
   if (s.status === 'timeout') return s.exitR ?? null;
   if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1;
   if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5);
@@ -110,7 +110,7 @@ export function agentVsSignal(trades, items, since = 0) {
  */
 export function planOpenR(s, uR) {
   if (!Number.isFinite(uR)) return null;
-  if (s.status === 'early' && s.early) { const p = s.earlyPortion ?? 0.8, locked = p * earlyR(s); return { R: locked + (1 - p) * uR, locked, openShare: 1 - p, beStop: true }; }
+  if (s.status === 'early' && s.early) { const p = s.earlyPortion ?? 0.8, m = s.midAt && s.midPortion > 0 ? s.midPortion : 0, locked = p * earlyR(s) + m * (s.rr1 || 1.5), open = 1 - p - m; return { R: locked + open * uR, locked, openShare: open, beStop: true, stopAtEarly: !!(m && s.midStop === 'early') }; }
   if (s.status === 'tp1') { const locked = 0.5 * (s.rr1 || 1.5); return { R: locked + 0.5 * uR, locked, openShare: 0.5, beStop: true }; }
   return { R: uR, locked: 0, openShare: 1, beStop: false };
 }

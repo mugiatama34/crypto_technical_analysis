@@ -6,7 +6,7 @@ const NOFILL = new Set(['waiting', 'expired', 'missed', 'confirming', 'knife']);
 const earlyR = (s) => Math.abs(s.early - s.entry) / Math.abs(s.entry - s.stop);
 /** Kapanmış sinyalin R'si; açık ya da dolmamışsa null. */
 export function finalR(s) {
-  if (s.early) { const p = s.earlyPortion ?? 0.8; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * earlyR(s); if (s.status === 'done') return p * earlyR(s) + (1 - p) * (s.rr || 2.5); return null; }
+  if (s.early) { const p = s.earlyPortion ?? 0.8, eR = earlyR(s), mOk = s.midPortion > 0 && s.d * (s.tp1 - s.early) > 0 && s.d * (s.tp2 - s.tp1) > 0, m = mOk && s.midAt ? s.midPortion : 0, rest = 1 - p - m; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * eR + m * (s.rr1 || 1.5) + (m && s.midStop === 'early' ? rest * eR : 0); if (s.status === 'done') return p * eR + m * (s.rr1 || 1.5) + rest * (s.rr || 2.5); return null; }
   if (s.status === 'timeout') return s.exitR ?? null;
   if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1;
   if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5);

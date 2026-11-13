@@ -18,7 +18,7 @@ export const PERIODS = [
 export function cfgLabel(o) {
   const e = o.earlyTp;
   return [o.tfs.join('+') || 'TF yok', o.knife ? 'bıçak' : null, o.limitOnly ? 'limit' : null, o.skipWeekend ? 'hs yok' : null,
-    e ? `erken %${e.pct}/${Math.round(e.portion * 100)}` : null, o.htfTrend ? `üst TF ${o.htfTrend}` : null, o.timeStop ? `zaman ${o.timeStop.bars}` : null].filter(Boolean).join(' · ');
+    e ? `erken %${e.pct}/${Math.round(e.portion * 100)}${e.mid > 0 ? ` · TP1 ${Math.round(e.mid * 100)}${e.midStop === 'early' ? ' · stop erkene' : ''}` : ''}` : null, o.htfTrend ? `üst TF ${o.htfTrend}` : null, o.timeStop ? `zaman ${o.timeStop.bars}` : null].filter(Boolean).join(' · ');
 }
 
 /** Bir sinyal listesinin kalite özeti: sıklık, dolum, kapanan, kazanma, ort./toplam R, TF dağılımı. */

@@ -197,13 +197,20 @@ export function timeStopOf(v) {
   try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o.bars > 0 ? { minMfeR: Infinity, ...o } : null; } catch { return null; }
 }
 
-/** Erken kâr al ayarı: JSON {"pct":1.2,"portion":0.8,"tfs":["4H"]} → nesne ya da null. */
+/**
+ * Erken kâr al ayarı: JSON {"pct":1.2,"portion":0.8,"tfs":["4H"]} → nesne ya da null.
+ * İsteğe bağlı 3 kademe (13.11): "mid":0.25 → plandaki TP1'de başlangıç adedinin %25'i daha kapanır; "midStop":"early" →
+ * ondan sonra kalan için stop erken hedefe (vars. "entry" = girişte kalır). TP1 erken hedefin içindeyse ara kademe yok.
+ */
 export function earlyTpOf(v) {
   if (v == null || v === '' || v === '0' || v === false) return null;
   try { const o = typeof v === 'string' ? JSON.parse(v) : v; return o && o.pct > 0 ? { portion: 0.8, tfs: ['4H'], ...o } : null; } catch { return null; }
 }
 /** Erken hedef fiyatı (plan TF'si listedeyse), yoksa null. */
 export const earlyPriceOf = (plan, entry, e) => (e && e.tfs.includes(plan.tf) ? +(entry * (1 + plan.d * e.pct / 100)).toPrecision(8) : null);
+
+/** 3 kademe uygulanabilir mi: ara pay var ve TP1 erken hedefin ötesinde, TP2'nin berisinde. */
+export const midOk = (p) => !!(p.midPortion > 0 && p.early != null && p.d * (p.tp1 - p.early) > 0 && p.d * (p.tp2 - p.tp1) > 0);
 
 export const isKnife = (a, g) => !!(g && a && (a.approachAtr > g.maxApproachAtr || a.fillBarAtr > g.maxFillBarAtr));
 
@@ -306,18 +313,22 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
         status = 'tp1'; events.push('tp1'); continue;
       }
     }
-    // Erken kâr al (plan.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be)
+    // Erken kâr al (plan.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be).
+    // 3 kademe (plan.midPortion): TP1'de ara kapanış (midAt); midStop 'early' ise sonra stop erken hedefe.
     if (status === 'early') {
       if (c.time <= (patch.earlyAt ?? plan.earlyAt)) continue;
-      const hitBe = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
-      if (hitBe) { status = 'be'; events.push('be'); break; }
-      if (hitTp2) { status = 'done'; events.push('done'); break; }
+      const midAt = patch.midAt ?? plan.midAt;
+      const lvl = midAt && plan.midStop === 'early' ? plan.early : plan.entry;
+      const hitBe = d === 1 ? c.low <= lvl : c.high >= lvl;
+      if (hitBe) { status = 'be'; events.push('be'); break; } // aynı mumda hedef + stop: stop (kötümser)
+      if (!midAt && midOk(plan) && hitTp1) { patch.midAt = c.time; events.push('mid'); }
+      if (hitTp2) { if (midOk(plan) && !(patch.midAt ?? plan.midAt)) patch.midAt = c.time; status = 'done'; events.push('done'); break; }
       continue;
     }
     if (status === 'active' && plan.early) {
       if (plan.confirmedAt && c.time <= plan.confirmedAt) continue;
       if (hitStop) { status = 'stopped'; events.push('stopped'); break; }
-      if (d === 1 ? c.high >= plan.early : c.low <= plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; if (hitTp2) { status = 'done'; events.push('done'); break; } }
+      if (d === 1 ? c.high >= plan.early : c.low <= plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; if (midOk(plan) && hitTp1) { patch.midAt = c.time; events.push('mid'); } if (hitTp2) { status = 'done'; events.push('done'); break; } }
       continue;
     }
     if (status === 'active' || status === 'tp1') {

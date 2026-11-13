@@ -356,3 +356,24 @@ test('mergeAgentCands: sinyaller (long+short) önce, coin başına tek, ölçül
   assert.deepEqual(out.map((p) => `${p.coin}:${p.source}`), ['SOL:signal', 'ENA:signal', 'INJ:regime_donchian']);
   assert.equal(mergeAgentCands(sig, meas, 2).length, 2);
 });
+
+import { trackPlan as track3, earlyTpOf as etp3 } from '../bot/plan.js';
+import { finalR as fr3 } from '../bot/review/metrics.js';
+import { finalR as frUi, planOpenR as porUi } from '../src/ui/signals-lib.js';
+test('3 kademe: erken %50 → TP1 %25 (ara) → stop erken hedefe; R hesabı iki kopyada aynı', () => {
+  assert.equal(etp3('{"pct":1.2,"portion":0.5,"mid":0.25,"midStop":"early"}').mid, 0.25);
+  const k = (time, open, high, low, close) => ({ time, open, high, low, close, volume: 1 });
+  // long: giriş 100, stop 98 (R 2), erken 101 (0,5R), TP1 103 (1,5R), TP2 106 (3R)
+  const plan = { coin: 'X', tf: '4H', direction: 'long', d: 1, entry: 100, stop: 98, tp1: 103, tp2: 106, rr1: 1.5, rr: 3, early: 101, earlyPortion: 0.5, midPortion: 0.25, midStop: 'early', sentAt: 0, status: 'waiting', zone: [100, 100.5] };
+  const cs = [k(1, 100.6, 100.8, 99.9, 100.2), k(2, 100.2, 101.3, 100.1, 101.2), k(3, 101.2, 103.4, 101.1, 103), k(4, 103, 103.1, 100.9, 101)];
+  const r = track3(plan, cs, 10, { expireHours: 24 });
+  assert.deepEqual(r.events, ['active', 'early', 'mid', 'be']);
+  const s = { ...plan, ...r.patch, status: r.status };
+  const want = 0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 0.5;
+  assert.ok(Math.abs(fr3(s) - want) < 1e-9); assert.ok(Math.abs(frUi(s) - want) < 1e-9);
+  // bayrak yokken (mid yok) eski davranış: girişe dönüşte kalan 0
+  const old = track3({ ...plan, earlyPortion: 0.8, midPortion: undefined, midStop: undefined }, cs, 10, { expireHours: 24 });
+  assert.deepEqual(old.events, ['active', 'early']); // 101'e (giriş üstü) dönüş başa baş değil
+  const o = porUi({ ...s, status: 'early' }, 2);
+  assert.ok(Math.abs(o.R - (0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 2)) < 1e-9); assert.equal(o.stopAtEarly, true);
+});

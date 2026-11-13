@@ -82,7 +82,7 @@ export function formatSetup(plan, dec, size) {
   return lines.filter((l) => l !== '').join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
-const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal', time_stop: '⏱️ Zaman stopu: TP1 süresinde görülmedi — kapanıştan kapat', early: '⚡ Erken hedef görüldü — %80 kapat, stopu girişe çek', be: '⚪ Kalan kısım başabaşta kapandı (erken kâr alındı)' };
+const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal', time_stop: '⏱️ Zaman stopu: TP1 süresinde görülmedi — kapanıştan kapat', early: '⚡ Erken hedef görüldü — kısmi kapat, stopu girişe çek', mid: '🎯 TP1 görüldü (3 kademe) — ara kısmı kapat', be: '⚪ Kalan kısım stopta kapandı (erken kâr alındı)' };
 
 /** Takip güncellemesi. */
 export function formatUpdate(plan, event, price) {

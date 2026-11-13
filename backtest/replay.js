@@ -16,7 +16,7 @@ export function planOfItem(s) {
     atr: s.atr, zone: s.zone, sentAt: s.sentAt, status: market ? 'active' : 'waiting', inZone: market,
     rr1: risk > 0 ? +((s.d * (s.tp1 - entry)) / risk).toFixed(2) : s.rr1, rr: risk > 0 ? +((s.d * (s.tp2 - entry)) / risk).toFixed(2) : s.rr,
   };
-  if (s.early) Object.assign(plan, { early: s.early, earlyPortion: s.earlyPortion ?? 0.8 });
+  if (s.early) Object.assign(plan, { early: s.early, earlyPortion: s.earlyPortion ?? 0.8, ...(s.midPortion ? { midPortion: s.midPortion, midStop: s.midStop } : {}) });
   return plan;
 }
 
@@ -43,8 +43,9 @@ export function replayTrack(plan, candles, now, { knifeGuard = null, expireHours
 export function replayEngine(plan, candles, { knifeGuard = null, feePct = 0, slipPct = 0 } = {}) {
   const from = candles.findIndex((c) => c.time > plan.sentAt);
   if (from < 0) return { outcome: 'nodata', R: null };
-  const p = { ...plan, ...(plan.early ? { tp1: plan.early } : {}) };
-  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5 };
+  const mid = plan.early && plan.midPortion > 0 && plan.d * (plan.tp1 - plan.early) > 0 && plan.d * (plan.tp2 - plan.tp1) > 0;
+  const p = { ...plan, ...(plan.early ? { tp1: plan.early, missTp: plan.tp1 } : {}), ...(mid ? { tpMid: plan.tp1 } : {}) };
+  const o = { ...BT_DEFAULTS, feePct, slipPct, knifeGuard, tpScheme: 'half_be', tp1Portion: plan.early ? plan.earlyPortion : 0.5, ...(mid ? { midPortion: plan.midPortion, midStopToTp1: plan.midStop === 'early' } : {}) };
   const r = simulateTrade(p, candles, from, plan.tf, o);
   // Açık kalan (veri sonu) işlemler sonuçsuz sayılır
   const open = (r.outcome === 'timeout' || r.outcome === 'tp1_timeout') && from + (r.bars ?? 0) >= candles.length - 1;
