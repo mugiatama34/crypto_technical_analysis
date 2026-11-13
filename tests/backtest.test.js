@@ -209,3 +209,15 @@ test('weekdayOf / entryDayOf: UTC giriş günü, dolmayan null', () => {
   const t = { time: Date.UTC(2026, 10, 8, 20), tf: '4H', waitBars: 2, outcome: 'stop' }; // Pazar 20:00 + 2×4H = Pzt 04:00
   assert.equal(entryDayOf(t), '1 Pzt'); assert.equal(entryDayOf({ ...t, outcome: 'missed' }), null);
 });
+
+test('be_trail: TP1 sonrası başa baş, aktivasyondan sonra ATR izi; TP2 yok', () => {
+  const p = { ...plan, atr: 1 }; // risk 2, TP1 103 (1,5R)
+  const cs = [c(1, 101, 101, 99.5, 100.5), c(2, 100.5, 103.2, 100.4, 103), c(3, 103, 108, 103, 107.5), c(4, 107.5, 110, 107, 109.5), c(5, 109.5, 109.6, 107.9, 108)];
+  const o1 = { ...o, tpScheme: 'be_trail', trailAtr: 1.5 };
+  const r = simulateTrade(p, cs, 0, '1H', o1); // TP2 106 geçilir ama çıkış yok; iz 109,5 − 1,5 = 108 → 5. mumda 108'den çıkış
+  assert.equal(r.outcome, 'tp1_be'); assert.equal(r.R, +(0.5 * 1.5 + 0.5 * 4).toFixed(3));
+  const late = simulateTrade(p, cs, 0, '1H', { ...o1, trailActR: 10 }); // aktivasyon hiç gelmez → stop girişte, sonda kapanıştan çık
+  assert.equal(late.outcome, 'tp1_timeout');
+  const keep = simulateTrade(p, cs, 0, '1H', { ...o1, trailKeepTp2: true }); // TP2 tutulursa 106'da çıkış
+  assert.equal(keep.outcome, 'tp2'); assert.equal(keep.R, +(0.5 * 1.5 + 0.5 * 3).toFixed(3));
+});

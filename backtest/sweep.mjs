@@ -245,7 +245,7 @@ async function main() {
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
   const evaluate = (v) => {
-    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
+    const o = { ...BT_DEFAULTS, tpScheme: v.tpScheme || 'half_be', trailAtr: v.trailAtr ?? 1, trailActR: v.trailActR ?? 0, trailKeepTp2: !!v.trailKeepTp2, knifeGuard: v.knifeGuard || null, timeStop: v.timeStop || null, tp1Portion: v.tp1Portion ?? BT_DEFAULTS.tp1Portion, feePct: meta.fee ?? 0.05, slipPct: meta.slip ?? 0.05, fillBarTp: v.fillBarTp || 'count', expireHours: v.expireHours ?? BT_DEFAULTS.expireHours };
     const LOWER = { '4H': '1H', '1H': '15m' };
     const trades = [];
     for (const [k, list] of groups) {
@@ -314,6 +314,13 @@ async function main() {
       ['erken %80: 1R', { tp1R: 1, tp1Portion: 0.8, keepTp2: true }], ['erken %80: 1,5R', { tp1R: 1.5, tp1Portion: 0.8, keepTp2: true }],
       ['erken %50: 1R', { tp1R: 1, tp1Portion: 0.5, keepTp2: true }], ['standart: TP1 yarı (plan), başabaş', {}]]
       .map(([name, x]) => [guard, wk, lim, only4h, hw, { name: `${name} · sıra 1H`, fillBarTp: 'lower', ...x }]),
+    // Erken hedef sonrası kalan %20 için iz süren stop (13.11, kullanıcı sorusu): başa baş → en iyi kapanışın k ATR gerisi,
+    // aktivasyon (MFE ≥ a R) sonrası; TP2 kaldırılır (kalan koşar) ya da tutulur. Gerçek sıra (1H).
+    ...[['iz 1 ATR', { trailAtr: 1 }], ['iz 2 ATR', { trailAtr: 2 }], ['iz 3 ATR', { trailAtr: 3 }],
+      ['iz 2 ATR, 2R sonrası', { trailAtr: 2, trailActR: 2 }], ['iz 2 ATR, 3R sonrası', { trailAtr: 2, trailActR: 3 }],
+      ['iz 3 ATR, 3R sonrası', { trailAtr: 3, trailActR: 3 }], ['iz 2 ATR + TP2', { trailAtr: 2, trailKeepTp2: true }],
+      ['iz 2 ATR, 2R sonrası + TP2', { trailAtr: 2, trailActR: 2, trailKeepTp2: true }]]
+      .map(([name, x]) => [...live4h, { name: `kalan: ${name} · sıra 1H`, fillBarTp: 'lower', tpScheme: 'be_trail', ...x }]),
     // Bekleme süresi çalışması (11.11): canlı 4H düzeni, gerçek sıra (1H); limit 24 / 48 / 72 saat açık kalırsa dolum gecikmesine göre R
     ...[24, 48, 72].map((hrs) => [...live4h, { name: `bekleme ${hrs} saat · sıra 1H`, fillBarTp: 'lower', expireHours: hrs }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
