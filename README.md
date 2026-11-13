@@ -199,6 +199,12 @@ Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2
 TP1 1 × dalga 1, TP2 1,618 ×, half_be); `_legacy` eski C kuralı, `_long`, `_long_smt` / `_long_nosmt` (SMT ✓ / değil),
 `_tb3` / `_tb4` / `_tb_low` (ders kitabı ≥ 3/4, 4/4, ≤ 2/4). Tarama mum başına bir kez (aileler paylaşır).
 
+**Motor = canlı takip eşliği** (`tests/parity.test.js`, 13.11): 1200 rastgele fiyat yolunda (sabit tohum) "artımlı tur = tek geçiş" ve "motor = canlı takip"
+eşitlikleri sınanır; bilinen iki fark (erken hedefsiz düzen: NB, F1) `todo` olarak kayıtlı. Bıçak kararının girdisi motor seçeneği `knifeBar`:
+`'touch'` (varsayılan, dokunma anına kadar; kötümser sınır) · `'lowerBar'` (girişe dokunan alt TF mumunun sonuna kadar; 15m ile canlıyla aynı, yeniden
+oynatma bunu kullanır; 1H ile hafif iyimser) · `'full'` (eski: tam mum, ileriye bakar). Taramada karşılaştırma varyantları: "eski bıçak kararı (tam mum,
+iyimser)" ve "bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H".
+
 **Yeniden puanlama katmanı** (`docs/signals/rescored.json`): canlı takip hatasından etkilenen sinyallerin düzeltilmiş durum/R'si; ham kayıt (`history.json`) değişmez. Sayfa, denetçi ve haftalık rapor `applyRescore` (`src/ui/signals-lib.js`) ile bu değerleri kullanır; sayfada ↻ işareti. Ölçüt: düzeltilmiş takip kodu ve motor gerçek 4H + 15m mumlarla aynı sonucu veriyor ve kayıttan farklı (`backtest/replay`).
 
 **Orkestrasyon skill'i** (`.claude/skills/orkestrasyon/SKILL.md`): Claude oturumlarında iş dağıtımı — ana oturum planlar ve
