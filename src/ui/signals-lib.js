@@ -7,11 +7,21 @@ export const earlyR = (s) => (dirOf(s) * (s.early - s.entry)) / Math.abs(s.entry
 /** Kapanmış işlemin R'si (TP1 sonrası başabaş +½R1; erken kâr düzeninde payı × erken R). Açık/işlemsiz → null.
  * Tek kaynak: bot/review/metrics.js bunu yeniden dışa aktarır. */
 export function finalR(s) {
+  if (s.rescored && typeof s.rescored.R === 'number') return s.rescored.R;
   if (s.early) { const p = s.earlyPortion ?? 0.8, eR = earlyR(s), dd = dirOf(s), mOk = s.midPortion > 0 && dd * (s.tp1 - s.early) > 0 && dd * (s.tp2 - s.tp1) > 0, m = mOk && s.midAt ? s.midPortion : 0, rest = 1 - p - m; if (s.status === 'stopped') return -1; if (s.status === 'be') return p * eR + m * (s.rr1 || 1.5) + (m && s.midStop === 'early' ? rest * eR : 0); if (s.status === 'done') return p * eR + m * (s.rr1 || 1.5) + rest * (s.rr || 2.5); return null; }
   if (s.status === 'timeout') return s.exitR ?? null;
   if (s.status === 'stopped') return s.tp1At ? 0.5 * (s.rr1 || 1.5) : -1;
   if (s.status === 'done') return 0.5 * (s.rr1 || 1.5) + 0.5 * (s.rr || 2.5);
   return null;
+}
+/** Yeniden puanlama katmanı: overlay.items[id] düzeltmesini (durum/R) ham kaydı değiştirmeden uygular; yeni dizi, değişen kayıtlar yeni nesne. */
+export function applyRescore(items, overlay) {
+  const map = overlay && typeof overlay === 'object' ? overlay.items : null;
+  if (!map || typeof map !== 'object') return items;
+  return items.map((s) => {
+    const o = Object.prototype.hasOwnProperty.call(map, s.id) ? map[s.id] : null;
+    return o ? { ...s, status: o.status, rescored: { R: o.R, from: s.status, reason: o.reason, at: o.at } } : s;
+  });
 }
 export const isOpen = (s) => !CLOSED.has(s.status);
 /** Kapanan (R'si olan) işlemler, en yeni kapanış önce. */

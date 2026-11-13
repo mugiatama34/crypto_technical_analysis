@@ -1,0 +1,62 @@
+{
+ "note": "Yeniden puanlanan canlı sinyaller: kayıt (history.json) değişmez; sayfa, denetçi ve haftalık rapor bu dosyadaki durum/R ile hesaplar. Ölçüt: düzeltilmiş takip kodu VE motor, 4H + 15m gerçek mumlarla aynı sonucu veriyor ve kayıttan farklı.",
+ "source": "backtest/replay (koşu 43420073684, 13.11.2026)",
+ "items": {
+  "DOGE|4H|short|61|1792975524154": {
+   "status": "stopped",
+   "R": -1,
+   "recorded": {
+    "status": "be",
+    "R": 0.702
+   },
+   "engine": {
+    "outcome": "stopped",
+    "R": -1
+   },
+   "reason": "dolum öncesi mum sahte erken hedef saydırmış (13.11 takip hatası); dolumdan sonra erken hedef görülmeden stop",
+   "at": "2026-11-13"
+  },
+  "ETC|4H|short|62|1793097926829": {
+   "status": "stopped",
+   "R": -1,
+   "recorded": {
+    "status": "be",
+    "R": 0.504
+   },
+   "engine": {
+    "outcome": "stopped",
+    "R": -1
+   },
+   "reason": "dolum öncesi mum sahte erken hedef saydırmış (13.11 takip hatası); dolumdan sonra erken hedef görülmeden stop",
+   "at": "2026-11-13"
+  },
+  "TAO|4H|short|47|1793048447865": {
+   "status": "stopped",
+   "R": -1,
+   "recorded": {
+    "status": "be",
+    "R": 0.523
+   },
+   "engine": {
+    "outcome": "stopped",
+    "R": -1
+   },
+   "reason": "dolum öncesi mum sahte erken hedef saydırmış (13.11 takip hatası); dolumdan sonra erken hedef görülmeden stop",
+   "at": "2026-11-13"
+  },
+  "BNB|4H|short|86|1794348927190": {
+   "status": "done",
+   "R": 0.971,
+   "recorded": {
+    "status": "be",
+    "R": 0.471
+   },
+   "engine": {
+    "outcome": "tp2",
+    "R": 0.971
+   },
+   "reason": "kayıt başa baş demiş; gerçek mumlarda girişe dönmeden TP2",
+   "at": "2026-11-13"
+  }
+ }
+}

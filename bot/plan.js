@@ -351,7 +351,9 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
     if (status === 'early') {
       if (c.time <= (patch.earlyAt ?? P.earlyAt ?? bars?.earlyAt)) continue;
       const midAt = patch.midAt ?? plan.midAt;
-      const lvl = midAt && plan.midStop === 'early' ? P.early : P.entry;
+      // Stop erken hedefe yalnız mid mumundan SONRA (13.11 MR): midAt önceki turda yazıldıysa earlyAt–midAt arası mumlarda
+      // stop hâlâ girişteydi; mid mumunun kendisinde de giriş (sıra bilinmez → stop önce, motor midStopToTp1 ile aynı).
+      const lvl = midAt != null && c.time > midAt && plan.midStop === 'early' ? P.early : P.entry;
       const hitBe = d === 1 ? c.low <= lvl : c.high >= lvl;
       if (hitBe) { status = 'be'; events.push('be'); break; } // aynı mumda hedef + stop: stop (kötümser)
       if (!midAt && midOk(P) && hitTp1) { patch.midAt = c.time; events.push('mid'); }

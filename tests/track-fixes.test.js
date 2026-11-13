@@ -111,3 +111,29 @@ test('finalR işaretli ve tek kaynak: erken hedef girişin yanlış tarafındays
   // d alanı yoksa yön direction'dan
   const { d, ...noD } = tia; assert.equal(frUi(noD), frUi(tia));
 });
+
+// MR (13.11): 3 kademe + midStop 'early' — stop erken hedefe yalnız mid (TP1) mumundan SONRA çekilir. Eskiden midAt önceki
+// turda yazıldıysa sonraki turda erken hedef seviyesi earlyAt–midAt arası mumlara da uygulanıyordu → sahte 'be'.
+for (const [name, base, cs0, d] of [['long', L, LC, 1], ['short', S, SC, -1]]) {
+  test(`MR ${name}: erken hedef → erken seviyenin altına sarkma (girişe değmeden) → TP1 → sonraki turda 'early'; mid sonrası erken seviyeye dönüş 'be'`, () => {
+    const k = (i, o, h, l, cl) => (d === 1 ? c(i, o, h, l, cl) : c(i, 200 - o, 200 - l, 200 - h, 200 - cl)); // short: ayna (tepe ↔ dip)
+    const cs = [...cs0, k(6, 99.5, 101.4, 99.4, 101), // erken hedef (dolum mumundan sonra)
+      k(7, 101, 101.3, 100.5, 100.8), //            erken seviyenin altı, girişin üstü (stop hâlâ girişte)
+      k(8, 100.8, 104.7, 100.7, 104.2), //          TP1 → mid; aynı mumda erken seviyenin altı da var (mid mumunda stop girişte)
+      k(9, 104.2, 104.4, 103, 103.5)];
+    const P = { ...base, earlyPortion: 0.5, midPortion: 0.25, midStop: 'early', status: 'early', filledAt: t0 + 4 * H, earlyAt: t0 + 6 * H };
+    const r1 = trackPlan(P, cs.slice(0, 9), t0 + 9 * H + 60e3);
+    assert.deepEqual(r1.events, ['mid']); assert.equal(r1.status, 'early'); assert.equal(r1.patch.midAt, t0 + 8 * H);
+    const p2 = next(P, r1);
+    const r2 = trackPlan(p2, cs, t0 + 10 * H + 60e3);
+    assert.equal(r2.status, 'early'); assert.deepEqual(r2.events, []); // eski: 7. mum erken seviyenin altı → 'be'
+    // tek geçiş (dolumdan) aynı: early + mid, açık
+    const single = trackPlan({ ...P, status: 'active', earlyAt: undefined }, cs, t0 + 10 * H + 60e3);
+    assert.equal(single.status, 'early'); assert.deepEqual(single.events, ['early', 'mid']);
+    // mid'den SONRA erken seviyeye dönüş (girişe değmeden) → be
+    const r3 = trackPlan(p2, [...cs, k(10, 103.5, 103.6, 101, 101.1)], t0 + 11 * H + 60e3);
+    assert.deepEqual(r3.events, ['be']); assert.equal(r3.patch.closedBar, t0 + 10 * H);
+    // midStop 'entry' (stop girişte kalır): aynı dönüş be değil
+    assert.deepEqual(trackPlan({ ...p2, midStop: 'entry' }, [...cs, k(10, 103.5, 103.6, 101, 101.1)], t0 + 11 * H + 60e3).events, []);
+  });
+}

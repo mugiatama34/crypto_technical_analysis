@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { metricsOf } from './metrics.js';
 import { audit, enqueue, formatAudit } from './auditor.js';
+import { applyRescore } from '../../src/ui/signals-lib.js';
 
 const readJson = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 
@@ -13,7 +14,9 @@ const readJson = (f, d = null) => { try { return JSON.parse(fs.readFileSync(f, '
 export async function runAudit(ctx) {
   const { now, cfg, llm, notify, log } = ctx;
   const dir = ctx.publishDir;
-  const history = readJson(ctx.historyFile, { items: [] });
+  const rawHistory = readJson(ctx.historyFile, { items: [] });
+  const overlay = readJson(path.join(path.dirname(ctx.historyFile), 'rescored.json'), null);
+  const history = { ...rawHistory, items: applyRescore(rawHistory.items, overlay) };
   const agents = { temkinli: readJson(path.join(dir, 'temkinli.json')), agresif: readJson(path.join(dir, 'agresif.json')) };
   const momentum = readJson(path.join(dir, 'momentum.json'));
   const sweep = readJson(ctx.sweepFile);

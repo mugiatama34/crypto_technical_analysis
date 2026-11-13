@@ -26,12 +26,13 @@
 // R: motor R (3 ondalık) ↔ canlı finalR. Tolerans 0,0011; teyitli girişte 0,006 (canlı rr1/rr 2 ondalığa yuvarlar).
 //
 // Bilinen GERÇEK farklar ayrı todo testlerinde (yeşil kısım onları adıyla dışlar; dışlama sayısı diagnostic'te):
-//   MR  midStop 'early' geriye dönük: plan.midAt varken sonraki turda erken hedef seviyesi mid ÖNCESİ mumlara da uygulanır
 //   NB  erkensiz düzen: TP1 sonrası canlı stop özgün stopta kalır (finalR kalanı 0 sayar), motor stopu girişe çeker
 //   CE  teyitli girişte erken hedef: canlı yeni girişe göre taşır (A2), motor planlanan erken hedefi kullanır
 //   K1  bıçak ölçüsü: motor 'touch' dibi = giriş; 15m turdaki bot dokunan 15m mumun tamamını görür
 //   K2  bıçak mumunda dokunmadan SONRA stop: 15m turdaki bot görmez (c.time <= knifeAt atlanır), teyitle girer
 //   F1  erkensiz, dolum mumunda TP1 sonrası stop: tek geçiş görmez, artımlı tur dolum mumunu 'tp1' durumuyla yeniden işler
+// Düzeltilen: MR (13.11) midStop 'early' geriye dönüktü (earlyAt–midAt arası mumlara erken hedef stopu); MR etiketi artık
+// yalnız gerileme sınıfı (ayrı yeşil test), dışlama değil.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { trackPlan, CLOSED, earlyPriceOf, isKnife, KNIFE_DEFAULTS } from '../bot/plan.js';
@@ -231,7 +232,7 @@ test('üretici: deterministik; long + short, 4 varyant; dolum öncesi mumu erken
   t.diagnostic(`${rows.length} yolun ${pre.length}'inde dolum öncesi mum erken hedefin ötesinde; ${fillBarToo.length}'inde dolum mumu da erken hedefe değiyor (alt TF sırası)`);
   assert.ok(pre.length >= 40, `dolum öncesi erken-hedef-ötesi yol az: ${pre.length}`);
   // bu yollar A değişmezinde (artımlı = tek geçiş) gerçekten karşılaştırılıyor ve eşit
-  const cmp = pre.filter(({ off }) => !off.tags.MR);
+  const cmp = pre;
   assert.ok(cmp.length >= 40);
   for (const { P, off } of cmp) assert.ok(sameLive(off.a, off.b) && sameLive(off.a, off.c), `tohum ${P.seed}`);
 });
@@ -239,34 +240,49 @@ test('üretici: deterministik; long + short, 4 varyant; dolum öncesi mumu erken
 // ================= A: artımlı = tek geçiş (trackPlan kendi içinde) =================
 for (const knife of ['off', 'on']) {
   test(`A (b): 4H turları = tek geçiş, alt TF ile — bıçak ${knife}`, (t) => {
-    compare(t, { mode: knife, reasons: ['MR'], pair: (x) => [liveRes(x.b), liveRes(x.a), ['4H tur', 'tek']], tol: () => 1e-9 });
+    compare(t, { mode: knife, reasons: [], pair: (x) => [liveRes(x.b), liveRes(x.a), ['4H tur', 'tek']], tol: () => 1e-9 });
   });
   test(`A (b): 4H turları = tek geçiş, alt TF yok — bıçak ${knife}`, (t) => {
-    compare(t, { mode: knife, reasons: ['MR'], pair: (x) => [liveRes(x.bn), liveRes(x.an), ['4H tur', 'tek']], tol: () => 1e-9 });
+    compare(t, { mode: knife, reasons: [], pair: (x) => [liveRes(x.bn), liveRes(x.an), ['4H tur', 'tek']], tol: () => 1e-9 });
   });
 }
 test('A (c): 15m turları (kapanmamış 4H mum + 15m) = tek geçiş — bıçak kapalı', (t) => {
-  compare(t, { mode: 'off', reasons: ['MR'], pair: (x) => [liveRes(x.c), liveRes(x.a), ['15m tur', 'tek']], tol: () => 1e-9 });
+  compare(t, { mode: 'off', reasons: [], pair: (x) => [liveRes(x.c), liveRes(x.a), ['15m tur', 'tek']], tol: () => 1e-9 });
   // Bıçak açıkken (c) tek geçişle karşılaştırılmaz: kapanmış mumda karar tam mumla, 15m turda dokunma anındaki yarım mumla
   // verilir (motorda knifeBar 'full' ↔ 'touch'). Kaç yolda farklı olduğu bilgi için:
-  const d = all().filter(({ on }) => !on.tags.MR && !sameLive(on.a, on.c)).length;
+  const d = all().filter(({ on }) => !sameLive(on.a, on.c)).length;
   t.diagnostic(`bıçak açık: ${d}/${N} yolda 15m tur ≠ tek geçiş (tasarım: karar anındaki veri farklı)`);
 });
 
 // ================= B: motor = canlı takip =================
 test('B: motor (lower) = tek geçiş ve 4H turları — bıçak kapalı', (t) => {
-  compare(t, { mode: 'off', reasons: ['MR', 'NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.a), ['motor', 'tek']] });
-  compare(t, { mode: 'off', reasons: ['MR', 'NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.b), ['motor', '4H tur']] });
+  compare(t, { mode: 'off', reasons: ['NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.a), ['motor', 'tek']] });
+  compare(t, { mode: 'off', reasons: ['NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.b), ['motor', '4H tur']] });
 });
 test('B: motor (lower) = 15m turları — bıçak kapalı', (t) => {
-  compare(t, { mode: 'off', reasons: ['MR', 'NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.c), ['motor', '15m tur']] });
+  compare(t, { mode: 'off', reasons: ['NB'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.c), ['motor', '15m tur']] });
 });
 const confTol = (x) => (x.e.confirmed || x.ef.confirmed || x.b.confirmedAt || x.c.confirmedAt ? 0.006 : 0.0011);
 test('B: motor (knifeBar full) = 4H turları — bıçak açık (kapanmış mumla karar)', (t) => {
-  compare(t, { mode: 'on', reasons: ['MR', 'NB', 'CE'], pair: (x, P) => [engRes(x.ef, P.plan), liveRes(x.b), ['motor full', '4H tur']], tol: confTol });
+  compare(t, { mode: 'on', reasons: ['NB', 'CE'], pair: (x, P) => [engRes(x.ef, P.plan), liveRes(x.b), ['motor full', '4H tur']], tol: confTol });
 });
 test('B: motor (knifeBar touch) = 15m turları — bıçak açık (dokunma anında karar)', (t) => {
-  compare(t, { mode: 'on', reasons: ['MR', 'NB', 'CE', 'K1', 'K2'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.c), ['motor touch', '15m tur']], tol: confTol });
+  compare(t, { mode: 'on', reasons: ['NB', 'CE', 'K1', 'K2'], pair: (x, P) => [engRes(x.e, P.plan), liveRes(x.c), ['motor touch', '15m tur']], tol: confTol });
+});
+
+// MR (13.11 düzeltildi): stop erken hedefe yalnız mid mumundan sonra; eskiden artımlı turda earlyAt–midAt arası mumlara da
+// uygulanıyordu (tohum 210: 4H tur erken_bb +0,675R ≠ tek tam +1,200R). Sınıf yolları artık her karşılaştırmada eşit olmalı.
+test('MR: midStop early — erken hedef stopu yalnız mid mumundan sonra (artımlı = tek = motor)', (t) => {
+  const rows = all().filter((r) => r.off.tags.MR || r.on.tags.MR), bad = [];
+  for (const { P, off, on } of rows) {
+    const pairs = [[off.b, off.a, '4H tur/tek'], [off.c, off.a, '15m tur/tek'], [off.bn, off.an, '4H tur/tek (alt TF yok)'], [on.b, on.a, '4H tur/tek bıçak']].map(([x, y, n]) => [liveRes(x), liveRes(y), n]);
+    pairs.push([engRes(off.e, P.plan), liveRes(off.a), 'motor/tek']);
+    if (!on.tags.CE) pairs.push([engRes(on.ef, P.plan), liveRes(on.b), 'motor full/4H tur bıçak']);
+    for (const [L, R, n] of pairs) if (!same(L, R, n.startsWith('motor') ? 0.0011 : 1e-9)) bad.push(`tohum ${P.seed} ${n}: ${fmt(L)} ≠ ${fmt(R)}`);
+  }
+  t.diagnostic(`MR: ${rows.length} yol`);
+  assert.ok(rows.length >= 5, `MR sınıfı az: ${rows.length}`);
+  assert.equal(bad.length, 0, bad.slice(0, 3).join('\n'));
 });
 
 // ================= bilinen gerçek farklar (todo) =================
@@ -284,9 +300,6 @@ function todoClass(t, { mode, tag, pair, overlapOk = [] }) {
   assert.equal(diffs.length, 0, `${tag}: ${diffs.length} fark`);
 }
 
-test('MR: midStop early — artımlı tur erken hedef stopunu mid öncesi mumlara da uygular', { todo: 'plan.js early dalı lvl: midAt mumdan bağımsız (c.time > midAt yok)' }, (t) => {
-  todoClass(t, { mode: 'off', tag: 'MR', pair: (x) => [liveRes(x.b), liveRes(x.a), ['4H tur', 'tek']] });
-});
 test('NB: erkensiz — TP1 sonrası canlı stop özgün stopta, motor girişte', { todo: 'trackPlan tp1 durumunda plan.stop; finalR kalanı 0 sayar' }, (t) => {
   todoClass(t, { mode: 'off', tag: 'NB', pair: (x, P) => [liveRes(x.a), engRes(x.e, P.plan), ['canlı', 'motor']] });
 });
