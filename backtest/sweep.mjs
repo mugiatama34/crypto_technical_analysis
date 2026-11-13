@@ -321,6 +321,8 @@ async function main() {
       ['iz 3 ATR, 3R sonrası', { trailAtr: 3, trailActR: 3 }], ['iz 2 ATR + TP2', { trailAtr: 2, trailKeepTp2: true }],
       ['iz 2 ATR, 2R sonrası + TP2', { trailAtr: 2, trailActR: 2, trailKeepTp2: true }]]
       .map(([name, x]) => [...live4h, { name: `kalan: ${name} · sıra 1H`, fillBarTp: 'lower', tpScheme: 'be_trail', ...x }]),
+    // Erken hedef ızgarası (13.11, kullanıcı sorusu): fiyat % × kapatılan pay, kalan başa baş → TP2; gerçek sıra (1H)
+    ...[1.0, 1.2, 1.5, 1.8, 2.0].flatMap((pct) => [0.5, 0.7, 0.8].map((por) => [...live4h, { name: `ızgara erken %${pct} · %${por * 100} kapat · sıra 1H`, fillBarTp: 'lower', tp1Pct: pct, tp1Portion: por, keepTp2: true }])),
     // Bekleme süresi çalışması (11.11): canlı 4H düzeni, gerçek sıra (1H); limit 24 / 48 / 72 saat açık kalırsa dolum gecikmesine göre R
     ...[24, 48, 72].map((hrs) => [...live4h, { name: `bekleme ${hrs} saat · sıra 1H`, fillBarTp: 'lower', expireHours: hrs }]),
     [guard, wk, lim, h14, { name: 'aynı yönde ≤ 5 açık', maxOpenSameDir: 5 }], [guard, wk, lim, h14, { name: 'aynı yönde ≤ 10 açık', maxOpenSameDir: 10 }],
