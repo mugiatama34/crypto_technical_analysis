@@ -6,7 +6,8 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { getTopCoins, TIMEFRAMES, instIdOf } from '../src/data/okx.js';
 import { getHistoryCached } from './data.js';
-import { simulateSeries, BT_DEFAULTS } from './engine.js';
+import { BT_DEFAULTS } from './engine.js';
+import { simulateWithExtras } from './plans.js';
 import { buildReport } from './report.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
@@ -14,6 +15,8 @@ const CFG = {
   months: +arg('months', 6), top: +arg('top', 50), tfs: String(arg('tfs', '15m,1H,4H')).split(','), coins: arg('coins', '') ? String(arg('coins')).split(',') : null,
   fee: +arg('fee', 0.05), slip: +arg('slip', 0.05), minScore: +arg('minScore', 50), minRR: +arg('minRR', 2), maxRiskPct: +arg('maxRiskPct', 5),
   out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true,
+  // --mtfTfs: bu TF'lerin planlarına karar anındaki çoklu TF uyumu (mtfBt) yazılır (diğer --tfs TF'leriyle; canlıya eşit tarama)
+  mtfTfs: String(arg('mtfTfs', '4H')).split(',').filter(Boolean),
 };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -30,7 +33,10 @@ async function main() {
   const o = { ...BT_DEFAULTS, feePct: CFG.fee, slipPct: CFG.slip, plan: { minScore: CFG.minScore, minRR: CFG.minRR, maxRiskPct: CFG.maxRiskPct } };
   const trades = [];
   const coverage = {};
+  let cdSkipped = 0, mtfDone = 0;
   for (const c of coins) {
+    // Önce coin'in tüm TF mumları (çoklu TF uyumu için diğer TF'ler karar anında gerekir), sonra TF başına simülasyon
+    const byTf = {};
     for (const tf of CFG.tfs) {
       let candles;
       try {
@@ -41,17 +47,24 @@ async function main() {
       } catch (err) { log(`  ${c.coin} ${tf}: veri hatası ${err.message}`); continue; }
       if (candles.length < 350) { log(`  ${c.coin} ${tf}: ${candles.length} mum, atlandı`); continue; }
       coverage[`${c.coin}|${tf}`] = { bars: candles.length, from: candles[0].time, to: candles[candles.length - 1].time };
+      byTf[tf] = candles;
+    }
+    for (const tf of CFG.tfs) {
+      const candles = byTf[tf]; if (!candles) continue;
       const ts = Date.now();
-      const tr = simulateSeries({ coin: c.coin, instId: c.instId, tf, candles }, o);
+      const others = CFG.mtfTfs.includes(tf) ? Object.fromEntries(Object.entries(byTf).filter(([k]) => k !== tf)) : null;
+      const tr = simulateWithExtras({ coin: c.coin, instId: c.instId, tf, candles }, o, others);
+      for (const t of tr) { if (t.mtfBt) mtfDone++; for (const x of t.cd || []) { cdSkipped++; if (x.mtfBt) mtfDone++; } }
       trades.push(...tr);
       log(`  ${c.coin.padEnd(6)} ${tf.padEnd(3)} ${String(candles.length).padStart(5)} mum → ${String(tr.length).padStart(3)} plan (${((Date.now() - ts) / 1000).toFixed(0)} sn)`);
     }
   }
-  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, elapsedSec: Math.round((Date.now() - t0) / 1000) };
-  const report = buildReport(trades.map(({ plan, ...t }) => t), meta);
+  // planFields (13.11): plans.json.gz girdilerinde ek alanlar — mtfBt (karar anı çoklu TF uyumu), cd (bekleme süresi yüzünden atlanan planlar)
+  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, planFields: ['mtfBt', 'cd'], cooldownSkipped: cdSkipped, mtfComputed: mtfDone, elapsedSec: Math.round((Date.now() - t0) / 1000) };
+  const report = buildReport(trades.map(({ plan, cd, mtfBt, ...t }) => t), meta);
   fs.mkdirSync(CFG.out, { recursive: true });
   fs.writeFileSync(path.join(CFG.out, 'results.json'), JSON.stringify(report));
-  fs.writeFileSync(path.join(CFG.out, 'plans.json.gz'), zlib.gzipSync(JSON.stringify(trades.map((t) => ({ coin: t.coin, tf: t.tf, time: t.time, outcome: t.outcome, R: t.R, plan: t.plan })))));
+  fs.writeFileSync(path.join(CFG.out, 'plans.json.gz'), zlib.gzipSync(JSON.stringify(trades.map((t) => ({ coin: t.coin, tf: t.tf, time: t.time, outcome: t.outcome, R: t.R, plan: t.plan, ...(t.mtfBt ? { mtfBt: t.mtfBt } : {}), ...(t.cd ? { cd: t.cd } : {}) })))));
   const s = report.overall;
   log(`Bitti: ${trades.length} plan, ${s.n} dolum, kazanma %${(s.winRate * 100).toFixed(0)}, ort ${s.avgR}R, toplam ${s.totalR}R, PF ${s.profitFactor}, maxDD ${s.maxDD}R; ${meta.elapsedSec} sn`);
 }
