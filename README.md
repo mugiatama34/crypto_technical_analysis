@@ -207,6 +207,12 @@ iyimser)" ve "bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H".
 
 **Yeniden puanlama katmanı** (`docs/signals/rescored.json`): canlı takip hatasından etkilenen sinyallerin düzeltilmiş durum/R'si; ham kayıt (`history.json`) değişmez. Sayfa, denetçi ve haftalık rapor `applyRescore` (`src/ui/signals-lib.js`) ile bu değerleri kullanır; sayfada ↻ işareti. Ölçüt: düzeltilmiş takip kodu ve motor gerçek 4H + 15m mumlarla aynı sonucu veriyor ve kayıttan farklı (`backtest/replay`).
 
+**Ölçüm raporu okuma kuralı** (13.11): tarama ve lab satırlarında `realistic` (dolum mumu sırası gerçekçi mi), `strict` (sıkı ölçüt: iki dilimde n ≥ 100,
+ort. R > 0, PF > 1,1 ve gerçekçi), `ci90` (ort. R için %90 güven aralığı; aynı gün açılan işlemler birlikte örneklenir) ve `inconclusive` (n < 100)
+alanları; sayfalarda "iyimser dolum mumu" rozetli satırlar ölçüt dışıdır. `hedgedOpen` = BTC hedge'i dolum mumunun açılışından (eski `hedged`
+kapanışından; gerçek değer ikisinin arasında). Lab varsayılanı 13 aile (`--strategies all` = 66), `--fillbar skip`, fonlama `--funding` (motor artık
+her ailede uygular). Tarama "canlıya eşit: …" satırları canlı botun long/short kurallarını ve bekleme süresini uygular (`byDir` = long / short kırılımı).
+
 **Bot sağlığı** (`bot/health.js`, 13.11): günlük özetin sonunda `Sağlık 24s: koşu · OKX hata % · Telegram · ajan karar/hata` satırı; ajan art arda 3
 karar hatası, bir turda OKX hata oranı > %20 ya da 24 saatlik koşu sayısı beklenenin yarısının altındaysa `⚠️ Sağlık` mesajı (tür başına 6 saatte
 bir). Telegram 429 / geçici hatada en fazla 2 yeniden deneme. Ajan ve momentum durum dosyası (Actions önbelleği) kaybolursa hesap yayınlanan
