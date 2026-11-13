@@ -256,7 +256,7 @@ async function main() {
         if (!passes(t, v, s, mtfIndex, htf)) continue;
         const i = s.idx.get(t.time);
         const plan = (v.stopPadAtr != null || v.minRiskAtr != null || v.tp1R != null || v.tp2R != null || v.tp1Pct != null || v.midTp) ? rebuild(t.plan, v) : t.plan;
-        const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o);
+        const sim = simulateTrade(plan, s.candles, i + 1, t.tf, o.fillBarTp === 'lower' || o.knifeGuard ? { ...o, lowerCandles: series.get(`${t.coin}|${LOWER[t.tf]}`)?.candles || null } : o); // alt TF: dolum mumu sırası ('lower') ve bıçak kararının dokunma anı (knifeBar 'touch')
         const h = htf.get(`${t.coin}|${UP_TF[t.tf]}`);
         const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
         if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
