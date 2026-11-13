@@ -45,7 +45,8 @@ import { fibAlerts, fibDigest } from './fibalert.js';
 import { setBybitOverrides } from '../src/data/bybit-symbols.js';
 setBybitOverrides(process.env.BYBIT_MULT || ''); // Bybit çarpanlı sözleşme düzeltmeleri (JSON)
 import { featuresOf, modelProb } from '../backtest/features.js';
-import { getCandles, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
+import { getCandles, instIdOf, TIMEFRAMES, okxGet } from '../src/data/okx.js';
+import { shadowBase, safeShadow, collectShadowNet, applyShadowNet } from './shadow.js';
 import { dailyTrendAt } from '../src/scan/regime.js';
 import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
 import { atr as atrOf } from '../src/data/indicators.js';
@@ -170,6 +171,17 @@ const trackFieldsOf = (p) => Object.fromEntries(TRACK_FIELDS.filter((k) => p[k] 
 function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { ...trackFieldsOf(p), status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion, ...(p.midPortion ? { midPortion: p.midPortion, midStop: p.midStop, midAt: p.midAt ?? null } : {}) } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}), ...(p.lateClose ? { lateClose: p.lateClose } : {}) }); }
 
 let healthState = null; // sağlık sayaçları (state.health; main'de bağlanır) — grafik gönderimi de sayılsın diye modül düzeyinde
+// Gölge etiketlerin ağ kaynağı (bot/shadow.js; yalnız kayıt). Canlıda OKX; fixture'da ağ yok, ancak test için SHADOW_FIXTURE
+// = yanıt dosyası ({"funding":{"BTC":[...]},"oi":[...]}) ya da 'throw' (gölge toplayıcı hata fırlatır) verilebilir.
+function shadowGetter(provider) {
+  if (!provider) return okxGet;
+  const f = env('SHADOW_FIXTURE', '');
+  if (!f) return null;
+  if (f === 'throw') return () => { throw new Error('test: gölge ağ hatası'); };
+  const fx = JSON.parse(fs.readFileSync(f, 'utf8'));
+  return async (p, params) => (p.endsWith('funding-rate') ? fx.funding?.[String(params.instId).split('-')[0]] : fx.oi);
+}
+
 async function notify(text, state = healthState) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
   const r = await sendTelegramEx(text, CFG.tg);
@@ -358,6 +370,8 @@ async function main() {
   // 3) Beyin + gönderim
   let sentNow = 0, evaluated = 0;
   const usedCoins = new Set(), sentPerTf = {};
+  const shadowItems = []; // gölge etiketler (yalnız kayıt; hiçbir kararda kullanılmaz)
+  const shadowFail = !!provider && env('SHADOW_FIXTURE', '') === 'throw';
   for (const plan of cands) {
     if (sentNow >= CFG.maxAlerts || evaluated >= CFG.maxEval) break;
     if (usedCoins.has(plan.coin)) continue; // aynı turda aynı coin için tek plan
@@ -399,12 +413,27 @@ async function main() {
         await sendChart(row.candles, rec, { ...rec.chart, note: `${names.slice(0, 3).join(' · ')} · puan ${plan.score}`, scenario: scen, panel: panelOf(rec, rec.chart.context, scen, names) }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`);
       } catch (err) { log(`Kurulum grafiği ${plan.coin}: ${err.message}`); }
     }
+    const shadow = safeShadow(() => { if (shadowFail) throw new Error('test: gölge hatası'); return shadowBase({ now, tfMs: TIMEFRAMES[plan.tf]?.ms, row, rec, sent: state.sent, rows: res.rows }); }, (err) => log(`Gölge etiket hatası (yerel): ${err.message}`));
+    shadowItems.push({ coin: plan.coin, shadow });
     state.sent.push(rec);
-    historyAdd(history, rec, { zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
+    historyAdd(history, rec, { shadow, zone: [v.entry_low, v.entry_high], signals: plan.signals.slice(0, 10).map((s) => s.name), reason: v.reason, adx: plan.trend?.adx ?? null, modelProb: plan.modelProb ?? null, btcAtSend: btcPrice, rsBtc: plan.trend?.rsBtc ?? null, regime: plan.regime ?? null, btcRead: { daily: read.daily, h4: read.h4, h1: read.h1, ret24h: read.ret24h } });
     state.stats.sent = (state.stats.sent || 0) + 1;
     sentNow++; sentPerTf[plan.tf] = (sentPerTf[plan.tf] || 0) + 1;
   }
   log(`Değerlendirilen: ${evaluated}, gönderilen: ${sentNow}`);
+  // Gölge etiketlerin ağ kısmı: gönderimlerden SONRA (mesajı geciktirmez), toplam ≤ 4 sn, hata → yalnız log + alanlar null
+  try {
+    const get = shadowGetter(provider);
+    if (!get) log(`Gölge etiket: ${shadowItems.length} kayıt · ağ atlandı (fixture)`);
+    else {
+      const scanned = new Set(res.rows.filter((r) => !r.error).map((r) => r.coin));
+      const net = await collectShadowNet({ get, sigCoins: shadowItems.map((x) => x.coin), scanned, snaps: state.oiSnap, now, budgetMs: 4000 });
+      state.oiSnap = net.snaps;
+      applyShadowNet(shadowItems, net, now);
+      log(net.line);
+    }
+    for (const x of shadowItems) log(`  gölge ${x.coin}: ${JSON.stringify(x.shadow)}`);
+  } catch (err) { log(`Gölge etiket hatası: ${err.message}`); }
 
   // 4) Günlük özet
   const h = new Date(now).getUTCHours();
