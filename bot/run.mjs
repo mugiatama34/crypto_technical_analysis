@@ -189,7 +189,9 @@ async function main() {
   if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
   const history = loadHistory(CFG.historyFile);
-  if (!history.items.length && state.sent.length) for (const p of state.sent) historyAdd(history, p); // ilk koşu: mevcut kayıtları aktar
+  // Durumdaki her plan geçmişte de olmalı (historyAdd kimliğe göre tekrarsız): ilk koşu aktarımı + yayını başarısız olmuş bir
+  // turun kaydı (state.sent'te var, depodaki history.json'da yok) sonraki turda kendiliğinden geri gelir.
+  { const n0 = history.items.length; for (const p of state.sent) historyAdd(history, p); if (history.items.length > n0 && n0) log(`Geçmişe geri eklendi: ${history.items.length - n0} kayıt (önceki yayın eksik kalmış)`); }
   log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
   for (const tf of CFG.tfs) log(`  ${tf} long: ${fmtRule(ruleFor(tf, 'long'))}\n  ${tf} short: ${fmtRule(ruleFor(tf, 'short'))}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik

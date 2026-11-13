@@ -122,7 +122,9 @@ jobs:
           git add docs/agent/archive 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -q -m "bot: ajan/sinyal geçmişi güncellemesi (run ${{ github.run_id }})"
-          for i in 1 2 3; do git pull -q --rebase -X theirs origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || sleep 5; done
+          # 3 deneme; hepsi başarısızsa adım KIRMIZI biter (eskiden sleep'in 0 koduyla sessizce başarılı sayılıyordu)
+          ok=0; for i in 1 2 3; do if git pull -q --rebase -X theirs origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }}; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 5; done
+          [ "$ok" = 1 ] || { echo "::error::yayın 3 denemede başarısız (kayıt depoya yazılamadı)"; exit 1; }
 
       - name: Trigger research (auditor flagged urgent; after publish so the queue is on the branch)
         if: ${{ !inputs.dry && hashFiles('bot/research-request.flag') != '' }}
