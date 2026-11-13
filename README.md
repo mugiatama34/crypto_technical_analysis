@@ -213,6 +213,8 @@ alanları; sayfalarda "iyimser dolum mumu" rozetli satırlar ölçüt dışıdı
 kapanışından; gerçek değer ikisinin arasında). Lab varsayılanı 13 aile (`--strategies all` = 66), `--fillbar skip`, fonlama `--funding` (motor artık
 her ailede uygular). Tarama "canlıya eşit: …" satırları canlı botun long/short kurallarını ve bekleme süresini uygular (`byDir` = long / short kırılımı). Tam koşu 15m mumlarını yalnız çoklu TF uyumu için de yükler (`--mtfExtra 15m`, simüle edilmez): canlı 15m+1H+4H tarar, uyum çarpanı 3 TF'de ×1,30 → 15m'siz satırlar canlı sinyallerin küçük bir alt kümesidir (`liveInfo.mtfTfs`'e bak).
 
+**Gölge etiketler** (`bot/shadow.js`, 13.11): gönderilen her sinyalin geçmiş kaydına `shadow` nesnesi yazılır — `offMin` (mum içinde gönderim dakikası), `openSame` / `openAll` (o an açık plan sayısı), `riskPct`, `rs` / `rsRank` / `rsN` (BTC'ye göre güç ve o turdaki sırası), `funding` / `fundingIntH` / `fundingBtc` (fonlama oranı, dönemi), `oiChg24h` (açık pozisyonun 24 saatlik değişimi; `state.oiSnap` saatlik görüntülerinden). **Yalnız kayıt: hiçbir kararda kullanılmaz**, hata olursa alanlar `null` kalır ve bot devam eder. Amaç ve değerlendirme: `docs/arastirma/on-kayit.md`.
+
 **Bot sağlığı** (`bot/health.js`, 13.11): günlük özetin sonunda `Sağlık 24s: koşu · OKX hata % · Telegram · ajan karar/hata` satırı; ajan art arda 3
 karar hatası, bir turda OKX hata oranı > %20 ya da 24 saatlik koşu sayısı beklenenin yarısının altındaysa `⚠️ Sağlık` mesajı (tür başına 6 saatte
 bir). Telegram 429 / geçici hatada en fazla 2 yeniden deneme. Ajan ve momentum durum dosyası (Actions önbelleği) kaybolursa hesap yayınlanan
