@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PROFILES } from './profiles.js';
-import { newAccount, updatePositions, openPosition, closeManual, closePartialManual, adjustPosition, endOfRun, markToMarket, statsOf, closeOrphanHedges, openPendingHedges } from './account.js';
+import { newAccount, updatePositions, openPosition, closeManual, closePartialManual, adjustPosition, endOfRun, markToMarket, statsOf, closeOrphanHedges, openPendingHedges, anchorToLive } from './account.js';
+import { TIMEFRAMES } from '../../src/data/okx.js';
 import { decide, reflect, review, clampParams, REVIEW_EVERY, REVIEW_FULL } from './manager.js';
 import { agentVsSignal, finalR } from '../../src/ui/signals-lib.js';
 import { esc, fp, pctFrom } from '../telegram.js';
@@ -95,6 +96,9 @@ export async function runAgents(ctx) {
   const st = loadAgents(ctx.stateFile, now);
   const candlesByCoin = {};
   for (const r of ctx.rows) { if (r.error || r.tf !== ctx.trackTf) continue; candlesByCoin[r.coin] = r.live ? [...r.candles, r.live] : r.candles; }
+  // Takip mumu süresi: son mum canlıysa kısmi işlenir, lastTime yalnız kapanmış mumla ilerler (account.updatePositions)
+  const barMs = TIMEFRAMES[ctx.trackTf]?.ms || 0;
+  const anchor = (x) => x && anchorToLive(x, candlesByCoin[x.coin], now, barMs); // yeni pozisyon/emir: açıldığı canlı mumun kalanı izlenir
   for (const id of Object.keys(PROFILES)) {
     const profile = PROFILES[id], acct = st[id];
     if (needsReset(acct, cfg.reset)) {
@@ -110,8 +114,8 @@ export async function runAgents(ctx) {
     Object.defineProperty(acct, '_btcPrice', { value: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null, enumerable: false, configurable: true, writable: true }); // kapanış kayıtları için (yayınlanmaz)
     // 1) Güncelle
     const btcPx = ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null;
-    const events = updatePositions(acct, candlesByCoin, now, { knifeGuard: cfg.knifeGuard, timeStop: cfg.timeStop, earlyTp: cfg.earlyTp });
-    for (const h of openPendingHedges(acct, btcPx, now)) events.push({ type: 'hedge_open', pos: h, price: h.entry });
+    const events = updatePositions(acct, candlesByCoin, now, { barMs, knifeGuard: cfg.knifeGuard, timeStop: cfg.timeStop, earlyTp: cfg.earlyTp });
+    for (const h of openPendingHedges(acct, btcPx, now)) { anchor(h); events.push({ type: 'hedge_open', pos: h, price: h.entry }); }
     events.push(...closeOrphanHedges(acct, btcPx, now).map((e) => ({ ...e, type: 'hedge_close' })));
     markToMarket(acct, ctx.prices);
     for (const ev of events) {
@@ -142,6 +146,7 @@ export async function runAgents(ctx) {
             if (!price) { log(`  ajan ${id}: ${a.coin} fiyat yok, atlandı`); continue; }
             const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', signalKey: cand?.key ?? null, ...(cfg.agentExit ? { exit: a.exit, atr: cand?.atr ?? null } : {}), btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
             if (!res.ok) { log(`  ajan ${id}: ${a.coin} açılmadı — ${res.reason}`); acct.notes.push({ at: now, text: `${a.coin} ${a.direction} reddedildi: ${res.reason}` }); continue; }
+            anchor(res.position); anchor(res.hedgeLeg); anchor(res.order);
             await notify(fmtOpen(acct, res.position, res.order, res.hedgeLeg));
           } else if (a.type === 'close') {
             const ev = closeManual(acct, a.position_id, ctx.prices[a.coin] || acct.positions.find((p) => p.id === a.position_id)?.lastPrice, now, a.rationale);
