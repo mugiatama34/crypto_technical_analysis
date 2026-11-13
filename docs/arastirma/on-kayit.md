@@ -48,3 +48,8 @@ kullanılmaz. Değerlendirme: ~13.12.2026 (n ≥ 100 dolum), short tarafının c
 
 ## Günlük
 - 13.11.2026: dosya yazıldı; aşama 0 ve gölge etiketler başlatıldı.
+- 13.11.2026 (koşudan ÖNCE, sonuç görülmeden): D1'e bilgi amaçlı üçüncü plasebo eklendi — **A-eğilim**: plasebo A ile aynı, ek olarak
+  aday anın üst TF eğilimi sinyal yönünde (evren filtresiyle aynı kural). Gerekçe: evren zaten eğilim filtresinden geçmiş; A ile fark
+  yalnız eğilimden (momentum) gelebilir. D1 kararı (verdict) değişmedi: A ve B'ye göre. A-eğilim yorumu: sinyal A'yı geçip A-eğilimi
+  geçemiyorsa bilgi eğilim filtresindedir, yapı sinyalinde değil.
+- 13.11.2026: canlı gölge etiketlere `fundingIntH` (fonlama dönemi, saat) eklendi; OKX'te dönem coin'e göre 1 / 4 / 8 saat.
