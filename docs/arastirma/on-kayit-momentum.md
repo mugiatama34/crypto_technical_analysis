@@ -115,3 +115,13 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
   getirinin örnek std'si), yeniden ağırlıklandırma maliyeti sıfır sayıldı (HM2 lehine hafif iyimser); kasa ısınması kasa başından 100 gün
   önceki mumlardan; plato = geliştirme + kasa haftalarının birleşik ortalaması (L 14 ve 56); havuz koşu anındaki ilk 150 (M0d koşusundaki
   listeden az farklı olabilir — sağlamlık denetimi ±0,05 puanı bu yüzden tutmazsa fark belgelenir, tanım değişmez).
+- 13.11.2026 **M1 geliştirme dilimi (koşu 43506781602, `lock=0`; kasa sonucu okunmadan yazıldı):** sağlamlık denetimi geçti (T eğitim +2,638 ↔
+  +2,651, doğrulama +3,636 ↔ +3,636). Haftalık %, eğitim / doğrulama (Sharpe):
+  - **T** (L 28): +2,64 (2,27) / +3,64 (3,21); maks. düşüş %22 / %13; en kötü hafta −%16,1; en kötü tek işlem −%13,4. **Pencere duyarlı:**
+    L 14 +0,74 (0,62) / +3,55 (3,12) · L 56 −0,61 (−0,49) / +1,57 (1,29) → eğitimde 28 gün bir tepe, plato değil (seçim iyimserliği işareti).
+  - **HM1** long-short: +1,27 (1,88) / +1,97 (1,44) → T'den düşük Sharpe, **geliştirmede geçmedi**; L 14 ve 56 eğitimde eksi.
+  - **HM2** ters-oynaklık: +2,07 (1,89) / +2,76 (2,95) → **geçmedi** (Sharpe T'den düşük).
+  - **HM3** son haftayı atla: +1,85 (1,33) / +1,16 (1,09) → **geçmedi**.
+  - Bilgi: hedge'siz T +3,37 / +3,57 (Sharpe 2,1 / 3,2; en kötü hafta −%24,7) · canlının eşit risk boyutlaması +0,63 / +0,41 (Sharpe 2,05 /
+    2,31; maks. düşüş %8,6 / %3,9; en kötü tek işlem −%2,0) → benzer Sharpe, çok daha küçük kuyruk.
+  - Üç hipotez de geliştirmede geçmediği için kasa-M'de yalnız **T'nin doğrulaması** karar taşır; HM satırları kasada bilgi amaçlıdır.
