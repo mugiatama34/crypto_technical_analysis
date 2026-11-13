@@ -244,6 +244,30 @@ export function fillOrder(plan, d, t0, ms, lower, target) {
 }
 
 /**
+ * Tura dolmuş başlayan planın dolum / erken hedef mumları. Durum dosyasında filledAt / confirmedAt / earlyAt varsa onlar;
+ * yoksa (önbellek kaybı, eski geçmiş kaydı) mumlardan yeniden bulunur: dolum = gönderimden sonra activeAt (duvar saati) mumuna
+ * kadar girişe ilk dokunan mum (bekleme durumundaki kuralın aynısı); bulunamazsa (bölge içinde gönderim) atlama yok.
+ * Erken hedef = dolum mumundan (fillRes 'none' ise sonrakinden) tp1At'e kadar erken hedefe ilk dokunan mum.
+ * @returns {{ fillAt: number|null, earlyAt: number|null }} fillAt: bundan önceki mumlar işlenmez (teyitte teyit mumu dahil atlanır)
+ */
+export function filledBarsOf(plan, candles) {
+  const d = plan.d;
+  let fillAt = plan.confirmedAt != null ? plan.confirmedAt + 1 : plan.filledAt ?? null;
+  if (fillAt == null) {
+    const until = plan.activeAt ?? Infinity;
+    const c = candles.find((x) => x && x.time > plan.sentAt && x.time <= until && (d === 1 ? x.low <= plan.entry : x.high >= plan.entry));
+    fillAt = c ? c.time : null;
+  }
+  let earlyAt = plan.earlyAt ?? null;
+  if (earlyAt == null && plan.status === 'early' && plan.early != null) {
+    const from = plan.confirmedAt != null ? plan.confirmedAt + 1 : fillAt ?? -Infinity, until = plan.tp1At ?? Infinity;
+    const c = candles.find((x) => x && x.time > plan.sentAt && x.time >= from && x.time <= until && !(x.time === fillAt && plan.fillRes === 'none') && (d === 1 ? x.high >= plan.early : x.low <= plan.early));
+    earlyAt = c ? c.time : null;
+  }
+  return { fillAt, earlyAt };
+}
+
+/**
  * Açık planı yeni mumlarla günceller. candles: sentAt'tan sonraki mumlar (eskiden yeniye) + canlı.
  * opts.knifeGuard: düşen bıçak koruması (knifeGuardOf); açıkken waiting → confirming → active | knife | expired.
  * @returns {{ status, events: string[], patch: object }} patch: plana yazılacak alanlar (yaklaşma ölçüsü, teyitli giriş)
@@ -256,11 +280,16 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   const d = plan.d;
   let status = plan.status;
   const events = [], patch = {};
+  let P = plan; // teyitli girişten sonra aynı turda yeni giriş / erken hedef (plan + patch)
   const knifeAt = () => patch.knifeAt ?? plan.knifeAt;
+  // Tura dolmuş olarak başlayan plan (active/tp1/early): dolumdan ÖNCEKİ mumlar işlenmez (limit long'da fiyat girişe
+  // yukarıdan iner; o mumların tepesi erken hedefi geçmiş olabilir → sahte 'early'). Dolum mumu (fillRes / alt TF) işlenir.
+  const bars = plan.status === 'active' || plan.status === 'tp1' || plan.status === 'early' ? filledBarsOf(plan, candles) : null;
   let lastT = null; // kapanışın görüldüğü mum (geç takipte gerçek kapanış zamanı)
   for (let j = 0; j < candles.length; j++) {
     const c = candles[j];
     if (!c || c.time <= plan.sentAt) continue;
+    if (bars?.fillAt != null && c.time < bars.fillAt && (candles[j + 1]?.time ?? Infinity) <= bars.fillAt) continue; // mum dolumdan önce bitti (geç takipte üst TF mumu dolumu içerebilir)
     lastT = c.time;
     const touchEntry = d === 1 ? c.low <= plan.entry : c.high >= plan.entry;
     const hitStop = d === 1 ? c.low <= plan.stop : c.high >= plan.stop;
@@ -286,6 +315,10 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
         const risk = d * (c.close - plan.stop);
         if (d * (plan.tp1 - c.close) <= 0 || !(risk > 0)) { status = 'missed'; events.push('missed'); break; }
         Object.assign(patch, { confirmedAt: c.time, entry: c.close, entryPlanned: plan.entry, rr1: +((d * (plan.tp1 - c.close)) / risk).toFixed(2), rr: +((d * (plan.tp2 - c.close)) / risk).toFixed(2) });
+        // Erken hedef yeni girişe göre (aynı % uzaklık; earlyPriceOf ile aynı kural): planlanan girişe göre kalırsa kapanış
+        // onu geçmiş olabilir → hedef girişin yanlış tarafında, ilk mumda sahte 'early'.
+        if (plan.early) Object.assign(patch, { early: +(c.close * (plan.early / plan.entry)).toPrecision(8), earlyPlanned: plan.early });
+        P = { ...plan, ...patch };
         status = 'active'; events.push('active'); continue;
       }
       if (ms && Math.round((c.time - knifeAt()) / ms) >= g.confirmBars) { status = 'expired'; events.push('unconfirmed'); break; }
@@ -299,7 +332,7 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       if (plan.fillRes === 'none') continue;
     }
     if ((status === 'active') && o.lower && ms && (patch.filledAt ?? plan.filledAt) === c.time && !(patch.confirmedAt ?? plan.confirmedAt)) {
-      const target = plan.early ?? plan.tp1;
+      const target = P.early ?? plan.tp1;
       const hitTarget = d === 1 ? c.high >= target : c.low <= target;
       if (hitTarget || hitStop) {
         let res = plan.fillRes ?? patch.fillRes;
@@ -309,26 +342,26 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
         }
         if (res === 'stop') { status = 'stopped'; events.push('stopped'); break; }
         if (res === 'none') continue; // alt TF'de dolumdan sonra hedef görülmedi: bu mumda hedef sayılmaz
-        if (plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; continue; }
+        if (P.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; continue; }
         status = 'tp1'; events.push('tp1'); continue;
       }
     }
-    // Erken kâr al (plan.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be).
+    // Erken kâr al (P.early): %portion erken hedefte kapanır, stop girişe; kalan TP2 (done) ya da girişe dönüş (be).
     // 3 kademe (plan.midPortion): TP1'de ara kapanış (midAt); midStop 'early' ise sonra stop erken hedefe.
     if (status === 'early') {
-      if (c.time <= (patch.earlyAt ?? plan.earlyAt)) continue;
+      if (c.time <= (patch.earlyAt ?? P.earlyAt ?? bars?.earlyAt)) continue;
       const midAt = patch.midAt ?? plan.midAt;
-      const lvl = midAt && plan.midStop === 'early' ? plan.early : plan.entry;
+      const lvl = midAt && plan.midStop === 'early' ? P.early : P.entry;
       const hitBe = d === 1 ? c.low <= lvl : c.high >= lvl;
       if (hitBe) { status = 'be'; events.push('be'); break; } // aynı mumda hedef + stop: stop (kötümser)
-      if (!midAt && midOk(plan) && hitTp1) { patch.midAt = c.time; events.push('mid'); }
-      if (hitTp2) { if (midOk(plan) && !(patch.midAt ?? plan.midAt)) patch.midAt = c.time; status = 'done'; events.push('done'); break; }
+      if (!midAt && midOk(P) && hitTp1) { patch.midAt = c.time; events.push('mid'); }
+      if (hitTp2) { if (midOk(P) && !(patch.midAt ?? plan.midAt)) patch.midAt = c.time; status = 'done'; events.push('done'); break; }
       continue;
     }
-    if (status === 'active' && plan.early) {
+    if (status === 'active' && P.early) {
       if (plan.confirmedAt && c.time <= plan.confirmedAt) continue;
       if (hitStop) { status = 'stopped'; events.push('stopped'); break; }
-      if (d === 1 ? c.high >= plan.early : c.low <= plan.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; if (midOk(plan) && hitTp1) { patch.midAt = c.time; events.push('mid'); } if (hitTp2) { status = 'done'; events.push('done'); break; } }
+      if (d === 1 ? c.high >= P.early : c.low <= P.early) { status = 'early'; events.push('early'); patch.earlyAt = c.time; if (midOk(P) && hitTp1) { patch.midAt = c.time; events.push('mid'); } if (hitTp2) { status = 'done'; events.push('done'); break; } }
       continue;
     }
     if (status === 'active' || status === 'tp1') {
@@ -340,11 +373,11 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
       // Zaman stopu: dolumdan bars kapanmış mum içinde TP1 görülmedi (ve MFE < minMfeR) → kapanıştan kapat
       const start = patch.confirmedAt ?? plan.confirmedAt ?? patch.filledAt ?? plan.filledAt ?? plan.activeAt;
       if (ts && status === 'active' && ms && start != null && c.time >= start) {
-        const risk = d * (plan.entry - plan.stop);
-        if (risk > 0) mfe = Math.max(mfe, (d * ((d === 1 ? c.high : c.low) - plan.entry)) / risk);
+        const risk = d * (P.entry - plan.stop);
+        if (risk > 0) mfe = Math.max(mfe, (d * ((d === 1 ? c.high : c.low) - P.entry)) / risk);
         const n = Math.round((c.time - start) / ms) + ((patch.confirmedAt ?? plan.confirmedAt) ? 0 : 1);
         if (c.time + ms <= now && n >= ts.bars && mfe < ts.minMfeR) {
-          Object.assign(patch, { exitPrice: c.close, exitR: risk > 0 ? +((d * (c.close - plan.entry)) / risk).toFixed(2) : 0 });
+          Object.assign(patch, { exitPrice: c.close, exitR: risk > 0 ? +((d * (c.close - P.entry)) / risk).toFixed(2) : 0 });
           status = 'timeout'; events.push('time_stop'); break;
         }
       }
