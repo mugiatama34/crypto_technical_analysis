@@ -17,6 +17,9 @@ const CFG = {
   out: String(arg('out', 'docs/backtest')), cacheDir: String(arg('cache', 'backtest/cache')), fixture: arg('fixture', false) === true,
   // --mtfTfs: bu TF'lerin planlarına karar anındaki çoklu TF uyumu (mtfBt) yazılır (diğer --tfs TF'leriyle; canlıya eşit tarama)
   mtfTfs: String(arg('mtfTfs', '4H')).split(',').filter(Boolean),
+  // --mtfExtra: yalnız çoklu TF uyumu için yüklenen (simüle edilmeyen) TF'ler. Canlı 15m+1H+4H tarar; 13.11 koşusunda (43452497120)
+  // 15m'siz 'canlıya eşit' satırlar canlı sinyalin ~1/5'ini yakaladı (uyum çarpanı 3 TF'de ×1,30, 2 TF'de ×1,15). 'yok' = kapalı.
+  mtfExtra: String(arg('mtfExtra', '15m')).split(',').filter((x) => x && x !== 'yok'),
 };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 
@@ -37,7 +40,10 @@ async function main() {
   for (const c of coins) {
     // Önce coin'in tüm TF mumları (çoklu TF uyumu için diğer TF'ler karar anında gerekir), sonra TF başına simülasyon
     const byTf = {};
-    for (const tf of CFG.tfs) {
+    const extraTfs = CFG.tfs.some((tf) => CFG.mtfTfs.includes(tf)) ? CFG.mtfExtra.filter((tf) => !CFG.tfs.includes(tf)) : [];
+    const extra = {};
+    for (const tf of [...CFG.tfs, ...extraTfs]) {
+      const only = extraTfs.includes(tf); // yalnız uyum için: kapsam/simülasyon yok
       let candles;
       try {
         if (CFG.fixture) {
@@ -46,13 +52,14 @@ async function main() {
         } else candles = await getHistoryCached(c.instId, tf, startMs, endMs, { cacheDir: CFG.cacheDir, onRetry: (r) => log('retry', r.path, r.attempt) });
       } catch (err) { log(`  ${c.coin} ${tf}: veri hatası ${err.message}`); continue; }
       if (candles.length < 350) { log(`  ${c.coin} ${tf}: ${candles.length} mum, atlandı`); continue; }
+      if (only) { extra[tf] = candles; continue; }
       coverage[`${c.coin}|${tf}`] = { bars: candles.length, from: candles[0].time, to: candles[candles.length - 1].time };
       byTf[tf] = candles;
     }
     for (const tf of CFG.tfs) {
       const candles = byTf[tf]; if (!candles) continue;
       const ts = Date.now();
-      const others = CFG.mtfTfs.includes(tf) ? Object.fromEntries(Object.entries(byTf).filter(([k]) => k !== tf)) : null;
+      const others = CFG.mtfTfs.includes(tf) ? { ...Object.fromEntries(Object.entries(byTf).filter(([k]) => k !== tf)), ...extra } : null;
       const tr = simulateWithExtras({ coin: c.coin, instId: c.instId, tf, candles }, o, others);
       for (const t of tr) { if (t.mtfBt) mtfDone++; for (const x of t.cd || []) { cdSkipped++; if (x.mtfBt) mtfDone++; } }
       trades.push(...tr);
@@ -60,7 +67,7 @@ async function main() {
     }
   }
   // planFields (13.11): plans.json.gz girdilerinde ek alanlar — mtfBt (karar anı çoklu TF uyumu), cd (bekleme süresi yüzünden atlanan planlar)
-  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, planFields: ['mtfBt', 'cd'], cdTfs: CFG.mtfTfs.filter((tf) => CFG.tfs.includes(tf)), cooldownSkipped: cdSkipped, mtfComputed: mtfDone, elapsedSec: Math.round((Date.now() - t0) / 1000) };
+  const meta = { ...CFG, coins: coins.map((c) => c.coin), startMs, endMs, coverage, planFields: ['mtfBt', 'cd'], cdTfs: CFG.mtfTfs.filter((tf) => CFG.tfs.includes(tf)), mtfWith: [...new Set([...CFG.tfs, ...CFG.mtfExtra])], cooldownSkipped: cdSkipped, mtfComputed: mtfDone, elapsedSec: Math.round((Date.now() - t0) / 1000) };
   const report = buildReport(trades.map(({ plan, cd, mtfBt, ...t }) => t), meta);
   fs.mkdirSync(CFG.out, { recursive: true });
   fs.writeFileSync(path.join(CFG.out, 'results.json'), JSON.stringify(report));

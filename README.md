@@ -211,7 +211,7 @@ iyimser)" ve "bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H".
 ort. R > 0, PF > 1,1 ve gerçekçi), `ci90` (ort. R için %90 güven aralığı; aynı gün açılan işlemler birlikte örneklenir) ve `inconclusive` (n < 100)
 alanları; sayfalarda "iyimser dolum mumu" rozetli satırlar ölçüt dışıdır. `hedgedOpen` = BTC hedge'i dolum mumunun açılışından (eski `hedged`
 kapanışından; gerçek değer ikisinin arasında). Lab varsayılanı 13 aile (`--strategies all` = 66), `--fillbar skip`, fonlama `--funding` (motor artık
-her ailede uygular). Tarama "canlıya eşit: …" satırları canlı botun long/short kurallarını ve bekleme süresini uygular (`byDir` = long / short kırılımı).
+her ailede uygular). Tarama "canlıya eşit: …" satırları canlı botun long/short kurallarını ve bekleme süresini uygular (`byDir` = long / short kırılımı). Tam koşu 15m mumlarını yalnız çoklu TF uyumu için de yükler (`--mtfExtra 15m`, simüle edilmez): canlı 15m+1H+4H tarar, uyum çarpanı 3 TF'de ×1,30 → 15m'siz satırlar canlı sinyallerin küçük bir alt kümesidir (`liveInfo.mtfTfs`'e bak).
 
 **Bot sağlığı** (`bot/health.js`, 13.11): günlük özetin sonunda `Sağlık 24s: koşu · OKX hata % · Telegram · ajan karar/hata` satırı; ajan art arda 3
 karar hatası, bir turda OKX hata oranı > %20 ya da 24 saatlik koşu sayısı beklenenin yarısının altındaysa `⚠️ Sağlık` mesajı (tür başına 6 saatte
