@@ -81,7 +81,7 @@ hedge'li +0,08R; ayda ~25 sinyal.
 
 ## Kısa bulgu özeti (ayrıntı DURUM.md)
 Fiyat-yapı aileleri (motor, Donchian, meanrev, sweep, diyagonal, zigzag/flat, fib kesişimi, SMC süpürme→MSS→FVG, uyumsuzluk, kanal, range sapması 03.11) sıkı
-ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). **29.10 düzeltme:** motor limit dolum mumunda hedefi iyimser sayıyordu;
+ölçütte kenar vermedi; kazanç BTC yönünden (r 0,4–0,7). **13.11 düzeltme:** motor erken hedefli ölçümlerde 'kaçtı'yı erken hedefe göre veriyordu (canlı: özgün TP1) → canlı 4H düzeni gerçek beklentisi eğ −0,080 / doğr +0,052R (n 430/422), hedge'li −0,031 / +0,019; çıkış seçenekleri (DURUM 13.11): 3 kademe + stop erken hedefe ve %50 kapatma iki dilimde mevcut %80'den biraz iyi, sıkı ölçüt yok. **29.10 düzeltme:** motor limit dolum mumunda hedefi iyimser sayıyordu;
 1H sırasıyla canlı 4H düzeni eğitim/doğr. +0,025/+0,028R, hedge'li ≈ 0 (sıkı ölçüt geçilmiyor) — yeni ölçümler `fillBarTp: 'lower'`
 ile yapılmalı; erken hedef mesafesi (0,5R–1,5R) de gerçek sırayla ≤ 0 → 4H düzeninin gerçekçi kenarı yok. Eski iyimser değerlerle bulunan kesit: 4H + düşen bıçak koruması + hafta sonu yok +
 yalnız limit + erken %80 kâr + günlük trend aynı yön (hedge'li doğr. +0,08R, n 293) — zayıf ama iki dilimde pozitif;
