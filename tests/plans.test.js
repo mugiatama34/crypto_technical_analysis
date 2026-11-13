@@ -37,3 +37,16 @@ test('writePlansFile / readPlansFile: satır satır, çok parçalı gzip; eski t
   writePlansFile(f, items.slice(0, 1)); assert.deepEqual(readPlansFile(f), items.slice(0, 1));
   fs.writeFileSync(f, zlib.gzipSync(JSON.stringify(items))); assert.deepEqual(readPlansFile(f), items); // eski biçim
 });
+
+test('run.mjs --mtfExtra: 15m yalnız çoklu TF uyumu için yüklenir (simüle edilmez, kapsama girmez)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mtfextra-'));
+  execFileSync('node', ['backtest/run.mjs', '--fixture', '--top', '3', '--tfs', '4H', '--out', dir], { stdio: 'ignore' });
+  const { all, meta } = loadPlans(dir);
+  assert.deepEqual(meta.mtfWith, ['4H', '15m']);
+  assert.ok(all.length > 0 && all.every((t) => t.tf === '4H'));
+  assert.ok(Object.keys(meta.coverage).every((k) => k.endsWith('|4H')));
+  assert.ok(all.some((t) => t.mtfBt?.tfs.includes('15m')));
+  execFileSync('node', ['backtest/run.mjs', '--fixture', '--top', '3', '--tfs', '4H', '--mtfExtra', 'yok', '--out', dir], { stdio: 'ignore' });
+  assert.ok(loadPlans(dir).all.every((t) => !t.mtfBt?.tfs.includes('15m')));
+});
