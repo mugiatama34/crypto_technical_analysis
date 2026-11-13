@@ -28,8 +28,8 @@ Kaynak: kullanıcının 13.11 isteği. Her adım bitince [x] işaretlenir; yeni 
   ve parametreler korunur** (öğrenme sürsün). Varsayılan kapalı; kullanıcı Variables'tan açar.
 - [x] (13.11; `signalKey`, `agentVsSignal`, sayfada "Ajan vs sinyal") Her ajan işlemine kaynak sinyal kimliği (signal id / key) yaz → sinyal sayfasında "Ajan vs sinyal" karşılaştırması:
   aynı sinyallerde ajanın R'si ile botun planının R'si; ajanın atladığı sinyallerin R'si (seçim değeri).
-- [ ] Karar ölçütü (kullanıcıyla): ~30 ajan işleminden sonra ajan ort. R > sinyal ort. R değilse ajanlar kapatılır ya da
-  yönetim kuralları tartışılır.
+- [x] Karar ölçütü (kullanıcı onayı 13.11): ~30 ajan işleminden sonra ajan ort. R > sinyal ort. R değilse **önce iyileştirme
+  potansiyeli birlikte tartışılır** (yönetim mi seçim mi kaybettiriyor, hangi kural/parametre düzeltilebilir); potansiyel yoksa ajanlar kapatılır.
 
 ## Notlar
 - Bağlam sınırı: bu dosya yeni sohbetin başlangıç noktası. "Devam edelim" → DURUM.md + bu dosya.
