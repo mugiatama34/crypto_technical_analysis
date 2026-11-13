@@ -202,3 +202,10 @@ test('waitBucket: 4H dolum gecikmesi saat kovası; dolmayanlar hariç', () => {
   assert.equal(waitBucket({ tf: '4H', waitBars: 18, outcome: 'stop' }), 'e 48–72 saat');
   assert.equal(waitBucket({ tf: '4H', waitBars: 3, outcome: 'expired' }), null);
 });
+
+import { weekdayOf, entryDayOf } from '../backtest/report.js';
+test('weekdayOf / entryDayOf: UTC giriş günü, dolmayan null', () => {
+  assert.equal(weekdayOf(Date.UTC(2026, 10, 9, 1)), '1 Pzt'); assert.equal(weekdayOf(Date.UTC(2026, 10, 15, 23)), '7 Paz');
+  const t = { time: Date.UTC(2026, 10, 8, 20), tf: '4H', waitBars: 2, outcome: 'stop' }; // Pazar 20:00 + 2×4H = Pzt 04:00
+  assert.equal(entryDayOf(t), '1 Pzt'); assert.equal(entryDayOf({ ...t, outcome: 'missed' }), null);
+});

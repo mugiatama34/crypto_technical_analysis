@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { simulateTrade, BT_DEFAULTS } from './engine.js';
-import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf } from './report.js';
+import { stats, by, approachBucket, sessionOf, weekpartOf, entryTimeOf, entryDayOf } from './report.js';
 import { adx as adxOf, ema as emaOf } from '../src/data/indicators.js';
 import { TIMEFRAMES } from '../src/data/okx.js';
 import { horizonSeries, htfTrendAt, htfOk, UP_TF } from '../src/scan/regime.js';
@@ -271,6 +271,7 @@ async function main() {
       byTf: { train: by(tr, (x) => x.tf), valid: by(va, (x) => x.tf) },
       byHtfTrend: { train: by(tr, htfBucket), valid: by(va, htfBucket) },
       byWait: { train: by(tr, waitBucket), valid: by(va, waitBucket) },
+      byWeekday: { train: by(tr, entryDayOf), valid: by(va, entryDayOf) },
       stack: { train: stackOf(tr), valid: stackOf(va) },
       ...hedgedOfTrades(tr, va) };
   };
@@ -281,7 +282,7 @@ async function main() {
     const ht = h(tr), hv = h(va);
     const pts = (a) => a.filter((t) => t.btcPct != null && t.R != null && t.outcome !== 'expired' && t.outcome !== 'missed' && t.outcome !== 'knife').map((t) => [t.d * t.btcPct, t.R]);
     if (!ht.length && !hv.length) return {};
-    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
+    return { hedged: { train: stats(ht), valid: stats(hv) }, hedgedByTf: { train: by(ht, (x) => x.tf), valid: by(hv, (x) => x.tf) }, hedgedByWait: { train: by(ht, waitBucket), valid: by(hv, waitBucket) }, hedgedByWeekday: { train: by(ht, entryDayOf), valid: by(hv, entryDayOf) }, btcCorr: { train: corr(pts(tr)), valid: corr(pts(va)) } };
   };
 
   const results = [];
@@ -332,7 +333,7 @@ function writeOut(results, all, meta, split, t0) {
   const base = results[0];
   results.sort((a, b) => (b.valid.avgR ?? -9) - (a.valid.avgR ?? -9));
   const approach = results.find((r) => r.name === BASE.name)?.byApproach;
-  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; if (!/bekleme/.test(r.name)) { delete r.byWait; delete r.hedgedByWait; } }
+  for (const r of results) if (r.name !== BASE.name) { delete r.bySession; delete r.byWeekpart; delete r.byTp1Time; delete r.byHtfTrend; if (!/bekleme/.test(r.name)) { delete r.byWait; delete r.hedgedByWait; delete r.byWeekday; delete r.hedgedByWeekday; } }
   const out = { approach, meta: { ...meta, sweepAt: Date.now(), split, plans: all.length, elapsedSec: Math.round((Date.now() - t0) / 1000) }, base, results };
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, OUTFILE), JSON.stringify(out));

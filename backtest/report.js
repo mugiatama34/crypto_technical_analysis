@@ -35,6 +35,11 @@ export const SESSIONS = ['Asya 00–07 UTC (03–10 TR)', 'Avrupa 07–13 UTC (1
 /** Hafta içi / hafta sonu (UTC Cumartesi–Pazar). */
 export const weekpartOf = (ms) => ([0, 6].includes(new Date(ms).getUTCDay()) ? 'hafta sonu' : 'hafta içi');
 
+/** Giriş günü (UTC) — sıralanabilir etiket. Haftanın günü çalışması (13.11): Pazartesi hipotezi. */
+export const weekdayOf = (ms) => ['7 Paz', '1 Pzt', '2 Sal', '3 Çar', '4 Per', '5 Cum', '6 Cmt'][new Date(ms).getUTCDay()];
+/** Dolan işlemin giriş günü; dolmayanlar (kaçtı/süresi doldu/bıçak) null. */
+export const entryDayOf = (t) => (['expired', 'missed', 'knife'].includes(t.outcome) ? null : weekdayOf(entryTimeOf(t)));
+
 export const by = (trades, keyOf) => {
   const m = new Map();
   for (const t of trades) { const k = keyOf(t); if (k == null) continue; if (!m.has(k)) m.set(k, []); m.get(k).push(t); }
