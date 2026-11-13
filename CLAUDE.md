@@ -85,7 +85,12 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 - Düzeltilmiş canlı kayıtlar `docs/signals/rescored.json` (ham history değişmez; `applyRescore`, sayfada ↻).
 - Etkisiz bulunanlar: zaman stopu, seans ve gün filtreleri, bekleme süresi (24→72 s), kalan pay için iz süren stop. Hafta sonu kötü.
   Çıkışta 3 kademe / %50 kapatma ≈ %80'den biraz iyi, fark gürültüye yakın.
-- Momentum `xsmom_l28_k5_short_rel` hedge'li zayıf pozitif, canlı (ayrı kod yolu; yukarıdaki düzeltmelerden etkilenmedi).
+- **Momentum (13.11, ön kayıtlı: `docs/arastirma/on-kayit-momentum.md`; `mom-diag.json`, `mom-stage1.json`):** sıralamada bilgi var (en zayıf
+  beşte birlik sonraki hafta evrenden −%1,3 / −%1,8; plaseboyu geçiyor) ama `xsmom_l28_k5_short_rel` + BTC hedge kilitli dönemde (24.11.2022–
+  24.11.2024) haftalık +%0,90 [−0,16; +2,12], Sharpe 0,98 → **ölçütü geçmedi; canlı momentum "deneme"** (geliştirmedeki +%2,6…3,6 seçim +
+  dönem iyimserliği; 28 gün pencere eğitimde tepe). Long-short / ters-oynaklık / son haftayı atla geçmedi. Canlının eşit risk boyutlaması
+  bilgi satırı olarak en düzgünü (Sharpe 2,1 / 2,3 / 1,25; en kötü tek işlem −%2). Canlı −%7,7'nin kaynağı: 21.10 10:00'da eski eşit nominalle
+  açılış + APR sıkışması (geçiş artığı; kod hatası yok; 26.10'dan sonra canlı = yeniden oynatma). Temiz veri kalmadı → yalnız ileriye dönük kayıt.
 - **"Ort. R nasıl artar" araştırması (13.11, ön kayıtlı: `docs/arastirma/on-kayit.md`; `diag.json`, `stage1.json`):** giriş zamanlamasında bilgi
   yok (aynı eğilimde rastgele andan farksız; e-oranı ≈ 1,0) · giriş biçimi fark etmiyor (limit = piyasa, sinyal başına) · stoplar avlanmıyor ·
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının
@@ -94,7 +99,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 
 ## Açık işler (11.11.2026)
 - **13.11 inceleme listesinden kalanlar** (DURUM 13.11 "Devam 2" girişi → "Açık kararlar / sıradaki" 1–8) ve karar: `KNIFE_GUARD` 3 kademe denemesi (30 kapanış) sonrası yeniden değerlendirilir. Canlı 4H düzeni **deneme** (kenar yok); n ≥ 30 kapanışta mevcut düzenin yeniden oynatmasıyla karşılaştır. Agresif ajan karar kaydı Actions logundan kontrol edilecek.
-- **Short tarafı ~13.12.2026'da canlı kayıtla değerlendirilir** (kullanıcı kararı 13.11: 15 dk adımlı canlı öykünmesi yazılmaz; taramadaki "canlıya eşit" satır yalnız long için geçerli). **"Ort. R nasıl artar" araştırması** aşama 0 + 1 bitti, hiçbir hipotez geçmedi (DURUM 13.11 son giriş); açık: H3 (fonlama / açık pozisyon) canlı gölge etiketle (`history.json` `shadow`; fonlama alanı ilk sinyalde doğrulanacak) ~13.12; kullanıcı kararı: emek kesitsel momentuma kaysın mı.
+- **Short tarafı ~13.12.2026'da canlı kayıtla değerlendirilir** (kullanıcı kararı 13.11: 15 dk adımlı canlı öykünmesi yazılmaz; taramadaki "canlıya eşit" satır yalnız long için geçerli). **"Ort. R nasıl artar" araştırması** aşama 0 + 1 bitti, hiçbir hipotez geçmedi (DURUM 13.11 son giriş); açık: H3 (fonlama / açık pozisyon) canlı gölge etiketle (`history.json` `shadow`; fonlama alanı ilk sinyalde doğrulanacak) ~13.12; momentum araştırması da bitti (M0 + M1, geçmedi; DURUM 13.11 son giriş) — bekleyen kararlar: canlı momentum kaydını sıfırlama, yeniden boyutlama K/Z'sini `trades`'e yazma, ileriye dönük ölçüt. 13.12'de "puan v2" (gölge etiket + `bd` puan dökümü ile tek ön kayıtlı test) önerildi.
 - **Ajan adım 3 (13.11'de ertelendi):** ilk ajan ara değerlendirmesinde (10 kapanış; Telegram'da "📌 Hatırlatma") ajanın ek bilgi
   isteyebilmesini (sınırlı menü, karar başına ≤ 2) kullanıcıyla değerlendir. Önce 1–2. adımın (AGENT_EXIT=1, 13.11'de açıldı)
   ilk 10 işlemdeki etkisi: signals.html "Ajan vs sinyal" + ajanların `reviews`. "Devam edelim"de agent `reviews` uzunluğuna bak.
