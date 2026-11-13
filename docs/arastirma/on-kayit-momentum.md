@@ -1,6 +1,6 @@
 # Ön kayıt — kesitsel momentum araştırması (13.11.2026)
 
-**Durum: TASLAK — kullanıcı onayı bekliyor; hiçbir ölçüm koşulmadı.** Onaydan sonra tanım / eşik değişmez (değişirse tarihli not + neden).
+**Durum: ONAYLANDI (kullanıcı, 13.11.2026 — "Ön kaydı onaylıyorum"); onay anında hiçbir ölçüm koşulmamıştı.** Tanım / eşik değişmez (değişirse tarihli not + neden).
 Kardeş dosya: `on-kayit.md` (4H sinyal düzeni; sonuç: hiçbir hipotez geçmedi).
 
 ## Neden momentum
@@ -52,4 +52,5 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
    kullanıcıyla durum değerlendirilir.
 
 ## Günlük
-- 13.11.2026: taslak yazıldı (ölçüm yok). Kullanıcı onayı bekleniyor.
+- 13.11.2026: taslak yazıldı (ölçüm yok).
+- 13.11.2026: kullanıcı onayladı; M0 teşhis betiği yazılıyor.
