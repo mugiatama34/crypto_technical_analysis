@@ -207,6 +207,10 @@ iyimser)" ve "bıçak kararı: dokunan 1H mumun sonuna kadar · sıra 1H".
 
 **Yeniden puanlama katmanı** (`docs/signals/rescored.json`): canlı takip hatasından etkilenen sinyallerin düzeltilmiş durum/R'si; ham kayıt (`history.json`) değişmez. Sayfa, denetçi ve haftalık rapor `applyRescore` (`src/ui/signals-lib.js`) ile bu değerleri kullanır; sayfada ↻ işareti. Ölçüt: düzeltilmiş takip kodu ve motor gerçek 4H + 15m mumlarla aynı sonucu veriyor ve kayıttan farklı (`backtest/replay`).
 
+**TradingView + Bybit skill'i** (`.claude/skills/tradingview-bybit/SKILL.md`): doğrulanmış telefon/masaüstü menü adları, palet, alarm, Bybit TP/SL ve
+trailing stop notları; `CLAUDE.md`'den taşındı (her oturumda değil, yalnız gerektiğinde yüklenir). Günlük: `docs/DURUM.md` (güncel özet + son
+girişler), eski girişler `docs/DURUM-arsiv.md`.
+
 **Orkestrasyon skill'i** (`.claude/skills/orkestrasyon/SKILL.md`): Claude oturumlarında iş dağıtımı — ana oturum planlar ve
 doğrular; Opus orta–yüksek zorluk (gevşek brief), Sonnet basit–orta (sıkı brief), Haiku büyük veri temizliği (en sıkı brief +
 sayım kontrolü). Brief şablonları, yükseltme kuralı ve doğrulama listesi dosyada. Actions'taki ajan modelleri kapsam dışı.

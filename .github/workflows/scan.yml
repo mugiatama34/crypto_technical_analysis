@@ -61,6 +61,7 @@ jobs:
           FIB_ALERT_TFS: ${{ vars.FIB_ALERT_TFS }}
           FIB_ALERT_MAX: ${{ vars.FIB_ALERT_MAX }}
           FIB_ALERT_TOP: ${{ vars.FIB_ALERT_TOP }}
+          BYBIT_MULT: ${{ vars.BYBIT_MULT }} # Bybit çarpanlı sözleşme düzeltmeleri (JSON; boş = yerleşik liste)
           FIB_ALERT_MIN_SCORE: ${{ vars.FIB_ALERT_MIN_SCORE }}
           MIN_SCORE: ${{ vars.MIN_SCORE }}
           REQUIRE_MTF: ${{ vars.REQUIRE_MTF }}
