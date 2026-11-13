@@ -50,8 +50,8 @@ import { dailyTrendAt } from '../src/scan/regime.js';
 import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
 import { atr as atrOf } from '../src/data/indicators.js';
 
-// Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). MODEL_MIN_PROB=0 kapatır,
-// >0 eşiği ezer; tanımsızsa modelin kendi eşiği.
+// Öğrenilen puan modeli (backtest/learn.mjs kabul ettiyse src/scan/learned.json vardır). Yalnız MODEL_MIN_PROB > 0 verilirse
+// uygulanır (tanımsız / 0 = kapalı; modelin önerdiği eşik logda yazar).
 const MODEL = (() => { try { return JSON.parse(fs.readFileSync('src/scan/learned.json', 'utf8')); } catch { return null; } })();
 
 const env = (k, d) => (process.env[k] != null && process.env[k] !== '' ? process.env[k] : d);
@@ -112,7 +112,9 @@ const CFG = {
   regimeStateFile: env('REGIME_STATE_FILE', 'bot/regime-state.json'),
   agentPublishDir: env('AGENT_PUBLISH_DIR', 'docs/agent'),
   historyFile: env('HISTORY_FILE', 'docs/signals/history.json'),
-  modelMinProb: env('MODEL_MIN_PROB', '') === '' ? (MODEL?.threshold ?? 0) : +env('MODEL_MIN_PROB', 0),
+  // Yalnız açıkça verilirse uygulanır (13.11): eskiden boşken modelin kendi eşiği devreye giriyordu → backtest bir model kabul edip
+  // learned.json'u commit'lerse bot Variables bayrağı olmadan sinyal elemeye başlardı ("canlı değişiklik = bayrak, varsayılan kapalı").
+  modelMinProb: +env('MODEL_MIN_PROB', 0) || 0,
 };
 /** Plana model olasılığı ekler; eşik altındaysa false döner. */
 function modelGate(plan, row, allRows) {
@@ -343,7 +345,7 @@ async function main() {
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     cands.push(plan);
   }
-  if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
+  if (MODEL) log(`Öğrenilen model ${CFG.modelMinProb > 0 ? `aktif (eşik ${CFG.modelMinProb})` : `var ama KAPALI (önerilen eşik ${MODEL.threshold ?? '–'}; açmak için MODEL_MIN_PROB)`}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)}`);
   state.lastRejects = rejects; // denetçi için
   // Aktif kural imzası: değişince zaman damgası (denetçi eski/yeni rejimi ayırır)
   const ruleSig = JSON.stringify({ tfs: CFG.tfs, rules: CFG.tfs.map((tf) => fmtRule(ruleFor(tf, 'long')) + '|' + fmtRule(ruleFor(tf, 'short'))), earlyTp: CFG.earlyTp, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
