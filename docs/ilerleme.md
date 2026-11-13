@@ -6,7 +6,7 @@ Kaynak: kullanıcının 13.11 isteği. Her adım bitince [x] işaretlenir; yeni 
 - [x] `AGENT_SOURCE=signals` Variables'ta açıldı (kullanıcı, 13.11). Ajanlar Telegram'ın 4H canlı kurallarından geçen
   long + short planları + ölçülmüş Donchian adaylarını görür. BTC rejim kısıtı yalnız Donchian'da; sinyallerde yok →
   BTC düşüşteyken de short adaylar gelir.
-- [ ] İlk turun Actions logunda "Ajan adayları (canlı sinyal kuralları + ölçülmüş)" satırını doğrula.
+- [x] (13.11 08:15 koşusu: satır var, o turda uygun sinyal yoktu → "yok") İlk turun Actions logunda "Ajan adayları (canlı sinyal kuralları + ölçülmüş)" satırını doğrula.
 
 ## 1. Sinyal sayfası: kural kitabı (`signals.html`)
 - [x] Katlanır "📖 Kural kitabı" bölümü (13.11; etkin kural metni review.json `metrics.rules.label`'dan canlı): sinyalin nasıl doğduğu (tarama → kümeleme → puan), canlı filtreler (4H, puan eşiği,
@@ -22,14 +22,14 @@ Kaynak: kullanıcının 13.11 isteği. Her adım bitince [x] işaretlenir; yeni 
   Varsayılan canlı düzen (26.10'dan beri). Uyarı: n < 30 sonuçsuz; çok yapı arasından seçim = iyimserlik.
 - [ ] İsteğe bağlı: aynı kırılım 12 ay plan verisi (sweep) üzerinden — `plan.signals` gruplarına göre (ayrı iş).
 
-## 3. Ajanları (SIRADAKİ — yeni sohbette başla) yeni sistemle sıfırlama + karşılaştırma
-- [ ] `AGENT_RESET=<etiket>` (ör. 2026-11-13): etiket durumdakinden farklıysa yayınlanan hesaplar
+## 3. Ajanları yeni sistemle sıfırlama + karşılaştırma
+- [x] (13.11 kodlandı; **kullanıcı Variables'a AGENT_RESET=2026-11-13 ekleyecek**) `AGENT_RESET=<etiket>` (ör. 2026-11-13): etiket durumdakinden farklıysa yayınlanan hesaplar
   `docs/agent/archive/<etiket>/` altına arşivlenir, özsermaye 300 $'a, işlemler/pozisyonlar sıfırlanır; **dersler (lessons)
   ve parametreler korunur** (öğrenme sürsün). Varsayılan kapalı; kullanıcı Variables'tan açar.
-- [ ] Her ajan işlemine kaynak sinyal kimliği (signal id / key) yaz → sinyal sayfasında "Ajan vs sinyal" karşılaştırması:
+- [x] (13.11; `signalKey`, `agentVsSignal`, sayfada "Ajan vs sinyal") Her ajan işlemine kaynak sinyal kimliği (signal id / key) yaz → sinyal sayfasında "Ajan vs sinyal" karşılaştırması:
   aynı sinyallerde ajanın R'si ile botun planının R'si; ajanın atladığı sinyallerin R'si (seçim değeri).
-- [ ] Karar ölçütü (kullanıcıyla): ~30 ajan işleminden sonra ajan ort. R > sinyal ort. R değilse ajanlar kapatılır ya da
-  yönetim kuralları tartışılır.
+- [x] Karar ölçütü (kullanıcı onayı 13.11): ~30 ajan işleminden sonra ajan ort. R > sinyal ort. R değilse **önce iyileştirme
+  potansiyeli birlikte tartışılır** (yönetim mi seçim mi kaybettiriyor, hangi kural/parametre düzeltilebilir); potansiyel yoksa ajanlar kapatılır.
 
 ## Notlar
 - Bağlam sınırı: bu dosya yeni sohbetin başlangıç noktası. "Devam edelim" → DURUM.md + bu dosya.

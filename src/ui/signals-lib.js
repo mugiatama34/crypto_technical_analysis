@@ -73,3 +73,32 @@ export function familyStats(items, split = () => null) {
   const fin = (o) => ({ n: o.n, win: o.n ? o.w / o.n : null, avgR: o.n ? o.sum / o.n : null });
   return [...m.values()].map((e) => ({ family: e.family, all: fin(e.all), parts: Object.fromEntries(Object.entries(e.parts).map(([k, v]) => [k, fin(v)])) })).sort((a, b) => b.all.n - a.all.n);
 }
+
+// ---- Ajan vs sinyal (ilerleme.md §3): aynı sinyallerde ajanın R'si ile botun planının R'si ----
+/**
+ * trades: ajan işlemleri (signalKey'li), items: history.json sinyalleri, since: karşılaştırma başlangıcı (ms; ör. resetAt).
+ * Eşleşme: işlemin signalKey'i = sinyalin key'i ve sentAt ≤ openedAt (+1 sa) olan en yeni gönderim.
+ * → { taken:{n, agentR, signalR, signalN}, skipped:{n, avgR}, agentOnly:{n, avgR}, rows:[{coin, tf, direction, agentR, signalR}] }
+ */
+export function agentVsSignal(trades, items, since = 0) {
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  const sigs = items.filter((s) => (s.sentAt || 0) >= since);
+  const byKey = new Map();
+  for (const s of sigs) { if (!byKey.has(s.key)) byKey.set(s.key, []); byKey.get(s.key).push(s); }
+  const own = trades.filter((t) => !t.hedgeOf && (t.openedAt || t.closedAt || 0) >= since);
+  const used = new Set(), rows = [], onlyR = [];
+  for (const t of own) {
+    const cand = (byKey.get(t.signalKey) || []).filter((s) => s.sentAt <= (t.openedAt || t.closedAt) + 3600e3).sort((a, b) => b.sentAt - a.sentAt)[0];
+    if (!t.signalKey || !cand) { onlyR.push(t.R); continue; }
+    used.add(cand.id);
+    rows.push({ coin: t.coin, tf: t.tf, direction: t.direction, agentR: t.R, signalR: finalR(cand), signalStatus: cand.status, at: t.openedAt });
+  }
+  const skippedR = sigs.filter((s) => !used.has(s.id) && TRADED.has(s.status)).map(finalR).filter((r) => r != null);
+  const sR = rows.map((r) => r.signalR).filter((r) => r != null);
+  return {
+    taken: { n: rows.length, agentR: avg(rows.map((r) => r.agentR)), signalR: avg(sR), signalN: sR.length },
+    skipped: { n: skippedR.length, avgR: avg(skippedR) },
+    agentOnly: { n: onlyR.length, avgR: avg(onlyR) },
+    rows,
+  };
+}

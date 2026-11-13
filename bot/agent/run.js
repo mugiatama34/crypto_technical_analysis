@@ -17,6 +17,30 @@ export function loadAgents(file, now) {
 }
 export function saveAgents(file, st) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(st)); }
 
+/**
+ * AGENT_RESET=<etiket>: etiket hesaptakinden farklıysa sıfırla. Özsermaye/işlemler/pozisyonlar/emirler/eğri başa döner;
+ * dersler (lessons), parametreler ve geçmişleri, günlük (journal) korunur — öğrenme sürer. Önceki etiketler `resets`'te.
+ */
+export function resetAccount(acct, profile, label, now) {
+  const fresh = newAccount(profile, now);
+  const prev = { label: acct.resetLabel || null, at: now, equity: r2(acct.equity), trades: acct.trades.length, stats: statsOf(acct) };
+  const keep = { lessons: acct.lessons || [], params: acct.params || fresh.params, paramsHistory: [...(acct.paramsHistory || []), { at: now, params: acct.params || fresh.params, reason: `sıfırlama (${label}): özsermaye ${profile.startEquity} USDT'ye döndü, dersler korundu` }], journal: acct.journal || [], resets: [...(acct.resets || []), prev] };
+  for (const k of Object.keys(acct)) delete acct[k];
+  Object.assign(acct, fresh, keep, { resetLabel: label, resetAt: now });
+  return prev;
+}
+export const safeLabel = (l) => String(l).replace(/[^\w.-]/g, '_').replace(/^\.+/, '_').slice(0, 40);
+export const needsReset = (acct, label) => !!label && acct.resetLabel !== label;
+
+/** Sıfırlama öncesi yayın biçiminde tam kopya (tüm işlemler) → <dir>/<profil>.json. */
+export function archiveAccount(acct, dir) {
+  fs.mkdirSync(dir, { recursive: true });
+  const f = path.join(dir, `${acct.profile}.json`);
+  if (fs.existsSync(f)) return false; // aynı etiketle ikinci kez: ilk arşivi koru
+  fs.writeFileSync(f, JSON.stringify({ ...acct, stats: statsOf(acct), archivedAt: Date.now() }));
+  return true;
+}
+
 /** Yayın dosyası (sayfa için): son 100 işlem, eğri, dersler, parametre geçmişi. */
 export function publish(acct, dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -55,6 +79,16 @@ export async function runAgents(ctx) {
   for (const r of ctx.rows) { if (r.error || r.tf !== ctx.trackTf) continue; candlesByCoin[r.coin] = r.live ? [...r.candles, r.live] : r.candles; }
   for (const id of Object.keys(PROFILES)) {
     const profile = PROFILES[id], acct = st[id];
+    if (needsReset(acct, cfg.reset)) {
+      const label = safeLabel(cfg.reset);
+      if (!acct.trades.length && !acct.positions.length && !acct.orders.length) { acct.resetLabel = cfg.reset; acct.resetAt = now; } // boş hesap (ör. önbellek kaybı): yalnız etiketle, arşivi ezme
+      else {
+        if (!cfg.dry) archiveAccount(acct, path.join(ctx.publishDir, 'archive', label));
+        const prev = resetAccount(acct, profile, cfg.reset, now);
+        log(`  ajan ${id}: sıfırlandı (${label}) — önceki özsermaye ${prev.equity} USDT, ${prev.trades} işlem arşivlendi; ${acct.lessons.length} ders korundu`);
+        await notify(`🤖 <b>Ajan [${esc(acct.label)}] sıfırlandı</b> (${esc(label)})\nÖnceki: özsermaye ${fp(prev.equity)} USDT · ${prev.trades} işlem · ort ${prev.stats.avgR}R → arşiv\nYeni başlangıç ${fp(acct.equity)} USDT · ${acct.lessons.length} ders ve parametreler korundu`);
+      }
+    }
     Object.defineProperty(acct, '_btcPrice', { value: ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null, enumerable: false, configurable: true, writable: true }); // kapanış kayıtları için (yayınlanmaz)
     // 1) Güncelle
     const btcPx = ctx.market?.btcPrice ?? ctx.prices?.BTC ?? null;
@@ -86,7 +120,7 @@ export async function runAgents(ctx) {
             const cand = cands.find((p) => p.coin === a.coin) || null;
             const price = ctx.prices[a.coin];
             if (!price) { log(`  ajan ${id}: ${a.coin} fiyat yok, atlandı`); continue; }
-            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
+            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', signalKey: cand?.key ?? null, btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
             if (!res.ok) { log(`  ajan ${id}: ${a.coin} açılmadı — ${res.reason}`); acct.notes.push({ at: now, text: `${a.coin} ${a.direction} reddedildi: ${res.reason}` }); continue; }
             await notify(fmtOpen(acct, res.position, res.order, res.hedgeLeg));
           } else if (a.type === 'close') {

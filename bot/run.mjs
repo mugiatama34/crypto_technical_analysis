@@ -19,6 +19,7 @@
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
+//   AGENT_RESET=<etiket> (ör. 2026-11-13): etiket değişince ajan hesapları arşivlenir (docs/agent/archive/<etiket>/) ve 300 $'a sıfırlanır; dersler/parametreler korunur
 //   AGENT_SOURCE=all|measured|signals (measured: yalnız ölçülmüş kural adayları; signals: Telegram'ın canlı kurallarından geçen planlar, long + short, + ölçülmüş adaylar)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
@@ -83,6 +84,7 @@ const CFG = {
   // Ajan aday kaynağı: all (bot kural motoru adayları, eski) | measured (yalnız ölçülmüş kenarlı kurallar: rejim-Donchian). measured'da
   // aday yoksa ve açık pozisyon yoksa Claude çağrılmaz (maliyet ≈ 0).
   agentSource: env('AGENT_SOURCE', 'all'),
+  agentReset: env('AGENT_RESET', ''),
   agentMinScore: +env('AGENT_MIN_SCORE', 60),
   agentStateFile: env('AGENT_STATE_FILE', 'bot/agent-state.json'),
   momentum: env('MOMENTUM', '0') === '1', // haftalık kesitsel momentum kâğıt portföyü (bot/momentum)
@@ -426,7 +428,7 @@ async function main() {
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
+      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, cfg: { dry: CFG.dry, reset: CFG.agentReset, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
     } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)

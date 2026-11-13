@@ -53,7 +53,7 @@
   <footer><strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
 <script type="module">
-import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen, familyStats } from './src/ui/signals-lib.js';
+import { CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen, familyStats, agentVsSignal } from './src/ui/signals-lib.js';
 import { okxGet } from './src/data/okx.js';
 import { parseClosedPnl, dailyTrades } from './src/trades/bybit.js';
 import { bybitOf, bybitPx } from './src/data/bybit-symbols.js';
@@ -183,6 +183,16 @@ function renderFam() {
   document.querySelector('#fScope').addEventListener('change', (e) => { famScope = e.target.value; renderFam(); });
   document.querySelector('#fSplit').addEventListener('change', (e) => { famSplit = e.target.value; renderFam(); });
 }
+async function renderAvs() {
+  const accts = [];
+  for (const id of ['temkinli', 'agresif']) { try { const r = await fetch(`docs/agent/${id}.json`, { cache: 'no-store' }); if (r.ok) accts.push(await r.json()); } catch { /* yok */ } }
+  if (!accts.length) { document.querySelector('#avs').innerHTML = '<p class="empty">Ajan hesabı okunamadı.</p>'; return; }
+  const v = (x, d = 2) => (x == null ? '–' : sgn(x, d));
+  const rows = accts.map((a) => { const since = a.resetAt || LIVE_FROM; const c = agentVsSignal(a.trades || [], items, since); return { a, since, c }; });
+  document.querySelector('#avs').innerHTML = `<div class="tablewrap"><table class="grid"><thead><tr><th>Ajan</th><th>Başlangıç</th><th>Aynı sinyalde (n)</th><th>Ajan ort. R</th><th>Botun planı ort. R</th><th>Ajanın atladığı (n)</th><th>Atlananların ort. R</th><th>Sinyal dışı (n)</th><th>Ort. R</th></tr></thead>
+    <tbody>${rows.map(({ a, since, c }) => `<tr><td>${esc(a.label)}</td><td>${dt(since)}${a.resetLabel ? ` <span class="note">(${esc(a.resetLabel)})</span>` : ''}</td><td>${c.taken.n}</td><td class="${cls(c.taken.agentR)}">${v(c.taken.agentR)}</td><td class="${cls(c.taken.signalR)}">${v(c.taken.signalR)}${c.taken.signalN < c.taken.n ? ` <span class="note">(${c.taken.signalN} kapandı)</span>` : ''}</td><td>${c.skipped.n}</td><td class="${cls(c.skipped.avgR)}">${v(c.skipped.avgR)}</td><td>${c.agentOnly.n}</td><td class="${cls(c.agentOnly.avgR)}">${v(c.agentOnly.avgR)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">Ajan Telegram sinyalini aldıysa (AGENT_SOURCE=signals, işlemde sinyal anahtarı) aynı sinyalde ajanın R'si ile botun planının R'si yan yana: fark = ajanın <b>yönetim</b> değeri. Atladığı kapanmış sinyallerin R'si <b>seçim</b> değerini gösterir (atlananlar eksideyse seçim iyi). "Sinyal dışı" = ölçülmüş Donchian ya da anahtarsız eski işlemler. Ajan R'si ücret + kayma dahil; botun R'si sayfanın sonuç kuralıyla (ücretsiz). Karar ölçütü: ~30 ajan işleminden sonra ajan ort. R &gt; sinyal ort. R değilse ajanlar kapatılır ya da kuralları tartışılır. n &lt; 30 sonuçsuz.</p>`;
+}
 async function renderRules() {
   let rv = null; try { const r = await fetch('docs/agent/review.json', { cache: 'no-store' }); if (r.ok) rv = await r.json(); } catch { /* yok */ }
   const m = rv?.latest?.metrics?.rules || rv?.reports?.[0]?.metrics?.rules, cur = m?.currentRules;
@@ -212,6 +222,7 @@ async function main() {
     <section><h2>R takvimi</h2><p class="note">Bot sinyalleri ya da kendi Bybit işlemlerin; ☁ bulut kaydı açıksa işlemlerin tüm cihazlarında görünür.</p><div id="cal"></div></section>
     <section><h2>Son kapananlar</h2><div id="recent"></div></section>
     <section><h2>Analiz yöntemleri</h2><div id="fam"></div></section>
+    <section><h2>Ajan vs sinyal</h2><div id="avs"><p class="empty">Yükleniyor…</p></div></section>
     <details id="rules"><summary>📖 Kural kitabı: sinyal neye göre veriliyor?</summary><div id="rulesBody"><p class="empty">Yükleniyor…</p></div></details>
     <details><summary>İstatistik kırılımları (TF, yön, BTC, ay)</summary>
     <section><h2>Zaman dilimi</h2><div class="tablewrap"><table class="grid">${head}<tbody>${by(items, (x) => x.tf)}</tbody></table></div></section>
@@ -232,7 +243,7 @@ async function main() {
   document.querySelector('#fQ').addEventListener('input', () => { page = 0; renderList(); });
   renderList();
   const now = new Date(); calY = now.getUTCFullYear(); calM = now.getUTCMonth();
-  renderOpen(); renderCal(); renderRecent(); renderFam(); renderRules(); loadPrices(); setInterval(loadPrices, 60e3);
+  renderOpen(); renderCal(); renderRecent(); renderFam(); renderAvs(); renderRules(); loadPrices(); setInterval(loadPrices, 60e3);
 }
 main();
 </script>

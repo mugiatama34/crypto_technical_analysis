@@ -549,6 +549,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   TF'ler, puan eşiği, MTF, hafta sonu yok, yalnız limit, üst TF yönü; long + short; bekleme süresi hariç → kurulum geçerli kaldıkça
   görünür) + ölçülmüş kural adaylarını (rejim-Donchian) görür; coin başına tek, en fazla 10 (`mergeAgentCands`, test: `tests/bot.test.js`).
   `measured` yalnız ölçülmüş kural, `all` eski gevşek liste (15m/1H/4H, eşik 60, MTF yok).
+- **Ajan sıfırlama `AGENT_RESET=<etiket>` (13.11)**: etiket hesaptakinden farklıysa ajan hesapları önce `docs/agent/archive/<etiket>/` altına tam olarak arşivlenir, sonra 300 $'a döner (işlem/pozisyon/emir/eğri sıfır); **dersler, parametreler ve günlük korunur**. Bir kez çalışır (etiket durumda saklanır); boş hesap yalnız etiketlenir, var olan arşiv ezilmez. Ajan işlemleri kaynak sinyalin anahtarını (`signalKey`) taşır → `signals.html` "Ajan vs sinyal" tablosu: aynı sinyalde ajan R / botun planı R (yönetim değeri), ajanın atladığı kapanmış sinyallerin R'si (seçim değeri), sinyal dışı işlemler. Test: `tests/agent-reset.test.js`.
 - **Bybit çarpanlı sözleşmeler (`src/data/bybit-symbols.js`, 11.11)**: PEPE/SHIB/BONK gibi küçük fiyatlı coinler Bybit'te
   `1000PEPEUSDT`, `SHIB1000USDT`… olarak işlem görür. Telegram sinyal/takip/fib mesajlarına ve sinyal sayfası kartlarına
   "Bybit <sembol> (fiyat ×1000)" satırı eklenir: giriş/stop/erken/TP'ler OKX ham fiyatından 6 anlamlı haneyle (yuvarlanmış metinden
