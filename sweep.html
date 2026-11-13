@@ -23,14 +23,16 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <div><h1>Parametre taraması</h1><p class="sub" id="sub">Aynı planlar, farklı çıkış/giriş/filtre kuralları. Sıralama doğrulama dilimine (son 1/3) göre.</p></div>
+    <div><h1>Parametre taraması</h1><p class="sub" id="sub">Aynı planlar, farklı çıkış/giriş/filtre kuralları. Sıralama: önce gerçekçi dolum mumu satırları, sonra iyimserler; her grupta doğrulama dilimine (son 1/3) göre.</p></div>
     <nav class="nav"><a href="backtest.html">← Backtest</a><a href="lab.html">Laboratuvar</a><a href="index.html">Tarayıcı</a></nav>
   </header>
-  <p class="note">Eğitim dilimi (ilk 2/3) seçim için, <b>doğrulama dilimi</b> (son 1/3) karar için. Eğitimde iyi görünüp doğrulamada çöken ayarlar aşırı uyumdur. Birleşimler (koyu) eğitimdeki en iyi 4 tek değişikliğin kombinasyonlarıdır.</p>
+  <p class="note">Eğitim dilimi (ilk 2/3) seçim için, <b>doğrulama dilimi</b> (son 1/3) karar için. Eğitimde iyi görünüp doğrulamada çöken ayarlar aşırı uyumdur. Birleşimler (koyu) eğitimdeki en iyi 4 tek değişikliğin kombinasyonlarıdır. <span class="badge opt">iyimser dolum mumu</span> rozetli (soluk) satırlarda limit dolduğu mumda hedef görülünce "önce dolum, sonra hedef" sayılmıştır: sıkı ölçüt dışıdır. "sonuçsuz" = dilimde n &lt; 100.</p>
   <div id="root"><p class="empty">Yükleniyor…</p></div>
   <footer>Komisyon ve kayma backtest ayarlarıyla aynı. <strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
 <script type="module">
+import { rWithCi, ciNote, measureBadges, rowClass, strictSummary, MEASURE_CSS } from './src/ui/measure.js';
+document.head.insertAdjacentHTML('beforeend', `<style>${MEASURE_CSS}</style>`);
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
 const pct = (x) => `%${fmt(x * 100, 0)}`;
 const cls = (x) => (x > 0 ? 'pos' : x < 0 ? 'neg' : '');
@@ -41,12 +43,13 @@ async function main() {
   catch (err) { document.querySelector('#root').innerHTML = `<p class="empty">Henüz tarama yok (${esc(err.message)}). Actions → backtest → mode: sweep.</p>`; return; }
   document.querySelector('#sub').textContent = `${r.meta.plans} plan · bölünme ${new Date(r.meta.split).toLocaleDateString('tr-TR')} · ${new Date(r.meta.sweepAt).toLocaleString('tr-TR')} · ${r.meta.elapsedSec} sn`;
   const b = r.base;
-  const row = (v) => `<tr class="${v === b || v.name === b.name ? 'base' : ''} ${v.combo ? 'combo' : ''}"><td>${esc(v.name)}</td>
-    <td>${v.train.n}</td><td>${pct(v.train.winRate)}</td><td class="${cls(v.train.avgR)}">${fmt(v.train.avgR, 3)}</td><td>${fmt(v.train.profitFactor)}</td>
-    <td>${v.valid.n}</td><td>${pct(v.valid.winRate)}</td><td class="${cls(v.valid.avgR)}">${fmt(v.valid.avgR, 3)}</td><td class="${cls(v.valid.totalR)}">${fmt(v.valid.totalR, 1)}</td><td>${fmt(v.valid.profitFactor)}</td><td>${fmt(v.valid.maxDD, 1)}</td>
+  const ho = (v) => (v.hedgedOpen?.valid?.n ? `<br><small class="ci" title="BTC bacağı dolum mumunun açılışından (hedgedOpen)">açılıştan ${fmt(v.hedgedOpen.valid.avgR, 3)}</small>` : '');
+  const row = (v) => `<tr class="${v === b || v.name === b.name ? 'base' : ''} ${v.combo ? 'combo' : ''} ${rowClass(v)}"><td>${esc(v.name)}${measureBadges(v)}</td>
+    <td>${v.train.n}</td><td>${pct(v.train.winRate)}</td><td class="${cls(v.train.avgR)}">${rWithCi(v.train)}</td><td>${fmt(v.train.profitFactor)}</td>
+    <td>${v.valid.n}</td><td>${pct(v.valid.winRate)}</td><td class="${cls(v.valid.avgR)}">${rWithCi(v.valid)}</td><td class="${cls(v.valid.totalR)}">${fmt(v.valid.totalR, 1)}</td><td>${fmt(v.valid.profitFactor)}</td><td>${fmt(v.valid.maxDD, 1)}</td>
     <td class="${cls(v.valid.avgR - b.valid.avgR)}">${fmt(v.valid.avgR - b.valid.avgR, 3)}</td>
-    <td class="${cls(v.hedged?.train?.avgR)}">${v.hedged ? fmt(v.hedged.train.avgR, 3) : '–'}</td><td class="${cls(v.hedged?.valid?.avgR)}">${v.hedged ? fmt(v.hedged.valid.avgR, 3) : '–'}</td><td>${v.btcCorr?.valid != null ? fmt(v.btcCorr.valid, 2) : '–'}</td></tr>`;
-  document.querySelector('#root').innerHTML = `<section><div class="tablewrap"><table class="grid"><thead><tr><th>Ayar</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th><th>Δ temel (doğr.)</th><th title="Eşit nominal ters BTC ile (piyasa-nötr)">Hedge'li eğit. R</th><th>Hedge'li doğr. R</th><th title="R ile işlem yönündeki BTC getirisinin korelasyonu (doğrulama)">BTC r</th></tr></thead><tbody>${[b, ...r.results.filter((v) => v.name !== b.name)].map(row).join('')}</tbody></table></div></section>${approachTable(b.byApproach)}${splitTable('Seans (giriş saati)', 'Seans saatleri UTC; Türkiye UTC+3. Plan saatine göre filtreler üstteki tabloda (hafta sonu hariç, NY hariç, yalnız Asya+Avrupa).', b.bySession)}${splitTable('Hafta içi / hafta sonu', '', b.byWeekpart)}${splitTable('Üst zaman dilimi eğilimi (coin\'in kendi 1H/4H/1D trendi)', 'Karar anında kapanmış üst TF mumlarıyla (EMA50 tarafı + eğimi + ADX/DI). Filtre satırları üstteki tabloda: "üst TF eğilimi aynı yön" ve "ters değil".', b.byHtfTrend)}${tfTable(r.results)}${splitTable('TP1\'e ulaşma süresi (dolumdan mum)', 'Temel kurallar. "TP1 yok" satırı stop/süre dolumuyla biten işlemler; zaman stopu satırları üstteki tabloda.', b.byTp1Time)}`;
+    <td class="${cls(v.hedged?.train?.avgR)}">${v.hedged ? fmt(v.hedged.train.avgR, 3) : '–'}</td><td class="${cls(v.hedged?.valid?.avgR)}">${v.hedged ? `${fmt(v.hedged.valid.avgR, 3)}${ciNote(v.hedged.valid)}${ho(v)}` : '–'}</td><td>${v.btcCorr?.valid != null ? fmt(v.btcCorr.valid, 2) : '–'}</td></tr>`;
+  document.querySelector('#root').innerHTML = `${strictSummary(r)}<section><div class="tablewrap"><table class="grid"><thead><tr><th>Ayar</th><th>Eğit. n</th><th>Eğit. kazanma</th><th>Eğit. ort R</th><th>Eğit. PF</th><th>Doğr. n</th><th>Doğr. kazanma</th><th>Doğr. ort R</th><th>Doğr. toplam R</th><th>Doğr. PF</th><th>Doğr. DD</th><th>Δ temel (doğr.)</th><th title="Eşit nominal ters BTC ile (piyasa-nötr)">Hedge'li eğit. R</th><th>Hedge'li doğr. R</th><th title="R ile işlem yönündeki BTC getirisinin korelasyonu (doğrulama)">BTC r</th></tr></thead><tbody>${[b, ...r.results.filter((v) => v.name !== b.name)].map(row).join('')}</tbody></table></div></section>${approachTable(b.byApproach)}${splitTable('Seans (giriş saati)', 'Seans saatleri UTC; Türkiye UTC+3. Plan saatine göre filtreler üstteki tabloda (hafta sonu hariç, NY hariç, yalnız Asya+Avrupa).', b.bySession)}${splitTable('Hafta içi / hafta sonu', '', b.byWeekpart)}${splitTable('Üst zaman dilimi eğilimi (coin\'in kendi 1H/4H/1D trendi)', 'Karar anında kapanmış üst TF mumlarıyla (EMA50 tarafı + eğimi + ADX/DI). Filtre satırları üstteki tabloda: "üst TF eğilimi aynı yön" ve "ters değil".', b.byHtfTrend)}${tfTable(r.results)}${splitTable('TP1\'e ulaşma süresi (dolumdan mum)', 'Temel kurallar. "TP1 yok" satırı stop/süre dolumuyla biten işlemler; zaman stopu satırları üstteki tabloda.', b.byTp1Time)}`;
 }
 // Hedefli birleşimlerin TF kırılımı: normal ve hedge'li R
 function tfTable(list) {

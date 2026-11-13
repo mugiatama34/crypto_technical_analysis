@@ -36,6 +36,9 @@ export const BT_DEFAULTS = {
   // alt mumlarda stop görülmeden hedef görülürse sayılır; dolumun alt mumunda stop varsa stop)
   fillBarTp: 'count',
   lowerCandles: null,
+  // Fonlama (13.11): 8 saatlik oran, % (ör. 0.01). Varsayılan 0 = fonlama yok (tarama sayıları değişmez); lab --funding verir.
+  // İşaret kuralı lab/xsmom.js ile aynı: oranın yönü bilinmediği için İHTİYATLI olarak iki yönde de MALİYET (long da short da öder).
+  fundingPct8h: 0,
   timeStop: null, // zaman stopu { bars, minMfeR }: dolumdan bars mum içinde TP1 yoksa (ve MFE < minMfeR) kapanıştan çık
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
@@ -189,7 +192,12 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   }
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
   R -= feeR;
-  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone };
+  // Fonlama: tüm pozisyon dolum mumundan çıkış mumuna kadar (her iki uç mum tam sayılır: (exitI − fillI + 1) × TF) açık
+  // varsayılır → ihtiyatlı üst sınır (kısmi çıkıştan sonra azalan adet hesaba katılmaz). R'ye çevirme: oran × (süre / 8 saat) ×
+  // giriş / risk (fiyat yüzdesi stop uzaklığına bölünür; xsmom.js'teki ret / risk ile aynı). Oran 0 ise alan yazılmaz.
+  let fundingR = null;
+  if (o.fundingPct8h > 0) { fundingR = +(((o.fundingPct8h / 100) * (((exitI - fillI + 1) * ms) / (8 * 3600e3)) * entry) / risk).toFixed(4); R -= fundingR; }
+  return { outcome, R: +R.toFixed(3), mfe: +mfe.toFixed(2), mae: +mae.toFixed(2), bars: exitI - fillI, tp1Bars, waitBars: fillI - from + 1, entryFill: +entry.toPrecision(6), approachAtr: appr?.approachAtr ?? null, fillBarAtr: appr?.fillBarAtr ?? null, confirmed: mkt && !plan.inZone, ...(fundingR != null ? { fundingR } : {}) };
 }
 
 /** plans.json.gz'ye yazılan plan: sinyaller kısaltılmış (yalnız ad/grup/detektör/yön/güç/durum/bölge/not). */

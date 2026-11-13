@@ -186,3 +186,27 @@ export const btcTsmom4h = mkTsmom('btc_tsmom_4h', '4H', 100);
 
 export const STRATEGIES = [btcTsmom1h, btcTsmom4h, donchian, donchian4hLong, donchian4hLongHtf, donchian4hLongBtc, meanrev, meanrevLong, meanrev4hLong, sweepReclaim, engineWide, engineWide4h, engineWide4hLong, engineWide4hLongBtc, endingDiagonal, endingDiagonalWide, leadingDiagonal, zigzagC, expandedFlatC, zigzagC1hShort, expandedFlatCWide, fibClusterC, fibClusterCStrict, fibClusterG, fibClusterGP0, fibClusterGLtf, fibClusterGP0Ltf, fibClusterGLtfT1, fibClusterGLtfT16, fibClusterGP0LtfT1, fibClusterGP0LtfT16, fibClusterGLtfBtc, fibClusterGLtfT16Btc, ...SMC_STRATEGIES, ...DIV_STRATEGIES, ...W3_STRATEGIES, ...CHAN_STRATEGIES, ...RANGE_STRATEGIES, ...FIBSCAN_STRATEGIES, ...XS_STRATEGIES];
 export const STRATEGY_MAP = Object.fromEntries(STRATEGIES.map((s) => [s.id, s]));
+
+/**
+ * Varsayılan koşudan çıkan aileler (13.11): ölçülüp sıkı ölçütte kenar vermediği kayıtlı olanlar (CLAUDE.md "Kısa bulgu özeti",
+ * docs/DURUM-arsiv.md tabloları). SİLİNMEZ: `--strategies id1,id2` ile tek tek, `--strategies all` ile hepsi koşar.
+ * Varsayılanda kalan: BTC/ETH trend takibi (btc_tsmom_*, kayıtlı ret yok), Donchian ailesi (rejim seçicinin tek sağlam hücresi
+ * "G↑ · şok↑ devam · long · donchian", REGIME_DONCHIAN dayanağı) ve momentum portföyleri (xsmom_*; canlı MOMENTUM).
+ */
+export const DEFAULT_OFF = new Set([
+  // ortalamaya dönüş, eşit dip/tepe süpürmesi, mevcut motor kontrolü: "kenar yok, BTC bağımlı" (arşiv 119–120)
+  'meanrev', 'meanrev_long', 'meanrev_4h_long', 'sweep_reclaim', 'engine_wide', 'engine_wide_4h', 'engine_wide_4h_long', 'engine_wide_4h_long_btc',
+  // diyagonal (arşiv 293–295), zigzag / genişleyen flat (arşiv 119)
+  'ending_diagonal', 'ending_diagonal_wide', 'leading_diagonal', 'zigzag_c', 'expanded_flat_c', 'zigzag_c_1h_short', 'expanded_flat_c_wide',
+  // fib kesişimi varyantları (arşiv 110–111, 353, 400–401)
+  'fib_cluster_c', 'fib_cluster_c_strict', 'fib_cluster_g', 'fib_cluster_g_p0', 'fib_cluster_g_ltf', 'fib_cluster_g_p0_ltf', 'fib_cluster_g_ltf_t1',
+  'fib_cluster_g_ltf_t16', 'fib_cluster_g_p0_ltf_t1', 'fib_cluster_g_p0_ltf_t16', 'fib_cluster_g_ltf_btc', 'fib_cluster_g_ltf_t16_btc',
+  // SMC süpürme → MSS → FVG (arşiv 112–113), uyumsuzluk (arşiv 171–177), 3. dalga bölgesi (arşiv 236–243)
+  'sweep_mss_fvg', 'sweep_mss_fvg_htf', 'sweep_mss_fvg_btc', 'sweep_mss_fvg_1r',
+  'div_rsi_pivot', 'div_rsi_mss', 'div_rsi_mss_ext', 'div_rsimacd_mss', 'div_rsi_mss_btc',
+  'w3_zone', 'w3_zone_legacy', 'w3_zone_long', 'w3_zone_long_smt', 'w3_zone_long_nosmt', 'w3_zone_tb3', 'w3_zone_tb4', 'w3_zone_tb_low',
+  // kanal + fib (arşiv 349–356), range sapması (arşiv 396), tarayıcı haftalık tekrar oynatma (arşiv 411)
+  'chan_fib_p0', 'chan_fib_pool', 'chan_fib_sweep', 'chan_fib_p0_htf', 'range_dev', 'range_dev_edge', 'range_dev_htf', 'range_dev_wide', 'fib_scan_week',
+]);
+/** Varsayılan koşu listesi (--strategies verilmezse). */
+export const DEFAULT_STRATEGIES = STRATEGIES.filter((s) => !DEFAULT_OFF.has(s.id));
