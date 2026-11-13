@@ -38,3 +38,10 @@ Kaynak: kullanıcının 13.11 isteği. Her adım bitince [x] işaretlenir; yeni 
 Aileler BTC günlük ↓ iken artıda (FVG +0,27, OB/Breaker +0,30, Fib +0,16), BTC günlük ↑ iken çoğu eksi (−0,13…−0,28);
 klasik formasyon her iki durumda eksi (n 10). Aileler aynı sinyallerde birlikte geçtiği için bağımsız değil; n < 30 hücreler
 sonuçsuz. Bu, ileride 12 ay plan verisinde (sweep, `plan.signals` grupları) ölçülmeli.
+
+## 4. Ajan çıkış serbestliği + botla karşılaştırarak öğrenme (13.11)
+- [x] Adım 1: `AGENT_EXIT=1` → ajan kendi çıkış planını seçer (erken hedef/pay, TP1 payı, TP1 sonrası stop, iz), `partial` eylemi.
+- [x] Adım 2: kapanışta `botPlan` (aynı sinyalde bot R) yansımaya; karar ve gözden geçirmeye `vsSignal`.
+- [x] Gözden geçirme: her 10 kapanışta ara (kurallar yalnız önemli bulguda), 30'da tam (kullanıcı isteği).
+- [ ] Kullanıcı Variables'a `AGENT_EXIT=1` ekleyecek.
+- [ ] Adım 3 (sonra): ajanın ek bilgi isteyebilmesi (sınırlı menü, karar başına ≤ 2 istek).

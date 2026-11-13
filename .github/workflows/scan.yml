@@ -80,6 +80,7 @@ jobs:
           AGENT_EVERY_MIN: ${{ vars.AGENT_EVERY_MIN }}
           AGENT_SOURCE: ${{ vars.AGENT_SOURCE }}
           AGENT_RESET: ${{ vars.AGENT_RESET }}
+          AGENT_EXIT: ${{ vars.AGENT_EXIT }}
           SIGNAL_CHART: ${{ vars.SIGNAL_CHART }}
           WEEKLY_REPORT: ${{ vars.WEEKLY_REPORT }}
           AGENT_MIN_SCORE: ${{ vars.AGENT_MIN_SCORE }}

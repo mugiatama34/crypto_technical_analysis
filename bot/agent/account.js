@@ -16,7 +16,7 @@ export function newAccount(profile, now = Date.now()) {
     positions: [], orders: [], trades: [], journal: [], lessons: [], params: { ...profile.params }, paramsHistory: [{ at: now, params: { ...profile.params }, reason: 'başlangıç' }],
     stats: { trades: 0, wins: 0, losses: 0, liquidations: 0, grossProfit: 0, grossLoss: 0, maxEquity: profile.startEquity, maxDD: 0, sumR: 0 },
     curve: [[now, profile.startEquity]], day: { key: dayKey(now), startEquity: profile.startEquity, halted: false },
-    closedSinceReview: 0, lastReview: now, notes: [],
+    closedSinceReview: 0, closedSinceFull: 0, lastReview: now, notes: [],
   };
 }
 
@@ -100,11 +100,32 @@ export function closeOrphanHedges(acct, btcPrice, now) {
   return events;
 }
 
+const ref0 = (req) => (req.order === 'limit' ? +req.limit_price : +req.price);
+/**
+ * Ajanın kendi çıkış planı (AGENT_EXIT=1): { earlyPct (0 = yok), earlyPortion, tp1Portion, afterTp1: entry|early|keep, trailAtr }.
+ * Paylar başlangıç adedine göredir; toplamları en fazla 1. Erken hedef fiyatı girişten earlyPct % lehte (dolumda kesinleşir).
+ */
+export function exitPlanOf(x) {
+  if (!x || typeof x !== 'object') return null;
+  const cl = (v, lo, hi) => Math.max(lo, Math.min(hi, Number.isFinite(+v) ? +v : 0));
+  const earlyPct = cl(x.early_pct ?? x.earlyPct, 0, 10);
+  const earlyPortion = earlyPct > 0 ? cl(x.early_portion ?? x.earlyPortion, 0, 0.9) : 0;
+  const tp1Portion = cl(x.tp1_portion ?? x.tp1Portion ?? 0.5, 0, 1 - earlyPortion);
+  const after = x.after_tp1_stop ?? x.afterTp1;
+  return { earlyPct, earlyPortion, tp1Portion, afterTp1: ['entry', 'early', 'keep'].includes(after) ? after : 'entry', trailAtr: cl(x.trail_atr ?? x.trailAtr, 0, 6) };
+}
+/** Başlangıç adedinin `share`'i kadar kapat (kalan adede oranlanır). */
+function closeShare(acct, pos, share, price, kind, now, events) {
+  const left = pos.qty0 ? pos.qty / pos.qty0 : 1;
+  const portion = left > 0 ? Math.min(1, share / left) : 1;
+  closePart(acct, pos, portion >= 0.999 ? 1 : portion, price, kind, now, events);
+}
+
 /** Pozisyon açar (piyasa) ya da limit emir koyar. */
 export function openPosition(acct, req, now, guards) {
   const c = clampOpen(acct, req, guards, now);
   if (!c.ok) return { ok: false, reason: c.reason };
-  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged, source: req.source || 'scanner', signalKey: req.signalKey ?? null, ...(req.trail ? { trail: req.trail } : {}) };
+  const base = { id: newId(acct.profile), coin: req.coin, tf: req.tf, direction: req.direction, leverage: c.leverage, margin: c.margin, stop: c.stop, tp1: c.tp1, tp2: c.tp2, rationale: req.rationale || '', signals: req.signals || [], notes: c.notes, createdAt: now, beAfterTp1: req.beAfterTp1 !== false, btcAtOpen: req.btcPrice ?? null, hedge: c.hedged, source: req.source || 'scanner', signalKey: req.signalKey ?? null, ...(req.trail ? { trail: req.trail } : {}), ...(req.exit ? { exit: exitPlanOf(req.exit, req.direction, ref0(req)), atrRef: req.atr ?? null } : {}) };
   if (req.order === 'limit') {
     acct.orders.push({ ...base, type: 'limit', price: r6(+req.limit_price), expiresAt: now + (req.expireHours || 24) * 3600e3 });
     return { ok: true, order: acct.orders[acct.orders.length - 1], notes: c.notes };
@@ -148,13 +169,13 @@ function finalizeTrade(acct, pos, kind, now) {
   acct.positions = acct.positions.filter((p) => p !== pos);
   const pnl = pos.realized;
   const R = pos.initialRisk > 0 ? pnl / pos.initialRisk : 0;
-  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, hedge: !!pos.hedge, hedgeOf: pos.hedgeOf || null, source: pos.source || (pos.hedgeOf ? 'hedge' : 'scanner'), btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null, signalKey: pos.signalKey ?? null };
+  const trade = { id: pos.id, coin: pos.coin, tf: pos.tf, direction: pos.direction, leverage: pos.leverage, margin: r6(pos.margin0 ?? (pos.notional / pos.leverage)), entry: pos.entry, stop: pos.stop, tp1: pos.tp1, tp2: pos.tp2, openedAt: pos.openedAt, closedAt: now, outcome: kind, pnl: r6(pnl), R: +R.toFixed(2), pnlPct: +((pnl / (pos.notional / pos.leverage)) * 100).toFixed(2), rationale: pos.rationale, signals: pos.signals, notes: pos.notes, reflection: null, hedge: !!pos.hedge, hedgeOf: pos.hedgeOf || null, source: pos.source || (pos.hedgeOf ? 'hedge' : 'scanner'), btcAtOpen: pos.btcAtOpen ?? null, btcAtClose, btcPct: pos.btcAtOpen && btcAtClose ? +((btcAtClose / pos.btcAtOpen - 1) * 100).toFixed(2) : null, signalKey: pos.signalKey ?? null, ...(pos.exit ? { exit: pos.exit } : {}) };
   acct.trades.push(trade);
   const s = acct.stats;
   s.trades++; if (pnl > 0) { s.wins++; s.grossProfit = r6(s.grossProfit + pnl); } else { s.losses++; s.grossLoss = r6(s.grossLoss - pnl); }
   if (kind === 'liq') s.liquidations++;
   s.sumR = r6(s.sumR + R);
-  acct.closedSinceReview++;
+  acct.closedSinceReview++; acct.closedSinceFull = (acct.closedSinceFull || 0) + 1;
   return trade;
 }
 
@@ -220,6 +241,29 @@ export function updatePositions(acct, candlesByCoin, now, opts = {}) {
       const tp1Hit = pos.tp1 && !pos.tp1Done && (d === 1 ? c.high >= pos.tp1 : c.low <= pos.tp1);
       const tp2Hit = pos.tp2 && (d === 1 ? c.high >= pos.tp2 : c.low <= pos.tp2);
       if (liqHit) { closePart(acct, pos, 1, pos.liq, 'liq', c.time, events); break; }
+      // Ajanın kendi çıkış planı (pos.exit): erken hedef → TP1 payı → TP1 sonrası stop → iz süren stop → TP2. Aynı mumda stop önce.
+      if (pos.exit) {
+        const x = pos.exit, ep = x.earlyPct > 0 ? r6(pos.entry * (1 + d * x.earlyPct / 100)) : null;
+        if (stopHit) { closePart(acct, pos, 1, pos.stop * (1 - d * FEES.slipPct / 100), pos.tp1Done || pos.earlyDone ? 'tp1_stop' : 'stop', c.time, events); break; }
+        if (ep && !pos.earlyDone && !pos.tp1Done && (d === 1 ? c.high >= ep : c.low <= ep)) {
+          pos.earlyDone = true; pos.earlyPrice = ep;
+          if (x.earlyPortion > 0) closeShare(acct, pos, x.earlyPortion, ep, 'early', c.time, events);
+          if (!acct.positions.includes(pos)) break;
+          if (d * (pos.entry - pos.stop) > 0) pos.stop = r6(pos.entry);
+        }
+        if (tp1Hit && pos.tp2) {
+          pos.tp1Done = true;
+          if (x.tp1Portion > 0) closeShare(acct, pos, x.tp1Portion, pos.tp1, 'tp1', c.time, events);
+          if (!acct.positions.includes(pos)) break;
+          if (x.afterTp1 === 'early' && pos.earlyPrice) pos.stop = pos.earlyPrice; else if (x.afterTp1 !== 'keep' && d * (pos.entry - pos.stop) > 0) pos.stop = r6(pos.entry);
+        } else if (tp1Hit) { closePart(acct, pos, 1, pos.tp1, 'tp2', c.time, events); break; }
+        if (tp2Hit && (pos.tp1Done || !pos.tp1)) { closePart(acct, pos, 1, pos.tp2, 'tp2', c.time, events); break; }
+        if (x.trailAtr > 0 && (pos.earlyDone || pos.tp1Done) && pos.atrRef > 0) {
+          const bms = cs.length > 1 ? cs[1].time - cs[0].time : (TIMEFRAMES[pos.tf]?.ms || 0);
+          if (c.time + bms <= now) { const ns = r6(c.close - d * x.trailAtr * pos.atrRef); if (d * (ns - pos.stop) > 0) pos.stop = ns; }
+        }
+        pos.lastTime = c.time; pos.lastPrice = c.close; continue;
+      }
       // Erken kâr al: pozisyon TF'si listedeyse erken hedefte %portion kapat, stop girişe; kalan TP2'ye (tp1 mantığı devre dışı)
       if (et && !pos.trail && et.tfs.includes(pos.tf) && !pos.tp1Done && !stopHit) {
         const ep = pos.entry * (1 + d * et.pct / 100);
@@ -275,6 +319,16 @@ export function closeManual(acct, posId, price, now, reason = '') {
   const events = [];
   pos.rationale += reason ? ` | kapanış: ${reason}` : '';
   closePart(acct, pos, 1, price * (1 - dirSign(pos.direction) * FEES.slipPct / 100), 'manual', now, events);
+  return events[0];
+}
+
+/** Kısmi elle kapanış (piyasa): pozisyonun mevcut adedinin `portion`'ı (0–1). */
+export function closePartialManual(acct, posId, portion, price, now, reason = '') {
+  const pos = acct.positions.find((p) => p.id === posId);
+  if (!pos || !(portion > 0) || !(price > 0)) return null;
+  const events = [];
+  if (reason) pos.rationale += ` | kısmi: ${reason}`;
+  closePart(acct, pos, Math.min(1, portion) >= 0.999 ? 1 : Math.min(1, portion), price * (1 - dirSign(pos.direction) * FEES.slipPct / 100), 'manual', now, events);
   return events[0];
 }
 

@@ -46,11 +46,39 @@ export const DECIDE_SCHEMA = {
       } } },
   },
 };
+/** AGENT_EXIT=1: açılışta ajanın kendi çıkış planı (exit) ve 'partial' (kısmi kapatma) eylemi şemaya eklenir. */
+export const EXIT_SCHEMA = { type: 'object', additionalProperties: false, required: ['early_pct', 'early_portion', 'tp1_portion', 'after_tp1_stop', 'trail_atr'],
+  description: 'open için çıkış planı; diğer eylemlerde hepsi 0 / "entry"',
+  properties: {
+    early_pct: { type: 'number', description: 'erken hedef: girişten % lehte (0 = erken hedef yok)' },
+    early_portion: { type: 'number', description: 'erken hedefte kapatılacak pay (başlangıç adedinin 0–0,9)' },
+    tp1_portion: { type: 'number', description: "TP1'de kapatılacak pay (başlangıç adedinin; erken pay + bu ≤ 1)" },
+    after_tp1_stop: { type: 'string', enum: ['entry', 'early', 'keep'], description: "TP1 sonrası stop: giriş / erken hedef fiyatı / yerinde" },
+    trail_atr: { type: 'number', description: 'ilk kısmi çıkıştan sonra iz süren stop, ATR katı (0 = yok)' },
+  } };
+export function decideSchema(exitOn = false) {
+  if (!exitOn) return DECIDE_SCHEMA;
+  const it = DECIDE_SCHEMA.properties.actions.items;
+  return { ...DECIDE_SCHEMA, properties: { ...DECIDE_SCHEMA.properties, actions: { ...DECIDE_SCHEMA.properties.actions, items: {
+    ...it, required: [...it.required, 'exit', 'portion'],
+    properties: { ...it.properties, type: { type: 'string', enum: ['open', 'close', 'partial', 'adjust', 'hold'] }, exit: EXIT_SCHEMA, portion: { type: 'number', description: 'partial için: mevcut adedin kapatılacak payı (0–1); diğerlerinde 0' } },
+  } } } };
+}
+const SYSTEM_EXIT = `
+- ÇIKIŞ SENİN (AGENT_EXIT): her açılışta exit planını sen seçersin; botun sabit kuralı sana uygulanmaz. Seçenekler: erken hedef
+  (early_pct girişten % lehte, early_portion kapatılır, stop girişe), TP1'de tp1_portion, TP1 sonrası stop (entry | early | keep),
+  ilk kısmi çıkıştan sonra iz süren stop (trail_atr × ATR; 0 = yok); kalan TP2'ye. Açık pozisyonda 'partial' (mevcut adedin
+  portion'ı) ve 'adjust' kullanabilirsin. Ölçüm bilgisi (12 ay, botun 4H sinyalleri, gerçek dolum sırası, ücretsiz): botun eski
+  düzeni (%1,2'de %80 → TP2/başa baş) eğitim −0,080 / doğrulama +0,052R; %1,2'de %50 + TP1'de %25 + sonra stop erken hedefe
+  −0,062 / +0,087R; iz süren stop kalan küçük payda fark yaratmadı; %1,8–2'lik erken hedef daha kötü. Hiçbiri kesin kenar değil;
+  amacın aynı sinyalde botun planından daha iyi R almak. vsSignal alanı aynı sinyallerde senin R'ni botunkiyle karşılaştırır.`;
 export const REFLECT_SCHEMA = { type: 'object', additionalProperties: false, required: ['lesson', 'tags'], properties: { lesson: { type: 'string', description: '2–3 cümle: ne oldu, neden, bir dahaki sefere ne farklı' }, tags: { type: 'array', items: { type: 'string' }, description: 'en fazla 4 etiket' } } };
 export const REVIEW_SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['lessons', 'params', 'summary'],
+  type: 'object', additionalProperties: false, required: ['lessons', 'params', 'summary', 'strong_finding', 'evidence'],
   properties: {
     summary: { type: 'string', description: 'Dönemin 2–4 cümlelik değerlendirmesi' },
+    strong_finding: { type: 'boolean', description: 'Ara değerlendirmede kuralları beklemeden değiştirmeyi gerektiren çok önemli bulgu var mı' },
+    evidence: { type: 'string', description: 'strong_finding true ise sayısal kanıt (işlem sayısı, R, tekrar eden hata); değilse ""' },
     lessons: { type: 'array', description: 'en fazla 10 madde', items: { type: 'string' } },
     params: { type: 'object', additionalProperties: false, required: ['riskAppetite', 'preferredLeverage', 'maxMarginPctPerTrade', 'avoidTfs', 'avoidDetectors', 'notes'],
       properties: { riskAppetite: { type: 'string', enum: ['low', 'medium', 'high'] }, preferredLeverage: { type: 'array', items: { type: 'number' }, description: 'tam iki sayı: [min, max]' }, maxMarginPctPerTrade: { type: 'number' }, avoidTfs: { type: 'array', items: { type: 'string' } }, avoidDetectors: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } } },
@@ -107,6 +135,7 @@ export function decidePrompt(acct, profile, candidates, stats, market = {}) {
     profile: { id: profile.id, guards: profile.guards },
     market: { btcRegimeDaily: market.regime === 'up' ? 'yükseliş' : market.regime === 'down' ? 'düşüş' : 'bilinmiyor', btcPrice: market.btcPrice ?? null, btcRead: market.read ? { daily: market.read.daily, h4: market.read.h4, h1: market.read.h1, adx4h: market.read.adx4h, adx1h: market.read.adx1h, ret4h: market.read.ret4h, ret24h: market.read.ret24h, summary: market.read.summary } : null },
     dirStats: dirStatsOf(acct),
+    ...(market.vsSignal ? { vsSignal: market.vsSignal } : {}),
     account: { equity: acct.equity, cash: acct.cash, startEquity: acct.startEquity, returnPct: stats.returnPct, dayHalted: acct.day.halted, openPositions: acct.positions.length, pendingOrders: acct.orders.length },
     stats: { trades: stats.trades, winRate: stats.winRate, avgR: stats.avgR, profitFactor: stats.profitFactor, maxDD: stats.maxDD, liquidations: stats.liquidations },
     params: acct.params, lessons: acct.lessons,
@@ -116,20 +145,26 @@ export function decidePrompt(acct, profile, candidates, stats, market = {}) {
     candidates: candidates.map((p) => ({ coin: p.coin, tf: p.tf, direction: p.direction, source: p.source || 'scanner', score: p.score, mtf: p.mtf?.tfs || null, price: p.price, atr: p.atr, zone: p.zone, inZone: p.inZone, plan: { entry: p.entry, stop: p.stop, tp1: p.tp1, tp2: p.tp2, rr: p.rr, riskPct: p.riskPct }, rsBtc: p.trend?.rsBtc ?? null, rsSide: p.trend?.rsSide ?? null, adx: p.trend?.adx ?? null, signals: p.signals.map((s) => `${s.name} (${s.group}, ${s.direction}, güç ${s.strength})`), htf: p.htf || [] })),
     time: new Date().toISOString(),
   };
-  return `Durumu değerlendir ve eylemleri şemaya göre döndür. Pozisyon açarken coin, direction, margin_usdt, leverage, order (market|limit), limit_price (limit ise), stop, tp1, tp2, hedge (true/false) doldur; close/adjust için position_id. Kullanılmayan sayısal alanlara 0, metin alanlara "" ver.\n\n${JSON.stringify(payload, null, 1)}`;
+  return `Durumu değerlendir ve eylemleri şemaya göre döndür. Pozisyon açarken coin, direction, margin_usdt, leverage, order (market|limit), limit_price (limit ise), stop, tp1, tp2, hedge (true/false) doldur; close/adjust için position_id. Kullanılmayan sayısal alanlara 0, metin alanlara "" ver.${market.exitOn ? " Açılışta exit planını doldur; 'partial' için position_id + portion." : ''}\n\n${JSON.stringify(payload, null, 1)}`;
 }
 
-export const decide = (acct, profile, candidates, stats, opts, market = {}) => call({ ...opts, system: SYSTEM_DECIDE, user: decidePrompt(acct, profile, candidates, stats, market), schema: DECIDE_SCHEMA, maxTokens: 4000 });
+export const decide = (acct, profile, candidates, stats, opts, market = {}) => call({ ...opts, system: SYSTEM_DECIDE + (market.exitOn ? SYSTEM_EXIT : ''), user: decidePrompt(acct, profile, candidates, stats, market), schema: decideSchema(!!market.exitOn), maxTokens: 4000 });
 
 export const reflect = (trade, acct, opts) => call({
   ...opts, system: 'Sen kendi işlemlerini dürüstçe değerlendiren bir trader\'sın. Türkçe, kısa, somut; bahane değil ders.',
-  user: `Kapanan işlem:\n${JSON.stringify({ coin: trade.coin, tf: trade.tf, direction: trade.direction, leverage: trade.leverage, margin: trade.margin, entry: trade.entry, stop: trade.stop, tp1: trade.tp1, tp2: trade.tp2, outcome: trade.outcome, R: trade.R, pnl: trade.pnl, pnlPct: trade.pnlPct, holdHours: +(((trade.closedAt - trade.openedAt) / 3600e3).toFixed(1)), btcPctDuringTrade: trade.btcPct ?? null, rationale: trade.rationale, signals: trade.signals, notes: trade.notes }, null, 1)}\n\nMevcut dersler: ${JSON.stringify(acct.lessons)}\nBu işlemden çıkan dersi yaz.`,
+  user: `Kapanan işlem:\n${JSON.stringify({ coin: trade.coin, tf: trade.tf, direction: trade.direction, leverage: trade.leverage, margin: trade.margin, entry: trade.entry, stop: trade.stop, tp1: trade.tp1, tp2: trade.tp2, outcome: trade.outcome, R: trade.R, pnl: trade.pnl, pnlPct: trade.pnlPct, holdHours: +(((trade.closedAt - trade.openedAt) / 3600e3).toFixed(1)), btcPctDuringTrade: trade.btcPct ?? null, rationale: trade.rationale, signals: trade.signals, notes: trade.notes, exitPlan: trade.exit ?? null }, null, 1)}${trade.botPlan ? `\n\nAynı sinyalde botun planı: ${JSON.stringify(trade.botPlan)}\n(R farkı = senin yönetim/seçim değerin; bot planı henüz kapanmadıysa sonucu bilinmiyor.)` : ''}\n\nMevcut dersler: ${JSON.stringify(acct.lessons)}\nBu işlemden çıkan dersi yaz${trade.botPlan ? '; botun planıyla farkın nedenini (giriş, stop, çıkış) belirt' : ''}.`,
   schema: REFLECT_SCHEMA, maxTokens: 800, effort: 'low',
 });
 
-export const review = (acct, profile, stats, opts) => call({
+/** Ara (her 10 kapanış) / tam (30 kapanış) gözden geçirme: ara değerlendirmede kurallar yalnız çok önemli bulguda değişir. */
+export const REVIEW_EVERY = 10, REVIEW_FULL = 30;
+const REVIEW_MODE = {
+  interim: `\n\nBU BİR ARA DEĞERLENDİRME (10 işlem). Plan: kurallar (dersler + parametreler) 30 işlemde güncellenir; 10 işlem çoğunlukla gürültüdür. strong_finding'i YALNIZ çok önemli bir bulguda true yap: likidasyon ya da yanlış taraf stop gibi risk hatası, aynı hatanın ≥ 4 kez tekrarı, ya da aynı sinyallerde botun planından tutarlı biçimde (≥ 6 işlemde) ≥ 0,5R kötü olmak. Öyleyse evidence'a sayısal kanıt yaz. Değilse strong_finding false, dersleri ve parametreleri olduğu gibi döndür, summary'de gözlemleri not et.`,
+  full: `\n\nBU TAM DEĞERLENDİRME (30 işlem): dersleri ve parametreleri güncelle. strong_finding false, evidence "".`,
+};
+export const review = (acct, profile, stats, opts, mode = 'full') => call({
   ...opts, system: 'Sen kendi performansını gözden geçirip kurallarını güncelleyen bir portföy yöneticisisin. Sert sınırları (guards) aşan parametre öneremezsin. Türkçe, somut.',
-  user: `Profil ve sınırlar: ${JSON.stringify({ id: profile.id, guards: profile.guards })}\nİstatistik: ${JSON.stringify(stats)}\nMevcut parametreler: ${JSON.stringify(acct.params)}\nMevcut dersler: ${JSON.stringify(acct.lessons)}\nSon işlemler ve yansımalar: ${JSON.stringify(acct.trades.slice(-30).map((t) => ({ coin: t.coin, tf: t.tf, direction: t.direction, leverage: t.leverage, outcome: t.outcome, R: t.R, pnlPct: t.pnlPct, btcPct: t.btcPct ?? null, hedged: !!t.hedge, hedgeLeg: !!t.hedgeOf, signals: t.signals?.slice(0, 5), reflection: t.reflection })))}\n\nDersleri süz (en fazla 10, tekrarları birleştir, kanıtsızları at), parametreleri güncelle (riskAppetite, preferredLeverage [min,max] ≤ guards.maxLeverage, maxMarginPctPerTrade ≤ guards.maxMarginPct, avoidTfs, avoidDetectors, notes) ve dönemi özetle.`,
+  user: `Profil ve sınırlar: ${JSON.stringify({ id: profile.id, guards: profile.guards })}\nİstatistik: ${JSON.stringify(stats)}\nMevcut parametreler: ${JSON.stringify(acct.params)}\nMevcut dersler: ${JSON.stringify(acct.lessons)}\nSon işlemler ve yansımalar: ${JSON.stringify(acct.trades.slice(-30).map((t) => ({ coin: t.coin, tf: t.tf, direction: t.direction, leverage: t.leverage, outcome: t.outcome, R: t.R, pnlPct: t.pnlPct, btcPct: t.btcPct ?? null, hedged: !!t.hedge, hedgeLeg: !!t.hedgeOf, signals: t.signals?.slice(0, 5), reflection: t.reflection, exit: t.exit ?? null, botPlan: t.botPlan ?? null })))}${opts.vsSignal ? `\nAynı sinyallerde sen vs bot: ${JSON.stringify(opts.vsSignal)}` : ''}\n\nDersleri süz (en fazla 10, tekrarları birleştir, kanıtsızları at), parametreleri güncelle (riskAppetite, preferredLeverage [min,max] ≤ guards.maxLeverage, maxMarginPctPerTrade ≤ guards.maxMarginPct, avoidTfs, avoidDetectors, notes) ve dönemi özetle.${REVIEW_MODE[mode] || ''}`,
   schema: REVIEW_SCHEMA, maxTokens: 2500,
 });
 

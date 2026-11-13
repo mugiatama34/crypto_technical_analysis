@@ -3,8 +3,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PROFILES } from './profiles.js';
-import { newAccount, updatePositions, openPosition, closeManual, adjustPosition, endOfRun, markToMarket, statsOf, closeOrphanHedges, openPendingHedges } from './account.js';
-import { decide, reflect, review, clampParams } from './manager.js';
+import { newAccount, updatePositions, openPosition, closeManual, closePartialManual, adjustPosition, endOfRun, markToMarket, statsOf, closeOrphanHedges, openPendingHedges } from './account.js';
+import { decide, reflect, review, clampParams, REVIEW_EVERY, REVIEW_FULL } from './manager.js';
+import { agentVsSignal, finalR } from '../../src/ui/signals-lib.js';
 import { esc, fp, pctFrom } from '../telegram.js';
 
 const r2 = (x) => +Number(x).toFixed(2);
@@ -32,6 +33,21 @@ export function resetAccount(acct, profile, label, now) {
 export const safeLabel = (l) => String(l).replace(/[^\w.-]/g, '_').replace(/^\.+/, '_').slice(0, 40);
 export const needsReset = (acct, label) => !!label && acct.resetLabel !== label;
 
+/** Aynı sinyalde botun planı (history kaydı): durum ve R (kapanmadıysa null). */
+export function botPlanOf(trade, items = []) {
+  if (!trade.signalKey) return null;
+  const s = items.filter((x) => x.key === trade.signalKey && x.sentAt <= (trade.openedAt || trade.closedAt) + 3600e3).sort((a, b) => b.sentAt - a.sentAt)[0];
+  if (!s) return null;
+  const R = finalR(s);
+  return { status: s.status, R: R == null ? null : +R.toFixed(2), entry: s.entry, stop: s.stop, early: s.early ?? null, tp1: s.tp1, tp2: s.tp2, exits: s.early ? `erken %${Math.round((s.earlyPortion ?? 0.8) * 100)}${s.midPortion ? ` · TP1 %${Math.round(s.midPortion * 100)}${s.midStop === 'early' ? ' · stop erkene' : ''}` : ''} → TP2` : 'TP1 yarı → TP2' };
+}
+/** Ara (her REVIEW_EVERY kapanış) ya da tam (REVIEW_FULL'a ulaşınca) gözden geçirme gerekli mi → 'interim' | 'full' | null. */
+export function reviewDue(acct) {
+  const since = acct.closedSinceReview || 0;
+  if (since < REVIEW_EVERY) return null;
+  return (acct.closedSinceFull ?? since) >= REVIEW_FULL ? 'full' : 'interim';
+}
+
 /** Sıfırlama öncesi yayın biçiminde tam kopya (tüm işlemler) → <dir>/<profil>.json. */
 export function archiveAccount(acct, dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -48,7 +64,7 @@ export function publish(acct, dir) {
   fs.writeFileSync(path.join(dir, `${acct.profile}.json`), JSON.stringify(out));
 }
 
-const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış', time: '⏱️ Zaman stopu (TP1 süresinde gelmedi)', early: '⚡ Erken hedef (%80 kapandı, stop girişe)' };
+const EV_TR = { hedge_open: '⚖️ BTC hedge açıldı', hedge_close: '⚖️ BTC hedge kapandı', filled: '📥 Limit emir doldu', expired: '⌛ Limit emir süresi doldu', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — limit dolmadı, teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — emir iptal (işlem yok)', knife_expired: '⌛ Hızlı dolum teyit edilmedi — emir iptal', stop: '🛑 Stop', tp1_stop: '🟡 TP1 sonrası stop', tp1: '🎯 TP1 (yarı kapandı)', tp2: '🏁 TP2 (tam kapandı)', liq: '💀 LİKİDASYON', manual: '✂️ Elle kapanış', partial: '✂️ Kısmi kapanış', time: '⏱️ Zaman stopu (TP1 süresinde gelmedi)', early: '⚡ Erken hedef (%80 kapandı, stop girişe)' };
 
 function fmtOpen(acct, pos, order, hedgeLeg = null) {
   const p = pos || order, e0 = pos ? pos.entry : order.price;
@@ -100,6 +116,7 @@ export async function runAgents(ctx) {
       await notify(fmtEvent(acct, ev));
       if (['stop', 'tp1_stop', 'tp2', 'liq', 'manual', 'time'].includes(ev.type)) {
         const trade = acct.trades[acct.trades.length - 1];
+        if (trade && !trade.botPlan) { const bp = botPlanOf(trade, ctx.history || []); if (bp) trade.botPlan = bp; }
         if (trade && !trade.reflection && ctx.llm.apiKey && !cfg.dry) {
           try { const r = await reflect(trade, acct, ctx.llm); trade.reflection = r.lesson; acct.journal.push({ at: now, tradeId: trade.id, lesson: r.lesson, tags: r.tags }); } catch (err) { log(`  ajan ${id} yansıma hatası: ${err.message}`); }
         }
@@ -111,7 +128,8 @@ export async function runAgents(ctx) {
     if (dueDecision && ctx.llm.apiKey && !cfg.dry) {
       try {
         const stats = statsOf(acct);
-        const dec = await decide(acct, profile, cands, stats, ctx.llm, ctx.market || {});
+        const vs = ctx.history ? agentVsSignal(acct.trades, ctx.history, acct.resetAt || 0) : null;
+        const dec = await decide(acct, profile, cands, stats, ctx.llm, { ...(ctx.market || {}), exitOn: !!cfg.agentExit, vsSignal: vs ? { sameSignal: vs.taken, skippedSignals: vs.skipped, nonSignal: vs.agentOnly } : null });
         acct.lastDecision = now; acct.lastAssessment = dec.assessment;
         log(`  ajan ${id}: ${dec.actions.length} eylem (${dec._usage?.input_tokens}+${dec._usage?.output_tokens} tok) — ${dec.assessment.slice(0, 120)}`);
         for (const a of dec.actions) {
@@ -120,12 +138,16 @@ export async function runAgents(ctx) {
             const cand = cands.find((p) => p.coin === a.coin) || null;
             const price = ctx.prices[a.coin];
             if (!price) { log(`  ajan ${id}: ${a.coin} fiyat yok, atlandı`); continue; }
-            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', signalKey: cand?.key ?? null, btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
+            const res = openPosition(acct, { coin: a.coin, tf: cand?.tf || '', direction: a.direction, margin: a.margin_usdt, leverage: a.leverage, order: a.order === 'limit' ? 'limit' : 'market', limit_price: a.limit_price, price, stop: a.stop, tp1: a.tp1, tp2: a.tp2, hedge: !!a.hedge, rationale: a.rationale, signals: cand?.signals.slice(0, 8).map((s) => s.name) || [], source: cand?.source || 'scanner', signalKey: cand?.key ?? null, ...(cfg.agentExit ? { exit: a.exit, atr: cand?.atr ?? null } : {}), btcPrice: btcPx, ...(cand?.source === 'regime_donchian' && cand.atr ? { trail: { atr: cand.atr, mult: 2, maxBars: 100 } } : {}) }, now, profile.guards);
             if (!res.ok) { log(`  ajan ${id}: ${a.coin} açılmadı — ${res.reason}`); acct.notes.push({ at: now, text: `${a.coin} ${a.direction} reddedildi: ${res.reason}` }); continue; }
             await notify(fmtOpen(acct, res.position, res.order, res.hedgeLeg));
           } else if (a.type === 'close') {
             const ev = closeManual(acct, a.position_id, ctx.prices[a.coin] || acct.positions.find((p) => p.id === a.position_id)?.lastPrice, now, a.rationale);
             if (ev) await notify(fmtEvent(acct, ev));
+            for (const h of closeOrphanHedges(acct, btcPx, now)) await notify(fmtEvent(acct, { ...h, type: 'hedge_close' }));
+          } else if (a.type === 'partial' && cfg.agentExit) {
+            const ev = closePartialManual(acct, a.position_id, +a.portion, ctx.prices[a.coin] || acct.positions.find((p) => p.id === a.position_id)?.lastPrice, now, a.rationale);
+            if (ev) await notify(fmtEvent(acct, { ...ev, type: 'partial' }));
             for (const h of closeOrphanHedges(acct, btcPx, now)) await notify(fmtEvent(acct, { ...h, type: 'hedge_close' }));
           } else if (a.type === 'adjust') {
             const r = adjustPosition(acct, a.position_id, { stop: a.stop || null, tp1: a.tp1 || null, tp2: a.tp2 || null });
@@ -135,15 +157,24 @@ export async function runAgents(ctx) {
       } catch (err) { log(`  ajan ${id} karar hatası: ${err.message}`); }
     }
     // 3) Gözden geçirme
-    if (ctx.llm.apiKey && !cfg.dry && (acct.closedSinceReview >= 20 || (now - acct.lastReview > 7 * 86400e3 && acct.closedSinceReview >= 5))) {
+    // 3) Gözden geçirme: her 10 kapanışta ara (kurallar yalnız çok önemli bulguda değişir), 30'da tam
+    const mode = reviewDue(acct);
+    if (mode && ctx.llm.apiKey && !cfg.dry) {
       try {
         const stats = statsOf(acct);
-        const rv = await review(acct, profile, stats, ctx.llm);
-        acct.lessons = rv.lessons.slice(0, 10);
-        acct.params = clampParams(rv.params, profile.guards);
-        acct.paramsHistory.push({ at: now, params: acct.params, reason: rv.summary });
+        const vs = ctx.history ? agentVsSignal(acct.trades, ctx.history, acct.resetAt || 0) : null;
+        for (const t of acct.trades.slice(-30)) if (t.signalKey && (!t.botPlan || t.botPlan.R == null)) { const bp = botPlanOf(t, ctx.history || []); if (bp) t.botPlan = bp; } // bot planı sonradan kapanmış olabilir
+        const rv = await review(acct, profile, stats, { ...ctx.llm, vsSignal: vs ? { sameSignal: vs.taken, skippedSignals: vs.skipped, nonSignal: vs.agentOnly } : null }, mode);
+        const apply = mode === 'full' || (rv.strong_finding && String(rv.evidence || '').trim().length > 10);
+        if (apply) {
+          acct.lessons = rv.lessons.slice(0, 10);
+          acct.params = clampParams(rv.params, profile.guards);
+          acct.paramsHistory.push({ at: now, params: acct.params, reason: `${mode === 'full' ? 'tam' : 'ara (önemli bulgu)'}: ${rv.summary}${rv.evidence ? ` | kanıt: ${rv.evidence}` : ''}` });
+        }
+        (acct.reviews ||= []).push({ at: now, mode, applied: apply, summary: rv.summary, evidence: rv.evidence || '' });
         acct.closedSinceReview = 0; acct.lastReview = now;
-        await notify(`🤖 <b>Ajan [${esc(acct.label)}] gözden geçirme</b>\n${esc(rv.summary)}\nYeni parametreler: risk ${acct.params.riskAppetite}, kaldıraç ${acct.params.preferredLeverage.join('–')}x, marjin ≤ %${acct.params.maxMarginPctPerTrade}${acct.params.avoidDetectors.length ? `, kaçın: ${esc(acct.params.avoidDetectors.join(', '))}` : ''}`);
+        acct.closedSinceFull = mode === 'full' ? 0 : (acct.closedSinceFull || 0);
+        await notify(`🤖 <b>Ajan [${esc(acct.label)}] ${mode === 'full' ? 'tam gözden geçirme (30 işlem)' : 'ara değerlendirme (10 işlem)'}</b>\n${esc(rv.summary)}${apply ? `\n${mode === 'full' ? 'Kurallar güncellendi' : `⚠️ Önemli bulgu — kurallar beklemeden güncellendi: ${esc(rv.evidence)}`}: risk ${acct.params.riskAppetite}, kaldıraç ${acct.params.preferredLeverage.join('–')}x, marjin ≤ %${acct.params.maxMarginPctPerTrade}${acct.params.avoidDetectors.length ? `, kaçın: ${esc(acct.params.avoidDetectors.join(', '))}` : ''}` : '\nKurallar değişmedi (plan: 30 işlemde tam gözden geçirme).'}`);
       } catch (err) { log(`  ajan ${id} gözden geçirme hatası: ${err.message}`); }
     }
     // 4) Koşu sonu
