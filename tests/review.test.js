@@ -47,3 +47,16 @@ test('researcher: varyantlar temel düzen üstüne kurulur; kuyruk boşsa varsay
   const t = formatResearch({ summary: 's', results: [{ requestId: 'base', verdict: 'inconclusive', note: 'n' }], proposals: [{ varsName: 'EARLY_TP', value: '{}', evidence: 'e', risk: 'r' }], nextQuestions: ['q'] }, rows);
   assert.match(t, /Araştırmacı raporu/); assert.match(t, /EARLY_TP=/); assert.match(t, /4H doğr\. n290/);
 });
+
+test('expectedOf: gerçekçi satır (a) > (b) > eski arama; realistic bayrağı', () => {
+  const row = (name, avg) => ({ targeted: true, name, train: { n: 100, avgR: avg, winRate: 0.7, profitFactor: 1.1 }, valid: { n: 90, avgR: avg + 0.01, winRate: 0.7, profitFactor: 1.2 }, hedged: { train: { avgR: -0.03 }, valid: { avgR: 0.02 } }, byTf: { valid: { '4H': { n: 80, avgR: avg, winRate: 0.7 } } }, hedgedByTf: { valid: { '4H': { avgR: 0.01 } } } });
+  const A = row('p + elle yönetim: x + 3 kademe + TP1 sonrası stop erken hedefe: erken %1.2 · sıra 1H', -0.05);
+  const B = row('p + elle yönetim: x + dolum mumunda sıra 1H ile', 0.04);
+  const C = row('p + elle yönetim: x + üst TF eğilimi aynı yön', 0.08);
+  const a = expectedOf({ results: [C, B, A] });
+  assert.equal(a.realistic, true); assert.equal(a.name, A.name); assert.equal(a.train.avgR, -0.05); assert.equal(a.hedged.valid, 0.02); assert.equal(a.pf.train, 1.1);
+  const b = expectedOf({ results: [C, B] });
+  assert.equal(b.name, B.name); assert.equal(b.realistic, true);
+  const c = expectedOf({ results: [C] });
+  assert.equal(c.name, C.name); assert.equal(c.realistic, false);
+});
