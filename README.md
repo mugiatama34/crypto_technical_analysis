@@ -543,6 +543,10 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   ya da gerçekleşmemiş R; 24.10 öncesi ya da 7 günden eski takip dışı açık kayıtlar ayrı katlanır), Bybit tarzı **R takvimi**
   (kapanış gününe göre günlük ΣR, hafta ve ay toplamı, artı/eksi gün; "Canlı düzen"/"Tümü"), son 20 kapanan, istatistik
   kırılımları ve tüm sinyaller "Arşiv"de katlı. Yardımcılar `src/ui/signals-lib.js` (test: `tests/signals-lib.test.js`).
+- **Ajan kaynağı `AGENT_SOURCE=signals` (13.11)**: ajanlar Telegram'ın canlı kurallarının tümünden geçen planları (yalnız açık
+  TF'ler, puan eşiği, MTF, hafta sonu yok, yalnız limit, üst TF yönü; long + short; bekleme süresi hariç → kurulum geçerli kaldıkça
+  görünür) + ölçülmüş kural adaylarını (rejim-Donchian) görür; coin başına tek, en fazla 10 (`mergeAgentCands`, test: `tests/bot.test.js`).
+  `measured` yalnız ölçülmüş kural, `all` eski gevşek liste (15m/1H/4H, eşik 60, MTF yok).
 - **Bybit çarpanlı sözleşmeler (`src/data/bybit-symbols.js`, 11.11)**: PEPE/SHIB/BONK gibi küçük fiyatlı coinler Bybit'te
   `1000PEPEUSDT`, `SHIB1000USDT`… olarak işlem görür. Telegram sinyal/takip/fib mesajlarına ve sinyal sayfası kartlarına
   "Bybit <sembol> (fiyat ×1000)" satırı eklenir: giriş/stop/erken/TP'ler OKX ham fiyatından 6 anlamlı haneyle (yuvarlanmış metinden

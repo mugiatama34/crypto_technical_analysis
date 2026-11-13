@@ -347,3 +347,12 @@ test('trackPlan: alt TF yokken kaydedilmiş fillRes=none dolum mumunda erken hed
   const r2 = trackPlan({ ...plan, fillRes: undefined }, [c(1, 0.1550, 0.1576)], t0 + 10 * H);
   assert.equal(r2.status, 'early'); // kayıt yoksa eski davranış
 });
+
+import { mergeAgentCands } from '../bot/plan.js';
+test('mergeAgentCands: sinyaller (long+short) önce, coin başına tek, ölçülmüş adaylar eklenir, en fazla n', () => {
+  const sig = [{ coin: 'ENA', direction: 'short', score: 70, mtf: null }, { coin: 'SOL', direction: 'long', score: 80, mtf: { tfs: ['1H', '4H'] } }, { coin: 'ENA', direction: 'short', score: 65 }];
+  const meas = [{ coin: 'SOL', direction: 'long', source: 'regime_donchian' }, { coin: 'INJ', direction: 'long', source: 'regime_donchian' }];
+  const out = mergeAgentCands(sig, meas, 10);
+  assert.deepEqual(out.map((p) => `${p.coin}:${p.source}`), ['SOL:signal', 'ENA:signal', 'INJ:regime_donchian']);
+  assert.equal(mergeAgentCands(sig, meas, 2).length, 2);
+});

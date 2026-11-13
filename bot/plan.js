@@ -357,6 +357,20 @@ export function catchUpTf(tf, sentAt, now, max = 1400) {
   return null;
 }
 
+/**
+ * AGENT_SOURCE=signals: ajan adayları = canlı Telegram kurallarının tümünden geçen planlar (long + short; bekleme süresi
+ * hariç — kurulum geçerli kaldıkça görünür) + ölçülmüş kural adayları (rejim-Donchian). Coin başına tek aday, en fazla n.
+ */
+export function mergeAgentCands(signals, measured = [], n = 10) {
+  const seen = new Set(), out = [];
+  const sorted = [...signals].sort((a, b) => (b.mtf ? 1 : 0) - (a.mtf ? 1 : 0) || (b.score ?? 0) - (a.score ?? 0));
+  for (const p of [...sorted.map((x) => ({ ...x, source: x.source || 'signal' })), ...measured]) {
+    if (out.length >= n || seen.has(p.coin)) continue;
+    seen.add(p.coin); out.push(p);
+  }
+  return out;
+}
+
 /** UTC Cumartesi/Pazar mı? (tarama: hafta sonu girişleri her TF'de ve iki dilimde daha kötü) */
 export const isWeekendUtc = (ms) => { const d = new Date(ms).getUTCDay(); return d === 0 || d === 6; };
 

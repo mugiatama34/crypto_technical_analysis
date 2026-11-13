@@ -19,12 +19,12 @@
 //   EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}: erken hedefte %80 kapat, stop girişe (sinyal + ajan)
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
-//   AGENT_SOURCE=all|measured (measured: ajanlar yalnız ölçülmüş kural adaylarını görür)
+//   AGENT_SOURCE=all|measured|signals (measured: yalnız ölçülmüş kural adayları; signals: Telegram'ın canlı kurallarından geçen planlar, long + short, + ölçülmüş adaylar)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, mergeAgentCands } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegram, sendTelegramPhoto, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { runAgents } from './agent/run.js';
@@ -298,6 +298,7 @@ async function main() {
 
   // 2) Adaylar
   const cands = [];
+  const liveEligible = []; // canlı kuralların tümünden geçenler (bekleme süresi hariç) → AGENT_SOURCE=signals
   const rejects = {};
   for (const r of res.rows) {
     if (r.error) continue;
@@ -314,8 +315,9 @@ async function main() {
       if (!htfOk(rule.htfTrend, dir, plan.d)) { reject(dir ? 'üst TF eğilimi ters/yatay' : 'üst TF verisi yok'); continue; }
     }
     if (!modelGate(plan, r, byKey)) { rejects['model olasılığı düşük'] = (rejects['model olasılığı düşük'] || 0) + 1; continue; }
-    if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     plan.rule = rule;
+    liveEligible.push(plan);
+    if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     cands.push(plan);
   }
   if (MODEL) log(`Öğrenilen model aktif (eşik ${CFG.modelMinProb || 'yok'}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)})`);
@@ -410,10 +412,16 @@ async function main() {
         break; // tek BTC adayı: 4H öncelikli
       }
       let agentList = uniq;
-      if (CFG.agentSource === 'measured') {
+      if (CFG.agentSource === 'measured' || CFG.agentSource === 'signals') {
         const m = await regimeCandidates({ now, provider, log });
         agentList = m.cands;
         log(`Ajan adayları (ölçülmüş kurallar): BTC rejimi ${m.label || '–'} → ${m.cands.length} aday${m.cands.length ? ' (' + m.cands.map((c) => `${c.coin} ${c.tf}`).join(', ') + ')' : ''}`);
+        if (CFG.agentSource === 'signals') {
+          // Telegram'ın canlı kurallarından geçen 4H planları (long + short) + ölçülmüş kural adayları
+          for (const p of liveEligible) p.htf = CFG.tfs.filter((t) => t !== p.tf).map((t) => byKey.get(`${p.coin}|${t}`)).filter((x) => x && !x.error && x.best).map((x) => ({ tf: x.tf, direction: x.direction, score: x.score }));
+          agentList = mergeAgentCands(liveEligible, m.cands, 10);
+          log(`Ajan adayları (canlı sinyal kuralları + ölçülmüş): ${agentList.map((c) => `${c.coin} ${c.tf} ${c.direction}`).join(', ') || 'yok'}`);
+        }
       }
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
