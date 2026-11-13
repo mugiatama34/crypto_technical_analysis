@@ -3,6 +3,8 @@ node_modules/
 *.log
 backtest/cache/
 docs/backtest/plans.json.gz
+# Aşama 1 planları (28 ay; yayınlanmaz, Actions cache'te)
+backtest/stage1-data/
 bot/chart-*.svg
 
 # Kişisel işlem verisi (Bybit CSV) — repo herkese açık

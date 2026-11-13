@@ -98,3 +98,12 @@ kasa dahil tam rapor. Kasa sonucu görüldükten sonra tanım / eşik değişmez
 denetimi; long / short kırılımı.
 
 Çoklu sınama: birincil 3 test (H1, H4 N = 3, H4 N = 5). Hiçbiri geçmezse sonuç bölümündeki 4. madde uygulanır.
+
+Uygulama notları (13.11.2026, ilk koşudan ÖNCE):
+- Plan üretimi 28 ay: 4H planı ~100 gün (600 mum) ısınma ister; 24 ayla kasa ~260 güne düşerdi. Kasa = [son − 720 gün, son − 360
+  gün), geliştirme = son 360 gün; daha eski planlar atılır.
+- Aşama 0'da 4H planları ısınma yüzünden ~26.02.2026'da başlıyordu (yani "12 ay" 4H için ~8,5 aydı). Bu koşuda geliştirme dilimi
+  tam 12 ay (18.11.2025'ten); eğitim dilimi ~3 ay uzar. Sağlamlık denetimi bu yüzden **aşama 0 penceresinde** (26.02.2026 →)
+  yapılır; hipotez ölçütleri tam geliştirme diliminde.
+- H1 sırası: (küçük + (eşit − 1) / 2) / (M − 1), BTC sıraya girmez. H4 ve H1'in kasa ölçütünde de n ≥ 100 aranır. Hedge'li R (a)
+  maliyet modeliyle. H4 sayımı geliştirme ve kasada ayrı akış (lock 0 / 1 geliştirme sonuçları aynı).

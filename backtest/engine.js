@@ -39,6 +39,10 @@ export const BT_DEFAULTS = {
   // Fonlama (13.11): 8 saatlik oran, % (ör. 0.01). Varsayılan 0 = fonlama yok (tarama sayıları değişmez); lab --funding verir.
   // İşaret kuralı lab/xsmom.js ile aynı: oranın yönü bilinmediği için İHTİYATLI olarak iki yönde de MALİYET (long da short da öder).
   fundingPct8h: 0,
+  // Yapıcı (limit) komisyonu (13.11, aşama 1 H5 b): null (varsayılan) = iki taraf feePct (eski model, sonuç bit bit aynı).
+  // Verilirse pay bazında: limit giriş ve limit hedef dolumları (erken hedef / ara kademe / TP2) bu oranla; piyasa / teyit
+  // girişi ve stop / zaman stopu / süre sonu çıkışları feePct ile. Nominal yine giriş fiyatı (eski modelle aynı yaklaşık).
+  feeMakerPct: null,
   timeStop: null, // zaman stopu { bars, minMfeR }: dolumdan bars mum içinde TP1 yoksa (ve MFE < minMfeR) kapanıştan çık
   plan: { minScore: 50, minRR: 2, maxRiskPct: 5 },
   detectors: null, weights: {},
@@ -148,7 +152,8 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
   const risk = d * (entry - plan.stop);
   if (!(risk > 0)) return { outcome: 'invalid', R: 0 };
   const Rof = (p) => (d * (p - entry)) / risk;
-  const feeR = (fee * 2 * entry) / risk; // giriş + çıkış komisyonu (birim başına)
+  const mk = o.feeMakerPct != null ? o.feeMakerPct / 100 : null; // yapıcı oranı (yoksa eski model)
+  let makerOut = 0; // yapıcı (limit hedef) ile kapanan pay (yalnız mk != null iken kullanılır)
   let stop = plan.stop, portion = 1, R = 0, mfe = 0, mae = 0, outcome = 'timeout', exitI = fillI, tp1Bars = null, midDone = false;
   const ts = o.timeStop && o.timeStop.bars > 0 ? { minMfeR: Infinity, ...o.timeStop } : null;
   const stopFill = (s) => s * (1 - d * slip);
@@ -169,28 +174,30 @@ export function simulateTrade(plan, candles, from, tf, o = BT_DEFAULTS) {
     // Dolum mumunda (piyasa girişte) stop ve hedef aynı mumdaysa stop sayılır (sıra bilinmez)
     if (stopHit && (k > fillI || mkt || fillRes === 'stop' || !fillTpOk || !(tp1Hit || (single && tp2Hit)))) { R += portion * Rof(stopFill(stop)); outcome = portion === 1 ? 'stopped' : 'tp1_be'; exitI = k; portion = 0; break; }
     if (portion === 1 && tp1Hit && (k > fillI || fillTpOk)) {
-      R += o.tp1Portion * Rof(plan.tp1); portion -= o.tp1Portion; tp1Bars = k - fillI + 1;
+      R += o.tp1Portion * Rof(plan.tp1); makerOut += o.tp1Portion; portion -= o.tp1Portion; tp1Bars = k - fillI + 1;
       if (scheme === 'half_be' || scheme === 'be_trail') stop = entry; // başabaş
       if (scheme === 'trail') stop = d === 1 ? Math.max(stop, c.close - o.trailAtr * atr) : Math.min(stop, c.close + o.trailAtr * atr);
-      if (plan.tpMid && portion > 0 && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); portion -= q; midDone = true; if (o.midStopToTp1) stop = plan.tp1; }
-      if (tp2Hit && scheme !== 'trail' && (scheme !== 'be_trail' || o.trailKeepTp2)) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
+      if (plan.tpMid && portion > 0 && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); makerOut += q; portion -= q; midDone = true; if (o.midStopToTp1) stop = plan.tp1; }
+      if (tp2Hit && scheme !== 'trail' && (scheme !== 'be_trail' || o.trailKeepTp2)) { R += portion * Rof(plan.tp2); makerOut += portion; outcome = 'tp2'; exitI = k; portion = 0; break; }
       continue;
     }
-    if (portion < 1 && portion > 0 && plan.tpMid && !midDone && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); portion -= q; midDone = true; if (o.midStopToTp1) stop = plan.tp1; if (portion <= 1e-9) { outcome = 'tp2'; exitI = k; portion = 0; break; } }
+    if (portion < 1 && portion > 0 && plan.tpMid && !midDone && (d === 1 ? c.high >= plan.tpMid : c.low <= plan.tpMid)) { const q = Math.min(o.midPortion, portion); R += q * Rof(plan.tpMid); makerOut += q; portion -= q; midDone = true; if (o.midStopToTp1) stop = plan.tp1; if (portion <= 1e-9) { outcome = 'tp2'; exitI = k; portion = 0; break; } }
     if (portion < 1 && portion > 0) {
       if (scheme === 'trail') { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
       else if (scheme === 'be_trail') {
-        if (o.trailKeepTp2 && tp2Hit) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
+        if (o.trailKeepTp2 && tp2Hit) { R += portion * Rof(plan.tp2); makerOut += portion; outcome = 'tp2'; exitI = k; portion = 0; break; }
         if (mfe >= (o.trailActR || 0)) { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
-      } else if (tp2Hit) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
+      } else if (tp2Hit) { R += portion * Rof(plan.tp2); makerOut += portion; outcome = 'tp2'; exitI = k; portion = 0; break; }
     }
-    if (single && tp2Hit && (k > fillI || fillTpOk)) { R += portion * Rof(plan.tp2); outcome = 'tp2'; exitI = k; portion = 0; break; }
+    if (single && tp2Hit && (k > fillI || fillTpOk)) { R += portion * Rof(plan.tp2); makerOut += portion; outcome = 'tp2'; exitI = k; portion = 0; break; }
     if (trailOnly) { const ns = d === 1 ? c.close - o.trailAtr * atr : c.close + o.trailAtr * atr; if (d * (ns - stop) > 0) stop = ns; }
     exitI = k;
     // Zaman stopu: TP1 görülmeden bars mum doldu (ve ilerleme yetersiz) → mum kapanışından çık
     if (ts && portion === 1 && k - fillI + 1 >= ts.bars && mfe < ts.minMfeR) { R += Rof(c.close * (1 - d * slip)); outcome = 'time_stop'; portion = 0; break; }
   }
   if (portion > 0) { const c = candles[Math.min(exitI, candles.length - 1)]; R += portion * Rof(c.close * (1 - d * slip)); outcome = portion === 1 ? 'timeout' : 'tp1_timeout'; }
+  // Komisyon: eski model giriş + çıkış aynı oran (birim başına); yapıcı modeli pay bazında (yukarıdaki feeMakerPct)
+  const feeR = mk == null ? (fee * 2 * entry) / risk : (((mkt ? fee : mk) + makerOut * mk + (1 - makerOut) * fee) * entry) / risk;
   R -= feeR;
   // Fonlama: tüm pozisyon dolum mumundan çıkış mumuna kadar (her iki uç mum tam sayılır: (exitI − fillI + 1) × TF) açık
   // varsayılır → ihtiyatlı üst sınır (kısmi çıkıştan sonra azalan adet hesaba katılmaz). R'ye çevirme: oran × (süre / 8 saat) ×
