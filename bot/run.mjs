@@ -29,7 +29,9 @@ import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
 import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, mergeAgentCands } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
-import { sendTelegram, sendTelegramPhoto, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
+import { sendTelegramEx, sendTelegramPhotoEx, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
+import { recordRun, recordOkx, recordTelegram, recordAgent, recordError, healthAlerts, healthLine, windowSum, dailySummaryOf } from './health.js';
+import { PROFILES } from './agent/profiles.js';
 import { runAgents } from './agent/run.js';
 import { apiHealth, creditAlert } from './agent/manager.js';
 import { runAudit } from './review/run.js';
@@ -165,11 +167,13 @@ const TRACK_FIELDS = ['filledAt', 'earlyAt', 'knifeAt', 'confirmedAt', 'fillRes'
 const trackFieldsOf = (p) => Object.fromEntries(TRACK_FIELDS.filter((k) => p[k] != null).map((k) => [k, p[k]]));
 function historyUpdate(h, p) { const x = h.items.find((i) => i.id === histId(p)); if (x) Object.assign(x, { ...trackFieldsOf(p), status: p.status, updatedAt: p.updatedAt, activeAt: p.activeAt, tp1At: p.tp1At, closedAt: p.closedAt, entry: p.entry, rr1: p.rr1, rr: p.rr, ...(p.approachAtr != null ? { approachAtr: p.approachAtr, fillBarAtr: p.fillBarAtr } : {}), ...(p.entryPlanned ? { entryPlanned: p.entryPlanned, confirmedAt: p.confirmedAt } : {}), ...(p.exitPrice != null ? { exitPrice: p.exitPrice, exitR: p.exitR } : {}), ...(p.early ? { early: p.early, earlyPortion: p.earlyPortion, ...(p.midPortion ? { midPortion: p.midPortion, midStop: p.midStop, midAt: p.midAt ?? null } : {}) } : {}), ...(p.btcAtClose ? { btcAtClose: p.btcAtClose } : {}), ...(p.orphan ? { orphan: true } : {}), ...(p.lateClose ? { lateClose: p.lateClose } : {}) }); }
 
-async function notify(text, state) {
+let healthState = null; // sağlık sayaçları (state.health; main'de bağlanır) — grafik gönderimi de sayılsın diye modül düzeyinde
+async function notify(text, state = healthState) {
   if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
-  const ok = await sendTelegram(text, CFG.tg);
-  if (!ok) log('Telegram gönderilemedi (kimlik yok ya da hata)');
-  return ok;
+  const r = await sendTelegramEx(text, CFG.tg);
+  if (!r.noCreds && state) recordTelegram(state, r, Date.now()); // kimlik yoksa (yerel koşu) hata sayılmaz
+  if (!r.ok) log(`Telegram gönderilemedi (${r.error})`);
+  return r.ok;
 }
 
 /** Grafik fotoğrafı gönderir (SIGNAL_CHART=1). Hata/tarayıcı yoksa sessizce atlar; metin mesajı zaten gitmiştir. */
@@ -180,7 +184,9 @@ async function sendChart(candles, plan, o, caption) {
     if (CFG.dry) { const f = `bot/chart-${plan.coin}-${o.result ? 'sonuc' : 'kurulum'}.svg`; fs.writeFileSync(f, svg); log(`DRY: grafik ${f}`); return true; }
     const png = renderPng(svg);
     if (!png) { log('Grafik: Chrome/Chromium bulunamadı, yalnız metin'); return false; }
-    return await sendTelegramPhoto(png, caption, CFG.tg);
+    const r = await sendTelegramPhotoEx(png, caption, CFG.tg);
+    if (!r.noCreds && healthState) recordTelegram(healthState, r, Date.now());
+    return r.ok;
   } catch (err) { log(`Grafik hatası ${plan.coin}: ${err.message}`); return false; }
 }
 
@@ -188,26 +194,30 @@ async function main() {
   const now = Date.now();
   if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
+  healthState = state; recordRun(state, now);
   const history = loadHistory(CFG.historyFile);
   // Durumdaki her plan geçmişte de olmalı (historyAdd kimliğe göre tekrarsız): ilk koşu aktarımı + yayını başarısız olmuş bir
   // turun kaydı (state.sent'te var, depodaki history.json'da yok) sonraki turda kendiliğinden geri gelir.
-  { const n0 = history.items.length; for (const p of state.sent) historyAdd(history, p); if (history.items.length > n0 && n0) log(`Geçmişe geri eklendi: ${history.items.length - n0} kayıt (önceki yayın eksik kalmış)`); }
+  { const n0 = history.items.length; for (const p of state.sent) historyAdd(history, p); if (history.items.length > n0 && n0) { log(`Geçmişe geri eklendi: ${history.items.length - n0} kayıt (önceki yayın eksik kalmış)`); recordError(state, 'eksik yayın', now); } }
   log(`Tarama: ${CFG.tfs.join(',')} × ilk ${CFG.topN}; minRR ${CFG.minRR}, eval ${CFG.maxEval}, mesaj ${CFG.maxAlerts}, wait=${CFG.sendWait}${CFG.dry ? ' [DRY]' : ''}`);
   for (const tf of CFG.tfs) log(`  ${tf} long: ${fmtRule(ruleFor(tf, 'long'))}\n  ${tf} short: ${fmtRule(ruleFor(tf, 'short'))}`);
   const provider = env('FIXTURE', '') === '1' ? (await import('../src/data/fixture.js')).fixtureProvider : undefined; // test: OKX yerine sentetik
   // BTC günlük mumları (rejim: günlük kapanış vs EMA50); 4H/1H eğilimi tarama sonrası byKey'den okunur (marketRead)
-  let btcDaily = null;
+  let btcDaily = null, okxRetries = 0;
   try { btcDaily = provider ? (await provider.candles(instIdOf('BTC'), '1D', 120)).candles : (await getCandles(instIdOf('BTC'), TIMEFRAMES['1D'], 120)).candles; }
   catch (err) { log(`BTC günlük mumları alınamadı: ${err.message}`); }
   const res = await runScan({ timeframes: CFG.tfs, topN: CFG.topN }, {
     provider,
     onProgress: ({ done, total }) => { if (done % 50 === 0 || done === total) log(`  ${done}/${total}`); },
-    onRetry: ({ path: p, attempt, wait }) => log(`  retry ${p} #${attempt} ${wait}ms`),
+    onRetry: ({ path: p, attempt, wait }) => { okxRetries++; log(`  retry ${p} #${attempt} ${wait}ms`); },
   });
   const errs = res.rows.filter((r) => r.error && r.error !== 'Yetersiz mum');
   const young = res.rows.filter((r) => r.error === 'Yetersiz mum');
   log(`Tamam: ${res.rows.length} satır, ${errs.length} hata, ${young.length} yetersiz mum (yeni listelenen), ${res.errors.length} detektör hatası`);
   if (errs.length) log('  ilk hata:', errs[0].coin, errs[0].tf, errs[0].error);
+  // Sağlık: tarama satırı başına bir istek (+ BTC günlük); 'Yetersiz mum' hata değil
+  const okx = { req: res.rows.length + 1, err: errs.length + (btcDaily ? 0 : 1), retry: okxRetries };
+  const okxRate = recordOkx(state, okx, now);
   const byKey = new Map(res.rows.map((r) => [`${r.coin}|${r.tf}`, r]));
   const btcPrice = (() => { for (const tf of CFG.tfs) { const b = byKey.get(`BTC|${tf}`); if (b && !b.error && b.price) return b.price; } return null; })();
   // Çok ufuklu BTC okuması: günlük (EMA50), 4H ve 1H eğilimi (EMA50 + eğim + ADX/DI), 4s/24s getiri
@@ -235,7 +245,7 @@ async function main() {
         const scen = scenarioOf(a.row.candles, plan, {});
         await sendChart(a.row.candles, plan, { setup, scenario: scen, panel: panelOf(plan, {}, scen, [`Fib kesişimi 0,618×1,272 · puan ${a.score}`]), note: `fib kesişimi · ${a.stage === 'zone' ? 'bölgede' : 'yeni'}` }, `📐 <b>${a.coin}</b> ${a.tf} fib kesişimi`);
       }
-    } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); }
+    } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); recordError(state, 'fib', now); }
   }
 
   // 1) Açık planları güncelle. Durumda olmayan açık geçmiş kayıtları (önbellek kaybı) sessizce yeniden takibe alınır.
@@ -439,40 +449,43 @@ async function main() {
       const prices = {};
       for (const r of res.rows) if (!r.error && r.price) prices[r.coin] = r.price;
       const trackTf = CFG.tfs.includes('15m') ? '15m' : CFG.tfs[0];
-      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, history: history.items, cfg: { dry: CFG.dry, reset: CFG.agentReset, agentExit: CFG.agentExit, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue });
-    } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); }
+      await runAgents({ rows: res.rows, trackTf, candidates: agentList, prices, now, market: { regime, btcPrice, read }, history: history.items, cfg: { dry: CFG.dry, reset: CFG.agentReset, agentExit: CFG.agentExit, agentEveryMin: CFG.agentEveryMin, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, earlyTp: CFG.earlyTp }, notify: (t) => notify(t, state), log, llm: { apiKey: CFG.apiKey, model: CFG.agentModel }, stateFile: CFG.agentStateFile, publishDir: CFG.agentPublishDir, summaryDue, health: (id, ok, o) => recordAgent(state, id, ok, now, o) });
+    } catch (err) { log(`Ajan hatası: ${err.message}`); console.error(err); recordError(state, 'ajan turu', now); }
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)
   if (CFG.momentum) {
     try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
-    catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); }
+    catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); recordError(state, 'momentum', now); }
   }
   // 7) Rejim kuralı: BTC yukarı şok devam ederken Donchian long (kâğıt)
   if (CFG.regimeDonchian) {
     try { await runRegimeDonchian({ now, cfg: { dry: CFG.dry }, notify: (t) => notify(t, state), log, stateFile: CFG.regimeStateFile, publishDir: CFG.agentPublishDir, provider }); }
-    catch (err) { log(`Rejim-Donchian hatası: ${err.message}`); console.error(err); }
+    catch (err) { log(`Rejim-Donchian hatası: ${err.message}`); console.error(err); recordError(state, 'rejim', now); }
   }
   if ((summaryDue || CFG.forceAudit) && CFG.audit) {
     try {
       const config = { tfs: CFG.tfs, rules: Object.fromEntries(CFG.tfs.map((tf) => [tf, fmtRule(ruleFor(tf, 'long'))])), knifeGuard: CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop, momentum: CFG.momentum ? { variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge } : null, agent: CFG.agent };
       await runAudit({ now, cfg: { dry: CFG.dry, model: CFG.auditModel, config }, llm: { apiKey: CFG.apiKey }, notify: (t) => notify(t, state), log, historyFile: CFG.historyFile, publishDir: CFG.agentPublishDir, sweepFile: 'docs/backtest/sweep.json', lastRejects: state.lastRejects || null, ruleSince: state.ruleSince || null, ruleLabel: CFG.tfs.map((tf) => `${tf}: ${fmtRule(ruleFor(tf, 'long'))}`).join(' · '), flagFile: 'bot/research-request.flag' });
-    } catch (err) { log(`Denetçi hatası: ${err.message}`); console.error(err); }
+    } catch (err) { log(`Denetçi hatası: ${err.message}`); console.error(err); recordError(state, 'denetçi', now); }
   }
   if (summaryDue) {
     const since = now - 24 * 3600e3;
-    const recent = state.sent.filter((p) => p.sentAt >= since || (p.updatedAt || 0) >= since);
-    const stats = { sent: recent.filter((p) => p.sentAt >= since).length, active: 0, tp1: 0, done: 0, stopped: 0, expired: 0, missed: 0 };
-    for (const p of recent) if (stats[p.status] != null) stats[p.status]++;
-    await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since), state);
+    // Durum sayıları durumdaki planlardan; gün içinde kapananların toplam R'si geçmişten (düzeltilmiş kayıtlar: applyRescore)
+    const { stats, dayR } = dailySummaryOf(state.sent, applyRescore(history.items, readRescore()), since);
+    const health = healthLine(windowSum(state, now), CFG.agent ? PROFILES : {});
+    await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since, { dayR, health }), state);
     state.lastSummary = now;
     // Haftalık sinyal kalitesi (Pazartesi): geçen 7 günün sinyalleri bugünkü sonuçlarıyla, önceki hafta ve dönemle kıyas
     if (CFG.weeklyReport && new Date(now).getUTCDay() === 1 && now - (state.lastWeekly || 0) > 6 * 24 * 3600e3) {
-      try { await notify(weeklyReport(applyRescore(history.items, readRescore()), now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); }
+      try { await notify(weeklyReport(applyRescore(history.items, readRescore()), now).text, state); state.lastWeekly = now; } catch (err) { log(`Haftalık rapor hatası: ${err.message}`); recordError(state, 'haftalık rapor', now); }
     }
   }
   // API kredisi uyarısı: kredi hatası görülünce Telegram'a bir kez (24 saatte en fazla bir), başarılı çağrı gelince "düzeldi"
   const credit = creditAlert(state, apiHealth, now);
   if (credit) await notify(credit, state);
+  // Sağlık uyarısı: ajan art arda hata / bu turda OKX hata oranı / 24 saatte az koşu (her biri 6 saatte en fazla bir)
+  const alert = healthAlerts(state, now, { okxRate, okxReq: okx.req, okxErr: okx.err, profiles: CFG.agent ? PROFILES : {} });
+  if (alert) { log(alert.replace(/<[^>]+>/g, '')); await notify(alert, state); }
   if (CFG.dry) log('DRY: durum kaydedilmedi'); else { saveState(CFG.stateFile, state); saveHistory(CFG.historyFile, history); }
 }
 
