@@ -127,7 +127,7 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
   - Üç hipotez de geliştirmede geçmediği için kasa-M'de yalnız **T'nin doğrulaması** karar taşır; HM satırları kasada bilgi amaçlıdır.
   (Zaman notu: yukarıdaki geliştirme girişi `lock=0` dosyasından yazıldı; commit 21:05:30 UTC, kasa dosyasının yayınından (21:05:19) 11 sn
   sonra — içerik kasa okunmadan önce hazırdı.)
-- 13.11.2026 **M1 kilitli dilim (koşu 43507446xx `lock=1`, tek bakış; kasa-M 24.11.2022 → 24.11.2024, 104 hafta, dengeleme başına 32–66 coin):**
+- 13.11.2026 **M1 kilitli dilim (koşu 43507445359 `lock=1`, tek bakış; kasa-M 24.11.2022 → 24.11.2024, 104 hafta, dengeleme başına 32–66 coin):**
   - **T geçmedi (kıl payı):** haftalık **+%0,90**, %90 aralığı **[−0,16; +2,12]** (alt uç ≤ 0), Sharpe 0,98 (≥ 0,5 ✓), maks. düşüş %35,6, en kötü
     hafta −%18,7, en kötü tek işlem −%14,6. Bacaklar: short'lar −%0,45 / hafta (toplam −%47), BTC hedge toplam +%141 → kasa döneminde
     (yükseliş piyasası) kazanç "zayıf coinler BTC'den az yükseldi" farkından; hedge'siz T −%0,45 / hafta (Sharpe −0,32).
