@@ -48,10 +48,24 @@ export function momentumSummary(m) {
 
 /** Beklenti: taramadaki 4H düzeni satırı (varsa) → karşılaştırma için eğitim/doğrulama R ve kazanma. */
 export function expectedOf(sweep) {
-  const v = sweep?.results?.find((r) => r.targeted && /elle yönetim/.test(r.name) && /üst TF eğilimi aynı yön$/.test(r.name)) || sweep?.results?.find((r) => r.targeted && /elle yönetim/.test(r.name));
+  const rs = sweep?.results;
+  const sfxA = '3 kademe + TP1 sonrası stop erken hedefe: erken %1.2 · sıra 1H', sfxB = 'dolum mumunda sıra 1H ile';
+  let v = rs?.find((r) => r.targeted && r.name.endsWith(sfxA)), realistic = true;
+  if (!v) v = rs?.find((r) => r.targeted && r.name.endsWith(sfxB));
+  if (!v) {
+    realistic = false;
+    v = rs?.find((r) => r.targeted && /elle yönetim/.test(r.name) && /üst TF eğilimi aynı yön$/.test(r.name)) || rs?.find((r) => r.targeted && /elle yönetim/.test(r.name));
+  }
   if (!v) return null;
   const tf4 = v.byTf?.valid?.['4H'];
-  return { name: v.name, valid: { n: v.valid.n, avgR: v.valid.avgR, winRate: v.valid.winRate }, tf4h: tf4 ? { n: tf4.n, avgR: tf4.avgR, winRate: tf4.winRate } : null, hedgedValid4h: v.hedgedByTf?.valid?.['4H']?.avgR ?? null };
+  return {
+    name: v.name, valid: { n: v.valid.n, avgR: v.valid.avgR, winRate: v.valid.winRate }, tf4h: tf4 ? { n: tf4.n, avgR: tf4.avgR, winRate: tf4.winRate } : null, hedgedValid4h: v.hedgedByTf?.valid?.['4H']?.avgR ?? null,
+    train: { n: v.train?.n, avgR: v.train?.avgR, winRate: v.train?.winRate },
+    pf: { train: v.train?.profitFactor, valid: v.valid?.profitFactor },
+    hedged: { train: v.hedged?.train?.avgR ?? null, valid: v.hedged?.valid?.avgR ?? null },
+    realistic,
+    note: 'eğitim/doğrulama iki dilim; realistic=false ise dolum mumu iyimser sayılmıştır. Beklenti pozitif kenar demek değildir: iki dilimde de ≈ 0 ya da eksi olabilir.',
+  };
 }
 
 /**
