@@ -73,7 +73,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
 - Workflow'lar: `.github/workflows/scan.yml` (15 dk cron; env = Variables), `backtest.yml` (elle; Pazar cron research).
 - Eğitim: `docs/egitim/` (SMC/price action, arkadaşın yöntemi, örnekler, ölçüm notları).
 
-## Canlı ayar (24.10.2026'dan beri; DURUM.md günceldir)
+## Canlı ayar (24.10.2026'da kuruldu, ilk sinyal 26.10 00:00 UTC; 24.10 00–08 UTC'deki 46 sinyal eski düzenden → canlı istatistiklerde 26.10'dan başla; DURUM.md günceldir)
 `KNIFE_GUARD=1 LIMIT_ONLY=1 SKIP_WEEKEND=1 EARLY_TP={"pct":1.2,"portion":0.8,"tfs":["4H"]}
 TF_RULES={"15m":{"off":true},"1H":{"off":true}} HTF_TREND=with AUDIT=1 MOMENTUM=1 MOMENTUM_VARIANT=short
 MOMENTUM_RANK=rel MOMENTUM_HEDGE=1`. Yani yalnız 4H sinyalleri; beklenti (12 ay tarama) 4H doğr. +0,08R, kazanma ~%79,
