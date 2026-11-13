@@ -118,3 +118,13 @@ Uygulama notları (13.11.2026, ilk koşudan ÖNCE):
   - **H5:** en iyi durum komisyon modeli +0,012…+0,013R kazandırıyor (taban −0,079 / +0,016R).
   - Üç birincil test de geliştirmede geçmedi → kasa koşusu (`lock=1`) yalnız bilgi amaçlı (taban düzenin bağımsız bir yılda davranışı,
     H1 iyileşmesinin yönü); hiçbir hipotez kasada "geçti" sayılamaz.
+- 13.11.2026 **Aşama 1, kilitli dilim (koşu 43492353902, `lock=1`, tek bakış; kasa 24.11.2024–18.11.2025, verisi olan 43 coin, tam kapsam 28):**
+  - Taban: **−0,062R** (n 958, PF 0,80, %90 GA −0,129…+0,007; hedge'li −0,100 [−0,151; −0,051]; long −0,106, short −0,035). Üç bağımsız
+    dilimde taban: −0,092 / +0,003 / −0,062 → düzenin kenarı olmadığı bağımsız bir yılda da doğrulandı.
+  - **H1 geçmedi:** −0,031R (n 431, PF 0,89, GA −0,107…+0,046; hedge'li −0,061). Tabana göre üç dilimde de iyileşme (+0,05 / +0,02 /
+    +0,03R) ama hiçbirinde ölçüt yok; kasada dilimler tekdüze DEĞİL (uyumlu −0,031 · orta −0,105 · ters −0,006).
+  - **H4 geçmedi:** N = 3 −0,095R (tabandan kötü), N = 5 −0,059R (≈ taban; en kötü 7 gün %52, maks. düşüş %32 iyileşme — mekanik).
+  - H5: en iyi durum komisyon modeli +0,012R (taban −0,050R).
+  - **Genel karar (ön kayıt 4. madde): hiçbir hipotez geçmedi.** Sonuç: 4H sinyal motoru tarayıcı / eğitim aracı olarak değerli, işlem
+    sistemi olarak beklentisi ≈ −0,06…−0,09R. Açık kalan tek aday H3 (fonlama + açık pozisyon), yalnız canlı gölge etiketle,
+    ~13.12.2026'da. Tanım / eşik değiştirilmedi; geliştirme dilimindeki n farkı (1.003 → 1.005) mum önbelleğinin uzamasından.
