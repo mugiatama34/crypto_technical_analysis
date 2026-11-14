@@ -41,3 +41,9 @@ seviyelerde en az **200 olay**. Birincil test sayısı 2. Geçen test "seviye ge
 
 ## Günlük
 - 14.11.2026: dosya yazıldı (ölçüm yok); sayılar orkestratör tarafından belirlendi. Betik yazılıyor.
+- 14.11.2026 (ilk koşudan ÖNCE) uygulama notları: zigzag dönüşü = uçtan sonraki bir mumun ucunun ≥ 2 × ATR ters gitmesi (yeni uç yapan mumda
+  dönüş aranmaz); bacaklar bağımsız izlenir (60 mum; uç aşılınca kapanır; uç aşımı ve dokunuş aynı mumdaysa olay yok); tamamlanma anında
+  çoktan geçilmiş seviye için olay yok; dokunuş mumunda kırılım sayılır, tepki yalnız mum içi sıra kesinse (inanılan ve sahte seviyelere aynı
+  kural); tepki oranı = tepki ÷ (tepki + kırılım); **200 olay eşiği çözülmüş olaylarla** sayılır (belirsiz / sonuçsuz hariç); S2'de adım önceki
+  kapanıştan, mertebe sınırında (9,9 → 10,1) on kat değişir; bootstrap 2.000 tekrar. Sentetik doğrulama: rastgele yürüyüşte iki test de
+  geçmiyor, seviyelere yapay sıçrama konunca yalnız ilgili test geçiyor.
