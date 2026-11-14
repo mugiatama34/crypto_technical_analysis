@@ -99,3 +99,17 @@ kısa ufukların dizilimi. Bu ayrı bir kural; HT1'in sonucunu değiştirmez, ke
   bacaklar yalnız net; ileri-6-mum ölçüsünde pencereler örtüşür (aralık giriş haftasına göre bloklu); devir = varlık başına yıllık pozisyon
   birimi; sinyal kırılımında coin'in karar anından önce kapanan son 4H mumundaki durumu. Sentetik doğrulama: kalıcı trendli 4H seride geçiyor
   (net +0,84 ↔ brüt +1,80 % hafta), rastgele yürüyüşte geçmiyor.
+- 14.11.2026 **HT3 sonucu (koşu 43564086338; BTC / ETH 4H verisi 16.12.2019'dan, ~15.100 mum; HT1 sayıları değişmedi: +1,711 / +0,273):**
+  - **GEÇMEDİ — 9 koşulun 8'i tutmadı** (yalnız "bağımsız dönem yeterince uzun" tuttu). Haftalık %, bağımsız (150 hafta) / bilinen (206 hafta):
+    - **Net −0,57 [−1,35; +0,29] / −0,62 [−1,09; −0,10]** (Sharpe −0,65 / −1,07) · brüt +0,41 / +0,35 · maliyet **%0,90 / hafta** (varlık başına
+      yılda ~630 durum değişimi).
+    - Long bacak +0,20 / −0,05 · **short bacak −0,77 [−1,36; −0,18] / −0,57 [−0,88; −0,26]** · al-tut +1,69 / +0,78.
+    - Plato: (2, 4, 28) net −1,01 / −0,71 · (6, 12, 84) net +0,10 / −0,52; short bacak hepsinde eksi.
+  - **Durum yönü öngörüyor mu (maliyetsiz, sonraki 6 mum):** YUKARI'da long **+%0,37 [0,08; 0,63]** / +%0,21 [−0,02; +0,44] · **AŞAĞI'da short
+    −%0,41 [−0,85; +0,08] / −%0,12** → aşağı dizilimden sonra fiyat ortalamada TEPKİ veriyor (short kaybediyor), iki dönemde de. KARIŞIK'ta long
+    +%0,16 / +%0,07 (genel yükseliş eğilimi).
+  - Durumlar çok kısa: zamanın ~%65'i KARIŞIK; YUKARI / AŞAĞI dönemlerinin medyanı **8 saat** (2 mum).
+  - **4H sinyaller, coin'in kendi kısa vade dizilimine göre (betimsel, n 2.483):** aynı yön −0,073R (n 419) · ters −0,031 (n 274) · karışık
+    −0,062 (n 1.790) → dizilimle aynı yönde olmak yardımcı olmuyor.
+  - Okuma: üç trend tanımında da (günlük 50 / 200, 4H kısa dizilim, 4H sinyal filtresi) **short tarafı kazandırmıyor**; kısa dizilimde brüt
+    getirinin iki katı maliyete gidiyor.
