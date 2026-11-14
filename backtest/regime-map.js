@@ -6,6 +6,7 @@ import { weeklyStats } from './mom-diag.js';
 import { statsCi } from './report.js';
 import { quoteVolOf } from './lab/xsmom.js';
 import { dailyIndex, windowStats, eq8h } from './carry.js';
+import { blockCi } from './diag.js';
 
 export const DAY = 86400e3, WEEK = 7 * DAY;
 export const UP = 'YUKARI', DOWN = 'AŞAĞI', MIXED = 'KARIŞIK';
@@ -352,6 +353,173 @@ export async function momentumWeeks(series, { startMs = RM_DEFAULTS.knownStart, 
   return { weeks, trades: r.trades, dataEnd, firstWeek: r.firstWeek, lastWeekPartialDropped: !!r.lastWeekPartial };
 }
 
+// ---------------- HT3: kısa vadeli çoklu ufuk dizilimi (4H; ön kayıt "Ek — HT3") ----------------
+export const H4 = 4 * 3600e3, YEAR = 365.25 * DAY;
+/** HT3 ön kayıt sayıları (değişmez): SMA 3 / 6 / 42 mum (12 saat, 1 gün, 1 hafta), plato (2, 4, 28) ve (6, 12, 84), ileri ölçü 6 mum. */
+export const HT3_DEFAULTS = { smas: [3, 6, 42], plateaus: [[2, 4, 28], [6, 12, 84]], fwdBars: 6 };
+/** Kısa vade dizilimi: YUKARI = kapanış > a > b > c · AŞAĞI = kapanış < a < b < c · aksi KARIŞIK; c (en yavaş SMA) yoksa null. */
+export function shortTrendOf(close, a, b, c) {
+  if (a == null || b == null || c == null) return null;
+  if (close > a && a > b && b > c) return UP;
+  if (close < a && a < b && b < c) return DOWN;
+  return MIXED;
+}
+/** 4H mumlar → Map(mum açılış zamanı → durum); durum t mumu kapanışıyla (yalnız ≤ t), en yavaş SMA oluşmuş mumlar. */
+export function shortStates(candles, smas = HT3_DEFAULTS.smas) {
+  const c = candles.map((x) => x.close), [A, B, C] = smas.map((n) => smaArr(c, n)), out = new Map();
+  for (let i = 0; i < candles.length; i++) { const st = shortTrendOf(c[i], A[i], B[i], C[i]); if (st) out.set(candles[i].time, st); }
+  return out;
+}
+/** τ anında geçerli 4H durumu: τ'dan önce kapanan son 4H mumunun durumu (mumlar UTC 4 saat ızgarasında). */
+export const stateAt4h = (map, tau) => (map ? map.get(Math.floor(tau / H4) * H4 - H4) ?? null : null);
+/** 4H mum maliyet seçenekleri: dayReturn fonlaması 3 × fund8h → mum başına fund8h / 2 için fund8h / 6 verilir; komisyon aynı. */
+const barCost = (o) => ({ fee: o.fee, fund8h: o.fund8h / 6 });
+
+/**
+ * HT3 4H seri: her varlık kendi kısa vade durumuna göre (YUKARI long, AŞAĞI short, KARIŞIK boş), ağırlık 1 / varlık sayısı. t tutma mumu:
+ * pozisyon = durum(t − 1 kapanışı), getiri açılış(t) → açılış(t + 1). Maliyet = fee × Σ|Δw| + mum başına fund8h / 2 × Σ|w|. Başlangıç = her
+ * varlığın durumu olan ilk mumun ertesi (en geç olanı); son = her varlığın t + 1 açılışı olan son mum. Mum ya da sonraki mum yoksa o pay
+ * nakitte. Al-tut: aynı mumlar, eşit ağırlık, maliyetsiz (bhF: tam nominal fonlamalı). assets: [{ coin, candles, states }].
+ */
+export function ht3Bars(assets, o = RM_DEFAULTS) {
+  const A = assets.map((a) => ({ ...a, s: prep(a.candles) }));
+  if (!A.length || A.some((a) => !a.states.size || a.candles.length < 2)) return { rows: [], start: null, end: null };
+  const start = Math.max(...A.map((a) => Math.min(...a.states.keys()) + H4));
+  const end = Math.min(...A.map((a) => a.candles[a.candles.length - 1].time - H4));
+  const rows = [], N = A.length, oc = barCost(o);
+  let prevW = new Map();
+  for (let t = start; t <= end; t += H4) {
+    const w = new Map(), rets = new Map();
+    let bh = 0;
+    for (const a of A) {
+      const i = a.s.idx.get(t), j = a.s.idx.get(t + H4);
+      if (i == null || j == null || !(a.candles[i].open > 0)) continue; // veri boşluğu: o pay nakitte
+      const r = a.candles[j].open / a.candles[i].open - 1;
+      rets.set(a.coin, r); bh += r / N;
+      const p = posOf(a.states.get(t - H4) ?? null); if (p) w.set(a.coin, p / N);
+    }
+    const x = dayReturn(prevW, w, rets, oc);
+    rows.push({ t, ...x, bh, bhF: bh - o.fund8h / 2, w: Object.fromEntries(w) });
+    prevW = w;
+  }
+  return { rows, start, end };
+}
+const SUM_FIELDS = ['gross', 'cost', 'fund', 'long', 'short', 'net', 'bh', 'bhF'];
+/** 4H satırları → günlük satırlar (gün içindeki mum getirilerinin toplamı; HT1'in günlük toplamıyla aynı biçim). */
+export function dailyOfBars(rows) {
+  const by = new Map();
+  for (const r of rows) {
+    const d = dayOf(r.t);
+    let x = by.get(d); if (!x) { x = { day: d, bars: 0, ...Object.fromEntries(SUM_FIELDS.map((k) => [k, 0])) }; by.set(d, x); }
+    for (const k of SUM_FIELDS) x[k] += r[k];
+    x.bars++;
+  }
+  return [...by.values()].sort((a, b) => a.day - b.day);
+}
+/**
+ * Kısa vade durum özeti ([from, toExcl) içinde GEÇERLİ olduğu mumlar: durum t → tutma mumu t + 1): mum payı, durum değişim sayısı, ardışık
+ * aynı-durum dönemleri (medyan saat), yıllık devir (pozisyon birimi / yıl: boş ↔ long / short 1, long ↔ short 2; varlık başına tam birim).
+ */
+export function shortSummary(states, from, toExcl) {
+  const keys = [...states.keys()].filter((t) => t + H4 >= from && t + H4 < toExcl).sort((a, b) => a - b);
+  const counts = {}, runs = [];
+  let changes = 0, units = 0, prev = null, len = 0;
+  for (const t of keys) {
+    const st = states.get(t);
+    counts[st] = (counts[st] || 0) + 1;
+    if (prev != null && st !== prev) { changes++; units += Math.abs(posOf(st) - posOf(prev)); runs.push({ st: prev, len }); len = 0; }
+    prev = st; len++;
+  }
+  if (prev != null) runs.push({ st: prev, len });
+  const n = keys.length, years = (n * H4) / YEAR;
+  const runsBy = Object.fromEntries(TRENDS.map((l) => { const r = runs.filter((x) => x.st === l).map((x) => x.len); return [l, { runs: r.length, medianHours: r.length ? median(r) * 4 : null, maxHours: r.length ? Math.max(...r) * 4 : null }]; }));
+  return {
+    bars: n, share: Object.fromEntries(TRENDS.map((l) => [l, n ? rd((counts[l] || 0) / n) : null])), changes, runs: runs.length, runsBy,
+    changesPerYear: years > 0 ? rd(changes / years, 1) : null, turnoverUnits: units, turnoverPerYear: years > 0 ? rd(units / years, 1) : null,
+  };
+}
+/**
+ * İleri ölçü (bilgi): her varlık, durum(t) için açılış(t + 1) → açılış(t + 1 + H) brüt getirisi (%) kural yönünde: YUKARI long, AŞAĞI short,
+ * KARIŞIK long yönünde (ayrı etiket). Giriş ≥ from ve çıkış ≤ toExcl olan pencereler (pencereler örtüşür). Hücre: n, ort. %, %90 aralık
+ * (hafta bloklu: girişin pazartesi haftası). assets: [{ coin, candles, states }].
+ */
+export function forwardCells(assets, from, toExcl, H = HT3_DEFAULTS.fwdBars, o = RM_DEFAULTS) {
+  const items = Object.fromEntries(TRENDS.map((l) => [l, []]));
+  const byCoin = {};
+  for (const a of assets) {
+    const s = prep(a.candles), mine = Object.fromEntries(TRENDS.map((l) => [l, []]));
+    for (const [t, st] of a.states) {
+      const t1 = t + H4, t2 = t + (1 + H) * H4;
+      if (t1 < from || t2 > toExcl) continue;
+      const i = s.idx.get(t1), j = s.idx.get(t2);
+      if (i == null || j == null || !(a.candles[i].open > 0)) continue;
+      const v = (st === DOWN ? -1 : 1) * (a.candles[j].open / a.candles[i].open - 1) * 100;
+      const x = { day: Math.round(mondayOf(t1) / WEEK), v };
+      items[st].push(x); mine[st].push(x);
+    }
+    byCoin[a.coin] = Object.fromEntries(TRENDS.map((l) => [l, { n: mine[l].length, meanPct: mine[l].length ? rd(mine[l].reduce((p, x) => p + x.v, 0) / mine[l].length) : null }]));
+  }
+  const dir = { [UP]: 'long', [DOWN]: 'short', [MIXED]: 'long (bilgi; kural boş)' };
+  const cells = Object.fromEntries(TRENDS.map((l) => {
+    const v = items[l];
+    return [l, { dir: dir[l], n: v.length, meanPct: v.length ? rd(v.reduce((p, x) => p + x.v, 0) / v.length) : null, ci90: blockCi(v, { reps: o.reps, seed: o.seed, level: o.level }) }];
+  }));
+  return { bars: H, ...cells, byCoin };
+}
+/**
+ * HT3 bir satır (SMA a / b / c mum): her varlık kendi 4H durumu → 4H seri → günlük toplam → bağımsız [başlangıç, knownStart) ve bilinen
+ * [knownStart, son] dönem raporları + durum özetleri (+ withForward: ileri ölçü). assets: [{ coin, candles (4H) }].
+ */
+export function ht3Row(assets, smas, o = RM_DEFAULTS, { withForward = false, fwdBars = HT3_DEFAULTS.fwdBars } = {}) {
+  const A = assets.map((a) => ({ ...a, states: shortStates(a.candles, smas) }));
+  const { rows, start, end } = ht3Bars(A, o);
+  if (!rows.length) return { smas, available: false, reason: `durum oluşmadı (SMA ${smas[2]} için yetersiz 4H veri)` };
+  const ks = o.knownStart, daily = dailyOfBars(rows);
+  // Gün sınırları: ilk TAM gün (başlangıç mumu gün ortasındaysa ertesi gün) → son TAM gün (son mum 20:00 mumu değilse önceki gün)
+  const fromDay = Math.ceil(start / DAY) * DAY, toDay = Math.floor((end + H4) / DAY) * DAY - DAY;
+  const indepOk = fromDay < ks, knownOk = toDay >= ks;
+  // Dönem raporu (HT1 ile aynı) + brüt (maliyetsiz) toplam ve haftalık maliyet / fonlama ortalaması (%)
+  const rep = (from, to) => ({ ...periodReport(daily, from, to, o), gross: weekStats(weeklyOf(daily, 'gross', from, to), o), costPct: weekStats(weeklyOf(daily, 'cost', from, to), o).meanPct, fundPct: weekStats(weeklyOf(daily, 'fund', from, to), o).meanPct });
+  const periods = {
+    indep: indepOk ? rep(fromDay, Math.min(toDay, ks - DAY)) : null,
+    known: knownOk ? rep(Math.max(fromDay, ks), toDay) : null,
+  };
+  const endExcl = end + H4;
+  const states = Object.fromEntries(A.map((a) => [a.coin, {
+    firstState: a.states.size ? Math.min(...a.states.keys()) : null,
+    indep: indepOk ? shortSummary(a.states, start, Math.min(endExcl, ks)) : null,
+    known: knownOk ? shortSummary(a.states, Math.max(start, ks), endExcl) : null,
+  }]));
+  const out = { smas, available: true, start, end, periods, states, _rows: rows };
+  if (withForward) {
+    const lastOpen = Math.min(...A.map((a) => a.candles.at(-1).time));
+    out.forward = { indep: indepOk ? forwardCells(A, start, ks, fwdBars, o) : null, known: knownOk ? forwardCells(A, Math.max(start, ks), lastOpen, fwdBars, o) : null };
+  }
+  return out;
+}
+/**
+ * HT3 geçme ölçütü (ön kayıt, HT1 ile aynı yapı, NET ile): bağımsız dönemde ort > 0, %90 alt uç > 0, Sharpe ≥ 0,5, short bacak ort > 0;
+ * bilinen dönemde toplam ve short bacak ort > 0; plato satırları iki dönemde de toplam ort > 0. Bağımsız dönem < 52 hafta → 'sonuçsuz'.
+ */
+export function verdict3Of(main, plateaus, o = RM_DEFAULTS) {
+  const gt0 = (x) => x != null && Number.isFinite(x) && x > 0;
+  const { checks } = verdictOf(main, [], o);
+  for (const p of plateaus) checks[`plateau_${p.smas.join('_')}`] = gt0(p?.periods?.indep?.total?.meanPct) && gt0(p?.periods?.known?.total?.meanPct);
+  const { indepWeeksEnough, ...rest } = checks;
+  const verdict = !indepWeeksEnough ? VERDICT.inconclusive : Object.values(rest).every(Boolean) ? VERDICT.pass : VERDICT.fail;
+  return { verdict, checks };
+}
+/**
+ * 4H sinyaller × karar anında COIN'in kendi kısa vade dizilimi (betimsel): aynı yön (long ∧ YUKARI / short ∧ AŞAĞI) · ters · karışık.
+ * rows: [{ d, decided, coin, A }]; coinStates: Map(coin → Map(4H mum → durum)). Hücre şeması signalsMap ile aynı (tradeCell).
+ */
+export function shortAlignMap(rows, coinStates, o = RM_DEFAULTS) {
+  const g = groupCells(rows, (r) => alignOf(r.d, stateAt4h(coinStates.get(r.coin), r.decided)), Object.values(ALIGN), (x) => tradeCell(x.map((r) => r.A), o));
+  return { cells: g.cells, noState: g.noState };
+}
+/** Sentetik 4H mumlar (synthDaily ile aynı süreç, adım 4 saat; drift / sigma mum başına). */
+export const synth4h = ({ t0 = Date.UTC(2019, 0, 1), ...p }) => synthDaily({ ...p, t0 }).map((c, k) => ({ ...c, time: t0 + k * H4 }));
+
 // ---------------- Uçtan uca (saf) ----------------
 const strip = (row) => { if (!row || !row._rows) return row; const { _rows, ...x } = row; return x; };
 /**
@@ -359,8 +527,8 @@ const strip = (row) => { if (!row || !row._rows) return row; const { _rows, ...x
  * { BTC: rows, ETH: rows } (withPeriods) | { unavailable }; signals: [{ d, decided, A }] | { unavailable }; momentum: { weeks } |
  * { unavailable }. → { meta, states, ht1, ht2, map: { signals4h, momentum, carry } }
  */
-export async function runRegimeMap({ daily = {}, alts = null, funding = null, signals = null, momentum = null, o: oIn = {}, meta = {} }) {
-  const o = { ...RM_DEFAULTS, ...oIn };
+export async function runRegimeMap({ daily = {}, alts = null, funding = null, signals = null, momentum = null, h4 = null, coin4h = null, o: oIn = {}, o3: o3In = {}, meta = {} }) {
+  const o = { ...RM_DEFAULTS, ...oIn }, o3 = { ...HT3_DEFAULTS, ...o3In };
   const missing = [];
   const na = (part, reason) => { missing.push(`${part}: ${reason}`); return { available: false, reason: `veri yok: ${reason}` }; };
   const has = (c) => Array.isArray(daily[c]) && daily[c].length > o.slow;
@@ -423,6 +591,15 @@ export async function runRegimeMap({ daily = {}, alts = null, funding = null, si
   else {
     const times = signals.map((r) => r.decided);
     signals4h = { available: true, from: Math.min(...times), to: Math.max(...times), ...signalsMap(signals, trendBtc, volBtc, o) };
+    // HT3 ek kırılım: karar anında coin'in kendi kısa vade dizilimi (coin 4H mumları)
+    const c4 = coin4h && !coin4h.unavailable ? (coin4h instanceof Map ? coin4h : new Map(Object.entries(coin4h))) : null;
+    if (!c4 || !c4.size) { const why = coin4h?.unavailable || 'coin 4H mumları verilmedi'; missing.push(`signals4h.byShortAlign: ${why}`); signals4h.byShortAlign = null; signals4h.byShortAlignReason = `veri yok: ${why}`; }
+    else {
+      const need = new Set(signals.map((r) => r.coin)), cs = new Map();
+      for (const c of need) { const x = c4.get(c); if (Array.isArray(x) && x.length) cs.set(c, shortStates(x, o3.smas)); }
+      const sa = shortAlignMap(signals, cs, o);
+      signals4h.byShortAlign = sa.cells; signals4h.byShortAlignNoState = sa.noState; signals4h.byShortAlignCoins = { withState: cs.size, signalCoins: need.size };
+    }
   }
   // Momentum
   let momentumCell;
@@ -441,11 +618,30 @@ export async function runRegimeMap({ daily = {}, alts = null, funding = null, si
     carryCell = { available: true, from: wk[0] ?? null, to: wk.at(-1) ?? null, ...(trendBtc ? {} : { note: 'BTC günlük mum yok → trend hücreleri durumsuz' }), ...weeklyMap(weeks, { trend: { map: trendBtc, labels: TRENDS }, funding: { map: fundBtc, labels: LEVELS } }, o) };
   }
 
+  // HT3 — kısa vadeli çoklu ufuk dizilimi (4H BTC / ETH; ön kayıt "Ek — HT3")
+  const has4 = (c) => h4 && !h4.unavailable && Array.isArray(h4[c]) && h4[c].length > o3.smas[2];
+  const data4h = {
+    start: Object.fromEntries(['BTC', 'ETH'].map((c) => [c, Array.isArray(h4?.[c]) && h4[c].length ? h4[c][0].time : null])),
+    end: Object.fromEntries(['BTC', 'ETH'].map((c) => [c, Array.isArray(h4?.[c]) && h4[c].length ? h4[c].at(-1).time : null])),
+    bars: Object.fromEntries(['BTC', 'ETH'].map((c) => [c, Array.isArray(h4?.[c]) ? h4[c].length : 0])),
+  };
+  let ht3;
+  if (!has4('BTC') || !has4('ETH')) ht3 = { ...na('ht3', h4?.unavailable || `BTC / ETH 4H mum yok ya da ≤ ${o3.smas[2]} mum (${['BTC', 'ETH'].map((c) => `${c} ${data4h.bars[c]}`).join(', ')})`), verdict: VERDICT.inconclusive, checks: {} };
+  else {
+    const A4 = ['BTC', 'ETH'].map((coin) => ({ coin, candles: h4[coin] }));
+    const main = ht3Row(A4, o3.smas, o, { withForward: true, fwdBars: o3.fwdBars });
+    const plats = o3.plateaus.map((p) => ht3Row(A4, p, o));
+    const v = main.available ? verdict3Of(main, plats, o) : { verdict: VERDICT.inconclusive, checks: {} };
+    ht3 = { available: main.available, main: strip(main), plateaus: Object.fromEntries(plats.map((p) => [`sma${p.smas.join('_')}`, strip(p)])), ...v };
+    if (main.available) ht3.periods = { indep: main.periods.indep ? { from: main.periods.indep.from, to: main.periods.indep.to } : null, known: main.periods.known ? { from: main.periods.known.from, to: main.periods.known.to } : null, start: main.start, end: main.end };
+  }
+
   return {
     meta: {
       generatedAt: meta.now ?? null, preReg: 'docs/arastirma/on-kayit-rejim.md', ...meta,
       data: { start: dataStart, end: dataEnd, fundingStart: fundOk ? { BTC: funding.BTC[0].time, ETH: funding.ETH?.[0]?.time ?? null } : null },
       periods: m ? { indep: m.periods.indep ? { from: m.periods.indep.from, to: m.periods.indep.to } : null, known: m.periods.known ? { from: m.periods.known.from, to: m.periods.known.to } : null, knownStart: ks } : { knownStart: ks },
+      data4h, ht3Params: { ...o3, plateaus: o3.plateaus.map((p) => p.join('/')), smas: o3.smas.join('/') },
       params: { ...o, plateaus: o.plateaus.map(([f, s]) => `${f}/${s}`) },
       seed: o.seed, missing,
       defs: {
@@ -459,10 +655,14 @@ export async function runRegimeMap({ daily = {}, alts = null, funding = null, si
         ht2: 'alt sepet: karar günü (t) dahil son 30 günün USDT hacmine göre ilk 30 (BTC, ETH hariç; ≥ 30 gün geçmiş), eşit ağırlık, BTC trend durumuna göre long / short / boş; < 10 coin → boş; havuz = bugünün OKX hacimde ilk N\'i (hayatta kalma yanlılığı)',
         signals4h: 'Aşama 1 plan seti, taban satır (gerçekçi), tüm dilimler (24.11.2024 →); durum = karar anından (plan mumu kapanışı) önce kapanan son günün BTC durumu; trendle aynı yön = (long ∧ YUKARI) ∨ (short ∧ AŞAĞI), ters = tersi, karışık = BTC KARIŞIK; hücre = dolan işlem n, ort. R, gün bloklu %90 (report.js statsCi); n < 100 sonuçsuz',
         momentum: 'mom-stage1 T_eqRisk (short_rel L28 k5, BTC hedge\'li, eşit risk ağırlığı) TEK akış 24.11.2022 → veri sonu (100 gün ısınma); hafta durumu = dengeleme anı (pazar kapanışı) BTC durumu; < 26 hafta sonuçsuz',
+        ht3: 'ön kayıt "Ek — HT3": 4H mumlar, YUKARI = kapanış > SMA3 > SMA6 > SMA42 · AŞAĞI = kapanış < SMA3 < SMA6 < SMA42 · aksi KARIŞIK (t mumu kapanışı → t + 1 açılışından geçerli; SMA42 oluşmadan durum yok); BTC ve ETH her biri kendi durumu, ağırlık 1/2 (boş pay nakit); getiri açılış(t+1) → açılış(t+2); maliyet = %0,075 × |Δağırlık| + mum başına %0,005 × |ağırlık| (8 saatte %0,01); gross = maliyetsiz, net = maliyetli (karar net ile); günlük = gün içindeki 4H getirilerinin toplamı, haftalık / dönem / bootstrap HT1 ile aynı; dönem başı = ilk tam gün (her iki varlığın durumu olan ilk mumun ertesi), sonu = son tam gün; plato (2, 4, 28) ve (6, 12, 84) kendi SMA\'ları oluştuğu mumdan',
+        ht3Forward: 'durum(t) için açılış(t + 1) → açılış(t + 7) (6 mum) brüt getirisi (%), YUKARI long, AŞAĞI short, KARIŞIK long yönünde (bilgi); pencere dönem içinde (bağımsız: çıkış ≤ 24.11.2022 00:00); örtüşen pencereler; %90 aralık giriş haftası bloklu',
+        ht3States: 'mum = durumun geçerli olduğu tutma mumu; devir = Σ|Δpozisyon| varlık başına (boş ↔ yön 1, long ↔ short 2) ÷ yıl; süre saat',
+        byShortAlign: 'signals4h ek kırılım: karar anından (plan mumu kapanışı) önce kapanan son 4H mumunda COIN\'in kendi kısa vade dizilimi (SMA 3 / 6 / 42); aynı yön = (long ∧ YUKARI) ∨ (short ∧ AŞAĞI), ters = tersi, karışık = KARIŞIK; coin 4H = Aşama 1 önbelleği (stage1Universe s4); hücre şeması byAlign ile aynı',
         carry: 'carry.js R1 (BTC + ETH sürekli, eşit ağırlık) brüt haftalık fonlama (short alır, %), maliyet yok; hafta başı (pazar kapanışı) BTC trend ve fonlama durumu',
       },
     },
-    states, ht1, ht2,
+    states, ht1, ht2, ht3,
     map: { signals4h, momentum: momentumCell, carry: carryCell },
   };
 }

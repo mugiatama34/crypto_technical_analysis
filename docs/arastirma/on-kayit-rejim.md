@@ -94,3 +94,8 @@ kısa ufukların dizilimi. Bu ayrı bir kural; HT1'in sonucunu değiştirmez, ke
   aynı yön / ters / karışık (betimsel; 24.11.2024 →).
 - Önceden yazılmış beklenti (orkestratör): laboratuvarda 1H / 4H trend ve kırılım aileleri (zaman serisi momentumu, Donchian) kenar vermedi;
   kısa ufuk = daha çok durum değişimi = daha çok maliyet ve gürültü. Geçme olasılığını düşük görüyorum; ölçüm bunu sınar.
+- 14.11.2026 (HT3 ilk koşusundan ÖNCE) uygulama notları: 4H mum başına fonlama = 8 saatlik oranın yarısı; günlük satır = o günün 4H getirilerinin
+  toplamı, haftalık / bootstrap / Sharpe HT1'in koduyla; dönem başı = iki varlığın da durumu oluştuktan sonraki ilk tam gün; brüt ve net ayrı,
+  bacaklar yalnız net; ileri-6-mum ölçüsünde pencereler örtüşür (aralık giriş haftasına göre bloklu); devir = varlık başına yıllık pozisyon
+  birimi; sinyal kırılımında coin'in karar anından önce kapanan son 4H mumundaki durumu. Sentetik doğrulama: kalıcı trendli 4H seride geçiyor
+  (net +0,84 ↔ brüt +1,80 % hafta), rastgele yürüyüşte geçmiyor.
