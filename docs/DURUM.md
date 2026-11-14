@@ -3,18 +3,19 @@
 Yeni oturumda önce bu dosya okunur (bkz. `CLAUDE.md` → "Devam edelim" protokolü). Her oturum sonunda en ALTA tarihli
 kısa bir giriş eklenir. Eski girişler silinmez.
 
-## Güncel durum (13.11.2026 sonu) — önce bunu oku
-- **Canlı:** yalnız 4H sinyalleri; `KNIFE_GUARD=1 LIMIT_ONLY=1 SKIP_WEEKEND=1 HTF_TREND=with`, çıkış 3 kademe
-  (`EARLY_TP` %1,2'de %50 · TP1'de %25 · sonra stop erken hedefe; ilk sinyal 13.11 10:24 UTC DOGE). Ajanlar 13.11'de 300 $'a sıfırlandı
-  (`AGENT_SOURCE=signals AGENT_EXIT=1`). Momentum short portföyü ayrı, sürüyor.
-- **Ölçüm sonucu:** düzenin kenarı yok (eğ −0,13 / doğr +0,01R, hedge'li eksi); bıçak korumasının net katkısı ≈ 0. Kullanıcı kararı:
-  düzen **deneme** olarak kâğıtta sürer, `KNIFE_GUARD` kalır; 30 kapanışta yeniden oynatmayla karşılaştırılıp karar verilir.
-- **13.11'de düzeltilenler (hepsi ana dalda):** canlı takip (dolum öncesi mumlar, teyitli girişte erken hedef, 3 kademede stop seviyesi,
-  erken hedef / bıçak mumunun kalanı), motor bıçak kararı (ileriye bakma), ajan hesabı (kapanmamış mumun kalanı), yayın döngüsü,
-  denetçi beklentisi; eşlik testi `tests/parity.test.js`; yeniden puanlama katmanı `docs/signals/rescored.json` (4 kayıt).
-- **Çalışma düzeni:** model orkestrasyonu (`orkestrasyon` skill'i): Opus orta–yüksek, Sonnet basit–orta, Haiku veri temizliği; doğrudan
-  ana dala push (oturum dalı yalnız yedek kopya).
-- **Açık:** aşağıdaki son girişlerde "Açık kararlar / sıradaki" + `CLAUDE.md` → Açık işler. Deney B (gerçek işlemler) CSV'leri bekleniyor.
+## Güncel durum (14.11.2026 sonu) — önce bunu oku
+- **Canlı:** yalnız 4H sinyalleri (kâğıt, "deneme"; `KNIFE_GUARD=1 LIMIT_ONLY=1 SKIP_WEEKEND=1 HTF_TREND=with`, 3 kademe çıkış). Ajanlar 13.11'de
+  sıfırlandı (Agresif'in 4H yasağı kodla geçersiz). Momentum kâğıt portföyü 14.11'de sıfırlandı (`MOMENTUM_RESET=2026-11-14`), ilk dengeleme
+  16.11; ileriye dönük ara bakış **17.05.2027**. Günlük özette durum satırı; her sinyalde gölge etiket (`shadow`) ve puan dökümü (`bd`).
+- **13–14.11 araştırmalarının sonucu (hepsi ön kayıtlı, `docs/arastirma/`):** 4H sinyal düzeninde kenar yok (giriş zamanlaması, giriş biçimi,
+  stop, çıkış, coin seçimi, portföy sınırı; kilitli yıl −0,062R) · momentum kanıt eşiğini kıl payı geçmedi (kilitli dönem +%0,90 / hafta,
+  aralık sıfırı içeriyor) → ileriye dönük izleme · bilgi taraması (pump, düşüş, günlük sinyaller, yeni listelenen, oynaklık) aday çıkarmadı ·
+  fonlama geliri bugünkü oranlarla "zahmetine değmiyor" (%3,6 / yıl) · sahte seviye testi: fib / yuvarlak sayı seviyeleri fazladan tepki
+  çekmiyor · trend kuralları (günlük 50 / 200 ve 4H kısa dizilim) geçmedi; **short tarafı hiçbir tanımda kazandırmıyor**.
+- **Çalışma düzeni:** model orkestrasyonu (`orkestrasyon` skill'i); yeni hipotez = önce ön kayıt, bağımsız / kilitli veriye tek bakış; doğrudan
+  ana dala push.
+- **Sıradaki tarihler:** 16.11 momentumun ilk dengelemesi · ~21.11 kullanıcının Deney B CSV'leri · 13.12 short tarafı + gölge etiketler
+  (fonlama / açık pozisyon) + "puan v2" + rejim haritasının F1–F3 hipotezleri · 17.05.2027 momentum ara bakışı.
 - Testler: son sayı aşağıdaki en son girişte. Eski günlük (24.10–12.11): `docs/DURUM-arsiv.md` (sayıları 13.11 düzeltmelerinden önce, iyimser).
 
 ## 13.11.2026 günlüğü
@@ -125,3 +126,4 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - 14.11 **Fonlama geliri (taşıma) araştırması (kullanıcı isteği; ön kayıt `docs/arastirma/on-kayit-fonlama.md`, betik `backtest/carry.mjs` Opus, kaynak özeti `docs/arastirma/kaynaklar-fonlama-seviye.md` Sonnet):** Hyperliquid saatlik fonlama 2023-06 → 2026-11, 40 coin. BTC yıllık fonlama 2024 %24 → 2026 %5,6. BTC + ETH sürekli taşıma (maliyet %0,39, sermaye üzerinden): ham %15,6 / %5,6; OKX'e ölçeklenince (Hyperliquid ≈ 1,45–1,76 kat) **%9,8 / %3,6 → eşik (%5, iki yarıda) geçilmedi: "getirisi zahmetine değmiyor"**. Dönen ilk-5 ve eşik anahtarı daha kötü (devir maliyeti). Yüksek fonlama kalıcı (haftaların %97'si) ama maliyeti karşılamıyor. Kaynaklar: BIS "Crypto carry" ortalama > %10, Ekim 2025'te nötr pozisyonlar zarar gördü; Bybit spot komisyonu %0,1. Kullanıcı CSV'leri ~1 hafta sonra. "Kendini gerçekleştiren kehanet" tartışması: yuvarlak sayılarda emir kümelenmesi belgelenmiş (Osler 2003), fib için bulunamamış; önerilen "sahte seviye testi" kullanıcı kararında. Testler 394 (392 + 2 todo).
 - 14.11 **Sahte seviye testi (kullanıcının "kendini gerçekleştiren kehanet" düşüncesi; ön kayıt `docs/arastirma/on-kayit-seviye.md`, koşu 43561254457, `backtest/levels.mjs` Opus):** inanılan seviyelerde tepki oranı − komşu sahte seviyelerde tepki oranı, 4H, 50 coin, 2022-11 → 2026-11. **Fibonacci (0,382 / 0,5 / 0,618 ↔ 0,31 / 0,44 / 0,56 / 0,66): sonuçsuz (olay 48 / 144 < 200), işaret ters** (−0,03 / −0,12; ikinci yarıda aralık sıfırın altında). **Yuvarlak sayılar: geçmedi, işaret ters** (%40,7 ↔ %44,7 ve %40,0 ↔ %41,2; aşağıdan yaklaşmada yuvarlak seviye daha sık kırılıyor). Yani 4H ölçeğinde "çok inanılan seviye daha çok tepki çeker" görülmedi. Aynı gün kullanıcıyla "güç yüzüğü" (rejime göre model seçen üst beyin) tartışıldı → **rejim haritası + trend yönünde işlem testi** ön kaydı `docs/arastirma/on-kayit-rejim.md` (SMA50 / 200 dizilimi; BTC + ETH; bağımsız dönem = 24.11.2022 öncesi, hiç bakılmadı), betik yazılıyor. Testler 407 (405 + 2 todo).
 - 14.11 **Rejim haritası + trend testi (kullanıcı önerisi: SMA dizilimi; ön kayıt `docs/arastirma/on-kayit-rejim.md`, koşu 43562586738, `backtest/regime-map.mjs` Opus):** BTC + ETH "yukarıda long / aşağıda short" (SMA50 / 200): bağımsız dönem (07.2020–11.2022) haftalık +%1,71, Sharpe 1,47 ama tamamı long bacaktan (≈ al-tut getirisi, düşüş %54 ↔ %114); **short bacak iki dönemde de ≈ 0 (+0,05 / −0,02)**; bilinen dönem +0,27 (al-tut +0,79); komşu ortalamalar tutarsız → **geçmedi**. Harita (betimsel): 4H sinyallerde BTC trendiyle AYNI yöndeki işlemler en kötü (−0,102R, n 1.192; ters −0,011, karışık −0,025) · fonlama geliri fonlama durumuna mekanik bağlı (yüksek %0,59 / hafta ↔ düşük %0,07) · momentum her durumda artı, AŞAĞI'da zayıf. İleriye dönük izlenecek: F1 (trendle aynı yön sinyaller kötü), F2 (taşıma yalnız fonlama yüksekken), F3. Kullanıcıyla "güç yüzüğü" tartışması: rejime göre model seçimi için kanıt yok; işe yarayan tek "izin kuralı" gözlenen fonlama durumu. Testler 417 (415 + 2 todo).
+- 14.11 **Durum satırı eklendi** (kullanıcı onayı; `bot/status.js`, Sonnet + orkestratör düzeltmesi: dinamik içe aktarma): günlük özet mesajında `Durum: BTC trend … (50/200 günlük) · kısa vade … (4H: 12s/1g/1h) · oynaklık … · fonlama …`; yalnız gösterim. İlk canlı özet mesajında dört alanın dolu geldiği kontrol edilecek. **HT3 kısa vadeli dizilim testi (kullanıcı sorusu: "4H işlem için daha kısa ortalamalar"; ön kayıt eki, koşu 43564086338, Opus):** 4H'de kapanış > SMA3 > SMA6 > SMA42 (12s / 1g / 1h) → long, tersi short; BTC + ETH, 4H verisi 12.2019'dan. **Geçmedi:** net haftalık −%0,57 / −%0,62 (brüt +0,41 / +0,35; maliyet %0,90 / hafta, yılda ~630 değişim); short bacak −0,77 / −0,57 (aralık sıfırın altında); aşağı dizilimden sonraki 1 günde short −%0,41 / −%0,12 (tepki); durum dönemlerinin medyanı 8 saat. 4H sinyallerde coin'in kısa diziliminle aynı yön −0,073R ↔ ters −0,031R. Testler 432 (430 + 2 todo).
