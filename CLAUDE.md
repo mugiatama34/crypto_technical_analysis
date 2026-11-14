@@ -42,6 +42,11 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   dipten tepeye çekilen fib'te 0 = tepe, 1 = dip; kullanıcı çoğu zaman telefondan (iOS, Türkçe) çizer, masaüstü TradingView Almanca,
   işlemleri Bybit'te (İngilizce uygulama) açar. Gerçek para sorularında: %1 risk (ters işlem / hafta sonu / ilk işlem → %0,5),
   adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
+- **Bulut ↔ yerel oturum (14.11.2026):** bilgi birikimi depoda (bu dosya, `docs/DURUM.md`, `docs/arastirma/`, `.claude/skills/`); sohbet
+  geçmişi taşınmaz, o yüzden her oturum sonunda DURUM güncellenir. **Bulut oturumu** x.com'u ve OKX'i açamaz (Hyperliquid açılır), Actions'ı
+  GitHub MCP ile tetikler, zamanlayıcı kurabilir. **Yerel oturum** (kullanıcının Mac'i) X gönderilerini ve OKX'i açabilir, Actions için `gh`
+  kullanır, kullanıcının işlem CSV'leri yalnız orada durur (`tools/trades/*.csv` gitignore). İki oturum aynı anda push etmesin; her işe
+  `git pull --rebase` ile başla (bot 15 dakikada bir ana dala yazar).
 ## Mimari harita
 - Tarayıcı: `index.html` + `src/` (detectors, scan, ew, ui). Presetler `src/scan/presets.js` (ICT/SMC, EW, zigzag/flat,
   diyagonal, Fib kesişimi…). Detektörler `src/detectors/*.js` (signal(ctx) → Signal[]), `src/scan/registry.js`.
