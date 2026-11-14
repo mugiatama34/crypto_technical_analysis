@@ -49,3 +49,9 @@ Her hücre: n (ya da hafta), ortalama, %90 aralık; n < 100 işlem ya da < 26 ha
 
 ## Günlük
 - 14.11.2026: dosya yazıldı (ölçüm yok). Betik yazılıyor.
+- 14.11.2026 (ilk koşudan ÖNCE) uygulama notları: durum t kapanışında hesaplanır, t+1 tutma gününde kullanılır; bağımsız dönemin başı = BTC ve
+  ETH'nin ikisinin de durumu oluştuğu ilk gün; haftalar pazartesi–pazar, yalnız 7 günü de dönem içinde olanlar (24.11.2022'yi içeren hafta iki
+  dönemde de yok); long → short geçişinde kapanan birimin maliyeti long bacağa, açılanınki short bacağa; plato satırları kendi SMA'ları
+  oluştuğu günden başlar; HT2 sepetinde 10'dan az coin varsa boş; momentum tek akış (24.11.2022'den, 100 gün ısınma); fonlama durumu için
+  pencerede en az 5 gün veri; aralıklar haftalık blokla (trend dönemleri ardışık haftalara yayıldığı için İYİMSER olabilir). Sentetik doğrulama:
+  kalıcı trendli seride HT1 geçiyor, rastgele yürüyüşte geçmiyor.
