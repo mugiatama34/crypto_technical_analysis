@@ -16,7 +16,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Nazik istek: aynı anda ≤ 3 (havuz), istek başlangıçları arası ≥ 350 ms, 429 / hata → artan bekleme, 6 deneme.
 let nextSlot = 0;
-async function hlPost(body) {
+export async function hlPost(body) {
   for (let i = 0; i < 6; i++) {
     const now = Date.now(), wait = Math.max(0, nextSlot - now); nextSlot = Math.max(now, nextSlot) + 350;
     if (wait) await sleep(wait);

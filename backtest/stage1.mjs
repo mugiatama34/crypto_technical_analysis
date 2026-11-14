@@ -27,15 +27,20 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const TF = '4H', LOWER = '1H', MS = TIMEFRAMES[TF].ms;
 const SL = LOCK ? ['train', 'valid', 'kasa'] : ['train', 'valid'];
 
-async function main() {
-  const t0 = Date.now();
-  const { all: all0, meta } = loadPlans(IN);
-  const S = slicesOf(meta.endMs, SPLIT);
+/**
+ * Aşama 1 evreni (taban satır işlemleri): plan seti → canlı 4H seçimi (sweep passes) → simulateTrade maliyet (a) / (b). slices: dahil
+ * edilecek dilimler ('train' | 'valid' | 'kasa'); 'kasa' varsa planlar kasa başından, yoksa geliştirme başından okunur. Davranış
+ * stage1 main ile aynı (rejim haritası da bunu kullanır: backtest/regime-map.mjs).
+ */
+export async function stage1Universe({ inDir = IN, cache = CACHE, fixture = FIXTURE, slices = SL, split = SPLIT, log: lg = log } = {}) {
+  const withKasa = slices.includes('kasa');
+  const { all: all0, meta } = loadPlans(inDir);
+  const S = slicesOf(meta.endMs, split);
   // lock 0: kasa planları hiç okunmaz (geliştirme diliminden önceki her şey atılır); lock 1: kasa başından önceki (ısınma) atılır
-  const from = LOCK ? S.kasa.from : S.dev.from;
+  const from = withKasa ? S.kasa.from : S.dev.from;
   const all = all0.filter((t) => t.tf === TF && t.time >= from && t.time <= S.dev.to);
   const times = all.map((t) => t.time).sort((a, b) => a - b);
-  log(`Plan (4H, ${LOCK ? 'kasa + geliştirme' : 'geliştirme'}): ${all.length}; geliştirme ${iso(S.dev.from)} → ${iso(S.dev.to)}, bölünme ${iso(S.dev.split)}${LOCK ? `; kasa ${iso(S.kasa.from)} → ${iso(S.kasa.to)}` : ''}`);
+  lg(`Plan (4H, ${withKasa ? 'kasa + geliştirme' : 'geliştirme'}): ${all.length}; geliştirme ${iso(S.dev.from)} → ${iso(S.dev.to)}, bölünme ${iso(S.dev.split)}${withKasa ? `; kasa ${iso(S.kasa.from)} → ${iso(S.kasa.to)}` : ''}`);
   const v = capLists().map(merge).find((x) => x.name.endsWith(ROW_NAME));
   if (!v) throw new Error(`sweep satırı bulunamadı: ${ROW_NAME}`);
 
@@ -45,14 +50,14 @@ async function main() {
   const series = new Map(), s4 = new Map();
   for (const c of coins) {
     const inst = `${c}-USDT-SWAP`;
-    if (!FIXTURE) {
-      try { await getHistoryCached(inst, TF, meta.startMs, meta.endMs, { cacheDir: CACHE }); } catch (e) { log(`  ${c} ${TF}: veri hatası ${e.message}`); }
-      try { await getHistoryCached(inst, LOWER, from - 2 * 86400e3, meta.endMs, { cacheDir: CACHE }); } catch (e) { log(`  ${c} ${LOWER}: veri hatası ${e.message}`); }
+    if (!fixture) {
+      try { await getHistoryCached(inst, TF, meta.startMs, meta.endMs, { cacheDir: cache }); } catch (e) { lg(`  ${c} ${TF}: veri hatası ${e.message}`); }
+      try { await getHistoryCached(inst, LOWER, from - 2 * 86400e3, meta.endMs, { cacheDir: cache }); } catch (e) { lg(`  ${c} ${LOWER}: veri hatası ${e.message}`); }
     }
     for (const tf of [TF, LOWER]) { const s = await loadSeries(c, tf, inst); if (s) series.set(`${c}|${tf}`, s); }
     const s = series.get(`${c}|${TF}`); if (s) s4.set(c, s);
   }
-  log(`4H seri ${s4.size} / ${coins.length} coin, 1H ${[...series.keys()].filter((k) => k.endsWith(`|${LOWER}`)).length}`);
+  lg(`4H seri ${s4.size} / ${coins.length} coin, 1H ${[...series.keys()].filter((k) => k.endsWith(`|${LOWER}`)).length}`);
   const htf = await loadHtf(all, times, series);
   const btc4h = s4.get('BTC')?.candles || null;
 
@@ -65,7 +70,7 @@ async function main() {
     if (!s || s.idx.get(t.time) == null) { noSeries++; continue; }
     if (!passes(t, v, s, new Map(), htf)) continue;
     const slice = sliceOf(t.time, S);
-    if (!slice || !SL.includes(slice)) continue;
+    if (!slice || !slices.includes(slice)) continue;
     const cs = s.candles, i = s.idx.get(t.time), lower = series.get(`${t.coin}|${LOWER}`)?.candles || null;
     const plan = rebuild(t.plan, v);
     const a = simulateTrade(plan, cs, i + 1, TF, { ...oA, lowerCandles: lower });
@@ -75,7 +80,13 @@ async function main() {
     const key = `${t.coin}|${t.time}|${plan.d}`;
     rows.push({ key, coin: t.coin, slice, d: plan.d, score: t.plan.score, decided: t.time + MS, end: resolveEndOf(plan, cs, i + 1, TF, oA, a), A, B: tr(b) });
   }
-  log(`Evren: ${rows.length} sinyal (${SL.map((k) => `${k} ${rows.filter((r) => r.slice === k).length}`).join(', ')}); 4H mumu olmayan plan ${noSeries}`);
+  lg(`Evren: ${rows.length} sinyal (${slices.map((k) => `${k} ${rows.filter((r) => r.slice === k).length}`).join(', ')}); 4H mumu olmayan plan ${noSeries}`);
+  return { meta, S, from, all, coins, s4, oA, oB, rows, noSeries };
+}
+
+async function main() {
+  const t0 = Date.now();
+  const { meta, S, all, coins, s4, oA, rows, noSeries } = await stage1Universe();
 
   // H1: karar anında BTC'ye göre 28 günlük güç sırası (evren coinleri, BTC dışı, ≥ 168 mum geçmişi; < 10 coin → sıra yok)
   const rankCache = new Map();
