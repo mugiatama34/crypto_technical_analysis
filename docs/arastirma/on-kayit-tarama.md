@@ -50,3 +50,11 @@ Birincil test sayısı 5 (K1, K2, K3, K4, K6); eşik %1 → hepsi boşsa en az b
 
 ## Günlük
 - 14.11.2026: dosya yazıldı (ölçüm yok); sayılar kullanıcının yetkisiyle orkestratör tarafından belirlendi. Betik yazılıyor.
+- 14.11.2026 (ilk koşudan ÖNCE) düzeltme ve uygulama notları:
+  - **K4 tanım çelişkisi (benim hatam):** evren ≥ 60 günlük geçmiş istediği için "30–120 gün" grubunun 30–60 gün kısmı evrende hiç yok.
+    Karar (sonuç görülmeden): evren kuralı aynen kalır, **K4'ün birincil grubu fiilen 60–120 gün**; evren eşiği 30 güne indirilmiş "30–120
+    gün" satırı (`k4.wide`) yalnız bilgi amaçlı.
+  - K3 ölçütü betikte daha sıkı okunuyor: sinyal yönünde ham getiri > 0 (%99 aralık > 0) VE iki plaseboya karşı fark aralığının alt ucu > 0.
+    Yalnız ham getiri koşulu yüzünden kalırsa ayrıca belirtilir.
+  - Plasebo havuzu o günün evreni (BTC hariç; olay coinleri havuzda); bootstrap 2.000 tekrar, tohum 20261114; K3 sinyalleri bugünün ilk
+    50 coininden (dönem evreniyle süzülmez), ATR(14) Wilder; yaş = verideki ilk günlük mumdan; K5'te haftada en az 5 coin.

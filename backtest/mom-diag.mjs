@@ -19,7 +19,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
  * Fonlama geçmişi: GET /api/v5/public/funding-rate-history?instId&limit=100&after=<fundingTime> (daha eskiler). OKX yalnız
  * ~3 ay verir. Boş / hatalı yanıt → null (M0c "veri yok"); betik çökmez.
  */
-async function fetchFunding(instId, sinceMs) {
+export async function fetchFunding(instId, sinceMs) {
   const all = [];
   let after = null;
   for (let page = 0; page < 12; page++) {
