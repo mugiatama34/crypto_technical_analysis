@@ -76,3 +76,21 @@ Her hücre: n (ya da hafta), ortalama, %90 aralık; n < 100 işlem ya da < 26 ha
   - **İleriye dönük izlenecek hipotezler (haritadan; kanıt değil):** (F1) 4H sinyallerde BTC trendiyle aynı yöndeki işlemler diğerlerinden
     kötü — canlı kayıtta `btcRead` / `regime` ile 13.12'de bak. (F2) Fonlama geliri yalnız fonlama durumu YÜKSEK iken anlamlı (gözlenen durum →
     mekanik getiri). (F3) Momentum BTC AŞAĞI durumunda zayıf (38 hafta; zayıf ipucu).
+
+## Ek — HT3: kısa vadeli çoklu ufuk dizilimi (14.11.2026, kullanıcı sorusu; ölçümden ÖNCE)
+Kullanıcının itirazı: işlemler 4H'de açılıyor; günlük 50 / 200 çok yavaş. Önerisi: "4 saat > 12 saat > 1 gün > 1 hafta" (düşüşte tersi) gibi
+kısa ufukların dizilimi. Bu ayrı bir kural; HT1'in sonucunu değiştirmez, kendi ölçütüyle sınanır.
+- **Durum (4H mumlarla; t mumu kapanışında, t+1 açılışından geçerli):** YUKARI = kapanış > SMA3 > SMA6 > SMA42 (12 saat, 1 gün, 1 haftalık
+  ortalamalar) · AŞAĞI = kapanış < SMA3 < SMA6 < SMA42 · aksi KARIŞIK.
+- **Kural:** BTC ve ETH, eşit ağırlık, her varlık kendi durumuna göre: YUKARI → long, AŞAĞI → short, KARIŞIK → boş. Karar 4H mum kapanışında,
+  işlem sonraki mumun açılışında. Maliyet HT1 ile aynı (değişim başına %0,075 + 8 saatte %0,01 fonlama). Sık durum değişimi beklenir →
+  **brüt ve net ayrı** raporlanır; karar NET ile.
+- **Dönemler:** bağımsız = 4H verisinin başı → 24.11.2022 (BTC / ETH 4H'ye bu dönemde hiç bakılmadı) · bilinen = 24.11.2022 → veri sonu.
+- **Plato:** (2, 4, 28) ve (6, 12, 84) mum.
+- **Geçme ölçütü (HT1 ile aynı yapı):** bağımsız dönemde net haftalık ortalama > 0, %90 aralığın alt ucu > 0, Sharpe ≥ 0,5 ve short bacak net
+  ortalaması > 0; bilinen dönemde toplam ve short bacak net ortalaması > 0; iki plato satırı iki dönemde de net ortalama > 0.
+- **Bilgi amaçlı:** durum başına sonraki 6 mumun (1 gün) yön işaretli brüt getirisi (kural yönünde; maliyetsiz) — "durum yönü öngörüyor mu" ·
+  durumlarda geçen süre, değişim sayısı, yıllık devir · 4H sinyaller haritasına ek kırılım: karar anında COIN'in kendi kısa vade dizilimiyle
+  aynı yön / ters / karışık (betimsel; 24.11.2024 →).
+- Önceden yazılmış beklenti (orkestratör): laboratuvarda 1H / 4H trend ve kırılım aileleri (zaman serisi momentumu, Donchian) kenar vermedi;
+  kısa ufuk = daha çok durum değişimi = daha çok maliyet ve gürültü. Geçme olasılığını düşük görüyorum; ölçüm bunu sınar.
