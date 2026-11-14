@@ -52,7 +52,7 @@ test('rebalance: long-short 10 slot, eşit nominal; listeden çıkan kapanır; s
   const pub = publishOf(pf, pricesOf(u2), MON + 7 * DAY + 120e3, o);
   assert.ok(r2.sel.shorts.includes('C10')); // çöken C10 artık en zayıflar arasında: short'a döner
   assert.equal(pub.positions.length, 6);
-  assert.equal(pub.stats.trades, pub.trades.length); assert.ok(pub.trades.length >= 2);
+  assert.equal(pub.stats.trades + pub.stats.resizes, pub.trades.length); assert.equal(pub.stats.trades, pub.trades.filter((t) => !t.partial).length); assert.ok(pub.stats.trades >= 2);
   assert.equal(pub.nextRebalance, MON + 14 * DAY);
 });
 
@@ -164,4 +164,116 @@ test('BTC hedge: net maruziyet ≈ 0; stop sonrası hedge küçülür; altlar ka
   assert.ok(pf.trades.some((t) => t.hedge && t.reason === 'hedge' && t.R == null));
   const pub = publishOf(pf, px, MON + 3 * DAY, o);
   assert.equal(pub.hedge, true); assert.equal(pub.hedgeNotional, 0);
+});
+
+test('yeniden boyutlama kaydı: küçültmede kısmi işlem satırı (reason resize), muhasebe aynı; büyütmede satır yok', async () => {
+  const { resizePos, newPortfolio, MOM_DEFAULTS, equityOf } = await import('../bot/momentum/portfolio.js');
+  const o = { ...MOM_DEFAULTS, feePct: 0.1, slipPct: 0 };
+  const pf = newPortfolio(MON, o);
+  const q = { coin: 'X', d: -1, entry: 100, qty: 0.6, notional: 60, stop: 160, funding: 0.06, entryTime: MON - DAY };
+  pf.positions.push(q);
+  // önce: 300 + (100 − 90) × 0,6 − 0,06 = 305,94
+  assert.ok(Math.abs(equityOf(pf, { X: 90 }) - 305.94) < 1e-9);
+  resizePos(pf, q, 90, 21, MON, o);
+  const cut = 0.6 - 21 / 90, fee = 190 * cut * 0.001, fShare = 0.06 * (cut / 0.6);
+  const pnl = cut * 10 - fee - fShare;
+  // sonra (eski davranışla aynı): yalnız kesilen payın komisyonu düşer → 305,94 − 0,0696667
+  assert.ok(Math.abs(equityOf(pf, { X: 90 }) - (305.94 - fee)) < 1e-9);
+  assert.ok(Math.abs(pf.realized - pnl) < 1e-12);
+  assert.equal(pf.trades.length, 1);
+  const t = pf.trades[0];
+  assert.deepEqual({ ...t, qty: +t.qty.toFixed(9) }, { coin: 'X', direction: 'short', entryTime: MON - DAY, exitTime: MON, entry: 100, exit: 90, qty: +cut.toFixed(9), notional: +(cut * 100).toFixed(2), pnl: +pnl.toFixed(2), pct: +((pnl / (cut * 100)) * 100).toFixed(2), R: null, hedge: false, reason: 'resize', partial: true, funding: +fShare.toFixed(3), fee: +fee.toFixed(3) });
+  // büyütme: gerçekleşen yok → satır yok, realized değişmez
+  const r0 = pf.realized;
+  const q2 = { coin: 'Y', d: 1, entry: 10, qty: 1, notional: 10, stop: 8, funding: 0, entryTime: MON };
+  pf.positions.push(q2);
+  resizePos(pf, q2, 12, 24, MON, o);
+  assert.equal(pf.trades.length, 1); assert.equal(pf.realized, r0);
+  // maxTrades sınırı kısmi satırlara da uygulanır
+  const pf2 = newPortfolio(MON, { ...o, maxTrades: 2 });
+  for (let i = 0; i < 3; i++) { const z = { coin: `Z${i}`, d: 1, entry: 10, qty: 1, notional: 10, stop: 5, funding: 0, entryTime: MON }; pf2.positions.push(z); resizePos(pf2, z, 10, 5, MON, { ...o, maxTrades: 2 }); }
+  assert.equal(pf2.trades.length, 2); assert.equal(pf2.trades[0].coin, 'Z1');
+});
+
+test('publishOf: kısmi (yeniden boyutlama) satırları istatistiğe girmez, ayrı sayılır; yayından geri kurmada korunur', async () => {
+  const { portfolioFromPublished } = await import('../bot/momentum/run.js');
+  const pf = newPortfolio(MON);
+  pf.trades.push(
+    { coin: 'A', direction: 'short', entryTime: MON, exitTime: MON + DAY, entry: 10, exit: 9, qty: 1, notional: 10, pnl: 1, pct: 10, R: 1, hedge: false, reason: 'stop', funding: 0, fee: 0 },
+    { coin: 'B', direction: 'short', entryTime: MON, exitTime: MON + DAY, entry: 10, exit: 11, qty: 1, notional: 10, pnl: -1, pct: -10, R: -1, hedge: false, reason: 'rebalance', funding: 0, fee: 0 },
+    { coin: 'C', direction: 'short', entryTime: MON, exitTime: MON + DAY, entry: 10, exit: 12, qty: 0.5, notional: 5, pnl: -1.25, pct: -25, R: null, hedge: false, reason: 'resize', partial: true, funding: 0, fee: 0 },
+    { coin: 'BTC', direction: 'long', entryTime: MON, exitTime: MON + DAY, entry: 100, exit: 110, qty: 0.1, notional: 10, pnl: 1, pct: 10, R: null, hedge: true, reason: 'resize', partial: true, funding: 0, fee: 0 });
+  pf.realized = -0.25;
+  const pub = publishOf(pf, {}, MON + DAY);
+  assert.equal(pub.stats.trades, 2); assert.equal(pub.stats.winRate, 0.5); assert.equal(pub.stats.avgPct, 0);
+  assert.equal(pub.stats.resizes, 2); assert.equal(pub.stats.resizePnl, -0.25);
+  assert.equal(pub.trades.length, 4); assert.ok(pub.trades[0].partial && pub.trades[0].hedge);
+  const back = portfolioFromPublished(pub);
+  assert.deepEqual(back.pf.trades, pf.trades);
+  assert.ok(!back.lost.some((x) => x.includes('kapanan işlem')), 'kısmi satırlar kayıp sayılmaz');
+});
+
+test('MOMENTUM_RESET: etiket farklı → arşiv + boş portföy, ilk dengeleme sonraki pazartesi; aynı etiket / geri kurma → sıfırlama yok; dry → yazım yok', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'momr-'));
+  const u = universe();
+  const provider = {
+    topCoins: async (n) => u.slice(0, n || 0).map((x) => ({ coin: x.coin, instId: x.instId })),
+    candles: async (instId) => { const coin = instId.split('-')[0]; const x = u.find((y) => y.coin === coin) || { candles: mkDaily('BTC', 0.001) }; return { candles: x.candles, live: null }; },
+  };
+  const msgs = [];
+  const stateFile = path.join(dir, 'st.json');
+  const base = { notify: async (m) => msgs.push(m), log: () => {}, stateFile, publishDir: dir, provider };
+  const cfg = (reset, dry = false) => ({ dry, variant: 'short', hedge: true, reset });
+  // eski kayıt (etiketsiz): pozisyonlar açık, hedge var
+  const old = await runMomentum({ ...base, cfg: cfg(undefined), now: MON + 60e3 });
+  assert.ok(old.positions.some((q) => !q.hedge) && old.positions.some((q) => q.hedge));
+  const oldPub = JSON.parse(fs.readFileSync(path.join(dir, 'momentum.json'), 'utf8'));
+  msgs.length = 0;
+  // sıfırlama turu (çarşamba)
+  const t1 = MON + 2 * DAY + 5 * 3600e3;
+  const pf = await runMomentum({ ...base, cfg: cfg('T1'), now: t1 });
+  const arch = path.join(dir, 'archive', 'momentum-ilk', 'momentum.json');
+  assert.ok(fs.existsSync(arch));
+  const a = JSON.parse(fs.readFileSync(arch, 'utf8'));
+  assert.equal(a.positions.length, oldPub.positions.length); assert.equal(a.equity, oldPub.equity);
+  assert.equal(pf.resetTag, 'T1'); assert.equal(pf.positions.length, 0); assert.equal(pf.trades.length, 0);
+  assert.equal(pf.lastRebalance, MON); assert.equal(pf.startEquity, 300); assert.equal(pf.realized, 0);
+  assert.equal(msgs.length, 1, msgs.join(' | '));
+  assert.ok(msgs[0].includes('sıfırlandı') && msgs[0].includes('T1') && msgs[0].includes(`${new Date(MON + 7 * DAY).toISOString().slice(0, 10)} 00:00 UTC`) && msgs[0].includes('kapatılmadı'));
+  assert.ok(!msgs[0].includes('başladı') && !msgs[0].includes('haftalık yeniden dengeleme') && !msgs[0].includes('BTC hedge')); // tek mesaj; hedge açılmadı (pozisyon 0)
+  const pub = JSON.parse(fs.readFileSync(path.join(dir, 'momentum.json'), 'utf8'));
+  assert.equal(pub.resetTag, 'T1'); assert.equal(pub.positions.length, 0); assert.equal(pub.equity, 300); assert.equal(pub.nextRebalance, MON + 7 * DAY);
+  // aynı etiket, aynı hafta: sıfırlama yok, dengeleme yok
+  msgs.length = 0;
+  const pf2 = await runMomentum({ ...base, cfg: cfg('T1'), now: t1 + 3600e3 });
+  assert.equal(msgs.length, 0); assert.equal(pf2.positions.length, 0);
+  // önbellek kaybı: yayından geri kurulan portföy etiketi korur → ikinci kez sıfırlanmaz
+  fs.unlinkSync(stateFile);
+  msgs.length = 0;
+  const pf3 = await runMomentum({ ...base, cfg: cfg('T1'), now: t1 + 2 * 3600e3 });
+  assert.equal(pf3.resetTag, 'T1'); assert.equal(pf3.lastRebalance, MON);
+  assert.ok(!msgs.some((m) => m.includes('sıfırlandı')));
+  // sonraki pazartesi 00:00 sonrası: dengeleme
+  msgs.length = 0;
+  const pf4 = await runMomentum({ ...base, cfg: cfg('T1'), now: MON + 7 * DAY + 60e3 });
+  assert.ok(pf4.positions.some((q) => !q.hedge)); assert.ok(msgs.some((m) => m.includes('yeniden dengeleme')));
+  assert.ok(!msgs.some((m) => m.includes('sıfırlandı') || m.includes('başladı')));
+  // dry: yeni etiket → sıfırlama mesajı var, dosya yazılmaz
+  const before = fs.readFileSync(path.join(dir, 'momentum.json'), 'utf8'), stBefore = fs.readFileSync(stateFile, 'utf8');
+  msgs.length = 0;
+  const pf5 = await runMomentum({ ...base, cfg: cfg('T2', true), now: MON + 8 * DAY });
+  assert.equal(pf5.resetTag, 'T2'); assert.ok(msgs.some((m) => m.includes('sıfırlandı')));
+  assert.ok(!fs.existsSync(path.join(dir, 'archive', 'momentum-T1')));
+  assert.equal(fs.readFileSync(path.join(dir, 'momentum.json'), 'utf8'), before); assert.equal(fs.readFileSync(stateFile, 'utf8'), stBefore);
+});
+
+test('MOMENTUM_RESET: ilk kurulumda (boş portföy) yalnız etiketlenir, arşiv yok, hemen başlar', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'momr2-'));
+  const u = universe();
+  const provider = { topCoins: async (n) => u.slice(0, n || 0).map((x) => ({ coin: x.coin, instId: x.instId })), candles: async (instId) => { const x = u.find((y) => y.coin === instId.split('-')[0]) || { candles: mkDaily('BTC', 0.001) }; return { candles: x.candles, live: null }; } };
+  const msgs = [];
+  const pf = await runMomentum({ cfg: { dry: false, variant: 'short', reset: 'T1' }, notify: async (m) => msgs.push(m), log: () => {}, stateFile: path.join(dir, 'st.json'), publishDir: dir, provider, now: MON + 60e3 });
+  assert.equal(pf.resetTag, 'T1'); assert.ok(pf.positions.length > 0);
+  assert.ok(msgs.some((m) => m.includes('başladı')) && !msgs.some((m) => m.includes('sıfırlandı')));
+  assert.ok(!fs.existsSync(path.join(dir, 'archive')));
 });

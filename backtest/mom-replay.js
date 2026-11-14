@@ -57,6 +57,7 @@ const snap = (pf) => new Map(pf.positions.map((q) => [keyOf(q), { coin: q.coin, 
 function classify(acc, pf, before, nTrades, realized0, prices, o) {
   let sum = 0;
   for (const t of pf.trades.slice(nTrades)) {
+    if (t.partial) continue; // kısmi (yeniden boyutlama) satırı: aşağıda adet değişiminden sınıflanır (çift sayım yok)
     const k = t.hedge ? 'BTC (hedge)' : t.coin;
     acc.byKey.set(k, (acc.byKey.get(k) || 0) + t.pnl);
     acc.fees += t.fee; sum += t.pnl;

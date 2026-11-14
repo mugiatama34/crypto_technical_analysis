@@ -100,6 +100,7 @@ jobs:
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}
           MOMENTUM_HEDGE: ${{ vars.MOMENTUM_HEDGE }}
+          MOMENTUM_RESET: ${{ vars.MOMENTUM_RESET }}
           REGIME_DONCHIAN: ${{ vars.REGIME_DONCHIAN }}
           MODEL_MIN_PROB: ${{ vars.MODEL_MIN_PROB }}
         run: node bot/run.mjs
