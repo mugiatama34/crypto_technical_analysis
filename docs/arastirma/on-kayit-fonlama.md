@@ -40,3 +40,16 @@ yok.** Tanım / eşik değişmez (değişirse tarihli not).
 - 14.11.2026 (sonuç görülmeden) **maliyet düzeltmesi:** kaynak taraması Bybit standart spot komisyonunu %0,1 (yapıcı / alıcı) gösterdi; ön kayıttaki
   %0,30 dört işlemi de vadeli komisyonuyla saymıştı. Gerçekçi değer 2 × (%0,10 + %0,02) + 2 × (%0,055 + %0,02) = **%0,39**. Karar %0,39 ile
   verilir; %0,30 satırı bilgi amaçlı raporlanır. (Kesin oran hesapta "My Fee Rate"ten teyit edilmeli.)
+- 14.11.2026 **Sonuç (yerel koşu + Actions koşusu 43555193808, `docs/backtest/carry.json`; Hyperliquid 05.06.2023 → 09.11.2026, 40 coin, 179 hafta):**
+  - **C1** yıllık fonlama (short alır): BTC %14,2 (2023 %15,9 · 2024 %24,1 · 2025 %10,6 · 2026 %5,6), ETH %14,3, ilk 10 %15,3, tüm havuz %8,7
+    (2026 %1,6); pozitif saat payı %78–87.
+  - **C2** kalıcılık: sıra korelasyonu 0,69 / 0,62; son haftanın en yüksek 5'i sonraki hafta evrenden yıllık +%19,6 / +%8,5 fazla, haftaların
+    %97'sinde önde → bilgi var.
+  - **C3 ham (Hyperliquid oranlarıyla; maliyet %0,39; sermaye üzerinden net yıllık, yarı A / B):** R1 %15,6 / %5,64 (en kötü 4 hafta −%0,31) ·
+    R2 %20,9 / %1,7 (yılda ~93 devir) · R3 %12,8 / %0,08 (B'de %81 boşta). Ham karar: R1 geçer.
+  - **Çapraz ölçek (OKX, son 95 gün, 40 coin):** Hyperliquid fonlaması OKX'in **1,45 katı (BTC) – 1,76 katı (ETH)**; coin medyanı ~2,0; R1
+    için kullanılan oran 1,58.
+  - **Ölçeklenmiş (karar):** R1 **%9,8 / %3,6** · R2 %0,0 / −%5,7 · R3 %8,4 / −%0,5 → iki yarıda da > %5 şartını sağlayan kural YOK.
+    **Karar (ön kayıt kuralı): "getirisi zahmetine değmiyor".**
+  - Yorum sınırı: oran yalnız son 95 günden; önceki dönemlerde farklı olabilir. Baz ve teminat riski simüle edilmedi. Fonlama rejime bağlı:
+    2024 gibi dönemlerde (BTC %24 / yıl) taşıma yeniden cazip olur → canlı gölge etiketteki `fundingBtc` ile izlenebilir.
