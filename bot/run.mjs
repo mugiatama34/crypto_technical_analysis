@@ -508,7 +508,27 @@ async function main() {
     // Durum sayıları durumdaki planlardan; gün içinde kapananların toplam R'si geçmişten (düzeltilmiş kayıtlar: applyRescore)
     const { stats, dayR } = dailySummaryOf(state.sent, applyRescore(history.items, readRescore()), since);
     const health = healthLine(windowSum(state, now), CFG.agent ? PROFILES : {});
-    await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since, { dayR, health }), state);
+    // Piyasa durum satırı (yalnız gösterim; hata / zaman aşımında boş kalır, özet yine gider)
+    let status = '';
+    try {
+      // Dinamik içe aktarma: status.js tanımları araştırma kodundan (backtest/regime-map.js zinciri) alır; o zincirde bir hata olursa
+      // yalnız durum satırı boş kalsın, bot yüklenirken düşmesin.
+      const { statusLine, trendState, shortState, volState, fundingState, fundingRowsOf } = await import('./status.js');
+      let timer; const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('zaman aşımı (6 sn)')), 6000); });
+      const fetchAll = async () => {
+        const [daily, h4, fund] = provider
+          ? [(await provider.candles(instIdOf('BTC'), '1D', 400)).candles, (await provider.candles(instIdOf('BTC'), '4H', 60)).candles, []]
+          : await Promise.all([
+            getCandles(instIdOf('BTC'), TIMEFRAMES['1D'], 400).then((x) => x.candles), // getCandles 300'lük sayfalar; en az 396 kapanmış mum
+            getCandles(instIdOf('BTC'), TIMEFRAMES['4H'], 60).then((x) => x.candles),
+            okxGet('/api/v5/public/funding-rate-history', { instId: instIdOf('BTC'), limit: 100 }).then(fundingRowsOf),
+          ]);
+        return statusLine({ trend: trendState(daily), short: shortState(h4), vol: volState(daily), funding: fundingState(fund, now) });
+      };
+      try { status = await Promise.race([fetchAll(), timeout]); } finally { clearTimeout(timer); }
+      log(`Durum satırı: ${status || '(boş)'}`);
+    } catch (err) { status = ''; log(`Durum satırı: ${err.message}`); }
+    await notify(formatSummary(stats, state.sent.filter((p) => !CLOSED.has(p.status)), since, { dayR, health, status }), state);
     state.lastSummary = now;
     // Haftalık sinyal kalitesi (Pazartesi): geçen 7 günün sinyalleri bugünkü sonuçlarıyla, önceki hafta ve dönemle kıyas
     if (CFG.weeklyReport && new Date(now).getUTCDay() === 1 && now - (state.lastWeekly || 0) > 6 * 24 * 3600e3) {
