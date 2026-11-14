@@ -15,7 +15,7 @@ on:
       universe: { description: "Lab: dönem evreni havuzu (ör. 150; 0 = kapalı, bugünün ilk N'i)", default: "0" }
       strategies: { description: "Lab: yalnız bu aileler (virgülle; boş = varsayılan 13 aile, all = 66 ailenin hepsi), ör. btc_tsmom_1h,btc_tsmom_4h", default: "" }
       fillbar: { description: "Lab: limit dolum mumunda hedef: skip (kötümser, varsayılan) | count (iyimser, eski)", default: "skip" }
-      mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı · research: araştırmacı ajan (kuyruk → tarama → rapor) · replay: canlı sinyalleri gerçek mumlarla yeniden oynat (canlı-backtest eşleştirme) · checklist: 10 maddelik check list ölçümü (son planlar) · diag: aşama 0 teşhis D1–D4 (son planlar → diag.json) · stage1: aşama 1 H1/H4/H5 (28 ay 4H planı backtest/stage1-data'da, yayınlanmaz → stage1.json) · momdiag: momentum M0a–M0d teşhis (1D önbellek + fonlama geçmişi → mom-diag.json; diğer girdiler kullanılmaz) · momstage1: momentum M1 T/HM1–HM3 (lock girdisi: 0 = yalnız geliştirme, 1 = kasa-M dahil → mom-stage1.json) · screen: ön kayıtlı bilgi taraması K1–K6 (1D 2019'dan + fonlama → screen.json; diğer girdiler kullanılmaz)", default: "full" }
+      mode: { description: "full: yeniden koşu + tarama · sweep: yalnız tarama (önbellek + son plans.json.gz) · lab: strateji laboratuvarı · research: araştırmacı ajan (kuyruk → tarama → rapor) · replay: canlı sinyalleri gerçek mumlarla yeniden oynat (canlı-backtest eşleştirme) · checklist: 10 maddelik check list ölçümü (son planlar) · diag: aşama 0 teşhis D1–D4 (son planlar → diag.json) · stage1: aşama 1 H1/H4/H5 (28 ay 4H planı backtest/stage1-data'da, yayınlanmaz → stage1.json) · momdiag: momentum M0a–M0d teşhis (1D önbellek + fonlama geçmişi → mom-diag.json; diğer girdiler kullanılmaz) · momstage1: momentum M1 T/HM1–HM3 (lock girdisi: 0 = yalnız geliştirme, 1 = kasa-M dahil → mom-stage1.json) · screen: ön kayıtlı bilgi taraması K1–K6 (1D 2019'dan + fonlama → screen.json; diğer girdiler kullanılmaz) · carry: ön kayıtlı fonlama geliri (taşıma) ölçümü, Hyperliquid fonlama geçmişi + OKX çapraz denetim → carry.json; diğer girdiler kullanılmaz", default: "full" }
       lock: { description: "stage1 / momstage1: kilitli dilim (kasa) 0 = hesaplanmaz (yalnız geliştirme + sağlamlık), 1 = kasa dahil tam rapor (tek bakış)", default: "0" }
 
 env:
@@ -127,6 +127,11 @@ jobs:
         if: ${{ env.MODE == 'screen' }}
         timeout-minutes: 90
         run: node backtest/screen.mjs
+      - name: Funding carry
+        # Ön kayıtlı fonlama geliri (taşıma) ölçümü (docs/arastirma/on-kayit-fonlama.md): HL fundingHistory (backtest/cache/carry) + OKX çapraz denetim → carry.json
+        if: ${{ env.MODE == 'carry' }}
+        timeout-minutes: 120
+        run: node backtest/carry.mjs
       - name: Live replay
         if: ${{ env.MODE == 'replay' }}
         run: node backtest/replay.mjs
@@ -134,13 +139,13 @@ jobs:
         if: ${{ env.MODE == 'full' }}
         run: node backtest/run.mjs --months ${{ env.MONTHS }} --top ${{ env.TOP }} --tfs ${{ env.TFS }} --fee ${{ env.FEE }} --slip ${{ env.SLIP }}
       - name: Save plans
-        if: ${{ env.MODE != 'stage1' && env.MODE != 'screen' && hashFiles('docs/backtest/plans.json.gz') != '' }}
+        if: ${{ env.MODE != 'stage1' && env.MODE != 'screen' && env.MODE != 'carry' && hashFiles('docs/backtest/plans.json.gz') != '' }}
         uses: actions/cache/save@v4
         with:
           path: docs/backtest/plans.json.gz
           key: plans-${{ github.run_id }}
       - name: Parameter sweep
-        if: ${{ env.MODE != 'stage1' && env.MODE != 'screen' && (env.MODE == 'full' || env.MODE == 'sweep' || env.REGEN == '1') }}
+        if: ${{ env.MODE != 'stage1' && env.MODE != 'screen' && env.MODE != 'carry' && (env.MODE == 'full' || env.MODE == 'sweep' || env.REGEN == '1') }}
         run: node backtest/sweep.mjs
       - name: Research agent
         if: ${{ env.MODE == 'research' }}
@@ -163,12 +168,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm --cached -q docs/backtest/plans.json.gz 2>/dev/null || true
-          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json docs/backtest/diag.json docs/backtest/stage1.json docs/backtest/mom-diag.json docs/backtest/mom-stage1.json docs/backtest/screen.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json docs/backtest/diag.json docs/backtest/stage1.json docs/backtest/mom-diag.json docs/backtest/mom-stage1.json docs/backtest/screen.json docs/backtest/carry.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
           # Dal bu arada ilerlemiş olabilir (scan commit'leri): önce uzak ucu al, çalışma ağacındaki sonuçları onun üstüne koy
           git stash -q --include-untracked || true
           git fetch -q origin ${{ github.ref_name }} && git reset -q --hard origin/${{ github.ref_name }}
           git stash pop -q || true
-          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json docs/backtest/diag.json docs/backtest/stage1.json docs/backtest/mom-diag.json docs/backtest/mom-stage1.json docs/backtest/screen.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
+          for f in docs/backtest/results.json docs/backtest/sweep.json docs/backtest/learn.json docs/backtest/lab.json docs/backtest/claude-sample.json docs/backtest/replay.json docs/backtest/checklist.json docs/backtest/diag.json docs/backtest/stage1.json docs/backtest/mom-diag.json docs/backtest/mom-stage1.json docs/backtest/screen.json docs/backtest/carry.json src/scan/learned.json docs/agent/research.json docs/agent/research-queue.json docs/agent/research-sweep.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || git commit -m "backtest (${{ env.MODE }}): ${{ env.MONTHS }} ay, ilk ${{ env.TOP }}, ${{ env.TFS }} (run ${{ github.run_id }})"
           for i in 1 2 3; do git pull -q --rebase origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }} && break || { git rebase --abort 2>/dev/null || true; sleep 5; }; done
       - uses: actions/upload-artifact@v4
