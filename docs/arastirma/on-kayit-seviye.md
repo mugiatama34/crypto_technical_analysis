@@ -47,3 +47,15 @@ seviyelerde en az **200 olay**. Birincil test sayısı 2. Geçen test "seviye ge
   kural); tepki oranı = tepki ÷ (tepki + kırılım); **200 olay eşiği çözülmüş olaylarla** sayılır (belirsiz / sonuçsuz hariç); S2'de adım önceki
   kapanıştan, mertebe sınırında (9,9 → 10,1) on kat değişir; bootstrap 2.000 tekrar. Sentetik doğrulama: rastgele yürüyüşte iki test de
   geçmiyor, seviyelere yapay sıçrama konunca yalnız ilgili test geçiyor.
+- 14.11.2026 **Sonuç (koşu 43561254457, `docs/backtest/levels.json`; 50 coin, 4H, 24.11.2022 → 14.11.2026; yarı A / yarı B):**
+  - **S1 Fibonacci: resmî karar "sonuçsuz"** — inanılan seviyelerde çözülmüş olay 48 / 144 (eşik 200; 10 ATR'lik bacak şartı olayı kıttı: toplam
+    514 dokunuş). Eldeki sayılar hipotezin TERSİ yönünde: tepki oranı farkı (inanılan − komşu sahte) **−0,03 [−0,20; +0,19] / −0,12 [−0,23;
+    −0,01]**. Seviye başına (B): 0,31 %58 · **0,382 %46** · 0,44 %59 · **0,5 %45** · 0,56 %63 · **0,618 %51** · 0,66 %55 → fib seviyeleri
+    komşularından daha AZ tepki çekmiş. 1D (bilgi): n 17 / 35, fark −0,00 / +0,06, aralıklar çok geniş.
+  - **S2 yuvarlak sayılar: geçmedi, işaret ters.** Tepki oranı yuvarlak %40,7 ↔ sahte %44,7 (fark **−0,040 [−0,068; −0,012]**, n 3.162 / 6.013) ·
+    %40,0 ↔ %41,2 (fark −0,012 [−0,031; +0,007], n 6.540 / 12.719). Fark en çok aşağıdan yaklaşmada (direnç): %37,5 ↔ %43,3 ve %38,4 ↔ %41,0 →
+    yuvarlak seviye aşağıdan geldiğinde rastgele seviyeden daha sık KIRILIYOR. Kırılım sonrası devam (Osler ölçüsü): fark +0,009 / −0,003 s,
+    aralıklar sıfırı içeriyor. 1D (bilgi): %32,2 ↔ %34,6 ve %31,5 ↔ %33,0 (aynı yön).
+  - **Genel karar: iki test de "seviye tepki çekiyor" iddiasını desteklemedi** (S1 sonuçsuz + ters işaret, S2 geçmedi + ters işaret). Sınır:
+    4H mum çözünürlüğü ve kaba yuvarlak-sayı tanımı (tek anlamlı basamak); dakikalık ölçekteki emir kümelenmesi etkileri (Osler) bu testle
+    görülemez. S1'i daha küçük bacak eşiğiyle yeniden koşmak tanım değişikliği olur; yapılmadı.
