@@ -141,3 +141,18 @@ Sağlamlık koşulu (hipotez değil): geçen her satır, pencere 14 ve 56 günle
     sıralama bilgisi plaseboyu geçiyor (M0b); kanıt eşiğinin altında, sıfırdan ayırt edilemiyor.
   - Temiz veri kalmadı (kasa-M açıldı). Bundan sonraki tek temiz sınama ileriye dönük kâğıt kayıt; Sharpe ≈ 1 ile %90 güven için ~150 hafta
     gerekir → kısa sürede "kanıt" beklenmemeli.
+
+## İleriye dönük izleme (14.11.2026, kullanıcı kararı; sıfırlamadan ÖNCE yazıldı)
+- **Kararlar:** canlı momentum kâğıt kaydı sıfırlanır (etiket `2026-11-14`; eski kayıt `docs/agent/archive/` altına); yeniden boyutlamada
+  gerçekleşen K/Z `trades`'e yazılır; momentum **"deneme"** etiketiyle kâğıtta sürer. Gerçek para yok.
+- **Ne izleniyor:** canlının bugünkü biçimi aynen (28 gün, BTC'ye göre en zayıf 5 short, eşit risk %2, 3 ATR stop, BTC hedge). Kural
+  değişikliği yapılırsa izleme o tarihte yeniden başlar (yeni etiket).
+- **Başlangıç:** sıfırlamadan sonraki ilk haftalık dengeleme — pazartesi 16.11.2026 00:00 UTC (hafta ortası açılış yok).
+- **Ara bakış: 26 hafta sonra, 17.05.2027.** Bakılacaklar: haftalık getiri ortalaması ve %90 aralığı, Sharpe, maks. düşüş, en kötü hafta, en
+  kötü tek işlem; canlı ↔ yeniden oynatma farkı (`backtest/mom-replay.js`; beklenen ±1 USDT / hafta içinde); gerçek ↔ varsayılan fonlama.
+- **Karşılaştırma ölçüsü (kasa-M'deki eşit risk bilgi satırı):** haftalık +%0,46 [+0,05; +0,93], Sharpe 1,25, maks. düşüş %15,5, en kötü tek
+  işlem −%2,1.
+- **Önceden yazılmış yorum kuralları:** 26 hafta kanıt için YETMEZ (Sharpe ≈ 1 ile %90 güven ~150 hafta ister) → ara bakış yalnız "beklenenle
+  tutarlı mı" sorusunu cevaplar: (a) ortalama > 0 ve maks. düşüş ≤ %16 → tutarlı, izleme sürer; (b) maks. düşüş > %20 ya da tek işlemde
+  özsermayenin %5'inden fazla kayıp → beklenenin dışında, o an (17.05'i beklemeden) kullanıcıyla değerlendirilir; (c) canlı ↔ yeniden oynatma
+  farkı haftada 2 USDT'yi aşarsa önce kayıt / kod incelenir.
