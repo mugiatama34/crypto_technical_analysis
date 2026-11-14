@@ -100,6 +100,11 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   %9,8 (2023–25) / %3,6 (2025–26) → **eşik %5 geçilmedi, "zahmetine değmiyor"**; dönen kurallar devir maliyetiyle daha kötü. Rejime bağlı:
   BTC fonlaması yeniden ~%0,02 / 8 saat üstüne çıkarsa yeniden bakılır (gölge etiket `fundingBtc`). Kaynak özeti:
   `docs/arastirma/kaynaklar-fonlama-seviye.md` (yuvarlak sayılarda emir kümelenmesi belgelenmiş; fib için bulunamamış).
+- **Rejim haritası + trend testi (14.11, ön kayıtlı: `docs/arastirma/on-kayit-rejim.md`; `regime-map.json`):** BTC + ETH SMA50 / 200 trend kuralı
+  geçmedi — kazanç yalnız long bacaktan (al-tut getirisi, yarı düşüş); **aşağı trendde short iki dönemde de ≈ 0** (07.2020–11.2022 bağımsız
+  dönem dahil); komşu ortalamalar tutarsız. Harita (betimsel): 4H sinyallerde BTC trendiyle aynı yön işlemler en kötü (−0,10R) · fonlama
+  geliri gözlenen fonlama durumuna bağlı (yüksek %0,59 / hafta ↔ düşük %0,07) · momentum her durumda artı. "Rejime göre model seçen üst beyin"
+  için kanıt yok; ileriye dönük F1–F3 hipotezleri ön kayıt günlüğünde.
 - **Sahte seviye testi (14.11, ön kayıtlı: `docs/arastirma/on-kayit-seviye.md`; `levels.json`):** 4H'de inanılan seviyeler komşu sahte
   seviyelerden daha çok tepki ÇEKMİYOR — fib 0,382 / 0,5 / 0,618 sonuçsuz (n az) ve ters işaretli (−0,03 / −0,12); yuvarlak sayılar geçmedi,
   ters işaretli (%40,7 ↔ %44,7; aşağıdan yaklaşmada daha sık kırılıyor). "Kendini gerçekleştiren kehanet" bu ölçekte görülmedi.
@@ -118,7 +123,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 - **Hyperliquid incelemesi yapıldı (11.11, DURUM.md):** 16 kârlı cüzdan; ders = küçük pozisyon (medyan pozisyon hesabın
   %1–40'ı), çok küçük kayıp + nadir büyük kayıp, kazananı uzun tutma; seçilim yanlılığı büyük (48 bin hesaptan kazananlar).
   Ortam izni: api.hyperliquid.xyz + stats-data.hyperliquid.xyz (Default). Node fetch proxy'yi ancak `NODE_USE_ENV_PROXY=1` ile kullanır.
-- **Sürüyor (14.11):** rejim haritası + trend yönünde işlem testi (`docs/arastirma/on-kayit-rejim.md`; SMA50 / 200 dizilimi, BTC + ETH, bağımsız dönem 24.11.2022 öncesi) — sonuç DURUM'da. Deney B CSV'leri ~21.11'de bekleniyor.
+- **Bekleyen (14.11):** Deney B CSV'leri ~21.11 · 13.12 değerlendirmesinde rejim haritasının F1 hipotezine de bak (canlı 4H sinyallerde BTC trendiyle aynı yön ↔ ters, `btcRead` / `regime`) · önerildi, karar yok: günlük özet mesajına "durum satırı" (BTC trend / oynaklık / fonlama durumu; kural değiştirmez).
 - **Deney B sürüyor (gerçek işlemler, 30 işlem):** risk 1 $ (short/ilk işlem 0,5 $), stop ≥ %1, TP1 1,5R'de %50 + SL girişe,
   kaldıraç ≤ ⌊100/(stop%×1,5)⌋ ve tasfiye stopun ötesinde; ikinci kol iz süren stop (Retracement 1R, Activation TP1). Bot
   sinyallerinde botun planı (erken %1,2'de %80). Her kısmi TP'den sonra SL ve trailing stop elle kontrol (Bybit ikisini de

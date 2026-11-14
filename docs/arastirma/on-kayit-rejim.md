@@ -55,3 +55,24 @@ Her hücre: n (ya da hafta), ortalama, %90 aralık; n < 100 işlem ya da < 26 ha
   oluştuğu günden başlar; HT2 sepetinde 10'dan az coin varsa boş; momentum tek akış (24.11.2022'den, 100 gün ısınma); fonlama durumu için
   pencerede en az 5 gün veri; aralıklar haftalık blokla (trend dönemleri ardışık haftalara yayıldığı için İYİMSER olabilir). Sentetik doğrulama:
   kalıcı trendli seride HT1 geçiyor, rastgele yürüyüşte geçmiyor.
+- 14.11.2026 **Sonuç (koşu 43562586738, `docs/backtest/regime-map.json`; BTC / ETH günlük veri 01.01.2020'den, durum 18.07.2020'den):**
+  - **HT1 trend kuralı (SMA50 / 200): GEÇMEDİ** (`knownShortPos` ve `plateau_70_250` koşulları tutmadı). Haftalık %:
+    - Bağımsız dönem (07.2020 → 11.2022, 122 hafta): toplam **+1,71 [0,46; 2,96]**, Sharpe 1,47 · long bacak +1,67 (Sharpe 1,69) · **short bacak
+      +0,05 [−0,62; +0,69]** · al-tut +1,58 (Sharpe 1,05). Maks. düşüş kural %54 ↔ al-tut %114.
+    - Bilinen dönem (11.2022 → 11.2026, 206 hafta): toplam +0,27 [−0,21; +0,82], Sharpe 0,44 · long +0,30 · **short −0,02** · al-tut +0,79
+      (Sharpe 0,83).
+    - Plato: 30 / 150 → +1,63 / +0,02 · 70 / 250 → +1,48 / **−0,14**.
+    - Okuma: kazancın tamamı long bacaktan (2020–21 yükselişi); kural al-tut getirisini artırmıyor, düşüşü yarıya indiriyor. **Aşağı trendde
+      short iki dönemde de ≈ 0** (2022 ayı piyasası dahil). Trend durumları kısa: BTC'de 858 günde 46 durum dönemi, trend dönemi medyanı 6–10 gün.
+  - **HT2 (bilgi; alt sepet, BTC durumuna göre):** +2,61 / −0,15 (short bacak +0,18 / −0,03).
+  - **Harita (betimsel, karar yok):**
+    - 4H sinyaller (24.11.2024 →, n 2.483, ort. −0,061R): **trendle aynı yön −0,102R [−0,169; −0,037] (n 1.192)** · trende ters −0,011 (n 224) ·
+      karışık −0,025 (n 1.067). Ayrıntı: long · YUKARI −0,116 · short · AŞAĞI −0,093 · short · YUKARI +0,021 (n 164) · short · KARIŞIK +0,004.
+      Oynaklık: yüksek −0,094 · orta −0,057 · düşük −0,055.
+    - Momentum (eşit risk, hedge'li; 206 hafta, ort. +%0,42): YUKARI +0,53 · AŞAĞI +0,14 · KARIŞIK +0,43; oynaklık düşük +0,77 [0,32; 1,24] ·
+      orta +0,12 · yüksek +0,59 (25 hafta, sonuçsuz).
+    - Fonlama geliri (BTC + ETH, Hyperliquid brüt; 179 hafta, ort. +%0,275): fonlama durumu YÜKSEK **+0,59** · ORTA +0,20 · DÜŞÜK +0,07; trend
+      YUKARI +0,49 · AŞAĞI +0,12 · KARIŞIK +0,16.
+  - **İleriye dönük izlenecek hipotezler (haritadan; kanıt değil):** (F1) 4H sinyallerde BTC trendiyle aynı yöndeki işlemler diğerlerinden
+    kötü — canlı kayıtta `btcRead` / `regime` ile 13.12'de bak. (F2) Fonlama geliri yalnız fonlama durumu YÜKSEK iken anlamlı (gözlenen durum →
+    mekanik getiri). (F3) Momentum BTC AŞAĞI durumunda zayıf (38 hafta; zayıf ipucu).
