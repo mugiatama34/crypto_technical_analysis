@@ -126,6 +126,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   %1–40'ı), çok küçük kayıp + nadir büyük kayıp, kazananı uzun tutma; seçilim yanlılığı büyük (48 bin hesaptan kazananlar).
   Ortam izni: api.hyperliquid.xyz + stats-data.hyperliquid.xyz (Default). Node fetch proxy'yi ancak `NODE_USE_ENV_PROXY=1` ile kullanır.
 - **Bekleyen (14.11):** Deney B CSV'leri ~21.11 · 13.12 değerlendirmesinde rejim haritasının F1 hipotezine de bak (canlı 4H sinyallerde BTC trendiyle aynı yön ↔ ters, `btcRead` / `regime`) · günlük özetteki durum satırı (`bot/status.js`, 14.11) ilk canlı özet mesajında kontrol edilecek (dört alan dolu mu).
+- **Not (14.11, kullanıcının paylaştığı görüş):** piyasanın katılımcı yapısı değişti (ETF'ler, kurumsal para, faiz kanalı; "grafik tek başına yetmiyor") → `docs/arastirma/notlar-piyasa-yapisi.md` (özet + ileride sınanabilecek fiyat dışı durum değişkenleri: ETF akışı, dolar, faiz, BTC hakimiyeti). Kullanıcı açmadıkça başlama.
 - **Deney B sürüyor (gerçek işlemler, 30 işlem):** risk 1 $ (short/ilk işlem 0,5 $), stop ≥ %1, TP1 1,5R'de %50 + SL girişe,
   kaldıraç ≤ ⌊100/(stop%×1,5)⌋ ve tasfiye stopun ötesinde; ikinci kol iz süren stop (Retracement 1R, Activation TP1). Bot
   sinyallerinde botun planı (erken %1,2'de %80). Her kısmi TP'den sonra SL ve trailing stop elle kontrol (Bybit ikisini de
