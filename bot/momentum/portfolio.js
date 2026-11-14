@@ -78,7 +78,8 @@ function closePos(pf, q, price, reason, now, o) {
 
 /**
  * Pozisyonu hedef nominale çek (|sapma| ≥ resizeTol ise). Küçültmede azaltılan kısmın K/Z'si, komisyonu ve fonlama payı
- * gerçekleşir; büyütmede ortalama giriş güncellenir (giriş komisyonu kapanışta tüm miktar üzerinden alınır).
+ * gerçekleşir ve işlem listesine kısmi satır yazılır (reason 'resize', partial: true; qty = kesilen adet); büyütmede ortalama
+ * giriş güncellenir (giriş komisyonu kapanışta tüm miktar üzerinden alınır; gerçekleşen yok → satır yok).
  */
 export function resizePos(pf, q, px, target, now, o = MOM_DEFAULTS) {
   const cur = q.qty * px;
@@ -88,7 +89,12 @@ export function resizePos(pf, q, px, target, now, o = MOM_DEFAULTS) {
     const cut = -dq, exit = px * (1 - q.d * (o.slipPct / 100));
     const fee = (q.entry * cut + exit * cut) * (o.feePct / 100);
     const fShare = q.funding * (cut / q.qty);
-    pf.realized += q.d * (exit - q.entry) * cut - fee - fShare;
+    const pnl = q.d * (exit - q.entry) * cut - fee - fShare;
+    pf.realized += pnl;
+    // Kayıt (muhasebe değişmez): kesilen payın gerçekleşeni işlem listesine kısmi satır olarak
+    const notional = cut * q.entry;
+    pf.trades.push({ coin: q.coin, direction: q.d === 1 ? 'long' : 'short', entryTime: q.entryTime, exitTime: now, entry: q.entry, exit: +exit.toPrecision(8), qty: cut, notional: +notional.toFixed(2), pnl: +pnl.toFixed(2), pct: +((pnl / notional) * 100).toFixed(2), R: null, hedge: !!q.hedge, reason: 'resize', partial: true, funding: +fShare.toFixed(3), fee: +fee.toFixed(3) });
+    if (pf.trades.length > o.maxTrades) pf.trades.splice(0, pf.trades.length - o.maxTrades);
     q.funding -= fShare; q.qty -= cut;
   } else {
     const fill = px * (1 + q.d * (o.slipPct / 100));
@@ -196,16 +202,17 @@ export function markCurve(pf, prices, now, o = MOM_DEFAULTS) {
 /** Sayfa için yayın nesnesi. */
 export function publishOf(pf, prices, now, o = MOM_DEFAULTS, btcPrice = null) {
   const eq = equityOf(pf, prices);
-  const closed = pf.trades;
+  const closed = pf.trades.filter((t) => !t.partial); // istatistik yalnız tam kapanışlar; kısmi (yeniden boyutlama) satırları ayrı
+  const parts = pf.trades.filter((t) => t.partial);
   const wins = closed.filter((t) => t.pnl > 0);
   return {
     updatedAt: now, variant: o.side, hedge: !!o.hedge, netExposure: +netExposure(pf, prices).toFixed(2), hedgeNotional: pf.positions.find((q) => q.hedge)?.notional ?? 0,
     params: { lookback: o.lookback, k: o.k, side: o.side, rank: o.rank, hedge: !!o.hedge, stopAtr: o.stopAtr, feePct: o.feePct, slipPct: o.slipPct, fundingPct8h: o.fundingPct8h, riskPct: o.riskPct, pitN: o.pitN, universe: o.universe },
-    start: pf.start, startEquity: pf.startEquity, equity: +eq.toFixed(2), pnlPct: +(((eq / pf.startEquity) - 1) * 100).toFixed(2), realized: +pf.realized.toFixed(2),
+    resetTag: pf.resetTag ?? null, start: pf.start, startEquity: pf.startEquity, equity: +eq.toFixed(2), pnlPct: +(((eq / pf.startEquity) - 1) * 100).toFixed(2), realized: +pf.realized.toFixed(2),
     btc: pf.btcStart && btcPrice ? { start: pf.btcStart, now: btcPrice, pct: +(((btcPrice / pf.btcStart) - 1) * 100).toFixed(2) } : null,
     lastRebalance: pf.lastRebalance || null, nextRebalance: lastWeekClose(now) + 7 * DAY,
     positions: pf.positions.map((q) => { const px = prices[q.coin] ?? q.lastPrice ?? q.entry; const pnl = pnlOf(q, px) - q.funding; return { coin: q.coin, hedge: !!q.hedge, direction: q.d === 1 ? 'long' : 'short', entry: q.entry, price: px, stop: q.stop, stopPct: q.stop != null ? +((Math.abs(px - q.stop) / px) * 100).toFixed(1) : null, riskUsd: q.stop != null ? +(q.qty * Math.abs(px - q.stop)).toFixed(2) : 0, notional: q.notional, pnl: +pnl.toFixed(2), pct: +((pnl / q.notional) * 100).toFixed(2), entryTime: q.entryTime, funding: +q.funding.toFixed(3) }; }),
-    stats: { trades: closed.length, winRate: closed.length ? +(wins.length / closed.length).toFixed(3) : 0, avgPct: closed.length ? +(closed.reduce((a, t) => a + t.pct, 0) / closed.length).toFixed(2) : 0 },
-    trades: closed.slice(-200).reverse(), rebalances: pf.rebalances.slice(-12).reverse(), curve: pf.curve,
+    stats: { trades: closed.length, winRate: closed.length ? +(wins.length / closed.length).toFixed(3) : 0, avgPct: closed.length ? +(closed.reduce((a, t) => a + t.pct, 0) / closed.length).toFixed(2) : 0, resizes: parts.length, resizePnl: +parts.reduce((a, t) => a + t.pnl, 0).toFixed(2) },
+    trades: pf.trades.slice(-200).reverse(), rebalances: pf.rebalances.slice(-12).reverse(), curve: pf.curve,
   };
 }

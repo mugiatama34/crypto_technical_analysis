@@ -20,6 +20,7 @@
 //     3 kademe (yalnız sinyal takibi): {"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"} → TP1'de %25, sonra stop erken hedefe
 //   TIME_STOP=8 (ya da JSON {"bars":8,"minMfeR":0.5}): dolumdan N mum içinde TP1 yoksa kapat (sinyal + ajan)
 //   KNIFE_GUARD=1 (ya da JSON): bölgeye hızlı gelen limit girişlerde teyit mumu bekle (sinyal takibi + ajan limitleri)
+//   MOMENTUM_RESET=<etiket> (varsayılan 2026-11-14): etiket değişince momentum kaydı arşivlenir (docs/agent/archive/momentum-<eski>/) ve 300 USDT'ye sıfırlanır
 //   AGENT_RESET=<etiket> (ör. 2026-11-13): etiket değişince ajan hesapları arşivlenir (docs/agent/archive/<etiket>/) ve 300 $'a sıfırlanır; dersler/parametreler korunur
 //   AGENT_EXIT=1: ajanlar çıkışı kendisi seçer (erken hedef %/pay, TP1 payı, TP1 sonrası stop, iz süren stop, kısmi kapatma); botun EARLY_TP'si onlara uygulanmaz
 //   AGENT_SOURCE=all|measured|signals (measured: yalnız ölçülmüş kural adayları; signals: Telegram'ın canlı kurallarından geçen planlar, long + short, + ölçülmüş adaylar)
@@ -108,6 +109,9 @@ const CFG = {
   timeStop: timeStopOf(env('TIME_STOP', '')), // zaman stopu: N mum (ya da JSON {bars,minMfeR}) içinde TP1 yoksa kapat
   momentumHedge: env('MOMENTUM_HEDGE', '0') === '1', // alt net maruziyete eşit ters BTC bacağı (piyasa-nötr)
   momentumStateFile: env('MOMENTUM_STATE_FILE', 'bot/momentum-state.json'),
+  // Momentum kaydı sıfırlama etiketi (AGENT_RESET mantığı): portföyün etiketi farklıysa yayın arşivlenir (docs/agent/archive/
+  // momentum-<eski etiket|ilk>/), 300 USDT'ye sıfırlanır, ilk dengeleme sonraki pazartesi 00:00 UTC. Boş Variable → kod varsayılanı.
+  momentumReset: env('MOMENTUM_RESET', '2026-11-14'),
   // Rejim kuralı (kâğıt): BTC 'G↑ · şok↑ devam' iken Donchian 20 long, 2 ATR izleyen (bot/regime/donchian.js). Varsayılan kapalı.
   regimeDonchian: env('REGIME_DONCHIAN', '0') === '1',
   regimeStateFile: env('REGIME_STATE_FILE', 'bot/regime-state.json'),
@@ -485,7 +489,7 @@ async function main() {
   }
   // 6) Momentum kâğıt portföyü (haftalık yeniden dengeleme; her turda stop/fonlama)
   if (CFG.momentum) {
-    try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
+    try { await runMomentum({ now, cfg: { dry: CFG.dry, variant: CFG.momentumVariant, rank: CFG.momentumRank, hedge: CFG.momentumHedge, reset: CFG.momentumReset }, notify: (t) => notify(t, state), log, stateFile: CFG.momentumStateFile, publishDir: CFG.agentPublishDir, provider, summaryDue }); }
     catch (err) { log(`Momentum hatası: ${err.message}`); console.error(err); recordError(state, 'momentum', now); }
   }
   // 7) Rejim kuralı: BTC yukarı şok devam ederken Donchian long (kâğıt)
