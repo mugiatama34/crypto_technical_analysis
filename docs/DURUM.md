@@ -16,6 +16,9 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   ana dala push.
 - **Sıradaki tarihler:** 16.11 momentumun ilk dengelemesi · ~21.11 kullanıcının Deney B CSV'leri · 13.12 short tarafı + gölge etiketler
   (fonlama / açık pozisyon) + "puan v2" + rejim haritasının F1–F3 hipotezleri · 17.05.2027 momentum ara bakışı.
+- **Yerel oturuma devir (14.11 sonu):** kullanıcı Mac'inde yerel oturum açacak (bulut oturumu x.com'u açamıyor; fark `CLAUDE.md` "Bulut ↔
+  yerel oturum"). İlk iş: okunamayan X gönderisi `https://x.com/foodloss_otoko/status/2121632355555397802` — oku, değerlendir; kayda değerse
+  `docs/arastirma/notlar-piyasa-yapisi.md`'ye işle. Kod / ölçüm tarafında yarım iş yok; ağaç temiz, testler 432 (430 geçti + 2 todo).
 - Testler: son sayı aşağıdaki en son girişte. Eski günlük (24.10–12.11): `docs/DURUM-arsiv.md` (sayıları 13.11 düzeltmelerinden önce, iyimser).
 
 ## 13.11.2026 günlüğü
