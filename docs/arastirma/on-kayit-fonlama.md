@@ -37,3 +37,6 @@ yok.** Tanım / eşik değişmez (değişirse tarihli not).
 
 ## Günlük
 - 14.11.2026: dosya yazıldı (ölçüm yok). Betik yazılıyor; ayrıca kaynaklı bir literatür / uygulama özeti isteniyor.
+- 14.11.2026 (sonuç görülmeden) **maliyet düzeltmesi:** kaynak taraması Bybit standart spot komisyonunu %0,1 (yapıcı / alıcı) gösterdi; ön kayıttaki
+  %0,30 dört işlemi de vadeli komisyonuyla saymıştı. Gerçekçi değer 2 × (%0,10 + %0,02) + 2 × (%0,055 + %0,02) = **%0,39**. Karar %0,39 ile
+  verilir; %0,30 satırı bilgi amaçlı raporlanır. (Kesin oran hesapta "My Fee Rate"ten teyit edilmeli.)
