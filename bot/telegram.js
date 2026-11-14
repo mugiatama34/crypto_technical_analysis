@@ -159,6 +159,8 @@ export function formatSummary(stats, open, since, extra = {}) {
   ];
   if (extra.dayR) lines.push(`Gün içinde kapanan ${extra.dayR.n} işlem: toplam ${extra.dayR.n ? fR(extra.dayR.R) : '0R'}`);
   if (open.length) lines.push('', '<b>Açık planlar:</b>', ...open.map((p) => `• ${esc(p.coin)} ${esc(p.tf)} ${p.direction.toUpperCase()} — ${p.status === 'waiting' ? 'bekliyor' : p.status === 'confirming' ? 'teyit bekliyor' : p.status === 'early' ? 'erken kâr alındı, kalan açık' : p.status === 'tp1' ? 'TP1 sonrası' : 'aktif'} (giriş ${fp(p.entry)}, stop ${fp(p.stop)})`));
-  if (extra.health) lines.push('', extra.health);
+  // Piyasa durum satırı (yalnız gösterim) health satırının hemen üstünde; boşsa mesaj eskisiyle aynı
+  if (extra.status) lines.push('', esc(extra.status), ...(extra.health ? [extra.health] : []));
+  else if (extra.health) lines.push('', extra.health);
   return lines.join('\n');
 }
