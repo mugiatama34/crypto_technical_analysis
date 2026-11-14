@@ -95,6 +95,11 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   geri verme YOK (3 gün +%4 göreli, ortalamada devam; short'ta sıkışma medyan %16, p90 %70, en büyük %741) · sert düşüş sonrası etki yok ·
   günlük (1D) yapı sinyallerinde de yön bilgisi yok · yeni listelenen ve yüksek oynaklık grupları ters işaretli, anlamsız · fonlama uçları (13
   hafta, bilgi) sonraki hafta −%2 → canlı etiketle izleniyor. Fiyat tabanlı yeni kenar aramak yerine ileriye dönük kayıtlar beklenir.
+- **Fonlama geliri / taşıma (14.11, ön kayıtlı: `docs/arastirma/on-kayit-fonlama.md`; `carry.json`):** spot al + vadeli sat. BTC yıllık fonlama
+  2024 %24 → 2026 %5,6 (Hyperliquid). BTC + ETH sürekli taşıma, maliyet %0,39, sermaye üzerinden, OKX'e ölçekli (Hyperliquid ≈ 1,5–1,8 kat):
+  %9,8 (2023–25) / %3,6 (2025–26) → **eşik %5 geçilmedi, "zahmetine değmiyor"**; dönen kurallar devir maliyetiyle daha kötü. Rejime bağlı:
+  BTC fonlaması yeniden ~%0,02 / 8 saat üstüne çıkarsa yeniden bakılır (gölge etiket `fundingBtc`). Kaynak özeti:
+  `docs/arastirma/kaynaklar-fonlama-seviye.md` (yuvarlak sayılarda emir kümelenmesi belgelenmiş; fib için bulunamamış).
 - **"Ort. R nasıl artar" araştırması (13.11, ön kayıtlı: `docs/arastirma/on-kayit.md`; `diag.json`, `stage1.json`):** giriş zamanlamasında bilgi
   yok (aynı eğilimde rastgele andan farksız; e-oranı ≈ 1,0) · giriş biçimi fark etmiyor (limit = piyasa, sinyal başına) · stoplar avlanmıyor ·
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının
@@ -110,6 +115,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 - **Hyperliquid incelemesi yapıldı (11.11, DURUM.md):** 16 kârlı cüzdan; ders = küçük pozisyon (medyan pozisyon hesabın
   %1–40'ı), çok küçük kayıp + nadir büyük kayıp, kazananı uzun tutma; seçilim yanlılığı büyük (48 bin hesaptan kazananlar).
   Ortam izni: api.hyperliquid.xyz + stats-data.hyperliquid.xyz (Default). Node fetch proxy'yi ancak `NODE_USE_ENV_PROXY=1` ile kullanır.
+- **Bekleyen kullanıcı kararları (14.11):** "sahte seviye testi" (fib 0,618 / yuvarlak sayılar ↔ kimsenin bakmadığı seviyeler; ön kayıtlı küçük test) istenirse koşulur; Deney B CSV'leri ~21.11'de bekleniyor.
 - **Deney B sürüyor (gerçek işlemler, 30 işlem):** risk 1 $ (short/ilk işlem 0,5 $), stop ≥ %1, TP1 1,5R'de %50 + SL girişe,
   kaldıraç ≤ ⌊100/(stop%×1,5)⌋ ve tasfiye stopun ötesinde; ikinci kol iz süren stop (Retracement 1R, Activation TP1). Bot
   sinyallerinde botun planı (erken %1,2'de %80). Her kısmi TP'den sonra SL ve trailing stop elle kontrol (Bybit ikisini de
