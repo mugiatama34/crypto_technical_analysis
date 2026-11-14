@@ -58,3 +58,18 @@ Birincil test sayısı 5 (K1, K2, K3, K4, K6); eşik %1 → hepsi boşsa en az b
     Yalnız ham getiri koşulu yüzünden kalırsa ayrıca belirtilir.
   - Plasebo havuzu o günün evreni (BTC hariç; olay coinleri havuzda); bootstrap 2.000 tekrar, tohum 20261114; K3 sinyalleri bugünün ilk
     50 coininden (dönem evreniyle süzülmez), ATR(14) Wilder; yaş = verideki ilk günlük mumdan; K5'te haftada en az 5 coin.
+- 14.11.2026 **Tarama sonucu (koşu 43550769850, `docs/backtest/screen.json`; evren gün başına 32–80 coin, medyan 64; yarı A / yarı B):**
+  - **K1 pump sonrası: hipotez (geri verme) TUTMADI — işaret ters.** 328 olay (A 98 → n eşiğinin 2 altında, resmî karar "sonuçsuz"; B 230).
+    Sonraki 3 gün göreli getiri **+%4,0 / +%3,6** (plasebo yüzdeliği %99,9 / %99,9 — rastgele coinlerin çok üstünde, yani ortalamada DEVAM);
+    %99 aralık [−2,1; +11,5] / [−5,7; +16,4] sıfırı içeriyor (kalın kuyruk). 1 gün +2,1 / +1,6 · 7 gün +9,5 / +5,9. Coin başına 7 günde tek
+    olay: +3,2 / −0,1. **Sıkışma riski (ertesi açılıştan short, 3 gün içinde aleyhe en büyük hareket): medyan %16, p90 %69–74, en büyük
+    %119 / %741.**
+  - **K2 sert düşüş: sonuçsuz / yok.** A'da yalnız 9 olay; B (n 130) −%0,8, yüzdelik %18,9.
+  - **K3 günlük yapı sinyalleri: geçmedi.** 2.093 sinyal; 7 gün sinyal yönünde −0,18 / +0,05 ATR; plasebo B farkı −0,06 [−0,20; +0,13] / +0,03
+    [−0,10; +0,15]; A-mom farkı −0,19 / +0,00. A'da short'lar anlamlı eksi (−0,61 ATR [−1,05; −0,21]). Günlükte de yön bilgisi yok.
+  - **K4 yeni listelenenler (60–120 gün): geçmedi, işaret ters** (+%1,1 / +%5,0; yüzdelik %90 / %98,8). Havuz bugünün listesi olduğu için
+    hayatta kalanlar lehine yanlı; "erime" bu veriyle sınanamıyor.
+  - **K6 yüksek oynaklık: geçmedi, işaret ters** (+%0,4 / +%1,1; yüzdelik %88 / %88).
+  - **K5 fonlama (bilgi; 13 hafta):** iki uç dilim de sonraki hafta geride (en negatif fonlama −%2,0, yüzdelik %1,9; en yüksek −%2,0,
+    yüzdelik %2,8), ortadakiler ileride; n 12 hafta → sonuçsuz, canlı gölge etiketle izlenecek.
+  - **Genel karar: 5 birincil testten hiçbiri geçmedi → "aday yok".** Tanım / eşik değiştirilmedi.

@@ -91,6 +91,10 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   dönem iyimserliği; 28 gün pencere eğitimde tepe). Long-short / ters-oynaklık / son haftayı atla geçmedi. Canlının eşit risk boyutlaması
   bilgi satırı olarak en düzgünü (Sharpe 2,1 / 2,3 / 1,25; en kötü tek işlem −%2). Canlı −%7,7'nin kaynağı: 21.10 10:00'da eski eşit nominalle
   açılış + APR sıkışması (geçiş artığı; kod hatası yok; 26.10'dan sonra canlı = yeniden oynatma). Temiz veri kalmadı → yalnız ileriye dönük kayıt.
+- **Bilgi taraması (14.11, ön kayıtlı: `docs/arastirma/on-kayit-tarama.md`; `screen.json`):** hiçbir aday geçmedi — pump sonrası (+%25, hacim 3×)
+  geri verme YOK (3 gün +%4 göreli, ortalamada devam; short'ta sıkışma medyan %16, p90 %70, en büyük %741) · sert düşüş sonrası etki yok ·
+  günlük (1D) yapı sinyallerinde de yön bilgisi yok · yeni listelenen ve yüksek oynaklık grupları ters işaretli, anlamsız · fonlama uçları (13
+  hafta, bilgi) sonraki hafta −%2 → canlı etiketle izleniyor. Fiyat tabanlı yeni kenar aramak yerine ileriye dönük kayıtlar beklenir.
 - **"Ort. R nasıl artar" araştırması (13.11, ön kayıtlı: `docs/arastirma/on-kayit.md`; `diag.json`, `stage1.json`):** giriş zamanlamasında bilgi
   yok (aynı eğilimde rastgele andan farksız; e-oranı ≈ 1,0) · giriş biçimi fark etmiyor (limit = piyasa, sinyal başına) · stoplar avlanmıyor ·
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının
