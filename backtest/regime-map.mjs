@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // Rejim haritası + "trend yönünde işlem" testi (14.11.2026; tanımlar docs/arastirma/on-kayit-rejim.md, bağlayıcı). Kâğıt / araştırma.
 //   node backtest/regime-map.mjs [--out docs/backtest] [--in backtest/stage1-data] [--cache backtest/cache] [--dcache backtest/cache/screen]
-//                                [--fcache backtest/cache/carry] [--pool 150] [--from 2019-01-01] [--noSignals] [--noAlts] [--noFunding] [--fixture]
+//                                [--fcache backtest/cache/carry] [--h4cache backtest/cache/regime4h] [--pool 150] [--from 2019-01-01] [--noSignals]
+//                                [--noAlts] [--noFunding] [--noHt3] [--fixture]
 // Kaynaklar: OKX 1D (BTC, ETH, havuz; backtest/data.js getHistoryCached) · Aşama 1 plan seti (stage1.mjs stage1Universe, 4H önbellek
-// --cache; sweep.mjs ile aynı bayrak) · Hyperliquid fundingHistory (BTC, ETH; önbellek --fcache, kaldığı yerden sayfalama).
+// --cache; sweep.mjs ile aynı bayrak) · Hyperliquid fundingHistory (BTC, ETH; önbellek --fcache, kaldığı yerden sayfalama) · HT3: OKX 4H BTC / ETH
+// (--from'dan, önbellek --h4cache; gerçek başlangıç meta.data4h) ve sinyal coinlerinin 4H mumları (Aşama 1 önbelleği, stage1Universe s4).
 // Bir parçanın verisi yoksa o parça "veri yok: <neden>" olarak yazılır, diğerleri yine koşar. --fixture: sentetik veri (ağ yok).
 // Çıktı: docs/backtest/regime-map.json + konsolda tablolar.
 import fs from 'node:fs';
 import path from 'node:path';
-import { runRegimeMap, momentumWeeks, synthDaily, regimeDrift, RM_DEFAULTS, TRENDS, LEVELS, ALIGN, DAY } from './regime-map.js';
+import { runRegimeMap, momentumWeeks, synthDaily, synth4h, regimeDrift, RM_DEFAULTS, TRENDS, LEVELS, ALIGN, DAY, H4 } from './regime-map.js';
 import { parseHlRows, mergeRows, withPeriods, HALF_A_START } from './carry.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
@@ -17,6 +19,7 @@ const CFG = {
   dcache: String(arg('dcache', 'backtest/cache/screen')), fcache: String(arg('fcache', 'backtest/cache/carry')), pool: +arg('pool', 150),
   from: Date.parse(`${arg('from', '2019-01-01')}T00:00:00Z`), noSignals: arg('noSignals', false) === true, noAlts: arg('noAlts', false) === true,
   noFunding: arg('noFunding', false) === true, fixture: arg('fixture', false) === true,
+  h4cache: String(arg('h4cache', 'backtest/cache/regime4h')), noHt3: arg('noHt3', false) === true,
 };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const HOUR = 3600e3, MOM_WARMUP = 100 * DAY;
@@ -57,20 +60,24 @@ function fixtureData(now) {
   for (let t = Date.UTC(2024, 10, 24); t < now; t += 4 * HOUR) {
     if (r() > 0.25) continue;
     const d = r() < 0.6 ? 1 : -1, filled = r() < 0.55;
-    signals.push({ d, decided: t + 4 * HOUR, A: { time: t, tf: '4H', d, outcome: filled ? (r() < 0.4 ? 'tp2' : 'stopped') : 'expired', R: filled ? (r() < 0.4 ? 1.5 : -1) : 0, waitBars: 1 } });
+    signals.push({ d, decided: t + 4 * HOUR, coin: `ALT${signals.length % 5}`, A: { time: t, tf: '4H', d, outcome: filled ? (r() < 0.4 ? 'tp2' : 'stopped') : 'expired', R: filled ? (r() < 0.4 ? 1.5 : -1) : 0, waitBars: 1 } });
   }
-  return { daily, alts, funding: { BTC: fund('BTC'), ETH: fund('ETH') }, signals };
+  // HT3: 4H BTC / ETH kalıcı trendli (mum başına drift), sinyal coinleri için 4H rastgele yürüyüş (24.11.2024 − 30 gün →); r() dizisine dokunmaz
+  const n4 = Math.floor((now - CFG.from) / H4), c0 = Date.UTC(2024, 9, 25);
+  const h4 = { BTC: synth4h({ n: n4, t0: CFG.from, seed: 21, drift: regimeDrift(300, 0.0015), sigma: 0.012 }), ETH: synth4h({ n: n4, t0: CFG.from, seed: 22, drift: regimeDrift(260, 0.0015), sigma: 0.014 }) };
+  const coin4h = Object.fromEntries(Array.from({ length: 5 }, (_, k) => [`ALT${k}`, synth4h({ n: Math.floor((now - c0) / H4), t0: c0, seed: 300 + k, sigma: 0.02 })]));
+  return { daily, alts, funding: { BTC: fund('BTC'), ETH: fund('ETH') }, signals, h4, coin4h };
 }
 
 async function main() {
   const t0 = Date.now();
   const now = CFG.fixture ? Date.UTC(2026, 10, 1) : Date.now();
   const sources = {};
-  let daily = {}, alts = null, funding = null, signals = null, momentum = null;
+  let daily = {}, alts = null, funding = null, signals = null, momentum = null, h4 = null, coin4h = null;
   if (CFG.fixture) {
     const fx = fixtureData(now);
-    ({ daily, alts, funding, signals } = fx);
-    sources.all = 'sentetik (--fixture): synthDaily (BTC / ETH kalıcı trend, 40 alt rastgele yürüyüş), sentetik fonlama ve 4H sinyaller';
+    ({ daily, alts, funding, signals, h4, coin4h } = fx);
+    sources.all = 'sentetik (--fixture): synthDaily (BTC / ETH kalıcı trend, 40 alt rastgele yürüyüş), sentetik fonlama ve 4H sinyaller; synth4h (BTC / ETH 4H kalıcı trend, 5 sinyal coini rastgele yürüyüş)';
   } else {
     // 1D: havuz (bugünün OKX hacimde ilk N'i) + BTC + ETH
     const { getTopCoins, instIdOf } = await import('../src/data/okx.js');
@@ -118,15 +125,27 @@ async function main() {
         const { stage1Universe } = await import('./stage1.mjs');
         const u = await stage1Universe({ inDir: CFG.inDir, cache: CFG.cache, fixture: false, slices: ['kasa', 'train', 'valid'], log });
         signals = u.rows.map((r) => ({ d: r.d, decided: r.decided, coin: r.coin, slice: r.slice, A: r.A }));
+        coin4h = new Map([...u.s4].map(([c, s]) => [c, s.candles]));
+        sources.coin4h = `Aşama 1 4H önbelleği ${CFG.cache} (stage1Universe s4; ${coin4h.size} coin)`;
         sources.signals = `Aşama 1 plan seti ${CFG.inDir} (planRun ${u.meta.months} ay, ilk ${u.meta.top}, ${u.meta.tfs}; plan sonu ${new Date(u.meta.endMs).toISOString().slice(0, 10)}), stage1.mjs stage1Universe taban satır (maliyet a), dilimler kasa + eğitim + doğrulama birlikte`;
         if (!signals.length) signals = { unavailable: 'plan setinde taban satıra giren sinyal yok' };
       } catch (e) { signals = { unavailable: `Aşama 1 plan seti yüklenemedi (${CFG.inDir}): ${e.message}` }; log(signals.unavailable); }
     }
+    // HT3: 4H BTC / ETH, --from'dan (OKX ne veriyorsa; gerçek başlangıç meta.data4h)
+    if (CFG.noHt3) h4 = { unavailable: 'kapalı (--noHt3)' };
+    else {
+      const f = {}, errs4 = [];
+      for (const c of ['BTC', 'ETH']) {
+        try { const t1 = Date.now(); f[c] = await getHistoryCached(instIdOf(c), '4H', CFG.from, now, { cacheDir: CFG.h4cache }); log(`4H ${c}: ${f[c].length} mum, ${f[c].length ? new Date(f[c][0].time).toISOString().slice(0, 10) : '—'} → (${Math.round((Date.now() - t1) / 1000)} sn)`); } catch (e) { errs4.push(`${c}: ${e.message}`); }
+      }
+      h4 = f.BTC?.length && f.ETH?.length ? f : { unavailable: `OKX 4H BTC / ETH alınamadı (${errs4.join('; ') || 'boş'})` };
+    }
+    sources.h4 = `OKX history-candles 4H BTC / ETH (${new Date(CFG.from).toISOString().slice(0, 10)} istendi →), önbellek ${CFG.h4cache}`;
   }
   if (CFG.fixture) {
     try { const ms = [{ coin: 'BTC', candles: daily.BTC }, ...alts].map((s) => ({ coin: s.coin, candles: s.candles.filter((x) => x.time >= RM_DEFAULTS.knownStart - MOM_WARMUP) })).filter((s) => s.candles.length >= 2); momentum = await momentumWeeks(ms); } catch (e) { momentum = { unavailable: `hata: ${e.message}` }; }
   }
-  const out = await runRegimeMap({ daily, alts, funding, signals, momentum, meta: { now, fixture: CFG.fixture, sources, args: { pool: CFG.pool, from: new Date(CFG.from).toISOString().slice(0, 10), in: CFG.inDir }, momentum: momentum && !momentum.unavailable ? { trades: momentum.trades, weeks: momentum.weeks.length, lastWeekPartialDropped: momentum.lastWeekPartialDropped, warmupDays: 100 } : null } });
+  const out = await runRegimeMap({ daily, alts, funding, signals, momentum, h4, coin4h, meta: { now, fixture: CFG.fixture, sources, args: { pool: CFG.pool, from: new Date(CFG.from).toISOString().slice(0, 10), in: CFG.inDir }, momentum: momentum && !momentum.unavailable ? { trades: momentum.trades, weeks: momentum.weeks.length, lastWeekPartialDropped: momentum.lastWeekPartialDropped, warmupDays: 100 } : null } });
   out.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
   fs.mkdirSync(CFG.out, { recursive: true });
   fs.writeFileSync(path.join(CFG.out, 'regime-map.json'), JSON.stringify(out));
@@ -169,6 +188,33 @@ function printTables(o) {
     console.log(`  ${d10(h2.start)} → ${d10(h2.end)} · havuz ${h2.coins} coin · sepet min/medyan/maks ${h2.basketSize.min}/${h2.basketSize.median}/${h2.basketSize.max}`);
     for (const [pk, pn] of [['indep', 'bağımsız'], ['known', 'bilinen']]) { const P = h2.periods[pk]; console.log(` ${pn}: ${P ? `${d10(P.from)} → ${d10(P.to)}` : '—'}`); if (P) { wHead(); wLine('toplam', P.total); wLine('long bacak', P.long); wLine('short bacak', P.short); } }
   }
+  const h3 = o.ht3;
+  console.log(`\n=== HT3 · kısa vade dizilimi (4H; BTC + ETH, kapanış > SMA3 > SMA6 > SMA42; net = maliyetli, brüt = maliyetsiz) ===`);
+  console.log(`  4H veri: BTC ${d10(o.meta.data4h.start.BTC)} → ${d10(o.meta.data4h.end.BTC)} (${o.meta.data4h.bars.BTC} mum), ETH ${d10(o.meta.data4h.start.ETH)} → ${d10(o.meta.data4h.end.ETH)} (${o.meta.data4h.bars.ETH} mum)`);
+  if (!h3.available) console.log(`  ${h3.reason || 'durum oluşmadı'}`);
+  else {
+    for (const [lab, row] of [[`SMA ${h3.main.smas.join('/')} (birincil)`, h3.main], ...Object.values(h3.plateaus).map((p) => [`SMA ${p.smas.join('/')} (plato)`, p])]) {
+      if (!row.available) { console.log(` ${lab}: ${row.reason}`); continue; }
+      for (const [pk, pn] of [['indep', 'bağımsız'], ['known', 'bilinen']]) {
+        const P = row.periods[pk];
+        console.log(` ${lab} · ${pn} dönem ${P ? `${d10(P.from)} → ${d10(P.to)}` : '—'}`);
+        if (!P) continue;
+        wHead(); wLine('net toplam', P.total); wLine('brüt toplam', P.gross); wLine('long bacak', P.long); wLine('short bacak', P.short); wLine('al-tut', P.buyHold); wLine('al-tut fonlamalı', P.buyHoldFunding);
+      }
+    }
+    console.log(' Durumlar (birincil; mum payı YUKARI / AŞAĞI / KARIŞIK · değişim / yıl · devir birim / yıl · medyan süre saat Y / A / K):');
+    for (const [c, s] of Object.entries(h3.main.states)) for (const [pk, pn] of [['indep', 'bağımsız'], ['known', 'bilinen']]) {
+      const x = s[pk]; if (!x) continue;
+      console.log(`  ${c} ${pn.padEnd(8)} ${x.bars} mum · ${TRENDS.map((t) => x.share[t]).join(' / ')} · değişim ${x.changes} (${x.changesPerYear} / yıl) · devir ${x.turnoverPerYear} / yıl · ${TRENDS.map((t) => x.runsBy[t].medianHours ?? '—').join(' / ')} s`);
+    }
+    console.log(` İleri ${h3.main.forward?.indep?.bars ?? 6} mum brüt getiri (kural yönünde, %; KARIŞIK long yönünde, bilgi):`);
+    for (const [pk, pn] of [['indep', 'bağımsız'], ['known', 'bilinen']]) {
+      const F = h3.main.forward?.[pk]; if (!F) continue;
+      console.log(`  ${pn.padEnd(8)} ${TRENDS.map((t) => `${t} (${F[t].dir.split(' ')[0]}) n ${F[t].n} ort ${F[t].meanPct ?? '—'} ${ci(F[t].ci90)}`).join(' · ')}`);
+    }
+    console.log(`  verdict: ${h3.verdict}\n  checks: ${JSON.stringify(h3.checks)}`);
+  }
+
   const st = o.states;
   if (st.btcVol) console.log(`\nBTC oynaklık gün payı (YÜKSEK / ORTA / DÜŞÜK): bağımsız ${st.btcVol.indep ? LEVELS.map((l) => st.btcVol.indep.share[l]).join(' / ') : '—'} · bilinen ${LEVELS.map((l) => st.btcVol.known.share[l]).join(' / ')}`);
   if (st.btcFunding) console.log(`BTC fonlama gün payı (YÜKSEK / ORTA / DÜŞÜK): ${LEVELS.map((l) => st.btcFunding.all.share[l]).join(' / ')} (${st.btcFunding.all.days} gün, değişim ${st.btcFunding.all.changes})`);
@@ -182,6 +228,8 @@ function printTables(o) {
     for (const k of Object.values(ALIGN)) tl(k, s4.byAlign[k]);
     for (const [k, c] of Object.entries(s4.byDirTrend)) tl(k, c);
     for (const k of LEVELS) tl(`oynaklık ${k}`, s4.byVol[k]);
+    if (s4.byShortAlign) { console.log(`  coin kısa vade dizilimi (HT3; durumsuz ${s4.byShortAlignNoState}):`); for (const k of Object.values(ALIGN)) tl(`kısa: ${k}`, s4.byShortAlign[k]); }
+    else console.log(`  coin kısa vade dizilimi: ${s4.byShortAlignReason}`);
   }
   const wl = (lab, c) => console.log(`  ${lab.padEnd(24)} hafta ${f(c.weeks, 4)}${c.inconclusive ? '*' : ' '} ort% ${f(c.meanPct)} ${ci(c.ci90)}`);
   for (const [name, key, groups] of [['Momentum (eşit risk, hedge\'li, haftalık %)', 'momentum', [['trend', TRENDS], ['vol', LEVELS]]], ['Fonlama geliri (BTC + ETH R1, brüt haftalık %)', 'carry', [['trend', TRENDS], ['funding', LEVELS]]]]) {
