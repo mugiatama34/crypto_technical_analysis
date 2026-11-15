@@ -150,3 +150,18 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Bekleyen:** koşu 43757737205 (`mode=fibwave`, 15.11 20:22 UTC; ~60 bin mum isteği, tahmin 2–5 saat, adım sınırı 270 dk). Aşılırsa yerelde
   `node backtest/lab/fibwave.mjs --tfs 5m` ve `--tfs 15m` (dosya birleşir). Bitince `fib-wave.json` `verdict` alanları okunur, sonuç buraya ve
   `CLAUDE.md` bulgu özetine yazılır. Tarayıcıda etiketin görünümü ekranda henüz gözle doğrulanmadı.
+- **16.11 SONUÇ (koşu 43757737205 bitti, 2 sa 57 dk; `docs/backtest/fib-wave.json`): iç dalga etiketi ayırmıyor → GEÇMEDİ, fikir kapandı.**
+  Birincil fark = ort. R("5'li ✓" itki) − ort. R(diğerleri), [%95 aralık]:
+  - **5m** (6 ay; 21.824 sinyal, 4.279 dolan): eğ **−0,119** [−0,319; +0,093] (n 230 ↔ 2.690) · doğr **−0,186** [−0,430; +0,100] (n 103 ↔ 1.256).
+    "5'li ✓" grubu tek başına −0,378 / −0,383R (PF 0,57 / 0,56), diğerleri −0,259 / −0,197R.
+  - **15m** (24 ay; 23.048 sinyal, 4.324 dolan): eğ **−0,185** [−0,391; +0,051] (n 198 ↔ 2.319) · doğr **+0,010** [−0,254; +0,279] (n 145 ↔ 1.662).
+    "5'li ✓" grubu −0,261 / −0,086R (PF 0,67 / 0,89), diğerleri −0,076 / −0,096R.
+  - İşaret dört hücrenin üçünde TERS (5'li itki daha kötü), hiçbirinde aralık sıfırı dışlamıyor. Düşük maliyette aynı (5m −0,146 / −0,199 ·
+    15m −0,194 / +0,017). Hedge'li farklar ≈ 0 (5m +0,02 / +0,06 · 15m −0,06 / +0,19; aralıklar sıfırı içeriyor).
+  - Bilgi (karar vermez), sınıf başına eğ / doğr R — 5m: tek parça −0,35 / −0,14 · 3'lü −0,22 / −0,30 · 5'li ✗ −0,17 / −0,25 · 7+ −0,27 / −0,15;
+    15m: tek parça −0,02 / −0,09 · 3'lü −0,08 / −0,04 · 5'li ✗ −0,25 / −0,09 · 7+ −0,05 / −0,14. Hiçbir sınıf iki dilimde artı değil; sıralama
+    dilimler arasında tutarsız. A bacağı: "A 5'li ✓" çok nadir (n 10–20, sonuçsuz); "A 3'lü" 5m −0,27 / −0,29 · 15m −0,15 / −0,02. Birleşik
+    (itki 5'li ✓ + A uygun) n 24–69 → sonuçsuz (15m +0,06 / +0,00; 5m −0,01 / −0,93).
+  - Dolum oranı her sınıfta ≈ %18–21 (kurulumların ~%80'i dolmadan kaçıyor; etiket bunu da değiştirmiyor).
+  - **Karar:** etiket tarayıcıda "yalnız bilgi" olarak kalır (kullanıcı istedi), filtre / kural olmaz. Not metnindeki "ölçülmedi" ibaresi
+    "ölçüldü, ayırmıyor" yapıldı. Başka iç eşik denenmez (ön kayıt). Düşük TF fib kesişimi ailesi kapalı kalır.

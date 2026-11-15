@@ -115,6 +115,10 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 - **Sahte seviye testi (14.11, ön kayıtlı: `docs/arastirma/on-kayit-seviye.md`; `levels.json`):** 4H'de inanılan seviyeler komşu sahte
   seviyelerden daha çok tepki ÇEKMİYOR — fib 0,382 / 0,5 / 0,618 sonuçsuz (n az) ve ters işaretli (−0,03 / −0,12); yuvarlak sayılar geçmedi,
   ters işaretli (%40,7 ↔ %44,7; aşağıdan yaklaşmada daha sık kırılıyor). "Kendini gerçekleştiren kehanet" bu ölçekte görülmedi.
+- **Fib kesişiminde iç dalga sayımı (16.11, ön kayıtlı: `docs/arastirma/on-kayit-fib-dalga.md`; `fib-wave.json`):** itkinin içinin "5'li ✓"
+  olması (yarı eşikli ZigZag + 2 Elliott kuralı) 0,618 × 1,272 kurulumunun sonucunu AYIRMIYOR — fark (5'li − diğerleri) 5m −0,12 / −0,19R,
+  15m −0,19 / +0,01R, aralıklar sıfırı içeriyor, işaret çoğunlukla ters; hiçbir sınıf (tek parça / 3'lü / 5'li / 7+) iki dilimde artı değil.
+  Etiket tarayıcıda yalnız bilgi olarak duruyor (`src/ew/innerCount.js`, `meta.wave`); filtre / kural olmaz, başka iç eşik denenmez.
 - **"Ort. R nasıl artar" araştırması (13.11, ön kayıtlı: `docs/arastirma/on-kayit.md`; `diag.json`, `stage1.json`):** giriş zamanlamasında bilgi
   yok (aynı eğilimde rastgele andan farksız; e-oranı ≈ 1,0) · giriş biçimi fark etmiyor (limit = piyasa, sinyal başına) · stoplar avlanmıyor ·
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının
