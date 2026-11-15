@@ -10,6 +10,7 @@ import * as I from '../../src/data/indicators.js';
 import { zigzag, fillAtr, pivotsAsOf } from '../../src/core/zigzag.js';
 import { analyze } from '../../src/ew/engine/analyze.js';
 import { fibClusterOf, FIB_DEFAULTS } from '../../src/detectors/fibonacci.js';
+import { fibWaveOf } from '../../src/ew/innerCount.js';
 import { dailyTrendAt } from '../../src/scan/regime.js';
 
 export const CORR_DEFAULTS = { ks: [2, 3], ruleSet: 'course', minScore: 50, bufferAtr: 0.2, minRR: 2, cRatio: [0.8, 1.7], retrace: [0.5, 0.886], minImpulse: 1.5, recentBars: 2 };
@@ -167,7 +168,12 @@ const mkFib = (id, label, o) => ({
         const plan = fibClusterPlan(w, c, a, p.o);
         // o.btc 'with': yalnız BTC günlük trendi (EMA50 tarafı, kapanmış günlük) işlem yönündeyken
         if (plan && p.o.btc === 'with') { const bt = p.btcDaily && dailyTrendAt(p.btcDaily, c.time); if (!bt || (bt.up ? 1 : -1) !== plan.d) continue; }
-        if (plan) { p.seen.add(key); return plan; }
+        if (plan) {
+          p.seen.add(key);
+          // o.waveTag (backtest/lab/fibwave.mjs): iç dalga sayımı etiketi (yalnız bilgi; plan aynı). Eşik = bulan k / 2 × sinyal anı ATR
+          if (p.o.waveTag) { const wv = fibWaveOf(candles, w, a, p.o.ks[z]); plan.tags = { k: p.o.ks[z], imp: wv?.imp.cls ?? null, a: wv?.a.cls ?? null, impM: wv?.imp.m ?? null, aM: wv?.a.m ?? null }; }
+          return plan;
+        }
       }
     }
     return null;

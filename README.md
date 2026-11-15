@@ -193,6 +193,15 @@ grubunda yer alır. Laboratuvar aileleri `fib_cluster_c` (tüm oran çiftleri) v
 24 ay 1H/4H sonucu (hedge'siz): loose eğitim −0,19R / doğrulama −0,12R (kazanma %22), strict −0,11 / −0,015R
 (kazanma %35); dolum oranı %12–18 (sinyallerin yarısında fiyat bölgeye gelmeden itki ucunu geçiyor). Kenar yok.
 Not: lab hedge'li R'si limit girişli ailelerde önceden sinyal mumundan hesaplanıyordu; artık dolum zamanından.
+**İç dalga sayımı etiketi (15.11, yalnız bilgi):** kesişim sinyali itkinin (P0→P1) ve A bacağının iç sayımını taşır
+(`src/ew/innerCount.js`: bacak içinde aynı ZigZag, eşik = kesişimi bulan k'nın yarısı × sinyal anı ATR'si; sınıflar tek parça /
+3'lü / 5'li ✓ / 5'li ✗ / 7+, 5'li ✓ = 3. dalga en kısa değil ve 4. dalga 1.'nin ucunu aşmıyor). `meta.wave`'e yazılır; tarayıcıda
+sonuç kartı rozetinde, sinyal kartında ve coin sayfası küme rozetlerinde "İtki: 5'li ✓ · A: 3'lü" görünür, fib kesişimi presetlerinde
+(`waveNote: true`) not metnine de eklenir. Puanı, planı, sinyalin çıkıp çıkmamasını değiştirmez; canlı botun not metni aynı kalır.
+Ayırma gücü ön kayıtlı ölçülür (`docs/arastirma/on-kayit-fib-dalga.md`): `backtest/lab/fibwave.mjs` (Actions `backtest.yml` mode
+`fibwave` → `docs/backtest/fib-wave.json`; taban `fib_cluster_g`, ilk 50, 5m 6 ay + 15m 24 ay; fark = ort. R(itki 5'li ✓) −
+ort. R(diğerleri), %95 gün bloklu bootstrap, eğitim / doğrulama; bilgi satırları sınıf × yön, A sınıfı, düşük maliyet). Deneme:
+`--fixture` ya da `--coins BTC,ETH --days 5m:5,15m:10 --out <geçici>` (docs/backtest'e yazmaz); `--tfs 5m` tek TF (dosya birleşir).
 
 ### SMC: süpürme → MSS → FVG %50 (arkadaşın kuralı)
 Lab aileleri `w3_*` (`backtest/lab/wave3.js`, 4H): dalga-3 limit bölge (dalga 2 sürerken, yakın kenar tek limit, 96 saat,

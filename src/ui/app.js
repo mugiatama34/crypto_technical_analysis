@@ -182,7 +182,7 @@ const rowKey = (r) => `${r.coin}|${r.tf}`;
 
 function badge(sig) {
   const g = GROUPS[sig.group] || GROUPS.indicator;
-  return `<span class="badge ${sig.status === 'forming' || sig.status === 'mitigated' ? 'dim' : ''}" title="${esc(sig.note || '')}"><i style="background:${g.color}"></i>${esc(sig.name)}</span>`;
+  return `<span class="badge ${sig.status === 'forming' || sig.status === 'mitigated' ? 'dim' : ''}" title="${esc(sig.note || '')}"><i style="background:${g.color}"></i>${esc(sig.name)}${sig.meta?.wave ? ` · ${esc(sig.meta.wave.text)}` : ''}</span>`; // fib kesişimi iç sayımı (bilgi)
 }
 
 function renderRows() {
@@ -294,7 +294,7 @@ function sigCard(s, r) {
   ].filter(Boolean).join(' · ');
   const st = { active: 'aktif', forming: 'oluşuyor', triggered: 'tetiklendi', mitigated: 'dokunulmuş', done: 'eski', invalid: 'geçersiz' }[s.status] || s.status;
   return `<div class="sig ${state.hiddenSignals.has(s.id) ? 'off' : ''}">
-    <div class="sig-head"><label><input type="checkbox" data-sig="${esc(s.id)}" ${state.hiddenSignals.has(s.id) ? '' : 'checked'}> <i class="gdot" style="background:${g.color}"></i><span class="sig-name">${esc(s.name)}</span></label>
+    <div class="sig-head"><label><input type="checkbox" data-sig="${esc(s.id)}" ${state.hiddenSignals.has(s.id) ? '' : 'checked'}> <i class="gdot" style="background:${g.color}"></i><span class="sig-name">${esc(s.name)}</span>${s.meta?.wave ? ` <span class="badge dim" title="İç dalga sayımı (yalnız bilgi; ölçüm ön kayıtlı, sonuç bekleniyor)">${esc(s.meta.wave.text)}</span>` : ''}</label>
       <span class="dir ${s.direction}">${s.direction === 'neutral' ? 'NÖTR' : s.direction.toUpperCase()}</span><span class="badge dim">${st}</span><span class="sig-str">güç ${(s.strength * 100).toFixed(0)}</span></div>
     ${s.note ? `<div class="sig-note">${esc(s.note)}</div>` : ''}
     ${lv ? `<div class="sig-lv">${esc(lv)}</div>` : ''}
