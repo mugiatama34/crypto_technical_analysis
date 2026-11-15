@@ -133,3 +133,20 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 
 ## 15.11.2026 günlüğü
 - 15.11 **Yerel oturum: devirde kalan X gönderisi okundu** (`x.com/foodloss_otoko/status/2121632355555397802`, 14.11, ~108 bin görüntülenme). İçerik: `tradingview-indicator-for-ai-agents` adlı bir Pine göstergesinin tanıtımı — kapanan mumu JSON'a çevirir (OHLC, gövde / fitil, mum formasyonu, trend, momentum, hacim, yapı, önceki gün tepe / dip), 0–100 kurulum puanı verir, webhook ile Claude'a yollar; Claude son 5 mum + üst zaman dilimine bakıp long / short / uzak dur + giriş / stop / hedef / boyut söyler. **Hiç ölçüm yok** (backtest, örneklem, maliyet verilmemiş; yalnız "önce kâğıtta dene"). Değerlendirme: yeni bilgi kaynağı değil, aynı fiyat-yapı girdileri; bu repoda zaten var (bot puanı `bd` + `AGENT_SOURCE=signals` ajanları) ve 13–14.11 ölçümleri bu girdilerde kenar bulmadı (giriş zamanlaması e-oranı ≈ 1,0). Piyasa yapısıyla ilgisi yok → `notlar-piyasa-yapisi.md`'ye **işlenmedi**; depo indirilmedi. Kod değişikliği yok; testler aynı (432 = 430 + 2 todo).
+
+## 15.11.2026 (yerel oturum) — fib kesişiminde iç dalga sayımı: etiket + ön kayıtlı ölçüm (koşu sürüyor)
+- Kullanıcı sorusu: fib kesişiminde (itki → ABC, 0,618 × 1,272) itkinin 5 dalga, ABC'nin iç yapısının uygun olması düzeni güçlendirir mi; sistem
+  bakıyor mu? Cevap: bakmıyordu (dedektör yalnız 4 ZigZag pivotu: P0, P1, A, B). Kullanıcı kararı: etiket eklensin + 5m / 15m'de ölçülsün.
+- **Ön kayıt:** `docs/arastirma/on-kayit-fib-dalga.md` (commit 184bd8f9, ölçümden önce). Soru "kârlı mı" değil, **etiketin ayırma gücü**: ort.
+  R("5'li ✓" itki) − ort. R(diğerleri); 5m son 6 ay, 15m son 24 ay, ilk 50, taban `fib_cluster_g`, %0,05 + %0,05, kötümser dolum. Geçer = iki
+  dilimde fark > 0 ve %95 bloklu bootstrap alt ucu > 0, grupta dilim başına n ≥ 100. Kural adayı için ayrıca grup tek başına sıkı ölçüt +
+  hedge'li R > 0. İç sayım eşiği = bulan ZigZag eşiğinin yarısı (tek sabit seçim). A bacağı sınıfı yalnız bilgi satırı.
+- **Eklendi (commit 216a2105):** `src/ew/innerCount.js` (ortak sayım: tek parça / 3'lü / 5'li ✓ / 5'li ✗ / 7+), tarayıcıda fib kesişimi
+  kartı / detay paneli / coin sayfasında "İtki: … · A: …" etiketi (yalnız bilgi; puan, plan, sinyal üretimi aynı; bot not metni değişmedi),
+  `backtest/lab/fibwave.mjs` + `backtest.yml` `fibwave` modu → `docs/backtest/fib-wave.json`. Testler 440 (437 geçti + 2 todo + 1 kalan).
+- **Kalan 1 test eski ve yalnız yerelde:** `tests/levels.test.js` uçtan uca; `levels.mjs` / `lab/run.mjs` ana çalıştırma kontrolü
+  (`import.meta.url === new URL('file://' + argv[1]).href`) yerel yoldaki `~` ve boşluk yüzünden tutmuyor (betik sessizce hiçbir şey yapmıyor);
+  Actions'ta sorun yok. Düzeltilmedi (kapsam dışı); `fibwave.mjs` yol karşılaştırmasıyla yazıldı.
+- **Bekleyen:** koşu 43757737205 (`mode=fibwave`, 15.11 20:22 UTC; ~60 bin mum isteği, tahmin 2–5 saat, adım sınırı 270 dk). Aşılırsa yerelde
+  `node backtest/lab/fibwave.mjs --tfs 5m` ve `--tfs 15m` (dosya birleşir). Bitince `fib-wave.json` `verdict` alanları okunur, sonuç buraya ve
+  `CLAUDE.md` bulgu özetine yazılır. Tarayıcıda etiketin görünümü ekranda henüz gözle doğrulanmadı.
