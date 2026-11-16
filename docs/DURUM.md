@@ -165,3 +165,21 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   - Dolum oranı her sınıfta ≈ %18–21 (kurulumların ~%80'i dolmadan kaçıyor; etiket bunu da değiştirmiyor).
   - **Karar:** etiket tarayıcıda "yalnız bilgi" olarak kalır (kullanıcı istedi), filtre / kural olmaz. Not metnindeki "ölçülmedi" ibaresi
     "ölçüldü, ayırmıyor" yapıldı. Başka iç eşik denenmez (ön kayıt). Düşük TF fib kesişimi ailesi kapalı kalır.
+
+## 16.11.2026 (yerel oturum) — sabah piyasa özeti (BTC + ETH, altın) eklendi; bayrak kullanıcıda
+- Kullanıcı isteği (X'te gördüğü günlük altın analizi gönderisinden esinle): BTC (ETH ile) ve altın için her sabah kısa, anlaşılır bir özet +
+  Pazartesi haftalık sürüm; yön, destek / direnç, "tek yönlü gidiyorsa oradan en son ne zaman geçmiş, sonra ne yapmış". Kararlar (kullanıcı):
+  06:00 Almanya saati · yalnız kod (model yok; sonra değerlendirilecek) · altın yalnız ons dolar · grafik olsun.
+- **Eklendi (commit 2aeeb759):** `bot/brief/` (core, format, schedule, chart, run.mjs), ayrı workflow `.github/workflows/brief.yml` (cron 04:00 +
+  05:00 UTC, betik Berlin saatine göre seçer; `force` / `weekly` girdileri), durum `docs/brief/state.json`. Bayrak **`MARKET_BRIEF`**, varsayılan
+  kapalı. Mesaj tahmin değil harita: fiyat + değişim, yön (regime.js horizonTrend: EMA50 + eğim + ADX; kaç gündür), beklenen oynama (ATR),
+  en yakın 2 direnç + 2 destek NEDENİYLE (önceki gün / hafta tepe-dip, tarihli dönüş noktası, yuvarlak sayı; gösterge türevi seviye yok),
+  "bu bölge" (≥ 20 gündür görülmeyen fiyat → en son tarih + sonraki 7 gün, "tek örnek") ya da salınım satırı (≥ 10 gün 3 ATR içinde), "İzle"
+  (kapanışla kırılırsa hangi seviye açılır), "Dün" takibi, ETH tek satır (ayrışırsa ayrı blok). Testler 453 (450 geçti + 2 todo + bilinen 1).
+- **Altın kaynağı:** OKX `XAU-USDT-SWAP` (anahtarsız; geçmiş 09.04.2025'ten). Alt ajan ölçümü: OKX XAU endeksine göre günlük kapanış sapması
+  medyan +%0,02 (p05 −%0,40); 16.11 sabahı X'teki gönderinin spot fiyatıyla (3.867) bizim 3.866 uyumlu. Hafta sonu sürekli vadeli işlem
+  görüyor → altın yalnız hafta içi mumlarla, Cmt / Paz ve 25.12 / 01.01'de mesaj yok. Haftalık altın yönü için veri sınırda (84 hafta, kural 80 ister).
+- **Deneme gönderimi yapıldı:** koşu 43816310325 (16.11 06:22 UTC, `force` + `weekly`): btc-daily, xau-daily, btc-weekly, xau-weekly "gönderildi".
+- **Bekleyen:** kullanıcı deneme mesajlarını değerlendirecek (uzunluk, "beklenen oynama" satırındaki parantez, haftalık özet satırı), beğenirse
+  Variables'a `MARKET_BRIEF=1` ekleyecek. Sonra: "İzle" kısmını Claude'un yazması (birkaç cent / ay) ve haber / takvim satırı isteğe bağlı.
+  İlk zamanlanmış gönderimde kontrol: çift gönderim yok mu, "↩️ Dün" satırı geldi mi (gerçek veride henüz görülmedi; ayrışan ETH bloğu da).
