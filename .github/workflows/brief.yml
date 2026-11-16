@@ -1,0 +1,57 @@
+name: market-brief
+
+# Sabah piyasa özeti (BTC + ETH, altın; Pazartesi ayrıca haftalık) → Telegram. Kodla üretilir, model çağrısı yok.
+# 06:00 Europe/Berlin: cron UTC'dir → 04:00 (yaz saati) ve 05:00 (kış saati) UTC'de tetiklenir; betik Berlin saatine göre
+# doğru olanı seçer, gecikmeye dayanıklıdır ve aynı gün iki kez göndermez (docs/brief/state.json).
+# Canlı bayrak: Variables MARKET_BRIEF=1 (varsayılan kapalı). Elle: force (bayrak / saat / çift gönderim korumasını aş),
+# weekly (haftalık sürümü şimdi gönder).
+on:
+  schedule:
+    - cron: "0 4 * * *"
+    - cron: "0 5 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Bayrağa ve saate bakmadan günlük özeti şimdi bir kez gönder"
+        type: boolean
+        default: false
+      weekly:
+        description: "Haftalık sürümü şimdi gönder"
+        type: boolean
+        default: false
+
+concurrency:
+  group: market-brief
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Brief
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MARKET_BRIEF: ${{ vars.MARKET_BRIEF }}
+          FORCE: ${{ inputs.force && '1' || '' }}
+          WEEKLY: ${{ inputs.weekly && '1' || '' }}
+        run: node bot/brief/run.mjs
+
+      - name: Publish state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/brief/state.json 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -q -m "bot: sabah özeti durumu (run ${{ github.run_id }})"
+          ok=0; for i in 1 2 3; do if git pull -q --rebase -X theirs origin ${{ github.ref_name }} && git push -q origin HEAD:${{ github.ref_name }}; then ok=1; break; fi; git rebase --abort 2>/dev/null || true; sleep 5; done
+          [ "$ok" = 1 ] || { echo "::error::durum 3 denemede depoya yazılamadı (ertesi gün çift gönderim / eksik ↩️ satırı olabilir)"; exit 1; }

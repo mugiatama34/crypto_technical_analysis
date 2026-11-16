@@ -410,6 +410,37 @@ FIXTURE=1 DRY=1 node bot/run.mjs       # sentetik veriyle
 Claude yalnızca kural filtresini geçen adaylar için çağrılır (tur başına en fazla `MAX_ALERTS`); çağrı başına
 birkaç bin token. Sessiz piyasada çoğu tur sıfır çağrı yapar.
 
+## Sabah piyasa özeti (`bot/brief/`, `.github/workflows/brief.yml`)
+Her sabah **06:00 Europe/Berlin** Telegram'a kısa bir **harita** (tahmin değil): ₿ BTC (ETH satırıyla) ve 🟡 altın (ons, $).
+Varlık başına ~10 satır + seviyeleri çizili günlük grafik (PNG; alt yazı 1000 karakteri aşarsa grafik + ayrı metin). Pazartesi
+ayrıca **haftalık** sürüm (haftalık mumlar, haftalık kapanış koşulları, geçen haftanın özeti). Tamamen kodla üretilir; model /
+API çağrısı yok. Veri OKX (anahtarsız): BTC/ETH-USDT-SWAP ve altın **XAU-USDT-SWAP** (OKX altın sürekli vadelisi; 7/24 işlem
+görür, spot altın hafta sonu kapalı olduğundan altın için Cumartesi / Pazar (UTC) günlük mumları atılır).
+- **Bayrak:** Variables `MARKET_BRIEF=1` (varsayılan kapalı). Cron 04:00 ve 05:00 UTC; betik Berlin saati 06:00–11:59 ve o gün
+  gönderilmemişse gönderir (yaz / kış saati ve cron gecikmesi). Durum `docs/brief/state.json` (son gönderim günü + İzle koşulları).
+  Elle: `force` (bayrak / saat / çift gönderim korumasını aşar, günlük), `weekly` (haftalık sürümü şimdi gönderir).
+- **Yön:** `src/scan/regime.js` horizonTrend — kapanış EMA50 üstünde, EMA50 son 10 mumda yükselmiş ve ADX ≥ 20 ile +DI > −DI
+  ise YUKARI, üçü de tersiyse AŞAĞI, aksi YATAY; "kaç gündür" = aynı sonucun sürdüğü kapanmış mum sayısı (altında işlem günü).
+- **Beklenen oynama:** ±ATR14 / 2 (ortalama gün / hafta aralığının yarısı).
+- **Seviyeler:** fiyatın üstünde / altında en yakın 2 direnç + 2 destek; adaylar dünün (altında Pazartesi: Cuma'nın) tepe / dibi,
+  geçen haftanın ve geçen ayın tepe / dibi, son 180 günün belirgin dönüş noktaları (±5 mumun en ucu, karşı uçtan ≥ 1 ATR; tarihli
+  ad), yuvarlak sayılar (≤ 2 ATR'lik 1 / 2,5 / 5 × 10ⁿ adımı). 0,25 ATR içindeki adaylar tek bölge (genişlik ≤ 0,5 ATR), en fazla
+  2 neden. Gösterge türevi seviye yok. Haftalıkta haftalık mumlar, dönüş noktası ±3 hafta / 2 yıl.
+- **"Bu bölge" ↔ aralık:** geriye doğru kapanışların (bugünkü fiyat dahil) yayılımı ≤ 3 ATR kaldığı sürece pencere büyür; ≥ 10 gün
+  ise **salınım** satırı ("3 haftadır X–Y arasında"). Değilse pencerenin gerisinde bugünkü fiyatı aralığında içeren en yakın gün
+  aranır: ≥ 20 gün önceyse **bu bölge** satırı (o gün + sonraki 7 günde değişim, tek örnek); hiç yoksa "veride görülmedi"; ikisi
+  de değilse son 20 günün aralığı ve fiyatın konumu. Haftalıkta 2 ATR / 6 hafta / 12 hafta / sonraki 4 hafta. (Son 1 yılda
+  günlük BTC: salınım %85, bu bölge %14 gün.)
+- **İzle / ↩️:** en yakın desteğin altında / direncin üstünde günlük kapanış → bir sonraki seviye. Ertesi sabah bu koşullar
+  "geldi / gelmedi (fitil …)" diye raporlanır (önceki mesaj yoksa satır yok). Haftalık özet geçen haftanın başında aynı kuralla
+  çizilecek seviyeleri geçen haftanın mumuyla değerlendirir (tuttu / kırıldı).
+- **ETH:** günlük yönü BTC ile aynı ve dünkü getiri farkı < 2 puan → tek satır; aksi 1 destek + 1 dirençle 3 satır.
+- **Altın gönderilmez:** Berlin Cumartesi / Pazar, 25 Aralık, 1 Ocak ya da son 1 saatlik mum 6 saatten eskiyse.
+
+```bash
+node bot/brief/run.mjs --dry --out /tmp/brief [--weekly] [--now 2026-11-16T05:00:00Z]   # göndermez; .txt + .png yazar
+```
+
 ## Kâğıt-işlem ajanı (`bot/agent/`, `agent.html`)
 Her 15 dakikalık koşuda, sinyal botunun yanında iki sanal hesap işlem yapar (**temkinli**: maks 10x, marjin ≤ %40
 özsermaye, ≤ 3 pozisyon · **agresif**: maks 20x, ≤ %60, ≤ 5 pozisyon; ikisi de 300 USDT ile başlar). Claude portföy
