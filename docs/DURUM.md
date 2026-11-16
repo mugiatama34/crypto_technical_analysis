@@ -183,3 +183,13 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Bekleyen:** kullanıcı deneme mesajlarını değerlendirecek (uzunluk, "beklenen oynama" satırındaki parantez, haftalık özet satırı), beğenirse
   Variables'a `MARKET_BRIEF=1` ekleyecek. Sonra: "İzle" kısmını Claude'un yazması (birkaç cent / ay) ve haber / takvim satırı isteğe bağlı.
   İlk zamanlanmış gönderimde kontrol: çift gönderim yok mu, "↩️ Dün" satırı geldi mi (gerçek veride henüz görülmedi; ayrışan ETH bloğu da).
+
+## 16.11.2026 (yerel oturum, devam) — iki soru: coin yığılması, bulut kaydı
+- **"Hep aynı coinler":** sabit coin listesi yok; evren OKX hacimde ilk 100 (`TOP_N` varsayılan), Variables'ta ezme yok. Canlı 4H, 26.10'dan beri
+  148 sinyal / 53 coin (rastgele dağılımda ≈ 77 beklenir); ilk 10 coin %41, ilk 20 %66; MAGIC 11 (8'i dört günde, hepsi long). Neden: 6 s bekleme
+  sonrası aynı kurulumun yeniden gelmesi (aynı coinde aralık medyan 21 s) + trend koşulları + tur başına 3 mesaj. Sonuç: canlı sinyaller bağımsız
+  değil, n olduğundan büyük görünür. Öneri: dokunma (`COOLDOWN_H=24` seçenek, ölçülmedi); kullanıcı karar vermedi.
+- **Bulut kaydı (takip listesi eşitlenmiyordu):** neden token'ın Contents izni salt okunur; kullanıcı "Read and write" yaptı, düzeldi. **Açık:**
+  `testCloud` hesabın yetkisine bakıyor (`permissions.push`), token'ınkine değil → salt okunur token "Bağlandı" diyor. Düzeltme (gerçek yazma
+  denemesi) önerildi, kullanıcı yanıtlamadı.
+- `MARKET_BRIEF=1` kullanıcı tarafından açıldı; ilk zamanlı gönderim 17.11 06:00 Berlin (çift mesaj / "↩️ Dün" / state commit kontrol edilecek).
