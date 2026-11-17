@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEnvFile, plansOf, loadConfig, riskUsdOf } from '../bot/exchange/local.mjs';
+import { parseEnvFile, plansOf, loadConfig, riskUsdOf, equityOf } from '../bot/exchange/local.mjs';
 
 test('parseEnvFile: yorum, tırnak, export ve geçersiz satırlar', () => {
   const e = parseEnvFile('# not\nBYBIT_DEMO_KEY=abc\nexport BYBIT_DEMO_SECRET="s=1"\n\nbozuk satır\nküçük=1\nBYBIT_DEMO_RISK = 1 \n');
@@ -25,4 +25,12 @@ test('riskUsdOf: yüzde + özsermaye → özsermayenin yüzdesi (sente aşağı)
   assert.equal(riskUsdOf({ riskUsd: 1, riskPct: 0.5, equity: 87.9 }), 0.43);
   assert.equal(riskUsdOf({ riskUsd: 2, riskPct: 1, equity: null }), 2);
   assert.equal(riskUsdOf({ riskUsd: 2, riskPct: 0, equity: 500 }), 2);
+});
+
+test('equityOf: toplam özsermaye ya da yalnız seçilen coin', () => {
+  const r = { list: [{ totalEquity: '165000.5', coin: [{ coin: 'BTC', equity: '1' }, { coin: 'USDT', equity: '99925.4' }] }] };
+  assert.equal(equityOf(r), 165000.5);
+  assert.equal(equityOf(r, 'usdt'), 99925.4);
+  assert.equal(equityOf(r, 'ETH'), null);
+  assert.equal(equityOf({ list: [] }), null);
 });

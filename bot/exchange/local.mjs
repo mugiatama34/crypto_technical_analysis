@@ -5,7 +5,7 @@
 //   node bot/exchange/local.mjs --check    → yalnız bağlantı ve anahtar denemesi (emir yok, kayıt yok)
 // Anahtarlar ortamdan ya da BYBIT_DEMO_ENV dosyasından (varsayılan ~/.config/kripto-demo/env; satırlar ANAHTAR=değer):
 //   BYBIT_DEMO_KEY, BYBIT_DEMO_SECRET, BYBIT_DEMO_RISK (USD, varsayılan 10), BYBIT_DEMO_RISK_PCT (ör. 1 = her yeni emirde o anki demo
-//   özsermayesinin %1'i; okunamazsa BYBIT_DEMO_RISK'e düşer); isteğe bağlı TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (hata satırı).
+//   özsermayesinin %1'i; okunamazsa BYBIT_DEMO_RISK'e düşer), BYBIT_DEMO_RISK_BASE (USDT = yalnız USDT özsermayesi; boş = toplam); isteğe bağlı TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (hata satırı).
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -35,6 +35,14 @@ export function plansOf(history) {
   return (items || []).filter((p) => p && p.key && Number.isFinite(p.sentAt) && p.status);
 }
 
+/** Yüzde riskin tabanı: base 'USDT' → yalnız USDT özsermayesi (bakiye + USDT pozisyonlarının açık K/Z'si); boş → hesabın toplam özsermayesi. */
+export function equityOf(walletResult, base = '') {
+  const acc = walletResult?.list?.[0];
+  if (!acc) return null;
+  if (base) { const c = (acc.coin || []).find((x) => x.coin === base.toUpperCase()); const v = +c?.equity; return Number.isFinite(v) ? v : null; }
+  const v = +acc.totalEquity; return Number.isFinite(v) ? v : null;
+}
+
 /** Yeni emirlerin dolar riski: yüzde tanımlıysa ve özsermaye okunabildiyse özsermaye × % (sente aşağı yuvarlı), yoksa sabit tutar. */
 export function riskUsdOf({ riskUsd, riskPct, equity }) {
   if (riskPct > 0 && Number.isFinite(equity) && equity > 0) return Math.max(0.01, Math.floor(equity * riskPct) / 100);
@@ -46,7 +54,7 @@ export function loadConfig(env = process.env, home = os.homedir()) {
   let fromFile = {};
   try { fromFile = parseEnvFile(fs.readFileSync(file, 'utf8')); } catch { /* dosya yok: yalnız ortam */ }
   const get = (k, d = '') => env[k] || fromFile[k] || d;
-  return { file, key: get('BYBIT_DEMO_KEY'), secret: get('BYBIT_DEMO_SECRET'), riskUsd: +get('BYBIT_DEMO_RISK', '10') || 10, riskPct: +get('BYBIT_DEMO_RISK_PCT', '0') || 0, tgToken: get('TELEGRAM_BOT_TOKEN'), tgChat: get('TELEGRAM_CHAT_ID') };
+  return { file, key: get('BYBIT_DEMO_KEY'), secret: get('BYBIT_DEMO_SECRET'), riskUsd: +get('BYBIT_DEMO_RISK', '10') || 10, riskPct: +get('BYBIT_DEMO_RISK_PCT', '0') || 0, riskBase: get('BYBIT_DEMO_RISK_BASE', ''), tgToken: get('TELEGRAM_BOT_TOKEN'), tgChat: get('TELEGRAM_CHAT_ID') };
 }
 
 async function main() {
@@ -72,11 +80,11 @@ async function main() {
   let equity = null;
   if (cfg.riskPct > 0) {
     const w = await client.wallet();
-    equity = w.ok ? +w.result?.list?.[0]?.totalEquity : null;
+    equity = w.ok ? equityOf(w.result, cfg.riskBase) : null;
     if (!(equity > 0)) log(`Bybit demo: özsermaye okunamadı (${w.error || 'boş'}) → sabit risk ${cfg.riskUsd} $`);
   }
   const riskUsd = riskUsdOf({ riskUsd: cfg.riskUsd, riskPct: cfg.riskPct, equity });
-  if (cfg.riskPct > 0 && equity > 0) log(`Bybit demo: özsermaye ${equity.toFixed(2)} $ → yeni emir riski ${riskUsd} $ (%${cfg.riskPct})`);
+  if (cfg.riskPct > 0 && equity > 0) log(`Bybit demo: özsermaye${cfg.riskBase ? ` (${cfg.riskBase})` : ''} ${equity.toFixed(2)} $ → yeni emir riski ${riskUsd} $ (%${cfg.riskPct})`);
   const { errors } = await runDemo({ client, plans, file: process.env.BYBIT_DEMO_FILE || 'docs/signals/demo.json', now: Date.now(), cfg: { riskUsd }, notify, log });
   if (errors.length) process.exitCode = 1;
 }
