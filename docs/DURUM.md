@@ -252,3 +252,5 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   İlk iki turda 6 bekleyen plan için demo hesaba limit giriş + ekli stop gönderildi (borsada doğrulandı); 1 plan "aynı sembolde açık iş" diye
   atlandı. Kaldırma: `launchctl bootout gui/$(id -u)/com.kripto.demo-runner` (ve `-awake`). Açık: ilk dolumda kademe emirleri ve stop taşıma
   canlıda doğrulanacak; `sonuc_farki` / `borsa_doldu_kagit_*` sapmaları 13.12 değerlendirmesinde okunacak.
+- **Demo boyutlama (17.11, kullanıcı kararı):** yeni demo emirleri o anki demo özsermayesinin %1'i ile girer (`BYBIT_DEMO_RISK_PCT=1`, yerel
+  anahtar dosyası; özsermaye ≈ 165.400 $ → ≈ 1.654 $ / işlem). Amaç: ileride büyük boyutla girmeyi simüle etmek. İlk 6 bekleyen emir 1 $ riskle kaldı.
