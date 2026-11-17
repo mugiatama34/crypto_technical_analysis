@@ -652,6 +652,18 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   `1000PEPEUSDT`, `SHIB1000USDT`… olarak işlem görür. Telegram sinyal/takip/fib mesajlarına ve sinyal sayfası kartlarına
   "Bybit <sembol> (fiyat ×1000)" satırı eklenir: giriş/stop/erken/TP'ler OKX ham fiyatından 6 anlamlı haneyle (yuvarlanmış metinden
   değil) ve adet ÷ çarpan. Liste elle tutulur; düzeltme/ekleme Variables `BYBIT_MULT` (JSON, ör. `{"PEPE":{"sym":"1000PEPEUSDT","mult":1000}}`).
+- **Bybit DEMO emirleri (`bot/exchange/`, 17.11, varsayılan kapalı)**: `BYBIT_DEMO=1` (Variable) + Secrets `BYBIT_DEMO_KEY` /
+  `BYBIT_DEMO_SECRET` (ana hesapta Demo Trading → API) iken botun yeni 4H planları (kâğıt `waiting`) **yalnız Bybit demo hesabına**
+  (sahte para) emir olarak gider; amaç emir tesisatını denemek ve kâğıt ↔ borsa sapmasını kaydetmek. İstemci (`bybit.js`) yalnız
+  `api-demo.bybit.com`'a istek atabilir (host sabit, değiştirilemez; test kilitli). Akış "borsa-yerel": limit giriş + ekli tam pozisyon
+  stopu (Full, LastPrice); miktar = `BYBIT_DEMO_RISK` $ (vars. 10) ÷ |giriş − stop|, adıma aşağı; kaldıraç `maxLeverage`. Dolumda reduce-only
+  limit kademeler (erken hedef %50 · TP1 %25 [3 kademe] · TP2 kalan; erken hedefsiz: TP1 %50 · TP2); erken hedef dolunca stop dolum
+  fiyatına, TP1 kademesi dolunca (`midStop: early`) erken hedefe (`trading-stop`; fiyat yeni stopun ötesindeyse kalan piyasa emriyle
+  kapatılır). Kâğıt plan dolmadan kapanırsa (süre / kaçtı / bıçak) giriş iptal; borsada dolmuşsa pozisyona dokunulmaz, **sapma** yazılır.
+  Kayıt `docs/signals/demo.json` (plan kimliği → emirler, dolum, stop taşımaları, kapanış K/Z ve R, kâğıt durumu, sapmalar, atlananlar ve
+  nedenleri). Sembol başına tek iş; Bybit'te olmayan / en az emrin altındaki plan atlanır. Kuru koşu ve fixture'da emir yok; hata ana sohbete
+  tekrarsız tek satır, tarama / kâğıt kayıt / sinyaller etkilenmez. Sınırlar: kâğıt bıçak teyidi ve zaman stopu borsaya yansımaz (bilinçli:
+  sapma ölçülür); kısmi dolumda kademeler emir bitince kurulur; marjin modu (izole/çapraz) hesaptaki gibi kalır. Test: `tests/bybit-demo.test.js`.
 - **Elle takip kaydı (`index.html` → ★ Takip listem → ＋ Elle işlem ekle, 12.11)**: taramada olmayan işlemler (arkadaşın PA
   işlemleri, kendi işlemin) coin/TF/yön/giriş/stop/TP1/TP2 + etiket (arkadaş/kendi/izlenen/bot) + kurulum zamanı (geçmiş olabilir) +
   limit geçerliliğiyle eklenir; bot kurallarıyla (`trackPlan`) izlenir, kurulumdan bu yana yeterli mum indirilir, kapanış zamanı

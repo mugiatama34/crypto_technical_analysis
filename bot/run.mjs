@@ -24,6 +24,7 @@
 //   AGENT_RESET=<etiket> (ör. 2026-11-13): etiket değişince ajan hesapları arşivlenir (docs/agent/archive/<etiket>/) ve 300 $'a sıfırlanır; dersler/parametreler korunur
 //   AGENT_EXIT=1: ajanlar çıkışı kendisi seçer (erken hedef %/pay, TP1 payı, TP1 sonrası stop, iz süren stop, kısmi kapatma); botun EARLY_TP'si onlara uygulanmaz
 //   AGENT_SOURCE=all|measured|signals (measured: yalnız ölçülmüş kural adayları; signals: Telegram'ın canlı kurallarından geçen planlar, long + short, + ölçülmüş adaylar)
+//   BYBIT_DEMO=1 BYBIT_DEMO_KEY/SECRET BYBIT_DEMO_RISK=10: 4H planlarını Bybit DEMO hesabına emir olarak yansıt (docs/signals/demo.json)
 //   AGENT=1  AGENT_MODEL=claude-opus-5-5  AGENT_EVERY_MIN=15  AGENT_MIN_SCORE=60  AGENT_STATE_FILE=bot/agent-state.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -450,6 +451,21 @@ async function main() {
     }
     for (const x of shadowItems) log(`  gölge ${x.coin}: ${JSON.stringify(x.shadow)}`);
   } catch (err) { log(`Gölge etiket hatası: ${err.message}`); }
+
+  // 3b) Bybit DEMO emirleri (BYBIT_DEMO=1; varsayılan kapalı). Yalnız api-demo.bybit.com (sahte para); kâğıt kayıt ve Telegram
+  // sinyalleri bundan etkilenmez: tüm adım tek try/catch, hata ana sohbete tekrarsız tek satır (bot/exchange/demo.js).
+  if (env('BYBIT_DEMO', '') === '1') {
+    if (CFG.dry || provider) log('Bybit demo: kuru koşu / test → emir gönderilmez');
+    else if (!env('BYBIT_DEMO_KEY', '') || !env('BYBIT_DEMO_SECRET', '')) log('Bybit demo: anahtar yok, atlandı');
+    else {
+      try {
+        const { createBybitDemo } = await import('./exchange/bybit.js');
+        const { runDemo } = await import('./exchange/demo.js');
+        const client = createBybitDemo({ key: env('BYBIT_DEMO_KEY', ''), secret: env('BYBIT_DEMO_SECRET', '') });
+        await runDemo({ client, plans: state.sent, file: env('BYBIT_DEMO_FILE', 'docs/signals/demo.json'), now, cfg: { riskUsd: +env('BYBIT_DEMO_RISK', 10) || 10 }, notify: (t) => notify(t, null), log });
+      } catch (err) { log(`Bybit demo hatası: ${err.message}`); }
+    }
+  }
 
   // 4) Günlük özet
   const h = new Date(now).getUTCHours();

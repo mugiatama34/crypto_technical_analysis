@@ -1,0 +1,18 @@
+name: Ağ erişim denetimi
+# Elle çalıştırılır: Actions sunucusundan Bybit DEMO API'sine erişilebiliyor mu (coğrafi engel var mı)? Anahtar kullanmaz, emir göndermez.
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Bybit demo genel uçları
+        run: |
+          for u in "https://api-demo.bybit.com/v5/market/time" "https://api-demo.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT" "https://api-demo.bybit.com/v5/position/list?category=linear&settleCoin=USDT"; do
+            echo "== $u"
+            curl -sS -m 15 -o /tmp/out -w "HTTP %{http_code}\n" "$u" || echo "curl hata $?"
+            head -c 300 /tmp/out; echo
+          done
+          echo "== çıkış IP ülkesi"; curl -sS -m 10 https://ipinfo.io/country || true
