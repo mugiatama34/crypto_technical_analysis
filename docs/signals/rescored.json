@@ -1,6 +1,6 @@
 {
  "note": "Yeniden puanlanan canlı sinyaller: kayıt (history.json) değişmez; sayfa, denetçi ve haftalık rapor bu dosyadaki durum/R ile hesaplar. Ölçüt: düzeltilmiş takip kodu VE motor, 4H + 15m gerçek mumlarla aynı sonucu veriyor ve kayıttan farklı.",
- "source": "backtest/replay (koşu 43420073684, 13.11.2026)",
+ "source": "backtest/replay (koşu 43420073684, 13.11.2026) · 17.11.2026 ek: 4 kayıt (evrenden düşen coinde izlenmeyen bekleyen planlar; yerel yeniden oynatma, backtest/replay.js replayItem)",
  "items": {
   "DOGE|4H|short|61|1792975524154": {
    "status": "stopped",
@@ -57,6 +57,62 @@
    },
    "reason": "kayıt başa baş demiş; gerçek mumlarda girişe dönmeden TP2",
    "at": "2026-11-13"
+  },
+  "MEGA|4H|long|28|1793217646330": {
+   "status": "stopped",
+   "R": -1,
+   "recorded": {
+    "status": "expired",
+    "R": null
+   },
+   "engine": {
+    "outcome": "stopped",
+    "R": -1
+   },
+   "reason": "coin hacim sırasında ilk 100'den düştüğü için bekleyen plan izlenmemiş, 24 saat sonra \"süresi doldu\" yazılmış (17.11 takip hatası); gerçek 4H + 15m mumlarla yeniden oynatma: giriş doldu, stop oldu",
+   "at": "2026-11-17"
+  },
+  "OL|4H|long|20|1793606446795": {
+   "status": "stopped",
+   "R": -1,
+   "recorded": {
+    "status": "expired",
+    "R": null
+   },
+   "engine": {
+    "outcome": "stopped",
+    "R": -1
+   },
+   "reason": "coin hacim sırasında ilk 100'den düştüğü için bekleyen plan izlenmemiş, 24 saat sonra \"süresi doldu\" yazılmış (17.11 takip hatası); gerçek 4H + 15m mumlarla yeniden oynatma: giriş doldu, stop oldu",
+   "at": "2026-11-17"
+  },
+  "KAITO|4H|short|34|1793998848396": {
+   "status": "missed",
+   "R": null,
+   "recorded": {
+    "status": "expired",
+    "R": null
+   },
+   "engine": {
+    "outcome": "missed",
+    "R": null
+   },
+   "reason": "coin hacim sırasında ilk 100'den düştüğü için bekleyen plan izlenmemiş, 24 saat sonra \"süresi doldu\" yazılmış (17.11 takip hatası); gerçek 4H + 15m mumlarla yeniden oynatma: fiyat girişe gelmeden TP1'e gitti (kaçtı; işlem yok)",
+   "at": "2026-11-17"
+  },
+  "KAITO|4H|short|38|1794250848915": {
+   "status": "be",
+   "R": 0.174,
+   "recorded": {
+    "status": "expired",
+    "R": null
+   },
+   "engine": {
+    "outcome": "tp1_be",
+    "R": 0.265
+   },
+   "reason": "coin hacim sırasında ilk 100'den düştüğü için bekleyen plan izlenmemiş, 24 saat sonra \"süresi doldu\" yazılmış (17.11 takip hatası); gerçek 4H + 15m mumlarla yeniden oynatma: giriş doldu, erken hedef alındı, kalan başa baş (takip kodu +0,174R; motor +0,265R)",
+   "at": "2026-11-17"
   }
  }
 }

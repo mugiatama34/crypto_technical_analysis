@@ -220,3 +220,7 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   (`bot/plan.js`; satır hiç yoksa bekleyen dahil ayrı izlenir) + aynı TF'de ayrı izlenen planda dolum mumu sırası için 15m alt TF
   (yoksa aynı 4H mumunda sahte "erken hedef"). **Geçmiş etki:** 26.10'dan beri "expired" yazılan planların bir kısmı gerçekte dolmuş
   olabilir (yalnız coin'i o 24 saatte ilk 100'den düşenler) → canlı kayıt bu yönde eksik; sayımı yapılacak.
+- **Eksik kayıtlar düzeltildi (17.11):** 26.10'dan beri "expired" 15 4H planın hepsi gerçek 4H + 15m mumlarla yeniden oynatıldı (`replayItem`);
+  takip kodu ve motorun anlaştığı 4'ü `rescored.json`'a eklendi: MEGA long 28.10 stop −1R · OL long 02.11 stop −1R · KAITO short 06.11 kaçtı
+  (işlem yok) · KAITO short 09.11 başa baş +0,174R (motor +0,265). PENGU 09.11'de takip "expired" ↔ motor "missed" → değiştirilmedi. Canlı
+  4H düzeltilmiş kayıt: n 86 → 89, ort. +0,002 → **−0,019R** (toplam +0,16 → −1,66R). Düzeltilmiş kayıt sayısı 8.

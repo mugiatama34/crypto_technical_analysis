@@ -39,6 +39,7 @@ test('gerçek dosyalar: rescored.json anahtarları history.json id\'leriyle eşl
   for (const [k, v] of Object.entries(r.items)) {
     assert.ok(ids.has(k), `history'de yok: ${k}`);
     assert.equal(typeof v.status, 'string', k);
-    assert.equal(typeof v.R, 'number', k);
+    // İşlemsiz kapanışta (kaçtı / süresi doldu) R yoktur → null; diğer durumlarda sayı olmalı
+    if (['missed', 'expired'].includes(v.status)) assert.equal(v.R, null, k); else assert.equal(typeof v.R, 'number', k);
   }
 });
