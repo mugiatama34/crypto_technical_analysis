@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794945033212,
+ "updatedAt": 1794945937190,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -12,11 +12,11 @@
    "sentAt": 1794859247420,
    "createdAt": 1794944414684,
    "paper": {
-    "status": "waiting",
+    "status": "expired",
     "entry": 198.992,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1794945653139,
     "R": null
    },
    "orders": {
@@ -29,7 +29,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944418958
+     "updatedAt": 1794945206572,
+     "cancelAt": 1794945937190
     }
    },
    "stops": [],
@@ -57,7 +58,8 @@
    "riskUsd": 999.9963,
    "riskTarget": 1000,
    "leverage": 17,
-   "lastAtCreate": 190.07
+   "lastAtCreate": 190.07,
+   "cancelWhy": "kâğıt expired"
   },
   "XRP|4H|short|38|1794883531251": {
    "id": "XRP|4H|short|38|1794883531251",
@@ -85,7 +87,7 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944419438
+     "updatedAt": 1794945206756
     }
    },
    "stops": [],
@@ -170,7 +172,7 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944420278
+     "updatedAt": 1794945206940
     }
    },
    "stops": [],
@@ -226,7 +228,7 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944439143
+     "updatedAt": 1794945207124
     }
    },
    "stops": [],
@@ -282,7 +284,7 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944439514
+     "updatedAt": 1794945207305
     }
    },
    "stops": [],
@@ -338,7 +340,7 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794944439916
+     "updatedAt": 1794945207489
     }
    },
    "stops": [],
@@ -367,6 +369,58 @@
    "riskTarget": 1000,
    "leverage": 15,
    "lastAtCreate": 587.01
+  },
+  "SOL|4H|short|38|1794945653139": {
+   "id": "SOL|4H|short|38|1794945653139",
+   "coin": "SOL",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794945653139,
+   "createdAt": 1794945937190,
+   "paper": {
+    "status": "waiting",
+    "entry": 75.03,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-cd0b549e5b04c46e-E",
+     "at": 1794945937190,
+     "qty": 434.7,
+     "price": 75.03,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "SOLUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.010",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 75.03,
+    "stop": 77.33,
+    "tp1": 71.6,
+    "tp2": 69.87,
+    "early": 74.13,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 434.7,
+   "riskUsd": 999.81,
+   "riskTarget": 1000,
+   "leverage": 20,
+   "lastAtCreate": 72.73
   }
  },
  "insts": {
@@ -452,6 +506,20 @@
     "minQty": 0.01,
     "minNotional": 5,
     "maxLev": 75
+   }
+  },
+  "SOL": {
+   "at": 1794945937190,
+   "inst": {
+    "coin": "SOL",
+    "symbol": "SOLUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.010",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 100
    }
   }
  },
@@ -558,6 +626,16 @@
    "id": "BNB|4H|short|55|1794937535397",
    "type": "resize",
    "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945937190,
+   "id": "SOL|4H|short|38|1794945653139",
+   "symbol": "SOLUSDT",
+   "ev": "emir",
+   "qty": 434.7,
+   "entry": 75.03,
+   "stop": 77.33,
+   "lev": 20
   }
  ],
  "lastError": null
