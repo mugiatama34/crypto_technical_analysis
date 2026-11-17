@@ -240,3 +240,10 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   kayıp, short 13 ort. +1,02R → dönem düşüş, yön etkisi. Kural sapmaları: stop < %1 üç işlem (üçü de kayıp), risk > 2,5 $ üç işlem, 1 tasfiye
   (ICP, stop %11,5; tasfiye stoptan önce). 14 pozisyonda ilk stop emir geçmişinde bulunamadı (R hesaplanamadı). Tam değerlendirme ~21.11 /
   yön dengelenince.
+- **Bybit DEMO köprüsü (17.11, kullanıcı kararı: gerçek değil demo hesap):** `bot/exchange/bybit.js` (yalnız `api-demo.bybit.com`, host
+  kilitli) + `bot/exchange/demo.js` (limit giriş + ekli stop → dolunca reduce-only kademe emirleri → kademe dolunca stop taşıma; kâğıt ↔
+  borsa sapma kaydı `docs/signals/demo.json`). **Actions'tan Bybit'e erişim yok (HTTP 403, ABD IP; koşu 44157389458)** → `BYBIT_DEMO`
+  Variables'ta açılmayacak; yerel başlatıcı `bot/exchange/local.mjs` + `tools/demo-runner/run.sh` (kullanıcının Mac'i; Mac'ten erişim 200).
+  Kullanıcı demo hesabı açtı (100 $), API anahtarı izinleri işaretlendi (Read-Write, Unified Trading); anahtarın yerel dosyaya girilmesi
+  ve launchd görevinin kurulması bekliyor. Avrupa sunucusu (B) ve OKX demo (C) seçenekleri ertelendi. Testler 492 (489 geçti, 1 bilinen, 2 todo).
+
