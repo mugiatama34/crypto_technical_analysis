@@ -119,6 +119,11 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   olması (yarı eşikli ZigZag + 2 Elliott kuralı) 0,618 × 1,272 kurulumunun sonucunu AYIRMIYOR — fark (5'li − diğerleri) 5m −0,12 / −0,19R,
   15m −0,19 / +0,01R, aralıklar sıfırı içeriyor, işaret çoğunlukla ters; hiçbir sınıf (tek parça / 3'lü / 5'li / 7+) iki dilimde artı değil.
   Etiket tarayıcıda yalnız bilgi olarak duruyor (`src/ew/innerCount.js`, `meta.wave`); filtre / kural olmaz, başka iç eşik denenmez.
+- **Yüksek ADX'te short (17.11, ön kayıtlı: `docs/arastirma/on-kayit-adx-short.md`; `adx-short.json`, koşu 44085171578):** 4H'de "kümede ADX
+  trend ↓, ADX ≥ 40, yalnız short" bağımsız dönemde (13.11.2023–13.11.2025) **SONUÇSUZ — n 53 / 42 (< 100)**. İşaret artı (eğ +0,058R PF 1,29
+  hedge'li +0,089 · doğr +0,343R PF 3,31 hedge'li +0,178) ama 95 işlem 24 haftaya kümeli, eğitim aralığı sıfırı içeriyor. Kural / filtre olmaz;
+  başka eşik denenmez. İleriye dönük sayım canlı kayıttaki `adx` + sinyal adlarıyla yapılabilir (13.12 değerlendirmesinde bak). Backtest
+  sayfasında tek değerli "ADX 57" satırları aralıklara toplandı (`backtest/names.js`).
 - **"Ort. R nasıl artar" araştırması (13.11, ön kayıtlı: `docs/arastirma/on-kayit.md`; `diag.json`, `stage1.json`):** giriş zamanlamasında bilgi
   yok (aynı eğilimde rastgele andan farksız; e-oranı ≈ 1,0) · giriş biçimi fark etmiyor (limit = piyasa, sinyal başına) · stoplar avlanmıyor ·
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının

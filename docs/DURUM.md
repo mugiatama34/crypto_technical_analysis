@@ -208,3 +208,9 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Tarayıcı (17.11):** sonuç kartına ve sağdaki ayrıntı şeridine plan satırı eklendi — Giriş · Stop · TP1 (…R) · TP2 (…R); takibe alınca
   dondurulan planla aynı hesap (`planOf` = gevşek `buildPlan`). Tarayıcıda gözle doğrulanmadı. Sinyal kanalı kuruldu ("Bull on paper",
   kullanıcı secret'ı ekledi; bağlantı testi koşu 44055168039 "gönderildi"); `scan.yml` `signal_test` girdisi eklendi.
+- **Yüksek ADX'te short (17.11, arkadaşın "ADX 57 trend ↓ en iyi" gözlemi):** tek satır n 16 = sıralama şansı (64 ADX satırı). Aralıklara
+  toplanınca görülmüş dönemde ADX ≥ 40 short +0,108R (n 960, 1H + 4H) ↔ long −0,059R. Ön kayıt → bağımsız 24 ayda 4H ölçümü (koşu 44085171578,
+  36 dk): **sonuçsuz**, n 53 / 42. Eğ +0,058R PF 1,29 hedge'li +0,089 · doğr +0,343R PF 3,31 hedge'li +0,178; 95 işlem 51 gün / 24 hafta.
+  Bilgi: tüm short'lar −0,041 / −0,040R · ADX 25–39 short +0,027 / −0,146 · ADX ≥ 40 long −0,017 / +0,238 (n 21 / 21). Görülmüş dönemde 4H
+  birincil +0,265 / +1,209R ama hedge'li −0,116 / +0,050 (n 56 / 11). Kural yok; 1H bilgi koşusu (`adxshort1h`, ≈ 3 saat) kullanıcı isterse.
+- **AAVE "stop oldu ama aktif görünüyor" sorusu:** stop 12:15–12:30 UTC mumunda değdi, bot 12:27 turunda kapattı; gecikme yok (tur aralığı).
