@@ -15,6 +15,10 @@ on:
         description: "Durumu sıfırla (takip + cooldown): sahte/dry kayıtları temizler"
         type: boolean
         default: false
+      signal_test:
+        description: "Sinyal kanalına tek satırlık bağlantı testi gönder (TELEGRAM_SIGNAL_CHAT_ID)"
+        type: boolean
+        default: false
       force_audit:
         description: "Denetçi ajanı şimdi çalıştır (AUDIT=1 gerekir)"
         type: boolean
@@ -97,6 +101,7 @@ jobs:
           AUDIT: ${{ vars.AUDIT }}
           AUDIT_MODEL: ${{ vars.AUDIT_MODEL }}
           FORCE_AUDIT: ${{ inputs.force_audit && '1' || '' }}
+          SIGNAL_TEST: ${{ inputs.signal_test && '1' || '' }}
           MOMENTUM: ${{ vars.MOMENTUM }}
           MOMENTUM_VARIANT: ${{ vars.MOMENTUM_VARIANT }}
           MOMENTUM_RANK: ${{ vars.MOMENTUM_RANK }}

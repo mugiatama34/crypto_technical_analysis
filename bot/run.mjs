@@ -218,6 +218,11 @@ async function main() {
   const now = Date.now();
   if (env('RESET_STATE', '') === '1') { try { fs.unlinkSync(CFG.stateFile); } catch { /* yok */ } log('Durum sıfırlandı (RESET_STATE=1)'); }
   const state = loadState(CFG.stateFile);
+  // Elle bağlantı testi (scan.yml signal_test): sinyal kanalına tek satır gönderir, sonucu loga yazar; tarama normal sürer.
+  if (env('SIGNAL_TEST', '') === '1') {
+    const ok = await notifySignal('🔧 Bağlantı testi: işlem sinyalleri bundan sonra bu kanala gelecek.', null);
+    log(`Sinyal kanalı testi: ${CFG.signalShared ? 'ayrı kanal ayarlı' : 'TELEGRAM_SIGNAL_CHAT_ID boş → ana sohbet'} · ${ok ? 'gönderildi' : 'GÖNDERİLEMEDİ'}`);
+  }
   healthState = state; recordRun(state, now);
   const history = loadHistory(CFG.historyFile);
   // Durumdaki her plan geçmişte de olmalı (historyAdd kimliğe göre tekrarsız): ilk koşu aktarımı + yayını başarısız olmuş bir
