@@ -254,3 +254,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   canlıda doğrulanacak; `sonuc_farki` / `borsa_doldu_kagit_*` sapmaları 13.12 değerlendirmesinde okunacak.
 - **Demo boyutlama (17.11, kullanıcı kararı):** yeni demo emirleri o anki demo özsermayesinin %1'i ile girer (`BYBIT_DEMO_RISK_PCT=1`, yerel
   anahtar dosyası; özsermaye ≈ 165.400 $ → ≈ 1.654 $ / işlem). Amaç: ileride büyük boyutla girmeyi simüle etmek. İlk 6 bekleyen emir 1 $ riskle kaldı.
+- **Demo tabanı (17.11, kullanıcı kararı):** yüzde risk yalnız USDT özsermayesi üzerinden (`BYBIT_DEMO_RISK_BASE=USDT`). Demo USDT 50.000 idi;
+  demo fon talebiyle 100.000'e tamamlandı → risk 1.000 $ / işlem. Bekleyen 6 giriş emri iptal + yeniden gönderme yerine `order/amend` ile
+  yeni adede çekildi (aynı orderLinkId yeniden kullanılamadığı için); borsada doğrulandı (toplam ≈ 184.000 $ nominal, altısı da short).
