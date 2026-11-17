@@ -235,3 +235,8 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   kaldı (20,2 → 13,7 KB). Kural değişmedi. Bundan sonra yeni ölçüm sonucu `bulgular.md`'ye madde olarak yazılır.
 - Testler: 469 (466 geçti, 1 bilinen `levels` yerel yol hatası, 2 todo). Kod değişmedi.
 
+- **Deney B ara bakış (17.11, kullanıcının isteğiyle Bybit'ten okundu; dosyalar yalnız yerelde `tools/trades/*-2026-11-17.csv`):** 10–17.11
+  arası 30 pozisyon (21 artı, 9 eksi). İlk stopu bulunabilen 16'sında ort. +0,63R; en büyük tek işlem (BNB) çıkınca ≈ −0,13R (n 15). Long 3 / 3
+  kayıp, short 13 ort. +1,02R → dönem düşüş, yön etkisi. Kural sapmaları: stop < %1 üç işlem (üçü de kayıp), risk > 2,5 $ üç işlem, 1 tasfiye
+  (ICP, stop %11,5; tasfiye stoptan önce). 14 pozisyonda ilk stop emir geçmişinde bulunamadı (R hesaplanamadı). Tam değerlendirme ~21.11 /
+  yön dengelenince.
