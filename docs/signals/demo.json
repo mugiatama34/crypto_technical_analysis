@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794952271894,
+ "updatedAt": 1794953177567,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -648,10 +648,10 @@
      "qty": 51546.3,
      "price": 0.3537,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951368325
+     "status": "Filled",
+     "cumExecQty": 51546.3,
+     "avgPrice": 0.3537,
+     "updatedAt": 1794952696662
     },
     "T2": {
      "link": "bd-3cbeb3205be5a113-T2",
@@ -676,7 +676,13 @@
      "updatedAt": 1794951368691
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 0.358,
+     "at": 1794953177567,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "borsa_doldu_kagit_bekliyor",
@@ -731,7 +737,8 @@
      "qty": 25773.3
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "stopLevel": 0.358
   }
  },
  "insts": {
@@ -1014,6 +1021,14 @@
    "price": 0.358,
    "qty": 103092.7,
    "paper": "waiting"
+  },
+  {
+   "at": 1794953177567,
+   "id": "TIA|4H|short|30|1794949248303",
+   "symbol": "TIAUSDT",
+   "ev": "stop",
+   "price": 0.358,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
