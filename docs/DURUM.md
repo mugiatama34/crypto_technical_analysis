@@ -247,3 +247,8 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   Kullanıcı demo hesabı açtı (100 $), API anahtarı izinleri işaretlendi (Read-Write, Unified Trading); anahtarın yerel dosyaya girilmesi
   ve launchd görevinin kurulması bekliyor. Avrupa sunucusu (B) ve OKX demo (C) seçenekleri ertelendi. Testler 492 (489 geçti, 1 bilinen, 2 todo).
 
+- **Bybit demo yerelde ÇALIŞIYOR (17.11 akşam):** anahtar `~/.config/kripto-demo/env` (risk 1 $), klon `~/kripto-demo` (iCloud dışı), launchd
+  görevleri `com.kripto.demo-runner` (15 dk) + `com.kripto.demo-awake` (`caffeinate -s`, prizdeyken uyanık); günlük `~/Library/Logs/kripto-demo.log`.
+  İlk iki turda 6 bekleyen plan için demo hesaba limit giriş + ekli stop gönderildi (borsada doğrulandı); 1 plan "aynı sembolde açık iş" diye
+  atlandı. Kaldırma: `launchctl bootout gui/$(id -u)/com.kripto.demo-runner` (ve `-awake`). Açık: ilk dolumda kademe emirleri ve stop taşıma
+  canlıda doğrulanacak; `sonuc_farki` / `borsa_doldu_kagit_*` sapmaları 13.12 değerlendirmesinde okunacak.
