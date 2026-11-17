@@ -78,6 +78,7 @@ export function createBybitDemo({ key = '', secret = '', fetchImpl = globalThis.
     openOrders: (q = { settleCoin: 'USDT' }) => request('GET', '/v5/order/realtime', lin({ limit: 50, ...q })),
     orderByLink: (orderLinkId) => request('GET', '/v5/order/realtime', lin({ orderLinkId })),
     orderHistoryByLink: (orderLinkId) => request('GET', '/v5/order/history', lin({ orderLinkId })),
+    wallet: () => request('GET', '/v5/account/wallet-balance', { accountType: 'UNIFIED' }),
     closedPnl: (symbol, startTime) => request('GET', '/v5/position/closed-pnl', lin({ symbol, startTime, limit: 50 })),
     createOrder: (o) => request('POST', '/v5/order/create', lin(o)),
     cancelOrder: (symbol, orderLinkId) => request('POST', '/v5/order/cancel', lin({ symbol, orderLinkId })),

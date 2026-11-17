@@ -702,7 +702,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 **Bybit demo nerede çalışır (17.11.2026):** GitHub Actions sunucuları (ABD) `api-demo.bybit.com`'dan HTTP 403 alır
 (`.github/workflows/net-check.yml` ile denendi) → `BYBIT_DEMO` Variables'ta **açılmaz**; demo adımı Bybit'e erişebilen bir makinede
 yerel başlatıcıyla çalışır: `node bot/exchange/local.mjs` (bir tur) · `--check` (yalnız bağlantı / anahtar denemesi). Anahtarlar
-`~/.config/kripto-demo/env` dosyasında (`BYBIT_DEMO_KEY`, `BYBIT_DEMO_SECRET`, `BYBIT_DEMO_RISK`); planlar depodaki
+`~/.config/kripto-demo/env` dosyasında (`BYBIT_DEMO_KEY`, `BYBIT_DEMO_SECRET`, `BYBIT_DEMO_RISK`; `BYBIT_DEMO_RISK_PCT=1` → her yeni emirde o anki demo özsermayesinin %1'i); planlar depodaki
 `docs/signals/history.json`'dan okunur (en çok bir tur gecikme). `tools/demo-runner/run.sh <klon>` depoyu çeker, turu koşar,
 `docs/signals/demo.json` değiştiyse commit + push eder (launchd / cron 15 dakikada bir; klon iCloud dışında). Makine uykudayken
 yeni emir girilmez ve stop taşınmaz; açık pozisyonu borsadaki stop ve bekleyen kâr emirleri korur.
