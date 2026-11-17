@@ -259,6 +259,11 @@ girişler), eski girişler `docs/DURUM-arsiv.md`.
 doğrular; Opus orta–yüksek zorluk (gevşek brief), Sonnet basit–orta (sıkı brief), Haiku büyük veri temizliği (en sıkı brief +
 sayım kontrolü). Brief şablonları, yükseltme kuralı ve doğrulama listesi dosyada. Actions'taki ajan modelleri kapsam dışı.
 
+**Ölçüm skill'i** (`.claude/skills/olcum/SKILL.md`, 17.11.2026): her ölçüm / backtest işinden önce yüklenir — sıra (kapanmış fikir
+kontrolü → ön kayıt → gerçekçi satır → karar → kayıt), karar tablosu ve üç başvuru dosyası: `references/bulgular.md` (ölçülmüş ve kapanmış
+fikirler; `CLAUDE.md`'deki uzun bulgu özeti buraya taşındı), `references/on-kayit-sablonu.md`, `references/tuzaklar.md` (motor ↔ canlı
+sapmaları, tasarım hataları, başkasının sonucunu değerlendirme listesi). Kural değişmedi; `CLAUDE.md` 20,2 → 13,7 KB.
+
 **SMC analiz skill'i** (`.claude/skills/smc-analiz/SKILL.md`): "SMC'ye göre analiz et <COIN>" denince coin kontrol listesi
 (`docs/egitim/coin-kontrol-listesi.md`) gerçek veriyle sırayla uygulanır; öğrenme modunda önce sorular sorulur. Seviyeleri
 `node bot/practice/smc_levels.mjs <COIN>` hesaplar (veri `pratik.yml` extra=COIN): 1G yapı + dealing range, 4H yapı/BOS/OB/FVG,

@@ -224,3 +224,14 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   takip kodu ve motorun anlaştığı 4'ü `rescored.json`'a eklendi: MEGA long 28.10 stop −1R · OL long 02.11 stop −1R · KAITO short 06.11 kaçtı
   (işlem yok) · KAITO short 09.11 başa baş +0,174R (motor +0,265). PENGU 09.11'de takip "expired" ↔ motor "missed" → değiştirilmedi. Canlı
   4H düzeltilmiş kayıt: n 86 → 89, ort. +0,002 → **−0,019R** (toplam +0,16 → −1,66R). Düzeltilmiş kayıt sayısı 8.
+
+## 17.11.2026 (yerel oturum, akşam) — arkadaşın botu incelendi; `olcum` skill'i
+- **Arkadaşın botu (klonnist/Hasanwavebot, kullanıcının isteği):** 4H sekmesi 18 işlem +%20,3. Sayılar gerçek (18 girişin hepsi OKX saatlik
+  mumunun içinde; bakiye işlemlerden yeniden hesaplanınca tutuyor). Kanıt değil: long 8 işlem 1 kazanç −517 $, short 10 / 10 +2.539 $, hepsi
+  16.10–15.11 düşüşünde, 5'i SOL; işlem başına risk hesabın %0,6–5,3'ü (toplam +8,35R); komisyon yok (≈ 45 $); aynı kod 15m'de −0,07R (n 74),
+  1D'de −%7,7 (n 5); kayıt 22.09'da sıfırlanmış. VWAP sekmesi (+%99, 1.398 işlem) ayrıntılı incelenmedi; komisyon tek başına ≈ 7.000 $.
+- **`olcum` skill'i (kullanıcı onayı):** ölçüm disiplini tek yerde — `.claude/skills/olcum/` (SKILL.md + bulgular / ön kayıt şablonu /
+  tuzaklar). `CLAUDE.md`'deki uzun bulgu özeti `references/bulgular.md`'ye aynen taşındı; `CLAUDE.md`'de kısa sonuç + kapananlar listesi
+  kaldı (20,2 → 13,7 KB). Kural değişmedi. Bundan sonra yeni ölçüm sonucu `bulgular.md`'ye madde olarak yazılır.
+- Testler: 469 (466 geçti, 1 bilinen `levels` yerel yol hatası, 2 todo). Kod değişmedi.
+
