@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794951364395,
+ "updatedAt": 1794952271894,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -181,21 +181,33 @@
      "at": 1794951364395,
      "qty": 128.53,
      "price": 207.9,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951365927
     },
     "T2": {
      "link": "bd-619d30038e74bfbb-T2",
      "at": 1794951364395,
      "qty": 64.26,
      "price": 204.58,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951366113
     },
     "T3": {
      "link": "bd-619d30038e74bfbb-T3",
      "at": 1794951364395,
      "qty": 64.27,
      "price": 195.46,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951366714
     }
    },
    "stops": [],
@@ -343,21 +355,33 @@
      "at": 1794951364395,
      "qty": 349.65,
      "price": 37.8,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951366896
     },
     "T2": {
      "link": "bd-328ef07e39fa0d23-T2",
      "at": 1794951364395,
      "qty": 174.82,
      "price": 36.13,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951367082
     },
     "T3": {
      "link": "bd-328ef07e39fa0d23-T3",
      "at": 1794951364395,
      "qty": 174.83,
      "price": 34.36,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951367264
     }
    },
    "stops": [],
@@ -449,21 +473,33 @@
      "at": 1794951364395,
      "qty": 19.66,
      "price": 586.17,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951367447
     },
     "T2": {
      "link": "bd-d8ffad65c464ac5c-T2",
      "at": 1794951364395,
      "qty": 9.83,
      "price": 550.3,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951367956
     },
     "T3": {
      "link": "bd-d8ffad65c464ac5c-T3",
      "at": 1794951364395,
      "qty": 9.83,
      "price": 502.55,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951368142
     }
    },
    "stops": [],
@@ -611,21 +647,33 @@
      "at": 1794951364395,
      "qty": 51546.3,
      "price": 0.3537,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951368325
     },
     "T2": {
      "link": "bd-3cbeb3205be5a113-T2",
      "at": 1794951364395,
      "qty": 25773.1,
      "price": 0.3435,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951368509
     },
     "T3": {
      "link": "bd-3cbeb3205be5a113-T3",
      "at": 1794951364395,
      "qty": 25773.3,
      "price": 0.3012,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794951368691
     }
    },
    "stops": [],
