@@ -77,6 +77,10 @@ const CFG = {
   dry: env('DRY', '') === '1' || process.argv.includes('--dry'),
   account: +env('ACCOUNT_USDT', 0),
   tg: { token: env('TELEGRAM_BOT_TOKEN', ''), chatId: env('TELEGRAM_CHAT_ID', '') },
+  // Sinyal kanalı (17.11): TELEGRAM_SIGNAL_CHAT_ID doluysa kurulum / takip güncellemesi / sonuç grafiği YALNIZ oraya gider (arkadaşlarla
+  // paylaşılan kanal); özet, denetçi, momentum, fib uyarısı, sağlık uyarıları ana sohbette kalır. Boşsa her şey eskisi gibi ana sohbete.
+  tgSignal: { token: env('TELEGRAM_BOT_TOKEN', ''), chatId: env('TELEGRAM_SIGNAL_CHAT_ID', '') || env('TELEGRAM_CHAT_ID', '') },
+  signalShared: !!env('TELEGRAM_SIGNAL_CHAT_ID', ''),
   // Fib kesişimi izleme uyarısı (0,618×1,272; işlem sinyali değil). FIB_ALERT=1 açar; TF'ler SCAN_TFS içinde olmalı.
   fibAlert: env('FIB_ALERT', '0') === '1',
   fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
@@ -186,23 +190,25 @@ function shadowGetter(provider) {
   return async (p, params) => (p.endsWith('funding-rate') ? fx.funding?.[String(params.instId).split('-')[0]] : fx.oi);
 }
 
-async function notify(text, state = healthState) {
-  if (CFG.dry) { console.log('\n----- TELEGRAM (dry) -----\n' + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
-  const r = await sendTelegramEx(text, CFG.tg);
+async function notify(text, state = healthState, creds = CFG.tg) {
+  if (CFG.dry) { console.log(`\n----- TELEGRAM (dry${creds === CFG.tgSignal && CFG.signalShared ? ', sinyal kanalı' : ''}) -----\n` + text.replace(/<[^>]+>/g, '') + '\n'); return true; }
+  const r = await sendTelegramEx(text, creds);
   if (!r.noCreds && state) recordTelegram(state, r, Date.now()); // kimlik yoksa (yerel koşu) hata sayılmaz
   if (!r.ok) log(`Telegram gönderilemedi (${r.error})`);
   return r.ok;
 }
+/** İşlem sinyali mesajı (kurulum, takip güncellemesi): sinyal kanalı ayarlıysa oraya, değilse ana sohbete. */
+const notifySignal = (text, state = healthState) => notify(text, state, CFG.tgSignal);
 
 /** Grafik fotoğrafı gönderir (SIGNAL_CHART=1). Hata/tarayıcı yoksa sessizce atlar; metin mesajı zaten gitmiştir. */
-async function sendChart(candles, plan, o, caption) {
+async function sendChart(candles, plan, o, caption, creds = CFG.tg) {
   if (!CFG.signalChart || !candles?.length) return false;
   try {
     const svg = signalChartSvg(candles, plan, o);
     if (CFG.dry) { const f = `bot/chart-${plan.coin}-${o.result ? 'sonuc' : 'kurulum'}.svg`; fs.writeFileSync(f, svg); log(`DRY: grafik ${f}`); return true; }
     const png = renderPng(svg);
     if (!png) { log('Grafik: Chrome/Chromium bulunamadı, yalnız metin'); return false; }
-    const r = await sendTelegramPhotoEx(png, caption, CFG.tg);
+    const r = await sendTelegramPhotoEx(png, caption, creds);
     if (!r.noCreds && healthState) recordTelegram(healthState, r, Date.now());
     return r.ok;
   } catch (err) { log(`Grafik hatası ${plan.coin}: ${err.message}`); return false; }
@@ -311,10 +317,10 @@ async function main() {
         if (ev === 'active') p.activeAt = now; else if (ev === 'tp1' || ev === 'early') p.tp1At = now; else if (ev === 'mid') p.midAt = p.midAt ?? now; else if (ev !== 'confirming') p.closedAt = !scanned && p.closedBar ? p.closedBar : now;
       }
       // Aynı turda birden çok olay (ör. giriş + erken hedef) → tek mesaj
-      if (!quiet) await notify(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
+      if (!quiet) await notifySignal(events.length > 1 ? formatUpdates(p, events, row?.price) : formatUpdate(p, events[0], row?.price), state);
       if (!quiet && ['done', 'stopped', 'be', 'timeout'].includes(p.status) && candles.length) {
         const res = resultOf(p, finalR(p));
-        await sendChart(candles, p, { setup: p.chart?.setup, context: p.chart?.context, result: res, bars: 80 }, `📈 Sonuç: <b>${p.coin}</b> ${p.tf} ${p.direction === 'long' ? 'LONG' : 'SHORT'} · ${res.label} ${res.R >= 0 ? '+' : ''}${res.R.toFixed(2)}R`);
+        await sendChart(candles, p, { setup: p.chart?.setup, context: p.chart?.context, result: res, bars: 80 }, `📈 Sonuç: <b>${p.coin}</b> ${p.tf} ${p.direction === 'long' ? 'LONG' : 'SHORT'} · ${res.label} ${res.R >= 0 ? '+' : ''}${res.R.toFixed(2)}R`, CFG.tgSignal);
       }
       if (CLOSED.has(p.status) && btcPrice && scanned) p.btcAtClose = btcPrice; // geç kapanışta anlık BTC yanıltır
       historyUpdate(history, p);
@@ -406,7 +412,7 @@ async function main() {
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
-    await notify(formatSetup(early ? { ...plan, early } : plan, v, size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; ${CFG.earlyTp.mid > 0 && plan.d * (v.tp1 - early) > 0 && plan.d * (v.tp2 - v.tp1) > 0 ? `TP1'de %${Math.round(CFG.earlyTp.mid * 100)} daha kapat${CFG.earlyTp.midStop === 'early' ? ', stopu erken hedefe çek' : ''}; kalan TP2` : 'kalan TP2'}` : ''), state);
+    await notifySignal(formatSetup(early ? { ...plan, early } : plan, v, CFG.signalShared ? null : size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; ${CFG.earlyTp.mid > 0 && plan.d * (v.tp1 - early) > 0 && plan.d * (v.tp2 - v.tp1) > 0 ? `TP1'de %${Math.round(CFG.earlyTp.mid * 100)} daha kapat${CFG.earlyTp.midStop === 'early' ? ', stopu erken hedefe çek' : ''}; kalan TP2` : 'kalan TP2'}` : ''), state);
     const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion, ...(CFG.earlyTp.mid > 0 ? { midPortion: CFG.earlyTp.mid, midStop: CFG.earlyTp.midStop === 'early' ? 'early' : 'entry' } : {}) } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     if (CFG.signalChart && row && !row.error) {
       try {
@@ -414,7 +420,7 @@ async function main() {
         rec.chart = { setup: setupDrawOf(cl?.signals, row.candles), context: stopContext(row.candles, plan.tf, rec) }; // yalnız state'te (history'ye girmez)
         const names = [...new Set(plan.signals.filter((s) => !['candle', 'indicator'].includes(s.group)).map((s) => s.name))];
         const scen = scenarioOf(row.live ? [...row.candles, row.live] : row.candles, rec, rec.chart.context);
-        await sendChart(row.candles, rec, { ...rec.chart, note: `${names.slice(0, 3).join(' · ')} · puan ${plan.score}`, scenario: scen, panel: panelOf(rec, rec.chart.context, scen, names) }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`);
+        await sendChart(row.candles, rec, { ...rec.chart, note: `${names.slice(0, 3).join(' · ')} · puan ${plan.score}`, scenario: scen, panel: panelOf(rec, rec.chart.context, scen, names) }, `📊 <b>${plan.coin}</b> ${plan.tf} ${plan.direction === 'long' ? 'LONG' : 'SHORT'} kurulumu`, CFG.tgSignal);
       } catch (err) { log(`Kurulum grafiği ${plan.coin}: ${err.message}`); }
     }
     const shadow = safeShadow(() => { if (shadowFail) throw new Error('test: gölge hatası'); return shadowBase({ now, tfMs: TIMEFRAMES[plan.tf]?.ms, row, rec, sent: state.sent, rows: res.rows }); }, (err) => log(`Gölge etiket hatası (yerel): ${err.message}`));

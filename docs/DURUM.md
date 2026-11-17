@@ -202,3 +202,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   `brief.yml`'i tetikler. Özet artık 06:00–06:15 Berlin arasında gelir; hata olursa pencere içinde 15 dakikada bir yeniden denenir.
 - 17.11 özeti elle tetiklendi (koşu 44050306055, 09:51 Berlin: btc-daily + xau-daily gönderildi, `daily.lastDate` yazıldı).
 - **Bekleyen:** 18.11 sabahı ilk kendiliğinden gönderim (saat, tek mesaj, "↩️ Dün" satırı).
+- **Sinyal kanalı (17.11, kullanıcı isteği: sinyalleri arkadaşlarla paylaşmak):** Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa kurulum / takip /
+  sonuç grafiği yalnız o kanala gider, gerisi ana sohbette kalır; paylaşılan kanalda kişisel pozisyon satırı yazılmaz. Boşsa değişiklik yok.
+  Kanalı kurmak ve secret'ı eklemek kullanıcıda. Kullanıcıya not düşüldü: 4H düzeninin ölçülmüş kenarı yok, kanal açıklamasına yazılmalı.

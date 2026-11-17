@@ -651,6 +651,9 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   işlemleri, kendi işlemin) coin/TF/yön/giriş/stop/TP1/TP2 + etiket (arkadaş/kendi/izlenen/bot) + kurulum zamanı (geçmiş olabilir) +
   limit geçerliliğiyle eklenir; bot kurallarıyla (`trackPlan`) izlenir, kurulumdan bu yana yeterli mum indirilir, kapanış zamanı
   gerçek mum. Virgüllü sayı kabul eder. `makeManualWatch` (test: `tests/watch.test.js`). Bulut açıksa tüm cihazlarda.
+- **Sinyal kanalı (17.11)**: Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa işlem sinyalleri (kurulum mesajı + grafiği, takip güncellemeleri, sonuç
+  grafiği) yalnız o sohbete / kanala gider; özet, denetçi, momentum, fib uyarısı, sabah özeti ve sağlık uyarıları ana sohbette kalır.
+  Paylaşılan kanalda kişisel "Pozisyon (risk … USDT)" satırı yazılmaz. Boşsa davranış değişmez. Bot kanalda yönetici olmalı.
 - **☁ Bulut kaydı (`src/sync/`, 11.11)**: takip listesi (`watch.json`) ve gerçek işlemler (`trades.json`) kullanıcının **özel**
   GitHub deposunda (REST contents API) → telefon / iş / ev bilgisayarında aynı. Ayar (depo + ince taneli token, yalnız o depo
   Contents RW) her cihazın localStorage'ında; herkese açık depo reddedilir. Birleştirme id başına son `updatedAt`, silinenler
