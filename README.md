@@ -651,6 +651,9 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
   işlemleri, kendi işlemin) coin/TF/yön/giriş/stop/TP1/TP2 + etiket (arkadaş/kendi/izlenen/bot) + kurulum zamanı (geçmiş olabilir) +
   limit geçerliliğiyle eklenir; bot kurallarıyla (`trackPlan`) izlenir, kurulumdan bu yana yeterli mum indirilir, kapanış zamanı
   gerçek mum. Virgüllü sayı kabul eder. `makeManualWatch` (test: `tests/watch.test.js`). Bulut açıksa tüm cihazlarda.
+- **Yüksek ADX'te short ölçümü (17.11, ön kayıtlı: `docs/arastirma/on-kayit-adx-short.md`)**: `backtest/adx-short.mjs` (+ saf kısım
+  `adx-short.js`), `backtest.yml` modları `adxshort` (4H, karar) ve `adxshort1h` (bilgi) → `docs/backtest/adx-short.json`. Backtest sayfasında
+  "Sinyal adına göre" tablosu ADX / hacim adlarını aralıklara toplar (`backtest/names.js`).
 - **Sinyal kanalı (17.11)**: Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa işlem sinyalleri (kurulum mesajı + grafiği, takip güncellemeleri, sonuç
   grafiği) yalnız o sohbete / kanala gider; özet, denetçi, momentum, fib uyarısı, sabah özeti ve sağlık uyarıları ana sohbette kalır.
   Paylaşılan kanalda kişisel "Pozisyon (risk … USDT)" satırı yazılmaz. Boşsa davranış değişmez. Bot kanalda yönetici olmalı.

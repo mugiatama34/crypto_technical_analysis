@@ -39,3 +39,11 @@ tarafı kazandırmadı).
 ## Bilinen sınırlar
 - Kural yalnız short → tek yönlü; dönemin BTC yönüne çok duyarlı. Hedge'li R bu yüzden ölçütün parçası.
 - Yüksek ADX olayları az sayıda sert satış dalgasında kümelenir; n büyük görünse de bağımsız olay sayısı küçük olabilir.
+
+## Not (17.11.2026, koşudan önce — tanım netleştirme, sonuç görülmeden)
+- "Fonlama varsayılan" = taramanın varsayılanı, yani **0** (13.11 canlı satırı da fonlamasız ölçüldü; short'ta fonlama çoğu dönemde gelir
+  olduğundan bu, kuralın lehine değil).
+- Hedge'li ölçüt alanı: taramadaki `hedgedR` (BTC bacağı dolum mumunun kapanışından). `hedgedROpen` yalnız bilgi.
+- Bilgi satırı "ADX < 40 short" = kümede "ADX trend ↓" sinyali olan ve n 25–39 kalan short'lar (ADX sinyali olmayanlar bu satırda değil;
+  onlar "tüm short'lar" satırında).
+- Plan üretimi `backtest/run.mjs` varsayılanlarıyla (min puan 50, min R:R 2, risk ≤ %5, bekleme 6 s); 1H bilgi satırı ayrı koşu (`adxshort1h`).
