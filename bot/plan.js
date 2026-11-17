@@ -409,6 +409,16 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
  * Taranmayan (TF kapalı / coin listeden düştü) açık plan için mum seçimi: plan TF'si ya da gönderimden bu yana
  * `max` mumu aşmayan ilk üst TF (OKX /market/candles en fazla ~1440 mum verir). Hiçbiri yetmezse null.
  */
+/**
+ * Bu tur taranmayan açık plan için mumlar ayrıca indirilsin mi? hasRow: tarama bu coin|TF için satır döndürdü mü (hatalı da olsa →
+ * geçici hata, beklenir). Satır hiç yoksa coin evrenden düşmüştür; TF kapalıysa ya da plan 2 günden eskiyse de ayrı izlenir.
+ * Bekleyen (waiting) plan da dahildir: dolumu / kaçışı kaydedilmezse süresi dolunca yanlış "expired" olur.
+ */
+export function needsOwnCandles({ hasRow, tfOff, ageMs, status }) {
+  if (!['waiting', 'active', 'tp1', 'early', 'confirming'].includes(status)) return false;
+  return !!tfOff || !hasRow || ageMs >= 2 * 864e5;
+}
+
 export function catchUpTf(tf, sentAt, now, max = 1400) {
   const order = ['15m', '1H', '4H', '1D'];
   for (const t of order.slice(Math.max(0, order.indexOf(tf)))) {

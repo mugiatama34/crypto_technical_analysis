@@ -214,3 +214,9 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   Bilgi: tüm short'lar −0,041 / −0,040R · ADX 25–39 short +0,027 / −0,146 · ADX ≥ 40 long −0,017 / +0,238 (n 21 / 21). Görülmüş dönemde 4H
   birincil +0,265 / +1,209R ama hedge'li −0,116 / +0,050 (n 56 / 11). Kural yok; 1H bilgi koşusu (`adxshort1h`, ≈ 3 saat) kullanıcı isterse.
 - **AAVE "stop oldu ama aktif görünüyor" sorusu:** stop 12:15–12:30 UTC mumunda değdi, bot 12:27 turunda kapattı; gecikme yok (tur aralığı).
+- **Hata düzeltildi (17.11): evrenden düşen coinde bekleyen plan izlenmiyordu.** KAITO 4H short (giriş 0,1827) 14:04 UTC'de OKX'te doldu ama
+  kayıtta "bekliyor" kaldı: KAITO o gün hacimde ilk 100'ün dışına çıktı → tarama satırı yok; `ownCandles` yalnız dolmuş planları ve 2 günden
+  eski / TF'si kapalı planları ayrıca indiriyordu → bekleyen plan 24 saat sonra yanlışlıkla "expired" olacaktı. Düzeltme: `needsOwnCandles`
+  (`bot/plan.js`; satır hiç yoksa bekleyen dahil ayrı izlenir) + aynı TF'de ayrı izlenen planda dolum mumu sırası için 15m alt TF
+  (yoksa aynı 4H mumunda sahte "erken hedef"). **Geçmiş etki:** 26.10'dan beri "expired" yazılan planların bir kısmı gerçekte dolmuş
+  olabilir (yalnız coin'i o 24 saatte ilk 100'den düşenler) → canlı kayıt bu yönde eksik; sayımı yapılacak.

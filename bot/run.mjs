@@ -28,7 +28,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, mergeAgentCands } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, needsOwnCandles, mergeAgentCands } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegramEx, sendTelegramPhotoEx, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { recordRun, recordOkx, recordTelegram, recordAgent, recordError, healthAlerts, healthLine, windowSum, dailySummaryOf } from './health.js';
@@ -296,11 +296,12 @@ async function main() {
   // Taranmayan TF/coin'deki açık planlar: mumları ayrıca indirilir (tur başına ≤ 8); gönderimden bu yana mum sayısı
   // fazlaysa üst TF'ye geçilir (catchUpTf). Böylece 15m/1H kapatıldıktan ya da coin listeden düştükten sonra da kapanırlar.
   let catchUps = 0;
-  const ownCandles = async (p) => {
-    // Geçici tarama hatası (coin bu tur gelmedi) için değil: yalnız TF kapalıysa ya da plan 2 günden eskiyse (coin listeden düştü)
+  const ownCandles = async (p, row) => {
+    // Geçici tarama hatası (satır var ama hatalı) için değil: TF kapalıysa, plan 2 günden eskiyse ya da coin bu tur evrende hiç yoksa
+    // (hacim sırasında ilk N'den düştü → satır yok). 17.11: bekleyen planlar da izlenir; yoksa listeden düşen coinde dolan plan
+    // 24 saat sonra yanlışlıkla "süresi doldu" yazılıyordu (KAITO 4H short, dolum 14:04 UTC, kayıtta "bekliyor").
     const tfOff = !CFG.tfs.includes(p.tf) || (ruleFor(p.tf, 'long').off && ruleFor(p.tf, 'short').off);
-    if (!tfOff && now - p.sentAt < 2 * 864e5) return { candles: [] };
-    if (catchUps >= 8 || !['active', 'tp1', 'early', 'confirming'].includes(p.status)) return { candles: [] };
+    if (catchUps >= 8 || !needsOwnCandles({ hasRow: !!row, tfOff, ageMs: now - p.sentAt, status: p.status })) return { candles: [] };
     const pick = catchUpTf(p.tf, p.sentAt, now); if (!pick) return { candles: [] };
     catchUps++;
     try { const x = provider ? await provider.candles(instIdOf(p.coin), pick.tf, pick.count) : await getCandles(instIdOf(p.coin), TIMEFRAMES[pick.tf], pick.count); return { candles: x.live ? [...x.candles, x.live] : x.candles, tf: pick.tf }; } catch { return { candles: [] }; }
@@ -309,11 +310,11 @@ async function main() {
     if (CLOSED.has(p.status)) continue;
     const row = byKey.get(`${p.coin}|${p.tf}`);
     const scanned = row && !row.error;
-    const own = scanned ? null : await ownCandles(p);
+    const own = scanned ? null : await ownCandles(p, row);
     const candles = scanned ? (row.live ? [...row.candles, row.live] : row.candles) : own.candles;
     // 3 günden eski, taranmayan planın kapanışı sessizdir (Telegram'a eski sinyal yağmuru olmasın); geçmişe yazılır
     const quiet = p.orphan || (!scanned && now - p.sentAt > 3 * 864e5);
-    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, lower: scanned && candles.length ? await lowerOf(p) : null });
+    const { status, events, patch } = trackPlan(p, candles, now, { expireHours: PLAN_DEFAULTS.expireHours, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, lower: (scanned || own?.tf === p.tf) && candles.length ? await lowerOf(p) : null });
     if (events.length) {
       Object.assign(p, patch); p.status = status; p.updatedAt = now;
       if (!scanned) p.lateClose = own?.tf || true; // geç takip: ayrı indirilen mumla (hangi TF)
