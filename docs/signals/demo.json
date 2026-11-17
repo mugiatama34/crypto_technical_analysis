@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794944414684,
+ "updatedAt": 1794944437354,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -25,7 +25,11 @@
      "at": 1794944414684,
      "qty": 0.134,
      "price": 198.99,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794944418958
     }
    },
    "stops": [],
@@ -77,7 +81,11 @@
      "at": 1794944414684,
      "qty": 27.1,
      "price": 0.9812,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794944419438
     }
    },
    "stops": [],
@@ -158,7 +166,11 @@
      "at": 1794944414684,
      "qty": 0.25,
      "price": 210.42,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794944420278
     }
    },
    "stops": [],
@@ -187,6 +199,162 @@
    "riskTarget": 1,
    "leverage": 20,
    "lastAtCreate": 207.01
+  },
+  "LINK|4H|short|38|1794932129280": {
+   "id": "LINK|4H|short|38|1794932129280",
+   "coin": "LINK",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794932129280,
+   "createdAt": 1794944437354,
+   "paper": {
+    "status": "waiting",
+    "entry": 9.276,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-c4980a793e4f4eb0-E",
+     "at": 1794944437354,
+     "qty": 2.8,
+     "price": 9.276,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "LINKUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 9.276,
+    "stop": 9.63,
+    "tp1": 8.746,
+    "tp2": 8.567,
+    "early": 9.165,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 2.8,
+   "riskUsd": 0.9912,
+   "riskTarget": 1,
+   "leverage": 17,
+   "lastAtCreate": 9.068
+  },
+  "DASH|4H|short|31|1794933928433": {
+   "id": "DASH|4H|short|31|1794933928433",
+   "coin": "DASH",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794933928433,
+   "createdAt": 1794944437354,
+   "paper": {
+    "status": "waiting",
+    "entry": 38.2538,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-328ef07e39fa0d23-E",
+     "at": 1794944437354,
+     "qty": 0.69,
+     "price": 38.25,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "DASHUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 38.25,
+    "stop": 39.68,
+    "tp1": 36.13,
+    "tp2": 34.36,
+    "early": 37.8,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 0.69,
+   "riskUsd": 0.9867,
+   "riskTarget": 1,
+   "leverage": 17,
+   "lastAtCreate": 37.64
+  },
+  "BNB|4H|short|55|1794937535397": {
+   "id": "BNB|4H|short|55|1794937535397",
+   "coin": "BNB",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794937535397,
+   "createdAt": 1794944437354,
+   "paper": {
+    "status": "waiting",
+    "entry": 593.282,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-d8ffad65c464ac5c-E",
+     "at": 1794944437354,
+     "qty": 0.03,
+     "price": 593.28,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "BNBUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 593.28,
+    "stop": 618.71,
+    "tp1": 550.3,
+    "tp2": 502.55,
+    "early": 586.17,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 0.03,
+   "riskUsd": 0.7629,
+   "riskTarget": 1,
+   "leverage": 15,
+   "lastAtCreate": 587.01
   }
  },
  "insts": {
@@ -312,6 +480,36 @@
    "entry": 210.42,
    "stop": 214.31,
    "lev": 20
+  },
+  {
+   "at": 1794944437354,
+   "id": "LINK|4H|short|38|1794932129280",
+   "symbol": "LINKUSDT",
+   "ev": "emir",
+   "qty": 2.8,
+   "entry": 9.276,
+   "stop": 9.63,
+   "lev": 17
+  },
+  {
+   "at": 1794944437354,
+   "id": "DASH|4H|short|31|1794933928433",
+   "symbol": "DASHUSDT",
+   "ev": "emir",
+   "qty": 0.69,
+   "entry": 38.25,
+   "stop": 39.68,
+   "lev": 17
+  },
+  {
+   "at": 1794944437354,
+   "id": "BNB|4H|short|55|1794937535397",
+   "symbol": "BNBUSDT",
+   "ev": "emir",
+   "qty": 0.03,
+   "entry": 593.28,
+   "stop": 618.71,
+   "lev": 15
   }
  ],
  "lastError": null
