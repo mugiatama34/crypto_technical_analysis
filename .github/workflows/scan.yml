@@ -133,3 +133,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run backtest.yml --ref ${{ github.ref_name }} -f mode=research && rm -f bot/research-request.flag
+
+      # GitHub'ın kendi zamanlayıcısı bu depoda çoğu tetiklemeyi düşürüyor (17.11: brief.yml'in 04:00 / 05:00 UTC cron'ları hiç
+      # çalışmadı); tarama dış zamanlayıcıyla 15 dakikada bir geldiği için sabah özetini buradan tetikleriz. Karar aynı kuraldan
+      # (planRun: Berlin 06:00–11:59, o gün gönderilmemiş); brief.yml kendi çift gönderim korumasını ayrıca uygular.
+      - name: Trigger market brief (morning window, not sent yet)
+        if: ${{ !inputs.dry && vars.MARKET_BRIEF == '1' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if node -e "import('./bot/brief/schedule.js').then((m)=>{let s={};try{s=JSON.parse(require('fs').readFileSync('docs/brief/state.json','utf8'))}catch{};const p=m.planRun({nowMs:Date.now(),state:s,flag:true});console.log(p.reason);process.exit(p.daily||p.weekly?0:1)})"; then
+            gh workflow run brief.yml --ref ${{ github.ref_name }}
+          fi

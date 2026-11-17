@@ -193,3 +193,12 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   `testCloud` hesabın yetkisine bakıyor (`permissions.push`), token'ınkine değil → salt okunur token "Bağlandı" diyor. Düzeltme (gerçek yazma
   denemesi) önerildi, kullanıcı yanıtlamadı.
 - `MARKET_BRIEF=1` kullanıcı tarafından açıldı; ilk zamanlı gönderim 17.11 06:00 Berlin (çift mesaj / "↩️ Dün" / state commit kontrol edilecek).
+
+## 17.11.2026 (yerel oturum) — sabah özeti zamanında gelmedi: GitHub zamanlayıcısı
+- **Bulgu:** `brief.yml`'in 04:00 / 05:00 UTC cron'ları 17.11'de hiç çalışmadı (bayrak 16.11'de açıktı). GitHub'ın zamanlayıcısı bu depoda
+  tetiklemelerin çoğunu düşürüyor: `scan.yml` `*/15` cron'u günde yalnız 2–4 kez geliyor; tarama asıl olarak dış zamanlayıcının
+  (cron-job.org) `workflow_dispatch` çağrısıyla 15 dakikada bir çalışıyor.
+- **Düzeltme:** `scan.yml` sonuna adım — `MARKET_BRIEF=1` ve `planRun` "gönder" diyorsa (Berlin 06:00–11:59, o gün gönderilmemiş)
+  `brief.yml`'i tetikler. Özet artık 06:00–06:15 Berlin arasında gelir; hata olursa pencere içinde 15 dakikada bir yeniden denenir.
+- 17.11 özeti elle tetiklendi (koşu 44050306055, 09:51 Berlin: btc-daily + xau-daily gönderildi, `daily.lastDate` yazıldı).
+- **Bekleyen:** 18.11 sabahı ilk kendiliğinden gönderim (saat, tek mesaj, "↩️ Dün" satırı).
