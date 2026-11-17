@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794956801692,
+ "updatedAt": 1794957710818,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -72,9 +72,9 @@
    "sentAt": 1794883531251,
    "createdAt": 1794944414684,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.9812,
-    "filledAt": null,
+    "filledAt": 1794945600000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -96,21 +96,33 @@
      "at": 1794956801692,
      "qty": 13550.1,
      "price": 0.9695,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956805896
     },
     "T2": {
      "link": "bd-b26f7dd4e43aeb04-T2",
      "at": 1794956801692,
      "qty": 6775,
      "price": 0.9413,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956806150
     },
     "T3": {
      "link": "bd-b26f7dd4e43aeb04-T3",
      "at": 1794956801692,
      "qty": 6775.1,
      "price": 0.8922,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956806334
     }
    },
    "stops": [],
@@ -168,7 +180,12 @@
      "qty": 6775.1
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794956772044,
+    "paperAt": 1794945600000,
+    "minutes": -186
+   }
   },
   "XRP|4H|short|40|1794931250433": {
    "id": "XRP|4H|short|40|1794931250433",
@@ -350,21 +367,33 @@
      "at": 1794956801692,
      "qty": 1412.4,
      "price": 9.165,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956806846
     },
     "T2": {
      "link": "bd-c4980a793e4f4eb0-T2",
      "at": 1794956801692,
      "qty": 706.2,
      "price": 8.746,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956807028
     },
     "T3": {
      "link": "bd-c4980a793e4f4eb0-T3",
      "at": 1794956801692,
      "qty": 706.2,
      "price": 8.567,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794956807534
     }
    },
    "stops": [],
@@ -682,14 +711,41 @@
      "qty": 434.7,
      "price": 75.03,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945938988
+     "status": "Filled",
+     "cumExecQty": 434.7,
+     "avgPrice": 75.03,
+     "updatedAt": 1794956933798
+    },
+    "T1": {
+     "link": "bd-cd0b549e5b04c46e-T1",
+     "at": 1794957710818,
+     "qty": 217.3,
+     "price": 74.13,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-cd0b549e5b04c46e-T2",
+     "at": 1794957710818,
+     "qty": 108.6,
+     "price": 71.6,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-cd0b549e5b04c46e-T3",
+     "at": 1794957710818,
+     "qty": 108.8,
+     "price": 69.87,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1794957710818,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "SOLUSDT",
    "mult": 1,
    "inst": {
@@ -697,7 +753,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 75.03,
@@ -713,7 +769,31 @@
    "riskUsd": 999.81,
    "riskTarget": 1000,
    "leverage": 20,
-   "lastAtCreate": 72.73
+   "lastAtCreate": 72.73,
+   "fill": {
+    "price": 75.03,
+    "qty": 434.7,
+    "at": 1794956933798,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 74.13,
+     "qty": 217.3
+    },
+    {
+     "tag": "T2",
+     "price": 71.6,
+     "qty": 108.6
+    },
+    {
+     "tag": "T3",
+     "price": 69.87,
+     "qty": 108.8
+    }
+   ],
+   "legFails": {}
   },
   "TIA|4H|short|30|1794949248303": {
    "id": "TIA|4H|short|30|1794949248303",
@@ -1167,6 +1247,15 @@
    "ev": "kapanış",
    "R": 0.198,
    "exitBy": "taşınmış stop"
+  },
+  {
+   "at": 1794957710818,
+   "id": "SOL|4H|short|38|1794945653139",
+   "symbol": "SOLUSDT",
+   "ev": "dolum",
+   "price": 75.03,
+   "qty": 434.7,
+   "paper": "waiting"
   }
  ],
  "lastError": null
