@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794948651239,
+ "updatedAt": 1794949555753,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -427,6 +427,58 @@
    "riskTarget": 1000,
    "leverage": 20,
    "lastAtCreate": 72.73
+  },
+  "TIA|4H|short|30|1794949248303": {
+   "id": "TIA|4H|short|30|1794949248303",
+   "coin": "TIA",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794949248303,
+   "createdAt": 1794949555753,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.357979,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-3cbeb3205be5a113-E",
+     "at": 1794949555753,
+     "qty": 103092.7,
+     "price": 0.358,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "TIAUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.358,
+    "stop": 0.3677,
+    "tp1": 0.3435,
+    "tp2": 0.3012,
+    "early": 0.3537,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 103092.7,
+   "riskUsd": 999.9992,
+   "riskTarget": 1000,
+   "leverage": 20,
+   "lastAtCreate": 0.355
   }
  },
  "insts": {
@@ -526,6 +578,20 @@
     "minQty": 0.1,
     "minNotional": 5,
     "maxLev": 100
+   }
+  },
+  "TIA": {
+   "at": 1794949555753,
+   "inst": {
+    "coin": "TIA",
+    "symbol": "TIAUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 50
    }
   }
  },
@@ -649,6 +715,16 @@
    "symbol": "TAOUSDT",
    "ev": "iptal",
    "why": "kâğıt expired"
+  },
+  {
+   "at": 1794949555753,
+   "id": "TIA|4H|short|30|1794949248303",
+   "symbol": "TIAUSDT",
+   "ev": "emir",
+   "qty": 103092.7,
+   "entry": 0.358,
+   "stop": 0.3677,
+   "lev": 20
   }
  ],
  "lastError": null
