@@ -23,7 +23,7 @@
     "E": {
      "link": "bd-1fab1f784816c51c-E",
      "at": 1794944414684,
-     "qty": 0.134,
+     "qty": 134.589,
      "price": 198.99,
      "type": "Limit",
      "status": "New",
@@ -53,9 +53,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 0.134,
-   "riskUsd": 0.9956,
-   "riskTarget": 1,
+   "qty": 134.589,
+   "riskUsd": 999.9963,
+   "riskTarget": 1000,
    "leverage": 17,
    "lastAtCreate": 190.07
   },
@@ -79,7 +79,7 @@
     "E": {
      "link": "bd-b26f7dd4e43aeb04-E",
      "at": 1794944414684,
-     "qty": 27.1,
+     "qty": 27100.2,
      "price": 0.9812,
      "type": "Limit",
      "status": "New",
@@ -109,9 +109,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 27.1,
-   "riskUsd": 1,
-   "riskTarget": 1,
+   "qty": 27100.2,
+   "riskUsd": 999.9974,
+   "riskTarget": 1000,
    "leverage": 17,
    "lastAtCreate": 0.9614
   },
@@ -164,7 +164,7 @@
     "E": {
      "link": "bd-619d30038e74bfbb-E",
      "at": 1794944414684,
-     "qty": 0.25,
+     "qty": 257.06,
      "price": 210.42,
      "type": "Limit",
      "status": "New",
@@ -194,9 +194,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 0.25,
-   "riskUsd": 0.9725,
-   "riskTarget": 1,
+   "qty": 257.06,
+   "riskUsd": 999.9634,
+   "riskTarget": 1000,
    "leverage": 20,
    "lastAtCreate": 207.01
   },
@@ -220,7 +220,7 @@
     "E": {
      "link": "bd-c4980a793e4f4eb0-E",
      "at": 1794944437354,
-     "qty": 2.8,
+     "qty": 2824.8,
      "price": 9.276,
      "type": "Limit",
      "status": "New",
@@ -250,9 +250,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 2.8,
-   "riskUsd": 0.9912,
-   "riskTarget": 1,
+   "qty": 2824.8,
+   "riskUsd": 999.9792,
+   "riskTarget": 1000,
    "leverage": 17,
    "lastAtCreate": 9.068
   },
@@ -276,7 +276,7 @@
     "E": {
      "link": "bd-328ef07e39fa0d23-E",
      "at": 1794944437354,
-     "qty": 0.69,
+     "qty": 699.3,
      "price": 38.25,
      "type": "Limit",
      "status": "New",
@@ -306,9 +306,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 0.69,
-   "riskUsd": 0.9867,
-   "riskTarget": 1,
+   "qty": 699.3,
+   "riskUsd": 999.999,
+   "riskTarget": 1000,
    "leverage": 17,
    "lastAtCreate": 37.64
   },
@@ -332,7 +332,7 @@
     "E": {
      "link": "bd-d8ffad65c464ac5c-E",
      "at": 1794944437354,
-     "qty": 0.03,
+     "qty": 39.32,
      "price": 593.28,
      "type": "Limit",
      "status": "New",
@@ -362,9 +362,9 @@
     "midPortion": 0.25,
     "midStop": "early"
    },
-   "qty": 0.03,
-   "riskUsd": 0.7629,
-   "riskTarget": 1,
+   "qty": 39.32,
+   "riskUsd": 999.9076,
+   "riskTarget": 1000,
    "leverage": 15,
    "lastAtCreate": 587.01
   }
@@ -522,6 +522,42 @@
    "entry": 593.28,
    "stop": 618.71,
    "lev": 15
+  },
+  {
+   "at": 1794945206625,
+   "id": "TAO|4H|short|32|1794859247420",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945206808,
+   "id": "XRP|4H|short|38|1794883531251",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945206991,
+   "id": "BCH|4H|short|39|1794932129280",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945207175,
+   "id": "LINK|4H|short|38|1794932129280",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945207357,
+   "id": "DASH|4H|short|31|1794933928433",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
+  },
+  {
+   "at": 1794945207541,
+   "id": "BNB|4H|short|55|1794937535397",
+   "type": "resize",
+   "note": "elle: özsermaye %1 (USDT)"
   }
  ],
  "lastError": null
