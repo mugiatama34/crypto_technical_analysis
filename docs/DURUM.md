@@ -205,3 +205,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Sinyal kanalı (17.11, kullanıcı isteği: sinyalleri arkadaşlarla paylaşmak):** Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa kurulum / takip /
   sonuç grafiği yalnız o kanala gider, gerisi ana sohbette kalır; paylaşılan kanalda kişisel pozisyon satırı yazılmaz. Boşsa değişiklik yok.
   Kanalı kurmak ve secret'ı eklemek kullanıcıda. Kullanıcıya not düşüldü: 4H düzeninin ölçülmüş kenarı yok, kanal açıklamasına yazılmalı.
+- **Tarayıcı (17.11):** sonuç kartına ve sağdaki ayrıntı şeridine plan satırı eklendi — Giriş · Stop · TP1 (…R) · TP2 (…R); takibe alınca
+  dondurulan planla aynı hesap (`planOf` = gevşek `buildPlan`). Tarayıcıda gözle doğrulanmadı. Sinyal kanalı kuruldu ("Bull on paper",
+  kullanıcı secret'ı ekledi; bağlantı testi koşu 44055168039 "gönderildi"); `scan.yml` `signal_test` girdisi eklendi.

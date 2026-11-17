@@ -195,7 +195,7 @@ function renderRows() {
   if (!state.rows.length) { $('#rows').innerHTML = `<p class="empty">${state.busy ? 'Taranıyor…' : 'Henüz tarama yok.'}</p>`; $('#pager').hidden = true; return; }
   if (!total) { $('#rows').innerHTML = '<p class="empty">Filtreye uyan sonuç yok. Min puanı düşür ya da yön filtresini kaldır.</p>'; $('#pager').hidden = true; return; }
   $('#rows').innerHTML = slice.map((r) => {
-    const b = r.best;
+    const b = r.best, pl = planOf(r);
     const mtf = r.mtf && r.mtf.direction === r.direction && r.mtf.tfs.length > 1 ? `<span class="mtf" title="Aynı yön: ${r.mtf.tfs.join(', ')}${r.mtf.conflicting.length ? ` · çelişen: ${r.mtf.conflicting.join(', ')}` : ''}">MTF ${r.mtf.tfs.join('+')} · ${r.mtf.score}</span>` : '';
     const inv = b.signals.map((x) => x.invalidation).filter(Number.isFinite);
     const tgt = b.signals.map((x) => x.target).filter(Number.isFinite);
@@ -210,6 +210,10 @@ function renderRows() {
         <div><span>Bölge</span> <b>${fmtPrice(b.zone[0], r.price)} – ${fmtPrice(b.zone[1], r.price)}</b></div>
         <div><span>Geçersiz</span> <b>${invP != null && Number.isFinite(invP) ? fmtPrice(invP, r.price) : '–'}</b></div>
         <div><span>Hedef</span> <b>${tgtP != null && Number.isFinite(tgtP) ? fmtPrice(tgtP, r.price) : '–'}</b></div>
+        ${pl ? `<div title="Takibe alınca dondurulacak plan"><span>Giriş</span> <b>${fmtPrice(pl.entry, r.price)}</b></div>
+        <div><span>Stop</span> <b>${fmtPrice(pl.stop, r.price)}</b></div>
+        <div><span>TP1</span> <b>${fmtPrice(pl.tp1, r.price)}</b> <small>${pl.rr1}R</small></div>
+        <div><span>TP2</span> <b>${fmtPrice(pl.tp2, r.price)}</b> <small>${pl.rr}R</small></div>` : ''}
       </div>
     </article>`;
   }).join('');
@@ -232,6 +236,13 @@ function select(r) {
   if (window.innerWidth < 1100) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** Satırın planı (takibe alınca dondurulacak olanla aynı: makeWatch'taki gevşek buildPlan); satır başına bir kez hesaplanır. */
+const planCache = new WeakMap();
+function planOf(r) {
+  if (!planCache.has(r)) { let p = null; try { const x = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true }); p = x.ok ? x : null; } catch { /* plan kurulamadı */ } planCache.set(r, p); }
+  return planCache.get(r);
+}
+
 function renderDetail(r) {
   const b = r.best;
   const shown = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));
@@ -241,6 +252,7 @@ function renderDetail(r) {
     ['Fiyat', fmtPrice(r.price)], ['ATR', fmtPrice(r.atr, r.price)], ['Küme puanı', `${r.score}`],
     ['MTF', r.mtf ? `${r.mtf.direction === r.direction ? r.mtf.tfs.join('+') : 'çelişkili'} · ${r.mtf.score}` : '–'],
     ['vs BTC (20 bar)', r.trend?.rsBtc != null ? `${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}% · ${r.trend.rsSide > 0 ? 'güçlü' : 'zayıf'}` : '–'],
+    ...(planOf(r) ? ((pl) => [['Giriş', fmtPrice(pl.entry, r.price)], ['Stop', fmtPrice(pl.stop, r.price)], ['TP1', `${fmtPrice(pl.tp1, r.price)} · ${pl.rr1}R`], ['TP2', `${fmtPrice(pl.tp2, r.price)} · ${pl.rr}R`]])(planOf(r)) : []),
   ];
   $('#detail').innerHTML = `
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>
