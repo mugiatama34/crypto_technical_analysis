@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794955894953,
+ "updatedAt": 1794956801692,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -86,14 +86,41 @@
      "qty": 27100.2,
      "price": 0.9812,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945206756
+     "status": "Filled",
+     "cumExecQty": 27100.2,
+     "avgPrice": 0.9812,
+     "updatedAt": 1794956772044
+    },
+    "T1": {
+     "link": "bd-b26f7dd4e43aeb04-T1",
+     "at": 1794956801692,
+     "qty": 13550.1,
+     "price": 0.9695,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-b26f7dd4e43aeb04-T2",
+     "at": 1794956801692,
+     "qty": 6775,
+     "price": 0.9413,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-b26f7dd4e43aeb04-T3",
+     "at": 1794956801692,
+     "qty": 6775.1,
+     "price": 0.8922,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1794956801692,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "XRPUSDT",
    "mult": 1,
    "inst": {
@@ -101,7 +128,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.9812,
@@ -117,7 +144,31 @@
    "riskUsd": 999.9974,
    "riskTarget": 1000,
    "leverage": 17,
-   "lastAtCreate": 0.9614
+   "lastAtCreate": 0.9614,
+   "fill": {
+    "price": 0.9812,
+    "qty": 27100.2,
+    "at": 1794956772044,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.9695,
+     "qty": 13550.1
+    },
+    {
+     "tag": "T2",
+     "price": 0.9413,
+     "qty": 6775
+    },
+    {
+     "tag": "T3",
+     "price": 0.8922,
+     "qty": 6775.1
+    }
+   ],
+   "legFails": {}
   },
   "XRP|4H|short|40|1794931250433": {
    "id": "XRP|4H|short|40|1794931250433",
@@ -275,9 +326,9 @@
    "sentAt": 1794932129280,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 9.276,
-    "filledAt": null,
+    "filledAt": 1794945600000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -289,10 +340,31 @@
      "qty": 2824.8,
      "price": 9.276,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945207124
+     "status": "Filled",
+     "cumExecQty": 2824.8,
+     "avgPrice": 9.276,
+     "updatedAt": 1794956076739
+    },
+    "T1": {
+     "link": "bd-c4980a793e4f4eb0-T1",
+     "at": 1794956801692,
+     "qty": 1412.4,
+     "price": 9.165,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-c4980a793e4f4eb0-T2",
+     "at": 1794956801692,
+     "qty": 706.2,
+     "price": 8.746,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-c4980a793e4f4eb0-T3",
+     "at": 1794956801692,
+     "qty": 706.2,
+     "price": 8.567,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -304,7 +376,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 9.276,
@@ -320,7 +392,36 @@
    "riskUsd": 999.9792,
    "riskTarget": 1000,
    "leverage": 17,
-   "lastAtCreate": 9.068
+   "lastAtCreate": 9.068,
+   "fill": {
+    "price": 9.276,
+    "qty": 2824.8,
+    "at": 1794956076739,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 9.165,
+     "qty": 1412.4
+    },
+    {
+     "tag": "T2",
+     "price": 8.746,
+     "qty": 706.2
+    },
+    {
+     "tag": "T3",
+     "price": 8.567,
+     "qty": 706.2
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794956076739,
+    "paperAt": 1794945600000,
+    "minutes": -175
+   }
   },
   "DASH|4H|short|31|1794933928433": {
    "id": "DASH|4H|short|31|1794933928433",
@@ -659,10 +760,10 @@
      "qty": 25773.1,
      "price": 0.3435,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794951368509
+     "updatedAt": 1794956793176
     },
     "T3": {
      "link": "bd-3cbeb3205be5a113-T3",
@@ -670,10 +771,10 @@
      "qty": 25773.3,
      "price": 0.3012,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794951368691
+     "updatedAt": 1794956793176
     }
    },
    "stops": [
@@ -697,7 +798,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.358,
@@ -738,7 +839,18 @@
     }
    ],
    "legFails": {},
-   "stopLevel": 0.358
+   "stopLevel": 0.358,
+   "closed": {
+    "at": 1794956801692,
+    "pnl": 198.3541,
+    "pnlSrc": "closed-pnl",
+    "R": 0.198,
+    "exitBy": "taşınmış stop",
+    "legs": [
+     "T1"
+    ],
+    "paperStatus": "waiting"
+   }
   }
  },
  "insts": {
@@ -1029,6 +1141,32 @@
    "ev": "stop",
    "price": 0.358,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1794956801692,
+   "id": "XRP|4H|short|38|1794883531251",
+   "symbol": "XRPUSDT",
+   "ev": "dolum",
+   "price": 0.9812,
+   "qty": 27100.2,
+   "paper": "waiting"
+  },
+  {
+   "at": 1794956801692,
+   "id": "LINK|4H|short|38|1794932129280",
+   "symbol": "LINKUSDT",
+   "ev": "dolum",
+   "price": 9.276,
+   "qty": 2824.8,
+   "paper": "active"
+  },
+  {
+   "at": 1794956801692,
+   "id": "TIA|4H|short|30|1794949248303",
+   "symbol": "TIAUSDT",
+   "ev": "kapanış",
+   "R": 0.198,
+   "exitBy": "taşınmış stop"
   }
  ],
  "lastError": null
