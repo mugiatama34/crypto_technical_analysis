@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794950460404,
+ "updatedAt": 1794951364395,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -157,9 +157,9 @@
    "sentAt": 1794932129280,
    "createdAt": 1794944414684,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 210.415,
-    "filledAt": null,
+    "filledAt": 1794945600000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -171,10 +171,31 @@
      "qty": 257.06,
      "price": 210.42,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945206940
+     "status": "Filled",
+     "cumExecQty": 257.06,
+     "avgPrice": 210.42,
+     "updatedAt": 1794951017305
+    },
+    "T1": {
+     "link": "bd-619d30038e74bfbb-T1",
+     "at": 1794951364395,
+     "qty": 128.53,
+     "price": 207.9,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-619d30038e74bfbb-T2",
+     "at": 1794951364395,
+     "qty": 64.26,
+     "price": 204.58,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-619d30038e74bfbb-T3",
+     "at": 1794951364395,
+     "qty": 64.27,
+     "price": 195.46,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -186,7 +207,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 210.42,
@@ -202,7 +223,36 @@
    "riskUsd": 999.9634,
    "riskTarget": 1000,
    "leverage": 20,
-   "lastAtCreate": 207.01
+   "lastAtCreate": 207.01,
+   "fill": {
+    "price": 210.42,
+    "qty": 257.06,
+    "at": 1794951017305,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 207.9,
+     "qty": 128.53
+    },
+    {
+     "tag": "T2",
+     "price": 204.58,
+     "qty": 64.26
+    },
+    {
+     "tag": "T3",
+     "price": 195.46,
+     "qty": 64.27
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794951017305,
+    "paperAt": 1794945600000,
+    "minutes": -90
+   }
   },
   "LINK|4H|short|38|1794932129280": {
    "id": "LINK|4H|short|38|1794932129280",
@@ -269,9 +319,9 @@
    "sentAt": 1794933928433,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 38.2538,
-    "filledAt": null,
+    "filledAt": 1794945600000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -283,10 +333,31 @@
      "qty": 699.3,
      "price": 38.25,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945207305
+     "status": "Filled",
+     "cumExecQty": 699.3,
+     "avgPrice": 38.25,
+     "updatedAt": 1794951013609
+    },
+    "T1": {
+     "link": "bd-328ef07e39fa0d23-T1",
+     "at": 1794951364395,
+     "qty": 349.65,
+     "price": 37.8,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-328ef07e39fa0d23-T2",
+     "at": 1794951364395,
+     "qty": 174.82,
+     "price": 36.13,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-328ef07e39fa0d23-T3",
+     "at": 1794951364395,
+     "qty": 174.83,
+     "price": 34.36,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -298,7 +369,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 38.25,
@@ -314,7 +385,36 @@
    "riskUsd": 999.999,
    "riskTarget": 1000,
    "leverage": 17,
-   "lastAtCreate": 37.64
+   "lastAtCreate": 37.64,
+   "fill": {
+    "price": 38.25,
+    "qty": 699.3,
+    "at": 1794951013609,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 37.8,
+     "qty": 349.65
+    },
+    {
+     "tag": "T2",
+     "price": 36.13,
+     "qty": 174.82
+    },
+    {
+     "tag": "T3",
+     "price": 34.36,
+     "qty": 174.83
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794951013609,
+    "paperAt": 1794945600000,
+    "minutes": -90
+   }
   },
   "BNB|4H|short|55|1794937535397": {
    "id": "BNB|4H|short|55|1794937535397",
@@ -325,9 +425,9 @@
    "sentAt": 1794937535397,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 593.282,
-    "filledAt": null,
+    "filledAt": 1794945600000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -339,10 +439,31 @@
      "qty": 39.32,
      "price": 593.28,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794945207489
+     "status": "Filled",
+     "cumExecQty": 39.32,
+     "avgPrice": 593.28,
+     "updatedAt": 1794951025767
+    },
+    "T1": {
+     "link": "bd-d8ffad65c464ac5c-T1",
+     "at": 1794951364395,
+     "qty": 19.66,
+     "price": 586.17,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-d8ffad65c464ac5c-T2",
+     "at": 1794951364395,
+     "qty": 9.83,
+     "price": 550.3,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-d8ffad65c464ac5c-T3",
+     "at": 1794951364395,
+     "qty": 9.83,
+     "price": 502.55,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -354,7 +475,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 593.28,
@@ -370,7 +491,36 @@
    "riskUsd": 999.9076,
    "riskTarget": 1000,
    "leverage": 15,
-   "lastAtCreate": 587.01
+   "lastAtCreate": 587.01,
+   "fill": {
+    "price": 593.28,
+    "qty": 39.32,
+    "at": 1794951025767,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 586.17,
+     "qty": 19.66
+    },
+    {
+     "tag": "T2",
+     "price": 550.3,
+     "qty": 9.83
+    },
+    {
+     "tag": "T3",
+     "price": 502.55,
+     "qty": 9.83
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794951025767,
+    "paperAt": 1794945600000,
+    "minutes": -90
+   }
   },
   "SOL|4H|short|38|1794945653139": {
    "id": "SOL|4H|short|38|1794945653139",
@@ -451,14 +601,41 @@
      "qty": 103092.7,
      "price": 0.358,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794949557208
+     "status": "Filled",
+     "cumExecQty": 103092.7,
+     "avgPrice": 0.358,
+     "updatedAt": 1794950982734
+    },
+    "T1": {
+     "link": "bd-3cbeb3205be5a113-T1",
+     "at": 1794951364395,
+     "qty": 51546.3,
+     "price": 0.3537,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-3cbeb3205be5a113-T2",
+     "at": 1794951364395,
+     "qty": 25773.1,
+     "price": 0.3435,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-3cbeb3205be5a113-T3",
+     "at": 1794951364395,
+     "qty": 25773.3,
+     "price": 0.3012,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1794951364395,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "TIAUSDT",
    "mult": 1,
    "inst": {
@@ -466,7 +643,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.358,
@@ -482,7 +659,31 @@
    "riskUsd": 999.9992,
    "riskTarget": 1000,
    "leverage": 20,
-   "lastAtCreate": 0.355
+   "lastAtCreate": 0.355,
+   "fill": {
+    "price": 0.358,
+    "qty": 103092.7,
+    "at": 1794950982734,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.3537,
+     "qty": 51546.3
+    },
+    {
+     "tag": "T2",
+     "price": 0.3435,
+     "qty": 25773.1
+    },
+    {
+     "tag": "T3",
+     "price": 0.3012,
+     "qty": 25773.3
+    }
+   ],
+   "legFails": {}
   }
  },
  "insts": {
@@ -729,6 +930,42 @@
    "entry": 0.358,
    "stop": 0.3677,
    "lev": 20
+  },
+  {
+   "at": 1794951364395,
+   "id": "BCH|4H|short|39|1794932129280",
+   "symbol": "BCHUSDT",
+   "ev": "dolum",
+   "price": 210.42,
+   "qty": 257.06,
+   "paper": "active"
+  },
+  {
+   "at": 1794951364395,
+   "id": "DASH|4H|short|31|1794933928433",
+   "symbol": "DASHUSDT",
+   "ev": "dolum",
+   "price": 38.25,
+   "qty": 699.3,
+   "paper": "active"
+  },
+  {
+   "at": 1794951364395,
+   "id": "BNB|4H|short|55|1794937535397",
+   "symbol": "BNBUSDT",
+   "ev": "dolum",
+   "price": 593.28,
+   "qty": 39.32,
+   "paper": "active"
+  },
+  {
+   "at": 1794951364395,
+   "id": "TIA|4H|short|30|1794949248303",
+   "symbol": "TIAUSDT",
+   "ev": "dolum",
+   "price": 0.358,
+   "qty": 103092.7,
+   "paper": "waiting"
   }
  ],
  "lastError": null
