@@ -1,5 +1,7 @@
 // Backtest raporu (saf): işlem listesinden özet istatistikler ve kırılımlar.
 import { TIMEFRAMES } from '../src/data/okx.js';
+import { bucketName } from './names.js';
+export { bucketName };
 const sum = (a) => a.reduce((s, x) => s + x, 0);
 const TRADED = new Set(['stopped', 'tp1_be', 'tp2', 'timeout', 'tp1_timeout', 'time_stop']);
 
@@ -90,12 +92,12 @@ export function buildReport(trades, meta = {}) {
   const scoreBucket = (t) => (t.score >= 80 ? '80+' : t.score >= 70 ? '70-79' : t.score >= 60 ? '60-69' : '50-59');
   const groups = [...new Set(trades.flatMap((t) => t.groups))];
   const dets = [...new Set(trades.flatMap((t) => t.detectors))];
-  const names = [...new Set(trades.flatMap((t) => t.names))];
+  const names = [...new Set(trades.flatMap((t) => t.names.map(bucketName)))];
   const presence = (list, field) => Object.fromEntries(list.map((g) => {
     const w = trades.filter((t) => t[field].includes(g)), wo = trades.filter((t) => !t[field].includes(g));
     return [g, { with: stats(w), without: stats(wo) }];
   }));
-  const nameStats = Object.fromEntries(names.map((nm) => [nm, stats(trades.filter((t) => t.names.includes(nm)))]).filter(([, s]) => s.n >= 15).sort((a, b) => b[1].avgR - a[1].avgR));
+  const nameStats = Object.fromEntries(names.map((nm) => [nm, stats(trades.filter((t) => t.names.some((x) => bucketName(x) === nm)))]).filter(([, s]) => s.n >= 15).sort((a, b) => b[1].avgR - a[1].avgR));
   // Grup çiftleri
   const pairs = {};
   for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {

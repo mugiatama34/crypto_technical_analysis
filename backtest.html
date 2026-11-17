@@ -33,6 +33,7 @@
   <footer>R = risk birimi (giriş–stop mesafesi). Dolum: limit girişler bölge kenarından, piyasa girişler sonraki açılıştan; TP1'de yarısı kapatılır, stop başabaşa çekilir; aynı mumda stop ve hedef varsa stop sayılır. <strong>Yatırım tavsiyesi değildir.</strong></footer>
 </div>
 <script type="module">
+import { mergeByName } from './backtest/names.js';
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : (x === Infinity ? '∞' : '–'));
 const pct = (x) => `%${fmt(x * 100, 0)}`;
@@ -98,7 +99,7 @@ async function main() {
     <section><h2>Yapı grubu kümede varken / yokken</h2><p class="note">Pozitif fark: o grup kümedeyken sonuçlar daha iyi. Ağırlık ayarı için ana tablo.</p>${presence(r.byGroup)}</section>
     <section><h2>Detektör varken / yokken</h2>${presence(r.byDetector)}</section>
     <section><h2>Grup çiftleri (n ≥ 15)</h2>${table(r.byGroupPair, 'avgR')}</section>
-    <section><h2>Sinyal adına göre (n ≥ 15, ort. R'ye göre)</h2>${table(r.byName)}</section>
+    <section><h2>Sinyal adına göre (n ≥ 15, ort. R'ye göre; ADX ve hacim aralıklara toplandı)</h2>${table(mergeByName(r.byName))}</section>
     <section><h2>Aylık</h2>${table(r.byMonth)}</section>
     <details class="panel"><summary>Sembole göre</summary><div class="panel-body">${table(r.bySymbol, 'totalR')}</div></details>
   `;
