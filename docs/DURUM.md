@@ -257,3 +257,13 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Demo tabanı (17.11, kullanıcı kararı):** yüzde risk yalnız USDT özsermayesi üzerinden (`BYBIT_DEMO_RISK_BASE=USDT`). Demo USDT 50.000 idi;
   demo fon talebiyle 100.000'e tamamlandı → risk 1.000 $ / işlem. Bekleyen 6 giriş emri iptal + yeniden gönderme yerine `order/amend` ile
   yeni adede çekildi (aynı orderLinkId yeniden kullanılamadığı için); borsada doğrulandı (toplam ≈ 184.000 $ nominal, altısı da short).
+
+## 17.11.2026 (yerel oturum, gece) — aynı girişli tekrar sinyal engeli (`DEDUP_WAITING`, varsayılan kapalı)
+- **Kullanıcının gözlemi:** XRP 4H short iki kez bekliyor (17.11 02:45 ve 16:00 UTC, ikisi de giriş 0,9812). Demo köprüsü ikincisini
+  zaten atlıyor (sembol başına tek iş); kâğıt kayıt ve Telegram ikisini de ayrı sinyal sayıyor.
+- **Sayım (kaba):** 26.10'dan beri 171 canlı 4H planın 21'i, önceki plan dolmadan aynı girişle (fark < %0,05) yeniden gelmiş.
+- **Eklendi:** `sameWaiting` (`bot/plan.js`) + `DEDUP_WAITING=1` / `DEDUP_PCT` (varsayılan 0,1): aynı coin + yön + TF'de `waiting` plan varken
+  girişi tolerans içindeki yeni plan gönderilmez ("aynı girişli plan bekliyor" elenme nedeni). Farklı seviye ve dolmuş plan engellemez.
+  Bayrağı kullanıcı açar. Ajan aday listesi (`liveEligible`) değişmedi.
+- **13.12 değerlendirmesi:** bayrak öncesi tekrarlar tek sayılır; öncesi / sonrası aynı havuzda toplanmaz.
+- **Kullanıcının gerçek XRP işlemi:** 0,9694'ten short (planın girişi 0,9812; girilen fiyat planın erken hedefi). Deney B tablosunda "plan dışı giriş" notuyla.

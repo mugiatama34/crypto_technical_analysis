@@ -153,6 +153,7 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   (`skip`: teyit beklemeden atla). Backtest raporu ve tarama `byApproach` kırılımını (piyasa · yavaş < 1 ATR · orta 1–2 ·
   hızlı > 2) ve üç "düşen bıçak" varyantını gösterir (`sweep.html`); canlıda açmadan önce `mode: sweep` sonucuna bakın.
 - **Kayıp kesici giriş kuralları (bayrakla):** `LIMIT_ONLY=1` (gönderim anında fiyat zaten bölgedeyse gönderme),
+  `DEDUP_WAITING=1` (aynı coin + yön + TF'de hâlâ bekleyen planla girişi %0,1 içinde aynı olan yeni plan ayrı sinyal olarak gönderilmez; tolerans `DEDUP_PCT`; varsayılan kapalı),
   `SKIP_WEEKEND=1` (UTC Cumartesi/Pazar yeni sinyal yok; açık planların takibi sürer), TF kapatma
   `TF_RULES={"15m":{"off":true}}` (tarama ve ajanın 15m takibi sürer). Alanlar TF/yön kuralı olarak da verilebilir
   (`limitOnly`, `skipWeekend`, `off`). 6 aylık hedefli taramada (doğrulama 28.08 sonrası) temel −0,132R iken

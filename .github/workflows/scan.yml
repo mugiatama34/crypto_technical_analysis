@@ -95,6 +95,8 @@ jobs:
           KNIFE_GUARD: ${{ vars.KNIFE_GUARD }}
           LIMIT_ONLY: ${{ vars.LIMIT_ONLY }}
           SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
+          DEDUP_WAITING: ${{ vars.DEDUP_WAITING }}
+          DEDUP_PCT: ${{ vars.DEDUP_PCT }}
           TIME_STOP: ${{ vars.TIME_STOP }}
           EARLY_TP: ${{ vars.EARLY_TP }}
           HTF_TREND: ${{ vars.HTF_TREND }}

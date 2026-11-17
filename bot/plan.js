@@ -461,3 +461,14 @@ export function onCooldown(plan, sent, now, cooldownHours) {
   const since = now - cooldownHours * 3600e3;
   return sent.some((p) => p.sentAt >= since && (p.key === plan.key || (p.coin === plan.coin && p.direction === plan.direction && p.tf === plan.tf)));
 }
+
+/**
+ * Aynı coin + yön + TF'de hâlâ dolmamış (waiting) bir plan varken girişi ona `tolPct` yüzde içinde olan yeni plan mı?
+ * Bekleme süresi dolunca aynı kurulumun ikinci kez ayrı sinyal olarak gönderilmesini önler (DEDUP_WAITING=1).
+ * Farklı seviyedeki plan (fark > tolPct) ve dolmuş / kapanmış planlar engellemez.
+ */
+export function sameWaiting(plan, sent, tolPct = 0.1) {
+  if (!(plan?.entry > 0)) return false;
+  return sent.some((p) => p.status === 'waiting' && p.coin === plan.coin && p.direction === plan.direction && p.tf === plan.tf
+    && p.entry > 0 && Math.abs(p.entry - plan.entry) / p.entry * 100 <= tolPct);
+}

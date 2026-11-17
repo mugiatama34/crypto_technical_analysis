@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, isWeekendUtc, mergeRule, earlyTpOf, earlyPriceOf, orphansOf } from '../bot/plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, sameWaiting, CLOSED, isWeekendUtc, mergeRule, earlyTpOf, earlyPriceOf, orphansOf } from '../bot/plan.js';
 import { validateDecision, buildPrompt, SCHEMA, askBrain } from '../bot/brain.js';
 import { formatSetup, formatUpdate, formatSummary, esc } from '../bot/telegram.js';
 
@@ -376,4 +376,18 @@ test('3 kademe: erken %50 → TP1 %25 (ara) → stop erken hedefe; R hesabı iki
   assert.deepEqual(old.events, ['active', 'early']); // 101'e (giriş üstü) dönüş başa baş değil
   const o = porUi({ ...s, status: 'early' }, 2);
   assert.ok(Math.abs(o.R - (0.5 * 0.5 + 0.25 * 1.5 + 0.25 * 2)) < 1e-9); assert.equal(o.stopAtEarly, true);
+});
+
+test('sameWaiting: bekleyen planla aynı girişli yeni plan (DEDUP_WAITING)', () => {
+  const old = { coin: 'XRP', direction: 'short', tf: '4H', entry: 0.9812, status: 'waiting' };
+  const p = { coin: 'XRP', direction: 'short', tf: '4H', entry: 0.9812 };
+  assert.equal(sameWaiting(p, [old]), true);
+  assert.equal(sameWaiting({ ...p, entry: 0.9820 }, [old]), true); // %0,08
+  assert.equal(sameWaiting({ ...p, entry: 0.9900 }, [old]), false); // farklı seviye
+  assert.equal(sameWaiting(p, [{ ...old, status: 'active' }]), false); // dolmuş
+  assert.equal(sameWaiting(p, [{ ...old, status: 'missed' }]), false); // kapanmış
+  assert.equal(sameWaiting(p, [{ ...old, direction: 'long' }]), false);
+  assert.equal(sameWaiting(p, [{ ...old, tf: '1H' }]), false);
+  assert.equal(sameWaiting(p, [{ ...old, coin: 'BTC' }]), false);
+  assert.equal(sameWaiting({ ...p, entry: null }, [old]), false);
 });

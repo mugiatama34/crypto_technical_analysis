@@ -13,6 +13,7 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   REGIME_DONCHIAN=1  BTC 'G↑ · şok↑ devam' rejiminde Donchian long kâğıt kuralı (docs/agent/regime.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
+//   DEDUP_WAITING=1 (aynı coin + yönde bekleyen planla aynı girişli yeni plan gönderilmez; tolerans DEDUP_PCT=0.1)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
 //   AUDIT=1 AUDIT_MODEL=...: denetçi ajan (günlük rapor + araştırma kuyruğu; bot/review)
 //   HTF_TREND=with|notAgainst: coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D) aynı yön / ters değil
@@ -29,7 +30,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, needsOwnCandles, mergeAgentCands } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, sameWaiting, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, needsOwnCandles, mergeAgentCands } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegramEx, sendTelegramPhotoEx, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { recordRun, recordOkx, recordTelegram, recordAgent, recordError, healthAlerts, healthLine, windowSum, dailySummaryOf } from './health.js';
@@ -105,6 +106,8 @@ const CFG = {
   momentumRank: env('MOMENTUM_RANK', 'abs'), // abs | rel (BTC'ye göre fazla getiri)
   limitOnly: env('LIMIT_ONLY', '0') === '1', // gönderimde fiyat zaten bölgedeyse gönderme (yalnız limit giriş)
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
+  dedupWaiting: env('DEDUP_WAITING', '0') === '1', // aynı coin + yönde bekleyen planla aynı girişli yeni plan gönderilmez
+  dedupPct: +env('DEDUP_PCT', 0.1) || 0.1, // "aynı giriş" toleransı (%)
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
   htfTrend: ['with', 'notAgainst'].includes(env('HTF_TREND', '')) ? env('HTF_TREND', '') : null, // coin'in üst TF eğilimi: with | notAgainst
   audit: env('AUDIT', '0') === '1', // denetçi ajan: günlük özet anında sistem denetimi (öneri üretir, kural değiştirmez)
@@ -372,6 +375,7 @@ async function main() {
     plan.rule = rule;
     liveEligible.push(plan);
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
+    if (CFG.dedupWaiting && sameWaiting(plan, state.sent, CFG.dedupPct)) { reject('aynı girişli plan bekliyor'); continue; }
     cands.push(plan);
   }
   if (MODEL) log(`Öğrenilen model ${CFG.modelMinProb > 0 ? `aktif (eşik ${CFG.modelMinProb})` : `var ama KAPALI (önerilen eşik ${MODEL.threshold ?? '–'}; açmak için MODEL_MIN_PROB)`}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)}`);
