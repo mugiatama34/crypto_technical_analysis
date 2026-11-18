@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795045198269,
+ "updatedAt": 1795046102976,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -243,12 +243,12 @@
    "sentAt": 1794932129280,
    "createdAt": 1794944414684,
    "paper": {
-    "status": "early",
+    "status": "be",
     "entry": 210.415,
     "filledAt": 1794945600000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795045527682,
+    "R": 0.8614461854610838
    },
    "orders": {
     "E": {
@@ -321,6 +321,15 @@
      "target": 207.9,
      "last": 208.43,
      "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+    },
+    {
+     "kind": "sonuc_farki",
+     "at": 1795046102976,
+     "exchangeR": 0.794,
+     "paperR": 0.861,
+     "diff": -0.067,
+     "paper": "be",
+     "exchange": "piyasa (stop taşınamadı)"
     }
    ],
    "symbol": "BCHUSDT",
@@ -388,7 +397,8 @@
      "T2"
     ],
     "paperStatus": "early"
-   }
+   },
+   "paperDone": true
   },
   "LINK|4H|short|38|1794932129280": {
    "id": "LINK|4H|short|38|1794932129280",
@@ -1216,9 +1226,9 @@
    "sentAt": 1795029287085,
    "createdAt": 1795030020176,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 5.94353,
-    "filledAt": null,
+    "filledAt": 1795032000000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -1230,10 +1240,31 @@
      "qty": 7354.2,
      "price": 5.944,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795030023924
+     "status": "Filled",
+     "cumExecQty": 7354.2,
+     "avgPrice": 5.944,
+     "updatedAt": 1795045363918
+    },
+    "T1": {
+     "link": "bd-1f05c2b93f54b2ba-T1",
+     "at": 1795046102976,
+     "qty": 3677.1,
+     "price": 5.873,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-1f05c2b93f54b2ba-T2",
+     "at": 1795046102976,
+     "qty": 1838.5,
+     "price": 5.757,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-1f05c2b93f54b2ba-T3",
+     "at": 1795046102976,
+     "qty": 1838.6,
+     "price": 5.606,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -1245,7 +1276,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 5.944,
@@ -1261,7 +1292,36 @@
    "riskUsd": 1022.2338,
    "riskTarget": 1022.24,
    "leverage": 20,
-   "lastAtCreate": 5.904
+   "lastAtCreate": 5.904,
+   "fill": {
+    "price": 5.944,
+    "qty": 7354.2,
+    "at": 1795045363918,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 5.873,
+     "qty": 3677.1
+    },
+    {
+     "tag": "T2",
+     "price": 5.757,
+     "qty": 1838.5
+    },
+    {
+     "tag": "T3",
+     "price": 5.606,
+     "qty": 1838.6
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795045363918,
+    "paperAt": 1795032000000,
+    "minutes": -223
+   }
   }
  },
  "insts": {
@@ -1753,6 +1813,15 @@
    "entry": 5.944,
    "stop": 6.083,
    "lev": 20
+  },
+  {
+   "at": 1795046102976,
+   "id": "ETC|4H|short|45|1795029287085",
+   "symbol": "ETCUSDT",
+   "ev": "dolum",
+   "price": 5.944,
+   "qty": 7354.2,
+   "paper": "active"
   }
  ],
  "lastError": null
