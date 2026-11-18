@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795017132323,
+ "updatedAt": 1795028120580,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -72,7 +72,7 @@
    "sentAt": 1794883531251,
    "createdAt": 1794944414684,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 0.9812,
     "filledAt": 1794945600000,
     "confirmedAt": null,
@@ -279,10 +279,10 @@
      "qty": 64.26,
      "price": 204.58,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951366113
+     "status": "Filled",
+     "cumExecQty": 64.26,
+     "avgPrice": 204.58,
+     "updatedAt": 1795018837272
     },
     "T3": {
      "link": "bd-619d30038e74bfbb-T3",
@@ -294,6 +294,13 @@
      "cumExecQty": 0,
      "avgPrice": null,
      "updatedAt": 1794951366714
+    },
+    "X1": {
+     "link": "bd-619d30038e74bfbb-X1",
+     "at": 1795028120580,
+     "qty": 64.27,
+     "price": null,
+     "type": "Market"
     }
    },
    "stops": [
@@ -303,7 +310,15 @@
      "why": "erken hedef doldu → stop girişe"
     }
    ],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "stop_tasinamadi_piyasa",
+     "at": 1795028120580,
+     "target": 207.9,
+     "last": 208.43,
+     "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+    }
+   ],
    "symbol": "BCHUSDT",
    "mult": 1,
    "inst": {
@@ -1119,6 +1134,58 @@
    },
    "phase": "skipped",
    "reason": "aynı sembolde açık demo işi var"
+  },
+  "JTO|4H|short|30|1795023929960": {
+   "id": "JTO|4H|short|30|1795023929960",
+   "coin": "JTO",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795023929960,
+   "createdAt": 1795028120580,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.259,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-b7ed85c4bc575d31-E",
+     "at": 1795028120580,
+     "qty": 101090,
+     "price": 0.259,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "JTOUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.259,
+    "stop": 0.2691,
+    "tp1": 0.2463,
+    "tp2": 0.2362,
+    "early": 0.2559,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 101090,
+   "riskUsd": 1021.009,
+   "riskTarget": 1021.01,
+   "leverage": 17,
+   "lastAtCreate": 0.2589
   }
  },
  "insts": {
@@ -1246,6 +1313,20 @@
     "minQty": 0.01,
     "minNotional": 5,
     "maxLev": 150
+   }
+  },
+  "JTO": {
+   "at": 1795028120580,
+   "inst": {
+    "coin": "JTO",
+    "symbol": "JTOUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 50
    }
   }
  },
@@ -1554,6 +1635,16 @@
    "symbol": "ETHUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
+  },
+  {
+   "at": 1795028120580,
+   "id": "JTO|4H|short|30|1795023929960",
+   "symbol": "JTOUSDT",
+   "ev": "emir",
+   "qty": 101090,
+   "entry": 0.259,
+   "stop": 0.2691,
+   "lev": 17
   }
  ],
  "lastError": null
