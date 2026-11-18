@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795011591474,
+ "updatedAt": 1795012833524,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -655,10 +655,10 @@
      "qty": 19.66,
      "price": 586.17,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951367447
+     "status": "Filled",
+     "cumExecQty": 19.66,
+     "avgPrice": 586.17,
+     "updatedAt": 1795012572200
     },
     "T2": {
      "link": "bd-d8ffad65c464ac5c-T2",
@@ -683,7 +683,13 @@
      "updatedAt": 1794951368142
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 593.28,
+     "at": 1795012833524,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "BNBUSDT",
    "mult": 1,
@@ -737,7 +743,8 @@
     "exchangeAt": 1794951025767,
     "paperAt": 1794945600000,
     "minutes": -90
-   }
+   },
+   "stopLevel": 593.28
   },
   "SOL|4H|short|38|1794945653139": {
    "id": "SOL|4H|short|38|1794945653139",
@@ -1528,6 +1535,14 @@
    "symbol": "BNBUSDT",
    "ev": "atlandı",
    "why": "aynı sembolde açık demo işi var"
+  },
+  {
+   "at": 1795012833524,
+   "id": "BNB|4H|short|55|1794937535397",
+   "symbol": "BNBUSDT",
+   "ev": "stop",
+   "price": 593.28,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
