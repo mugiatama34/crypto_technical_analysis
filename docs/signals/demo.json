@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794975848393,
+ "updatedAt": 1794976757651,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -718,12 +718,12 @@
    "sentAt": 1794945653139,
    "createdAt": 1794945937190,
    "paper": {
-    "status": "early",
+    "status": "be",
     "entry": 75.03,
     "filledAt": 1794960000000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1794976239017,
+    "R": 0.19653365930324088
    },
    "orders": {
     "E": {
@@ -849,7 +849,8 @@
      "T1"
     ],
     "paperStatus": "early"
-   }
+   },
+   "paperDone": true
   },
   "TIA|4H|short|30|1794949248303": {
    "id": "TIA|4H|short|30|1794949248303",
@@ -992,6 +993,58 @@
     "paperAt": 1794960000000,
     "minutes": 150
    }
+  },
+  "ETH|4H|short|42|1794976239017": {
+   "id": "ETH|4H|short|42|1794976239017",
+   "coin": "ETH",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1794976239017,
+   "createdAt": 1794976757651,
+   "paper": {
+    "status": "waiting",
+    "entry": 1898.59,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-c0898240d751a400-E",
+     "at": 1794976757651,
+     "qty": 10.78,
+     "price": 1898.59,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ETHUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 1898.59,
+    "stop": 1992.82,
+    "tp1": 1757.25,
+    "tp2": 1709.08,
+    "early": 1875.81,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 10.78,
+   "riskUsd": 1015.7994,
+   "riskTarget": 1016.5,
+   "leverage": 13,
+   "lastAtCreate": 1802.28
   }
  },
  "insts": {
@@ -1105,6 +1158,20 @@
     "minQty": 0.1,
     "minNotional": 5,
     "maxLev": 50
+   }
+  },
+  "ETH": {
+   "at": 1794976757651,
+   "inst": {
+    "coin": "ETH",
+    "symbol": "ETHUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01,
+    "minNotional": 5,
+    "maxLev": 150
    }
   }
  },
@@ -1357,6 +1424,16 @@
    "ev": "kapanış",
    "R": 0.173,
    "exitBy": "taşınmış stop"
+  },
+  {
+   "at": 1794976757651,
+   "id": "ETH|4H|short|42|1794976239017",
+   "symbol": "ETHUSDT",
+   "ev": "emir",
+   "qty": 10.78,
+   "entry": 1898.59,
+   "stop": 1992.82,
+   "lev": 13
   }
  ],
  "lastError": null
