@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794959524199,
+ "updatedAt": 1794960430540,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -697,9 +697,9 @@
    "sentAt": 1794945653139,
    "createdAt": 1794945937190,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 75.03,
-    "filledAt": null,
+    "filledAt": 1794960000000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -805,7 +805,12 @@
      "qty": 108.8
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1794956933798,
+    "paperAt": 1794960000000,
+    "minutes": 51
+   }
   },
   "TIA|4H|short|30|1794949248303": {
    "id": "TIA|4H|short|30|1794949248303",
@@ -816,9 +821,9 @@
    "sentAt": 1794949248303,
    "createdAt": 1794949555753,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.357979,
-    "filledAt": null,
+    "filledAt": 1794960000000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -942,6 +947,11 @@
      "T1"
     ],
     "paperStatus": "waiting"
+   },
+   "fillLag": {
+    "exchangeAt": 1794950982734,
+    "paperAt": 1794960000000,
+    "minutes": 150
    }
   }
  },
