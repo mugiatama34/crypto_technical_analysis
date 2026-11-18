@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794966772557,
+ "updatedAt": 1794967678506,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -97,10 +97,10 @@
      "qty": 13550.1,
      "price": 0.9695,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794956805896
+     "status": "Filled",
+     "cumExecQty": 13550.1,
+     "avgPrice": 0.9695,
+     "updatedAt": 1794967653653
     },
     "T2": {
      "link": "bd-b26f7dd4e43aeb04-T2",
@@ -125,7 +125,13 @@
      "updatedAt": 1794956806334
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 0.9812,
+     "at": 1794967678506,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "borsa_doldu_kagit_bekliyor",
@@ -185,7 +191,8 @@
     "exchangeAt": 1794956772044,
     "paperAt": 1794945600000,
     "minutes": -186
-   }
+   },
+   "stopLevel": 0.9812
   },
   "XRP|4H|short|40|1794931250433": {
    "id": "XRP|4H|short|40|1794931250433",
@@ -250,10 +257,10 @@
      "qty": 128.53,
      "price": 207.9,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951365927
+     "status": "Filled",
+     "cumExecQty": 128.53,
+     "avgPrice": 207.9,
+     "updatedAt": 1794967373973
     },
     "T2": {
      "link": "bd-619d30038e74bfbb-T2",
@@ -278,7 +285,13 @@
      "updatedAt": 1794951366714
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 210.42,
+     "at": 1794967678506,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "BCHUSDT",
    "mult": 1,
@@ -332,7 +345,8 @@
     "exchangeAt": 1794951017305,
     "paperAt": 1794945600000,
     "minutes": -90
-   }
+   },
+   "stopLevel": 210.42
   },
   "LINK|4H|short|38|1794932129280": {
    "id": "LINK|4H|short|38|1794932129280",
@@ -343,7 +357,7 @@
    "sentAt": 1794932129280,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 9.276,
     "filledAt": 1794945600000,
     "confirmedAt": null,
@@ -368,10 +382,10 @@
      "qty": 1412.4,
      "price": 9.165,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794956806846
+     "status": "Filled",
+     "cumExecQty": 1412.4,
+     "avgPrice": 9.165,
+     "updatedAt": 1794967014839
     },
     "T2": {
      "link": "bd-c4980a793e4f4eb0-T2",
@@ -396,7 +410,13 @@
      "updatedAt": 1794956807534
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 9.276,
+     "at": 1794967678506,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "LINKUSDT",
    "mult": 1,
@@ -450,7 +470,8 @@
     "exchangeAt": 1794956076739,
     "paperAt": 1794945600000,
     "minutes": -175
-   }
+   },
+   "stopLevel": 9.276
   },
   "DASH|4H|short|31|1794933928433": {
    "id": "DASH|4H|short|31|1794933928433",
@@ -722,10 +743,10 @@
      "qty": 217.3,
      "price": 74.13,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794957713888
+     "status": "Filled",
+     "cumExecQty": 217.3,
+     "avgPrice": 74.13,
+     "updatedAt": 1794967300377
     },
     "T2": {
      "link": "bd-cd0b549e5b04c46e-T2",
@@ -750,7 +771,13 @@
      "updatedAt": 1794957714647
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 75.03,
+     "at": 1794967678506,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "borsa_doldu_kagit_bekliyor",
@@ -810,7 +837,8 @@
     "exchangeAt": 1794956933798,
     "paperAt": 1794960000000,
     "minutes": 51
-   }
+   },
+   "stopLevel": 75.03
   },
   "TIA|4H|short|30|1794949248303": {
    "id": "TIA|4H|short|30|1794949248303",
@@ -1278,6 +1306,38 @@
    "price": 75.03,
    "qty": 434.7,
    "paper": "waiting"
+  },
+  {
+   "at": 1794967678506,
+   "id": "XRP|4H|short|38|1794883531251",
+   "symbol": "XRPUSDT",
+   "ev": "stop",
+   "price": 0.9812,
+   "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1794967678506,
+   "id": "BCH|4H|short|39|1794932129280",
+   "symbol": "BCHUSDT",
+   "ev": "stop",
+   "price": 210.42,
+   "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1794967678506,
+   "id": "LINK|4H|short|38|1794932129280",
+   "symbol": "LINKUSDT",
+   "ev": "stop",
+   "price": 9.276,
+   "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1794967678506,
+   "id": "SOL|4H|short|38|1794945653139",
+   "symbol": "SOLUSDT",
+   "ev": "stop",
+   "price": 75.03,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
