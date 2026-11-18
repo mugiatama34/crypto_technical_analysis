@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794976757651,
+ "updatedAt": 1794977667646,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -482,7 +482,7 @@
    "sentAt": 1794933928433,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 38.2538,
     "filledAt": 1794945600000,
     "confirmedAt": null,
@@ -507,10 +507,10 @@
      "qty": 349.65,
      "price": 37.8,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951366896
+     "status": "Filled",
+     "cumExecQty": 349.65,
+     "avgPrice": 37.8,
+     "updatedAt": 1794977067668
     },
     "T2": {
      "link": "bd-328ef07e39fa0d23-T2",
@@ -535,7 +535,13 @@
      "updatedAt": 1794951367264
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 38.25,
+     "at": 1794977667646,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "DASHUSDT",
    "mult": 1,
@@ -589,7 +595,8 @@
     "exchangeAt": 1794951013609,
     "paperAt": 1794945600000,
     "minutes": -90
-   }
+   },
+   "stopLevel": 38.25
   },
   "BNB|4H|short|55|1794937535397": {
    "id": "BNB|4H|short|55|1794937535397",
@@ -1016,7 +1023,11 @@
      "at": 1794976757651,
      "qty": 10.78,
      "price": 1898.59,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1794976764068
     }
    },
    "stops": [],
@@ -1434,6 +1445,14 @@
    "entry": 1898.59,
    "stop": 1992.82,
    "lev": 13
+  },
+  {
+   "at": 1794977667646,
+   "id": "DASH|4H|short|31|1794933928433",
+   "symbol": "DASHUSDT",
+   "ev": "stop",
+   "price": 38.25,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
