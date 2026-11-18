@@ -38,3 +38,16 @@ işlem/hafta sonu/ilk işlem → %0,5), adet = risk $ ÷ (giriş − stop), izol
 **Fib düzeni:** TradingView'da dipten tepeye çekilen fib'te 0 = tepe, 1 = dip (geri çekilme tepeden ölçülür).
 Sayfalarda ve cevaplarda hep bu düzeni kullan. Kullanıcının varsayılan fib ayarı Elliott'a göre; SMC için şablon
 ("SMC Çeyrek": 0/0,25/0,5/0,75/1 · "SMC OTE": 0/0,5/0,618/0,705/0,786/1) kullanılır, varsayılan değiştirilmez.
+
+## Bybit emir ekranı ve demo modu (doğrulandı 17–18.11.2026, telefon ekran görüntüleri)
+- **Emir ekranı:** alt çubuk Trade → üst sekmeler Convert / Spot / **Futures** / Options / Alpha. Alanlar: **Price**, **Order Value** (USDT ⇄
+  coin), **TP/SL** kutusu (Basic ⇄; Take Profit, Stop Loss, tetik "Last"), **Post-Only**, **Reduce-Only**, düğmeler **Long** / **Short**.
+  Altta **Orders (n) / Positions (n) / Assets** sekmeleri; pozisyon kartında "TP/SL  Entire Position: tp/sl  Partial Position: n",
+  düğmeler **Set TP/SL / Trailing Stop / Close By**. Pozisyon ayrıntısı: Position Details → Details / History (Timeline).
+- **Kademeli çıkış, limit emirle:** pozisyon açıldıktan sonra Limit + Reduce-Only + ters yön düğmesi; TP/SL kutusu işaretsiz. Pozisyon yokken
+  Reduce-Only emir reddedilir (API 110017 "current position is zero"). Bu emirler "Partial Position" sayacında görünmez, Orders listesinde durur.
+  Tuzak: Reduce-Only alış limiti piyasanın üstünde bir fiyatla girilirse hemen dolar ve short'u kapatır.
+- **Demo modu:** ekranın üstünde turuncu **Demo Trading** etiketi ve **Start Live Trading** düğmesi (gerçek hesaba dönüş). Demo pozisyonları
+  aynı Orders / Positions sekmelerinde. Demoya giriş yolu (ana ekran → More → Demo Trading) Bybit rehberinden; kullanıcı ekranı doğrulamadı.
+- Hazır sayılar için `emir-fisi` skill'i (`tools/trades/ticket.mjs`).
+

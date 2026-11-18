@@ -42,6 +42,8 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
   dipten tepeye çekilen fib'te 0 = tepe, 1 = dip; kullanıcı çoğu zaman telefondan (iOS, Türkçe) çizer, masaüstü TradingView Almanca,
   işlemleri Bybit'te (İngilizce uygulama) açar. Gerçek para sorularında: %1 risk (ters işlem / hafta sonu / ilk işlem → %0,5),
   adet = risk $ ÷ (giriş − stop), izole marjin, kaldıraç yalnız teminatı belirler.
+- **Emir fişi (18.11.2026):** kullanıcı bir sinyali gerçek hesabına elle girmek isterse ("NEAR emir hazırla") `emir-fisi` skill'ini yükle
+  (`tools/trades/ticket.mjs`: hazır sayılar + uyarılar). Gerçek hesapta emri yalnız kullanıcı girer; oturum girmez, anahtar istemez.
 - **Bulut ↔ yerel oturum (14.11.2026):** bilgi birikimi depoda (bu dosya, `docs/DURUM.md`, `docs/arastirma/`, `.claude/skills/`); sohbet
   geçmişi taşınmaz, o yüzden her oturum sonunda DURUM güncellenir. **Bulut oturumu** x.com'u ve OKX'i açamaz (Hyperliquid açılır), Actions'ı
   GitHub MCP ile tetikler, zamanlayıcı kurabilir. **Yerel oturum** (kullanıcının Mac'i) X gönderilerini ve OKX'i açabilir, Actions için `gh`

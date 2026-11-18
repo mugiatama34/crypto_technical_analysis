@@ -684,6 +684,7 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Bot: takip dışı açık planlar (11.11)**: TF'si taranmayan ya da listeden düşen coindeki açık planın mumları ayrıca indirilir
   (tur başına ≤ 8, mum sayısı ~1400'ü aşarsa üst TF: `catchUpTf`) ve gerçek fiyatla kapanır; kapanış zamanı = vuran mum
   (`closedBar`), 3 günden eskiyse Telegram'a sessiz, kayıtta `lateClose`.
+- **Emir fişi (`tools/trades/ticket.mjs`, 18.11)**: `node tools/trades/ticket.mjs NEAR [--risk 0.5]` botun son 4H planını Bybit'e elle girilecek sayılara çevirir (giriş, stop, üç kademe adedi, kaldıraç sınırı, uyarılar). Emir göndermez, anahtar kullanmaz; kullanım adımları `emir-fisi` skill'inde.
 - **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
   ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır
   (gerçek / plana sadakat / 1,5R kuralı / ara TP / iz süren stop). CSV'ler kişisel veridir, repoya konmaz (`.gitignore`).

@@ -267,3 +267,14 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   Bayrağı kullanıcı açar. Ajan aday listesi (`liveEligible`) değişmedi.
 - **13.12 değerlendirmesi:** bayrak öncesi tekrarlar tek sayılır; öncesi / sonrası aynı havuzda toplanmaz.
 - **Kullanıcının gerçek XRP işlemi:** 0,9694'ten short (planın girişi 0,9812; girilen fiyat planın erken hedefi). Deney B tablosunda "plan dışı giriş" notuyla.
+
+## 18.11.2026 (yerel oturum) — demo ilk gece, emir fişi aracı
+- **Demo ilk gece (özsermaye 101.709,92 USDT, +%1,71; gerçekleşen +1.112,15):** 7 giriş doldu; TIA, SOL, XRP, LINK ilk kademe (T1) sonrası
+  girişe çekilen stoptan kapandı (+0,14…+0,20R), DASH ve BCH'de T1 doldu ve **stop girişe taşındı (dolum sonrası akış canlıda doğrulandı)**,
+  BNB açık. Sapmalar: `borsa_doldu_kagit_bekliyor` (TIA, SOL, XRP); XRP'de demo kapandı, kâğıt hâlâ `active` (13.12'de `sonuc_farki` sayımı).
+  Tek gece, aynı düşüşte 7 short: kanıt değil.
+- **Doğrulandı:** pozisyon yokken Reduce-Only emir Bybit'te reddediliyor (110017) → kademeler ancak dolumdan sonra girilebilir.
+- **Kullanıcı isteği:** gerçek hesapta emir girme skill'i → reddedildi (gerçek emir yok). Yerine **emir fişi**: `tools/trades/ticket.mjs`
+  + `emir-fisi` skill'i (plan → Bybit'e elle girilecek sayılar, Deney B riski long 1 $ / short 0,5 $, uyarılar). Test `tests/ticket.test.js` (5).
+- `tradingview-bybit` skill'ine emir ekranı ve demo modu notları eklendi (kullanıcının ekran görüntülerinden).
+- **Açık:** aynı yön toplam risk sınırı (demoda 4 short aynı anda açıktı, %4); demo özsermayesi günlük özete satır; demo marjin modu Cross (gerçek kural izole).
