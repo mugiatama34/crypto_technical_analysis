@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794962242856,
+ "updatedAt": 1794963149318,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -821,7 +821,7 @@
    "sentAt": 1794949248303,
    "createdAt": 1794949555753,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 0.357979,
     "filledAt": 1794960000000,
     "confirmedAt": null,
