@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795012833524,
+ "updatedAt": 1795013739670,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -630,7 +630,7 @@
    "sentAt": 1794937535397,
    "createdAt": 1794944437354,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 593.282,
     "filledAt": 1794945600000,
     "confirmedAt": null,
@@ -1040,11 +1040,11 @@
    "sentAt": 1794976239017,
    "createdAt": 1794976757651,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 1898.59,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795013132772,
     "R": null
    },
    "orders": {
@@ -1057,7 +1057,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794976764068
+     "updatedAt": 1794976764068,
+     "cancelAt": 1795013739670
     }
    },
    "stops": [],
@@ -1085,7 +1086,8 @@
    "riskUsd": 1015.7994,
    "riskTarget": 1016.5,
    "leverage": 13,
-   "lastAtCreate": 1802.28
+   "lastAtCreate": 1802.28,
+   "cancelWhy": "kâğıt missed"
   },
   "BNB|4H|short|57|1794985248485": {
    "id": "BNB|4H|short|57|1794985248485",
