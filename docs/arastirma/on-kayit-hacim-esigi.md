@@ -45,3 +45,20 @@ hedge'li R ≤ 0.
 - Bugünün ilk 100'ü geçmişe uygulanıyor (delist olanlar eksik). Hacim Bybit'ten, fiyat ve dolum OKX mumlarından (fitil farkı olabilir).
 - Kayma sabit yüzde; gerçek kayma emir büyüklüğüne ve stop anındaki deftere bağlı (hızlı harekette daha büyük). Limit emirlerde "dokundu ama
   dolmadı" riski modellenmiyor (30.000 $'lık emirde iyimser). Bileşik hesapta eşzamanlı pozisyonların riski kapanışa kadar güncellenmez.
+
+## Sonuç (18.11.2026) — GEÇMEDİ
+Yerel koşu `node backtest/liq.mjs` (66 dk), `docs/backtest/liq.json`. 96 coin serisi (4'ü OKX geçmişi kısa olduğu için atlandı), 4.658 sinyal,
+2.547 dolan işlem; filtreli 1.113.
+
+| Satır | Eğitim (n · ort. R · PF · hedge'li) | Doğrulama |
+|---|---|---|
+| **≥ 20 M$ (karar)** | 766 · −0,110 · 0,69 · −0,144 | 347 · −0,018 · 0,94 · −0,117 |
+| Filtresiz (bilgi) | 1.561 · −0,067 · 0,80 · −0,107 | 986 · −0,007 · 0,98 · −0,078 |
+| Eşik altı (bilgi) | 738 · −0,034 · 0,89 · −0,077 | 597 · −0,016 · 0,95 · −0,064 |
+
+100.000 $ (filtreli, tüm yıl): bileşik %1 → 35.038 $ (maks. düşüş %74,6; toplam −90,95R; en uzun kayıp serisi 18; aynı anda en çok 25 açık
+pozisyon); sabit 1.000 $ → 9.048 $. Kayma %0,10 → 30.872 $, %0,20 → 23.798 $ (bileşik). Filtresiz bileşik 23.518 $ (işlem sayısı 2,3 kat).
+Beklenti doğrulandı: hacim eşiği kenar yaratmıyor. Uygulama notları: sinyal günü = plan mumunun açıldığı UTC günü, pencere D−7…D−1; 7 günden
+biri eksikse "veri eksik" grubu; PUMP, Bybit'te `PUMPFUNUSDT` adıyla olduğu için `bybitOf` eşlemesinde "Bybit'te yok" sayıldı (n küçük, kararı
+etkilemez).
+

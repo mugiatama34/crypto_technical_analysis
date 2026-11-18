@@ -81,7 +81,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   sweep, diyagonal, zigzag / flat, fib kesişimi, SMC, uyumsuzluk, kanal, range, spike) · giriş zamanlaması ve biçimi · zaman stopu, seans / gün
   filtreleri, bekleme süresi, iz süren stop · bıçak koruması (net katkı ≈ 0) · momentum varyantları · pump / düşüş sonrası, 1D yapı, fonlama
   uçları · fonlama taşıması (%3,6 < %5) · SMA50 / 200 ve kısa dizilim trend kuralları (short ≈ 0 ya da eksi) · fib / yuvarlak sayı seviyeleri ·
-  fib kesişiminde iç dalga sayımı · yüksek ADX'te short (sonuçsuz, n 53 / 42). Kazançlar BTC yönünden (r 0,4–0,7).
+  fib kesişiminde iç dalga sayımı · yüksek ADX'te short (sonuçsuz, n 53 / 42) · Bybit hacim eşiği (≥ 20 M$). Kazançlar BTC yönünden (r 0,4–0,7).
 - **13.11 motor düzeltmelerinden önceki tüm 4H sayıları (arşiv) iyimserdir; alıntılama.** Gerçekçi satır ve tuzaklar `olcum` skill'inde.
 - Düzeltilmiş canlı kayıtlar `docs/signals/rescored.json` (ham history değişmez; `applyRescore`, sayfada ↻).
 

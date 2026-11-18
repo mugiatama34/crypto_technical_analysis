@@ -672,6 +672,9 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Yüksek ADX'te short ölçümü (17.11, ön kayıtlı: `docs/arastirma/on-kayit-adx-short.md`)**: `backtest/adx-short.mjs` (+ saf kısım
   `adx-short.js`), `backtest.yml` modları `adxshort` (4H, karar) ve `adxshort1h` (bilgi) → `docs/backtest/adx-short.json`. Backtest sayfasında
   "Sinyal adına göre" tablosu ADX / hacim adlarını aralıklara toplar (`backtest/names.js`).
+- **Bybit hacim eşiği ölçümü (18.11, ön kayıtlı: `docs/arastirma/on-kayit-hacim-esigi.md`)**: `backtest/liq.mjs` (+ saf kısım `liq.js`,
+  test `tests/liq.test.js`) → `docs/backtest/liq.json`. YEREL koşu (Bybit API Actions'tan kapalı): `node backtest/liq.mjs`; Bybit günlük
+  cirosu `backtest/cache/liq/bybit-turnover.json` önbelleğinde. Kayma duyarlılığı, 100.000 $ hesabı (bileşik %1 / sabit 1.000 $) dahil.
 - **Sinyal kanalı (17.11)**: Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa işlem sinyalleri (kurulum mesajı + grafiği, takip güncellemeleri, sonuç
   grafiği) yalnız o sohbete / kanala gider; özet, denetçi, momentum, fib uyarısı, sabah özeti ve sağlık uyarıları ana sohbette kalır.
   Paylaşılan kanalda kişisel "Pozisyon (risk … USDT)" satırı yazılmaz. Boşsa davranış değişmez. Bot kanalda yönetici olmalı.

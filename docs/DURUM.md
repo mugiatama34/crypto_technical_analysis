@@ -278,3 +278,12 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   + `emir-fisi` skill'i (plan → Bybit'e elle girilecek sayılar, Deney B riski long 1 $ / short 0,5 $, uyarılar). Test `tests/ticket.test.js` (5).
 - `tradingview-bybit` skill'ine emir ekranı ve demo modu notları eklendi (kullanıcının ekran görüntülerinden).
 - **Açık:** aynı yön toplam risk sınırı (demoda 4 short aynı anda açıktı, %4); demo özsermayesi günlük özete satır; demo marjin modu Cross (gerçek kural izole).
+
+## 18.11.2026 (yerel oturum, devam) — arkadaşın kayma sorusu; hacim eşiği ölçümü: GEÇMEDİ
+- **Emir defteri (anlık, Bybit vadeli):** 30.000 $ piyasa alışında kayma BTC / ETH ≈ 0 · XRP %0,012 · BCH / TAO / TIA / DASH %0,05–0,09 ·
+  KAITO %0,34 · MAGIC %0,88. Demo pozisyonları 25–37 bin $; demo kendi fiyat etkisini göstermez. Kullanıcı demoya hacim eşiği koymadı.
+- **Ön kayıtlı ölçüm (`on-kayit-hacim-esigi.md`, `liq.json`, `backtest/liq.mjs`):** canlı 4H düzeni, Bybit 7 g ort. ciro ≥ 20 M$, son 12 ay →
+  eğ −0,110R / doğr −0,018R, PF 0,69 / 0,94, hedge'li eksi, n 766 / 347 → **geçmedi**. 100.000 $ %1 bileşik: 35.038 $ (düşüş %74,6);
+  filtresiz 23.518 $. Aynı anda 25 açık pozisyona kadar çıkıyor (%25 açık risk).
+- Testler 510 (507 geçer, 2 todo, 1 bilinen `levels`). Not: `bybitOf('PUMP')` yanlış sembol üretiyor (Bybit'te `PUMPFUNUSDT`); `backtest/sweep.mjs`
+  ana modül kontrolü bu Mac'in yolunda (`~`) sessizce çalışmayabilir. İkisi de düzeltilmedi.

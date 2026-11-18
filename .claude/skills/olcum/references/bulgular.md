@@ -60,3 +60,9 @@ günlük `docs/DURUM-arsiv.md`. Bu metin 17.11.2026'da `CLAUDE.md`'den buraya ta
   maliyet 0,046R (en iyi komisyon modeli +0,012R) · BTC'ye göre güç koşulu tabanı +0,02…+0,05R iyileştiriyor ama geçmiyor · portföy sınırının
   seçim değeri yok. Taban üç bağımsız dilimde −0,092 / +0,003 / −0,062R (kasa = 24.11.2024–18.11.2025). **Sonuç: 4H sinyal motoru tarayıcı /
   eğitim aracı; işlem sistemi değil.** Yeni hipotez = önce ön kayıt, kasaya tek bakış; plasebo kurarken yön bilgisini geçmişe taşıma.
+- **Bybit hacim eşiği (18.11, ön kayıtlı: `docs/arastirma/on-kayit-hacim-esigi.md`; `liq.json`, yerel koşu `node backtest/liq.mjs`, 66 dk):**
+  canlı 4H düzeni yalnız "sinyalden önceki 7 gün Bybit ort. günlük ciro ≥ 20 M$" coinlerde, 17.11.2025–17.11.2026, ilk 100 coin →
+  **GEÇMEDİ:** eğ −0,110R PF 0,69 n 766 hedge'li −0,144 · doğr −0,018R PF 0,94 n 347 hedge'li −0,117. Filtresiz (bilgi) −0,067 / −0,007R;
+  eşik altı −0,034 / −0,016R; 5 M$ ve 50 M$ eşikleri de eksi. 100.000 $, %1 bileşik: yıl sonu 35.038 $ (−%65, maks. düşüş %74,6, toplam
+  −91R, aynı anda 25 açık pozisyon); kayma %0,20 ile 23.798 $. Hacim eşiği kenar yaratmıyor; başka eşik denenmez. Dönem görülmüş (tek dönem).
+
