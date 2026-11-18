@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795013739670,
+ "updatedAt": 1795014644911,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1054,10 +1054,10 @@
      "qty": 10.78,
      "price": 1898.59,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794976764068,
+     "updatedAt": 1795013741300,
      "cancelAt": 1795013739670
     }
    },
@@ -1070,7 +1070,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 1898.59,
@@ -1087,7 +1087,9 @@
    "riskTarget": 1016.5,
    "leverage": 13,
    "lastAtCreate": 1802.28,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795014644911
   },
   "BNB|4H|short|57|1794985248485": {
    "id": "BNB|4H|short|57|1794985248485",
@@ -1545,6 +1547,13 @@
    "ev": "stop",
    "price": 593.28,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795014644911,
+   "id": "ETH|4H|short|42|1794976239017",
+   "symbol": "ETHUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
   }
  ],
  "lastError": null
