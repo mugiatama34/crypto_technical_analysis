@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1794978579850,
+ "updatedAt": 1794979489822,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -108,10 +108,10 @@
      "qty": 6775,
      "price": 0.9413,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794956806150
+     "updatedAt": 1794978827503
     },
     "T3": {
      "link": "bd-b26f7dd4e43aeb04-T3",
@@ -119,10 +119,10 @@
      "qty": 6775.1,
      "price": 0.8922,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794956806334
+     "updatedAt": 1794978827503
     }
    },
    "stops": [
@@ -146,7 +146,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.9812,
@@ -192,7 +192,18 @@
     "paperAt": 1794945600000,
     "minutes": -186
    },
-   "stopLevel": 0.9812
+   "stopLevel": 0.9812,
+   "closed": {
+    "at": 1794979489822,
+    "pnl": 144.1662,
+    "pnlSrc": "closed-pnl",
+    "R": 0.144,
+    "exitBy": "taşınmış stop",
+    "legs": [
+     "T1"
+    ],
+    "paperStatus": "active"
+   }
   },
   "XRP|4H|short|40|1794931250433": {
    "id": "XRP|4H|short|40|1794931250433",
@@ -1453,6 +1464,14 @@
    "ev": "stop",
    "price": 38.25,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1794979489822,
+   "id": "XRP|4H|short|38|1794883531251",
+   "symbol": "XRPUSDT",
+   "ev": "kapanış",
+   "R": 0.144,
+   "exitBy": "taşınmış stop"
   }
  ],
  "lastError": null
