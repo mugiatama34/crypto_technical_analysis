@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795108998727,
+ "updatedAt": 1795109903877,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1670,9 +1670,9 @@
    "sentAt": 1795106729287,
    "createdAt": 1795107187297,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.153253,
-    "filledAt": null,
+    "filledAt": 1795108500000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -1684,10 +1684,31 @@
      "qty": 287319,
      "price": 0.1533,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795107189594
+     "status": "Filled",
+     "cumExecQty": 287319,
+     "avgPrice": 0.1533,
+     "updatedAt": 1795109176182
+    },
+    "T1": {
+     "link": "bd-aebbbfa32e6cdb1c-T1",
+     "at": 1795109903877,
+     "qty": 143659,
+     "price": 0.1515,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-aebbbfa32e6cdb1c-T2",
+     "at": 1795109903877,
+     "qty": 71829,
+     "price": 0.1479,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-aebbbfa32e6cdb1c-T3",
+     "at": 1795109903877,
+     "qty": 71831,
+     "price": 0.1443,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -1699,7 +1720,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.1533,
@@ -1715,7 +1736,36 @@
    "riskUsd": 1034.3484,
    "riskTarget": 1034.35,
    "leverage": 20,
-   "lastAtCreate": 0.1519
+   "lastAtCreate": 0.1519,
+   "fill": {
+    "price": 0.1533,
+    "qty": 287319,
+    "at": 1795109176182,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.1515,
+     "qty": 143659
+    },
+    {
+     "tag": "T2",
+     "price": 0.1479,
+     "qty": 71829
+    },
+    {
+     "tag": "T3",
+     "price": 0.1443,
+     "qty": 71831
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795109176182,
+    "paperAt": 1795108500000,
+    "minutes": -11
+   }
   }
  },
  "insts": {
@@ -2341,6 +2391,15 @@
    "ev": "stop",
    "price": 5.873,
    "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+  },
+  {
+   "at": 1795109903877,
+   "id": "ADA|4H|short|42|1795106729287",
+   "symbol": "ADAUSDT",
+   "ev": "dolum",
+   "price": 0.1533,
+   "qty": 287319,
+   "paper": "active"
   }
  ],
  "lastError": null
