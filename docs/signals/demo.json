@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795068738734,
+ "updatedAt": 1795069643705,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1194,10 +1194,31 @@
      "qty": 101090,
      "price": 0.259,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795028123271
+     "status": "Filled",
+     "cumExecQty": 101090,
+     "avgPrice": 0.259,
+     "updatedAt": 1795069260310
+    },
+    "T1": {
+     "link": "bd-b7ed85c4bc575d31-T1",
+     "at": 1795069643705,
+     "qty": 50545,
+     "price": 0.2559,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-b7ed85c4bc575d31-T2",
+     "at": 1795069643705,
+     "qty": 25272.5,
+     "price": 0.2463,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-b7ed85c4bc575d31-T3",
+     "at": 1795069643705,
+     "qty": 25272.5,
+     "price": 0.2362,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -1216,7 +1237,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.259,
@@ -1232,7 +1253,36 @@
    "riskUsd": 1021.009,
    "riskTarget": 1021.01,
    "leverage": 17,
-   "lastAtCreate": 0.2589
+   "lastAtCreate": 0.2589,
+   "fill": {
+    "price": 0.259,
+    "qty": 101090,
+    "at": 1795069260310,
+    "paperStatus": "early"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.2559,
+     "qty": 50545
+    },
+    {
+     "tag": "T2",
+     "price": 0.2463,
+     "qty": 25272.5
+    },
+    {
+     "tag": "T3",
+     "price": 0.2362,
+     "qty": 25272.5
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795069260310,
+    "paperAt": 1795060800000,
+    "minutes": -141
+   }
   },
   "ETC|4H|short|45|1795029287085": {
    "id": "ETC|4H|short|45|1795029287085",
@@ -1952,6 +2002,15 @@
    "entry": 9.545,
    "stop": 9.86,
    "lev": 20
+  },
+  {
+   "at": 1795069643705,
+   "id": "JTO|4H|short|30|1795023929960",
+   "symbol": "JTOUSDT",
+   "ev": "dolum",
+   "price": 0.259,
+   "qty": 101090,
+   "paper": "early"
   }
  ],
  "lastError": null
