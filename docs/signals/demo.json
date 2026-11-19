@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795080510124,
+ "updatedAt": 1795081415216,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1518,9 +1518,9 @@
    "sentAt": 1795077041988,
    "createdAt": 1795077791555,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 5.94422,
-    "filledAt": null,
+    "filledAt": 1795078800000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -1626,7 +1626,12 @@
      "qty": 1859.6
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795079174687,
+    "paperAt": 1795078800000,
+    "minutes": -6
+   }
   }
  },
  "insts": {
