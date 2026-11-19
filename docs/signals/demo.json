@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795123491654,
+ "updatedAt": 1795124397166,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1981,11 +1981,11 @@
    "sentAt": 1795113041537,
    "createdAt": 1795113527178,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 590.008,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795123849875,
     "R": null
    },
    "orders": {
@@ -1998,7 +1998,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795113530819
+     "updatedAt": 1795113530819,
+     "cancelAt": 1795124397166
     }
    },
    "stops": [],
@@ -2026,7 +2027,8 @@
    "riskUsd": 1026.6336,
    "riskTarget": 1026.73,
    "leverage": 20,
-   "lastAtCreate": 589.53
+   "lastAtCreate": 589.53,
+   "cancelWhy": "kâğıt missed"
   },
   "BTC|4H|short|58|1795113041537": {
    "id": "BTC|4H|short|58|1795113041537",
