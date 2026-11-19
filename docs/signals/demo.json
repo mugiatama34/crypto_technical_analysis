@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795078697813,
+ "updatedAt": 1795079603138,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1217,10 +1217,10 @@
      "qty": 25272.5,
      "price": 0.2463,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795069645631
+     "updatedAt": 1795079145500
     },
     "T3": {
      "link": "bd-b7ed85c4bc575d31-T3",
@@ -1228,10 +1228,10 @@
      "qty": 25272.5,
      "price": 0.2362,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795069645814
+     "updatedAt": 1795079145500
     }
    },
    "stops": [
@@ -1256,7 +1256,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.259,
@@ -1302,7 +1302,18 @@
     "paperAt": 1795060800000,
     "minutes": -141
    },
-   "stopLevel": 0.259
+   "stopLevel": 0.259,
+   "closed": {
+    "at": 1795079603138,
+    "pnl": 136.4056,
+    "pnlSrc": "closed-pnl",
+    "R": 0.134,
+    "exitBy": "taşınmış stop",
+    "legs": [
+     "T1"
+    ],
+    "paperStatus": "early"
+   }
   },
   "ETC|4H|short|45|1795029287085": {
    "id": "ETC|4H|short|45|1795029287085",
@@ -1520,14 +1531,41 @@
      "qty": 7438.2,
      "price": 5.944,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795077793620
+     "status": "Filled",
+     "cumExecQty": 7438.2,
+     "avgPrice": 5.944,
+     "updatedAt": 1795079174687
+    },
+    "T1": {
+     "link": "bd-1f5197d30c1f1d54-T1",
+     "at": 1795079603138,
+     "qty": 3719.1,
+     "price": 5.873,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-1f5197d30c1f1d54-T2",
+     "at": 1795079603138,
+     "qty": 1859.5,
+     "price": 5.757,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-1f5197d30c1f1d54-T3",
+     "at": 1795079603138,
+     "qty": 1859.6,
+     "price": 5.606,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795079603138,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "ETCUSDT",
    "mult": 1,
    "inst": {
@@ -1535,7 +1573,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 5.944,
@@ -1551,7 +1589,31 @@
    "riskUsd": 1026.4716,
    "riskTarget": 1026.48,
    "leverage": 20,
-   "lastAtCreate": 5.919
+   "lastAtCreate": 5.919,
+   "fill": {
+    "price": 5.944,
+    "qty": 7438.2,
+    "at": 1795079174687,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 5.873,
+     "qty": 3719.1
+    },
+    {
+     "tag": "T2",
+     "price": 5.757,
+     "qty": 1859.5
+    },
+    {
+     "tag": "T3",
+     "price": 5.606,
+     "qty": 1859.6
+    }
+   ],
+   "legFails": {}
   }
  },
  "insts": {
@@ -2105,6 +2167,23 @@
    "entry": 5.944,
    "stop": 6.082,
    "lev": 20
+  },
+  {
+   "at": 1795079603138,
+   "id": "JTO|4H|short|30|1795023929960",
+   "symbol": "JTOUSDT",
+   "ev": "kapanış",
+   "R": 0.134,
+   "exitBy": "taşınmış stop"
+  },
+  {
+   "at": 1795079603138,
+   "id": "ETC|4H|short|47|1795077041988",
+   "symbol": "ETCUSDT",
+   "ev": "dolum",
+   "price": 5.944,
+   "qty": 7438.2,
+   "paper": "waiting"
   }
  ],
  "lastError": null
