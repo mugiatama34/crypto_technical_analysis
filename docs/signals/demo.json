@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795127113853,
+ "updatedAt": 1795128020039,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2147,6 +2147,35 @@
    "riskTarget": 1035.2,
    "leverage": 20,
    "lastAtCreate": 0.958
+  },
+  "ETC|4H|short|46|1795127456536": {
+   "id": "ETC|4H|short|46|1795127456536",
+   "coin": "ETC",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795127456536,
+   "createdAt": 1795128020039,
+   "paper": {
+    "status": "waiting",
+    "entry": 5.94398,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "ETCUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "skipped",
+   "reason": "aynı sembolde açık demo işi var"
   }
  },
  "insts": {
@@ -2291,7 +2320,7 @@
    }
   },
   "ETC": {
-   "at": 1795030020176,
+   "at": 1795128020039,
    "inst": {
     "coin": "ETC",
     "symbol": "ETCUSDT",
@@ -2934,6 +2963,13 @@
    "symbol": "BNBUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
+  },
+  {
+   "at": 1795128020039,
+   "id": "ETC|4H|short|46|1795127456536",
+   "symbol": "ETCUSDT",
+   "ev": "atlandı",
+   "why": "aynı sembolde açık demo işi var"
   }
  ],
  "lastError": null
