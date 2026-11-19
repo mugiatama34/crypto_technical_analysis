@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795110809343,
+ "updatedAt": 1795111716926,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1801,7 +1801,11 @@
      "at": 1795110809343,
      "qty": 363059,
      "price": 0.0588,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795110812657
     }
    },
    "stops": [],
@@ -1853,7 +1857,11 @@
      "at": 1795110809343,
      "qty": 9492840,
      "price": 0.003881,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795110813028
     }
    },
    "stops": [],
