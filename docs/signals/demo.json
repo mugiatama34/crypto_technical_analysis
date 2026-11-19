@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795100851797,
+ "updatedAt": 1795101756813,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1530,7 +1530,7 @@
    "sentAt": 1795077041988,
    "createdAt": 1795077791555,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 5.94422,
     "filledAt": 1795078800000,
     "confirmedAt": null,
@@ -1555,10 +1555,10 @@
      "qty": 3719.1,
      "price": 5.873,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795079605931
+     "status": "Filled",
+     "cumExecQty": 3719.1,
+     "avgPrice": 5.873,
+     "updatedAt": 1795101339767
     },
     "T2": {
      "link": "bd-1f5197d30c1f1d54-T2",
@@ -1583,7 +1583,13 @@
      "updatedAt": 1795079606806
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 5.944,
+     "at": 1795101756813,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "borsa_doldu_kagit_bekliyor",
@@ -1643,7 +1649,8 @@
     "exchangeAt": 1795079174687,
     "paperAt": 1795078800000,
     "minutes": -6
-   }
+   },
+   "stopLevel": 5.944
   }
  },
  "insts": {
@@ -2222,6 +2229,14 @@
    "ev": "kapanış",
    "R": 0.126,
    "exitBy": "taşınmış stop"
+  },
+  {
+   "at": 1795101756813,
+   "id": "ETC|4H|short|47|1795077041988",
+   "symbol": "ETCUSDT",
+   "ev": "stop",
+   "price": 5.944,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
