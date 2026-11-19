@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795124397166,
+ "updatedAt": 1795125302740,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1995,10 +1995,10 @@
      "qty": 99.48,
      "price": 590.01,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795113530819,
+     "updatedAt": 1795124399061,
      "cancelAt": 1795124397166
     }
    },
@@ -2011,7 +2011,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 590.01,
@@ -2028,7 +2028,9 @@
    "riskTarget": 1026.73,
    "leverage": 20,
    "lastAtCreate": 589.53,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795125302740
   },
   "BTC|4H|short|58|1795113041537": {
    "id": "BTC|4H|short|58|1795113041537",
@@ -2925,6 +2927,13 @@
    "ev": "stop",
    "price": 37.8,
    "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+  },
+  {
+   "at": 1795125302740,
+   "id": "BNB|4H|short|65|1795113041537",
+   "symbol": "BNBUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
   }
  ],
  "lastError": null
