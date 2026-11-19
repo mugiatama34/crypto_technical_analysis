@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795051538370,
+ "updatedAt": 1795052443765,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1251,10 +1251,10 @@
      "qty": 3677.1,
      "price": 5.873,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795046105060
+     "status": "Filled",
+     "cumExecQty": 3677.1,
+     "avgPrice": 5.873,
+     "updatedAt": 1795051895398
     },
     "T2": {
      "link": "bd-1f05c2b93f54b2ba-T2",
@@ -1279,7 +1279,13 @@
      "updatedAt": 1795046105430
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 5.944,
+     "at": 1795052443765,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "ETCUSDT",
    "mult": 1,
@@ -1333,7 +1339,8 @@
     "exchangeAt": 1795045363918,
     "paperAt": 1795032000000,
     "minutes": -223
-   }
+   },
+   "stopLevel": 5.944
   }
  },
  "insts": {
@@ -1834,6 +1841,14 @@
    "price": 5.944,
    "qty": 7354.2,
    "paper": "active"
+  },
+  {
+   "at": 1795052443765,
+   "id": "ETC|4H|short|45|1795029287085",
+   "symbol": "ETCUSDT",
+   "ev": "stop",
+   "price": 5.944,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
