@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795060591295,
+ "updatedAt": 1795061496185,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -939,12 +939,12 @@
    "sentAt": 1794949248303,
    "createdAt": 1794949555753,
    "paper": {
-    "status": "early",
+    "status": "be",
     "entry": 0.357979,
     "filledAt": 1794960000000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795060845753,
+    "R": 0.7082449834505572
    },
    "orders": {
     "E": {
@@ -1004,6 +1004,15 @@
      "kind": "borsa_doldu_kagit_bekliyor",
      "at": 1794951364395,
      "paper": "waiting"
+    },
+    {
+     "kind": "sonuc_farki",
+     "at": 1795061496185,
+     "exchangeR": 0.198,
+     "paperR": 0.708,
+     "diff": -0.51,
+     "paper": "be",
+     "exchange": "taşınmış stop"
     }
    ],
    "symbol": "TIAUSDT",
@@ -1070,7 +1079,8 @@
     "exchangeAt": 1794950982734,
     "paperAt": 1794960000000,
     "minutes": 150
-   }
+   },
+   "paperDone": true
   },
   "ETH|4H|short|42|1794976239017": {
    "id": "ETH|4H|short|42|1794976239017",
@@ -1226,12 +1236,12 @@
    "sentAt": 1795029287085,
    "createdAt": 1795030020176,
    "paper": {
-    "status": "early",
+    "status": "be",
     "entry": 5.94353,
     "filledAt": 1795032000000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795060845753,
+    "R": 0.2569250720461087
    },
    "orders": {
     "E": {
@@ -1262,10 +1272,10 @@
      "qty": 1838.5,
      "price": 5.757,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795046105245
+     "updatedAt": 1795060810150
     },
     "T3": {
      "link": "bd-1f05c2b93f54b2ba-T3",
@@ -1273,10 +1283,10 @@
      "qty": 1838.6,
      "price": 5.606,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795046105430
+     "updatedAt": 1795060809387
     }
    },
    "stops": [
@@ -1294,7 +1304,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 5.944,
@@ -1340,7 +1350,71 @@
     "paperAt": 1795032000000,
     "minutes": -223
    },
-   "stopLevel": 5.944
+   "stopLevel": 5.944,
+   "closed": {
+    "at": 1795061496185,
+    "pnl": 234.0363,
+    "pnlSrc": "closed-pnl",
+    "R": 0.229,
+    "exitBy": "taşınmış stop",
+    "legs": [
+     "T1"
+    ],
+    "paperStatus": "be"
+   },
+   "paperDone": true
+  },
+  "LINK|4H|short|43|1795060845753": {
+   "id": "LINK|4H|short|43|1795060845753",
+   "coin": "LINK",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795060845753,
+   "createdAt": 1795061496185,
+   "paper": {
+    "status": "waiting",
+    "entry": 9.54498,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-640d7f0a5b3e67b5-E",
+     "at": 1795061496185,
+     "qty": 3256.1,
+     "price": 9.545,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "LINKUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 9.545,
+    "stop": 9.86,
+    "tp1": 9.073,
+    "tp2": 8.744,
+    "early": 9.431,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 3256.1,
+   "riskUsd": 1025.6715,
+   "riskTarget": 1025.69,
+   "leverage": 20,
+   "lastAtCreate": 9.118
   }
  },
  "insts": {
@@ -1387,7 +1461,7 @@
    }
   },
   "LINK": {
-   "at": 1794944414684,
+   "at": 1795061496185,
    "inst": {
     "coin": "LINK",
     "symbol": "LINKUSDT",
@@ -1849,6 +1923,24 @@
    "ev": "stop",
    "price": 5.944,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795061496185,
+   "id": "ETC|4H|short|45|1795029287085",
+   "symbol": "ETCUSDT",
+   "ev": "kapanış",
+   "R": 0.229,
+   "exitBy": "taşınmış stop"
+  },
+  {
+   "at": 1795061496185,
+   "id": "LINK|4H|short|43|1795060845753",
+   "symbol": "LINKUSDT",
+   "ev": "emir",
+   "qty": 3256.1,
+   "entry": 9.545,
+   "stop": 9.86,
+   "lev": 20
   }
  ],
  "lastError": null
