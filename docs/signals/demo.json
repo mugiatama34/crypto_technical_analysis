@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795087751980,
+ "updatedAt": 1795088657268,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -708,10 +708,10 @@
      "qty": 9.83,
      "price": 550.3,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794951367956
+     "updatedAt": 1795088067382
     },
     "T3": {
      "link": "bd-d8ffad65c464ac5c-T3",
@@ -719,10 +719,10 @@
      "qty": 9.83,
      "price": 502.55,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1794951368142
+     "updatedAt": 1795088067382
     }
    },
    "stops": [
@@ -740,7 +740,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 593.28,
@@ -786,7 +786,18 @@
     "paperAt": 1794945600000,
     "minutes": -90
    },
-   "stopLevel": 593.28
+   "stopLevel": 593.28,
+   "closed": {
+    "at": 1795088657268,
+    "pnl": 126.2444,
+    "pnlSrc": "closed-pnl",
+    "R": 0.126,
+    "exitBy": "taşınmış stop",
+    "legs": [
+     "T1"
+    ],
+    "paperStatus": "early"
+   }
   },
   "SOL|4H|short|38|1794945653139": {
    "id": "SOL|4H|short|38|1794945653139",
@@ -2202,6 +2213,14 @@
    "price": 5.944,
    "qty": 7438.2,
    "paper": "waiting"
+  },
+  {
+   "at": 1795088657268,
+   "id": "BNB|4H|short|55|1794937535397",
+   "symbol": "BNBUSDT",
+   "ev": "kapanış",
+   "R": 0.126,
+   "exitBy": "taşınmış stop"
   }
  ],
  "lastError": null
