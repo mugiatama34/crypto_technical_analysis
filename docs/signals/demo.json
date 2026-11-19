@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795114435011,
+ "updatedAt": 1795115340750,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2064,6 +2064,58 @@
    "riskTarget": 1026.73,
    "leverage": 20,
    "lastAtCreate": 63221.4
+  },
+  "TRUMP|4H|short|34|1795114849797": {
+   "id": "TRUMP|4H|short|34|1795114849797",
+   "coin": "TRUMP",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795114849797,
+   "createdAt": 1795115340750,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.963024,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-39ac0da955ecee55-E",
+     "at": 1795115340750,
+     "qty": 39815.3,
+     "price": 0.963,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "TRUMPUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.963,
+    "stop": 0.989,
+    "tp1": 0.921,
+    "tp2": 0.896,
+    "early": 0.952,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 39815.3,
+   "riskUsd": 1035.1978,
+   "riskTarget": 1035.2,
+   "leverage": 20,
+   "lastAtCreate": 0.958
   }
  },
  "insts": {
@@ -2275,6 +2327,20 @@
     "minQty": 0.001,
     "minNotional": 5,
     "maxLev": 150
+   }
+  },
+  "TRUMP": {
+   "at": 1795115340750,
+   "inst": {
+    "coin": "TRUMP",
+    "symbol": "TRUMPUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
    }
   }
  },
@@ -2788,6 +2854,16 @@
    "qty": 0.572,
    "entry": 64439.7,
    "stop": 66234.4,
+   "lev": 20
+  },
+  {
+   "at": 1795115340750,
+   "id": "TRUMP|4H|short|34|1795114849797",
+   "symbol": "TRUMPUSDT",
+   "ev": "emir",
+   "qty": 39815.3,
+   "entry": 0.963,
+   "stop": 0.989,
    "lev": 20
   }
  ],
