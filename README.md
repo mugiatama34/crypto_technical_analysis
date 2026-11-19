@@ -149,11 +149,15 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   dolum mumu > 1,5 ATR) emir dolmaz → "teyit bekliyor"; sonraki 3 **kapanmış** mumda teyit mumu (long: kapanış bölge üst
   kenarı ya da önceki mumun tepesi üstünde; short ayna) gelirse o mumun kapanışından girilir, teyitten önce stop geçilirse
   plan iptal (`knife`, işlem yok), teyit gelmezse süresi dolar. Sinyal takibi ve ajan limit emirleri (15m mumlarla) aynı
-  kuralı uygular. `KNIFE_GUARD=1` ya da JSON `{"maxApproachAtr":2,"maxFillBarAtr":1.5,"confirmBars":3,"skip":false}`
+  kuralı uygular. **Sinyal mumu penceresi (19.11):** sinyal 4H mumun ortasında gönderilirse gönderimden sonra açılan 15m
+  mumlar (gönderimi içeren 15m mumu sayılmaz) ilk 4H açılışına kadar ayrıca işlenir (`windowTrack`): dolum (`filledAt` = 15m
+  mumu), girişsiz TP1 (kaçtı), stop, bıçak (ölçü: o ana kadarki 4H mumu; teyit sonraki 4H mumlarda); dolum 15m mumunda hedef sayılmaz.
+  `KNIFE_GUARD=1` ya da JSON `{"maxApproachAtr":2,"maxFillBarAtr":1.5,"confirmBars":3,"skip":false}`
   (`skip`: teyit beklemeden atla). Backtest raporu ve tarama `byApproach` kırılımını (piyasa · yavaş < 1 ATR · orta 1–2 ·
   hızlı > 2) ve üç "düşen bıçak" varyantını gösterir (`sweep.html`); canlıda açmadan önce `mode: sweep` sonucuna bakın.
 - **Kayıp kesici giriş kuralları (bayrakla):** `LIMIT_ONLY=1` (gönderim anında fiyat zaten bölgedeyse gönderme),
-  `DEDUP_WAITING=1` (aynı coin + yön + TF'de hâlâ bekleyen planla girişi %0,1 içinde aynı olan yeni plan ayrı sinyal olarak gönderilmez; tolerans `DEDUP_PCT`; varsayılan kapalı),
+  `DEDUP_WAITING=1` (aynı coin + yön + TF'de hâlâ bekleyen planla girişi %0,1 içinde aynı olan yeni plan ayrı sinyal olarak gönderilmez; tolerans `DEDUP_PCT`; varsayılan kapalı;
+  19.11'den beri riski tam açık plan — `active` / `confirming` — da engeller, ret nedeni "aynı girişli plan açık" (`sameOpen`); `early` / `tp1` engellemez),
   `SKIP_WEEKEND=1` (UTC Cumartesi/Pazar yeni sinyal yok; açık planların takibi sürer), TF kapatma
   `TF_RULES={"15m":{"off":true}}` (tarama ve ajanın 15m takibi sürer). Alanlar TF/yön kuralı olarak da verilebilir
   (`limitOnly`, `skipWeekend`, `off`). 6 aylık hedefli taramada (doğrulama 28.08 sonrası) temel −0,132R iken
@@ -687,6 +691,8 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Bot: takip dışı açık planlar (11.11)**: TF'si taranmayan ya da listeden düşen coindeki açık planın mumları ayrıca indirilir
   (tur başına ≤ 8, mum sayısı ~1400'ü aşarsa üst TF: `catchUpTf`) ve gerçek fiyatla kapanır; kapanış zamanı = vuran mum
   (`closedBar`), 3 günden eskiyse Telegram'a sessiz, kayıtta `lateClose`.
+- **İlk sinyal mesajı (19.11)**: `formatSetup` seviyeleri başlığın hemen altında, her biri kendi satırında ve tek sayı `<code>` içinde verir (📍 Giriş · 🛑 Stop · ⚡ Erken · 🎯 TP1 · 🏁 TP2; Telegram'da dokununca kopyalanır); puan ve döküm bloğun altında, sonda tek satır **Çıkış** planı.
+- **Arkadaş sistemi aktarımı (`bot/friend.js`, 19.11, Variables `FRIEND_WAVE=1`, varsayılan kapalı)**: arkadaşın Elliott dalga botunun (Hasanwavebot) herkese açık 4H kâğıt hesabındaki yeni **short** pozisyonlar "🌊 ARKADAŞ SİSTEMİ" etiketiyle ayrı mesaj olarak aktarılır (açılış + kapanış). Bizim `history.json` kaydına, ajanlara ve demoya girmez; kayıt `docs/signals/friend.json`. İlk çalıştırmada mevcut pozisyonlar bildirilmez; 6 saatten eski açılış bildirilmez; long hiç aktarılmaz. Ölçülmüş kenar değildir (17.11 incelemesi: short'lar tek düşüş döneminden).
 - **Emir fişi (`tools/trades/ticket.mjs`, 18.11)**: `node tools/trades/ticket.mjs NEAR [--risk 0.5]` botun son 4H planını Bybit'e elle girilecek sayılara çevirir (giriş, stop, üç kademe adedi, kaldıraç sınırı, uyarılar). Emir göndermez, anahtar kullanmaz; kullanım adımları `emir-fisi` skill'inde.
 - **Gerçek işlem analizi (`tools/trades/`, 10.11)**: `rtable.mjs` Bybit Closed P&L + Order History CSV'sinden pozisyonları,
   ilk SL'yi (plan stopu), R'yi ve kırılımları çıkarır; `replay.mjs` aynı işlemleri Binance 5m arşiv mumlarıyla yeniden oynatır

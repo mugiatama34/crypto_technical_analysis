@@ -44,5 +44,6 @@ test('formatSetup: bd yokken döküm satırı yok, varken Puan satırından sonr
   assert.equal(a, b);
   assert.ok(!a.includes('Döküm'));
   const c = formatSetup({ ...plan, bd }, dec, null).split('\n');
-  assert.ok(c[1].startsWith('Puan 58') && c[2].startsWith('Döküm:'));
+  const pi = c.findIndex((l) => l.startsWith('Puan 58'));
+  assert.ok(pi > 0 && c[pi + 1].startsWith('Döküm:'));
 });

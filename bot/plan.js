@@ -268,6 +268,103 @@ export function filledBarsOf(plan, candles) {
   return { fillAt, earlyAt };
 }
 
+const M15 = 15 * 60e3;
+const touches = (x, d, lvl) => (d === 1 ? x.low <= lvl : x.high >= lvl); // long: aşağı değdi (giriş / stop); short ayna
+const reaches = (x, d, lvl) => (d === 1 ? x.high >= lvl : x.low <= lvl); // hedef yönünde değdi
+
+/**
+ * Sinyal mumu penceresi (19.11): bot 15 dakikada bir tarar, sinyal plan TF'sinin (4H) mumunun ORTASINDA gönderilebilir;
+ * takip `c.time <= sentAt` olan TF mumlarını atladığı için gönderimden sonraki ilk TF mum açılışına kadar olan süre hiç
+ * kontrol edilmiyordu (JTO 18.11: gönderim 17:45:29, 18:45 15m mumu girişe değdi, gerçek emir doldu, kâğıt "bekliyor").
+ * Pencere = gönderimden SONRA açılan 15m mumlar (s.time > sentAt) ∩ sinyal TF mumunun sonu (winEnd). Gönderimi içeren 15m
+ * mumu (17:45) sayılmaz: içindeki hareketin bir kısmı gönderimden öncedir ve hangisi olduğu bilinmez → dolum için kötümser
+ * (kaçırılan dolum, sahte dolumdan iyidir; ana döngüdeki `c.time <= sentAt` kuralının 15m karşılığı).
+ */
+export function signalWindowOf(plan, candles = []) {
+  const ms = TIMEFRAMES[plan.tf]?.ms;
+  if (!ms || plan.tf === '15m' || plan.sentAt == null) return null;
+  const c = candles.find((x) => x && x.time <= plan.sentAt && x.time + ms > plan.sentAt);
+  const barT = c ? c.time : Math.floor(plan.sentAt / ms) * ms;
+  return { barT, winEnd: barT + ms, ms };
+}
+
+/**
+ * Bu plan için alt TF (15m) mumu hâlâ gerekli mi (run.mjs lowerOf bütçesi): pencerede dolmuş (early / tp1; active zaten alır)
+ * ya da pencerede bıçağa düşmüş (confirming, knifeAt = sinyal mumu) plan, pencere kapandıktan sonra 2 TF mumu boyunca
+ * (tur kaçarsa pencerenin son 15m mumları da işlensin). Bekleyen ve dolum sırası çözülmemiş active planlar zaten alır.
+ */
+export function signalWindowPending(p, now) {
+  const w = signalWindowOf(p);
+  if (!w || now >= w.winEnd + 2 * w.ms) return false;
+  if (p.status === 'confirming') return p.knifeAt === w.barT;
+  return ['active', 'early', 'tp1'].includes(p.status) && p.confirmedAt == null && p.filledAt > p.sentAt && p.filledAt < w.winEnd;
+}
+
+/**
+ * Sinyal mumu penceresini 15m mumlarıyla işler (trackPlan, opts.lower varken). Yalnız: bekleyen plan; penceredeki dolumdan
+ * sonra açık kalan plan (filledAt pencerede: kalan 15m mumlarda stop / hedef); pencerede bıçağa düşmüş plan (stop → knife).
+ * Her tur yeniden çalışır ama yalnız durum geçişi olay üretir → aynı pencere iki kez işlenince çift olay yok.
+ * - Dolum: girişe ilk değen 15m mumu; filledAt = o 15m mumunun açılışı (TF mumu zamanı değil → sonraki turlarda dolum mumu
+ *   sırası / fillRes dalları devreye girmez). Dolum 15m mumunda stop → stop; hedef o mumda SAYILMAZ (sıra bilinmez, fillOrder ile
+ *   aynı kötümser kural); sonraki 15m mumlarda tek geçiş (stop önce) — trackPlan'ın kendisi 15m planı gibi çalıştırılır.
+ * - Dokunmadan TP1 → missed (ana döngü kuralı). Bıçak: ölçü TF mumlarıyla (son 3 mum + ATR), dolum mumu = sinyal TF mumunun
+ *   dolum 15m mumunun sonuna kadarki hali (15m'lik turdaki botun göreceği canlı mum; motor knifeBar 'lowerBar'). Bıçaksa
+ *   knifeAt = sinyal TF mumu → teyit sonraki kapanmış TF mumlarında (ana döngü, confirmBars aynı); pencerede stop → knife.
+ * @returns {{status, events, patch}|null} null: pencere yok / alt TF pencerenin başını kapsamıyor / ilgisiz durum (eski davranış)
+ */
+function windowTrack(plan, candles, now, lower, g) {
+  const w = signalWindowOf(plan, candles);
+  if (!w || !lower?.length || !(lower[0].time <= plan.sentAt + M15)) return null;
+  const win = lower.filter((s) => s && s.time > plan.sentAt && s.time < w.winEnd && s.time <= now);
+  if (!win.length) return null;
+  const d = plan.d, st = plan.status;
+  const knife = (from) => { const s = win.find((x) => x.time >= from && touches(x, d, plan.stop)); return s ? s.time : null; };
+  if (st === 'confirming') {
+    if (plan.knifeAt !== w.barT) return null;
+    const t = knife(-Infinity); // stop girişin ötesinde: stopa değen 15m mumu dokunuştan önce olamaz
+    return t != null ? { status: 'knife', events: ['knife'], patch: { closedBar: t } } : { status: st, events: [], patch: {} };
+  }
+  if (['active', 'early', 'tp1'].includes(st)) {
+    if (plan.confirmedAt != null || !(plan.filledAt > plan.sentAt && plan.filledAt < w.winEnd)) return null;
+    return afterFill(plan, win, now, [], {});
+  }
+  if (st !== 'waiting') return null;
+  for (const s of win) {
+    if (!touches(s, d, plan.entry)) {
+      if (reaches(s, d, plan.tp1)) return { status: 'missed', events: ['missed'], patch: { closedBar: s.time } };
+      continue;
+    }
+    const patch = {};
+    if (g) {
+      const i0 = candles.findIndex((x) => x && x.time === w.barT);
+      const part = lower.filter((x) => x && x.time >= w.barT && x.time <= s.time);
+      const bar = part.length && part[0].time === w.barT
+        ? { time: w.barT, open: part[0].open, high: Math.max(...part.map((x) => x.high)), low: Math.min(...part.map((x) => x.low)), close: s.close }
+        : candles[i0] ?? { ...s };
+      const arr = [...(i0 > 0 ? candles.slice(Math.max(0, i0 - 2), i0) : []), bar];
+      const a = approachOf(arr, arr.length - 1, d, plan.atr || Math.abs(plan.entry - plan.stop));
+      if (a) Object.assign(patch, a);
+      if (isKnife(a, g)) {
+        const t = knife(s.time);
+        if (g.skip || t != null) return { status: 'knife', events: ['knife'], patch: { ...patch, closedBar: t ?? s.time } };
+        return { status: 'confirming', events: ['confirming'], patch: { ...patch, knifeAt: w.barT } };
+      }
+    }
+    patch.filledAt = s.time;
+    return afterFill({ ...plan, ...patch, status: 'active' }, win, now, ['active'], patch);
+  }
+  return { status: st, events: [], patch: {} };
+}
+
+/** Penceredeki dolumdan sonra: dolum 15m mumunda yalnız stop, sonra 15m mumlarında tek geçiş (trackPlan, plan 15m gibi). */
+function afterFill(p, win, now, events, patch) {
+  const s0 = win.find((x) => x.time === p.filledAt);
+  if (s0 && p.status === 'active' && touches(s0, p.d, p.stop)) return { status: 'stopped', events: [...events, 'stopped'], patch: { ...patch, closedBar: s0.time } };
+  const rest = win.filter((x) => x.time > p.filledAt);
+  const r = trackPlan({ ...p, tf: '15m', fillRes: undefined }, rest, now, { expireHours: Infinity, knifeGuard: null, timeStop: null, lower: null });
+  return { status: r.status, events: [...events, ...r.events], patch: { ...patch, ...r.patch } };
+}
+
 /**
  * Açık planı yeni mumlarla günceller. candles: sentAt'tan sonraki mumlar (eskiden yeniye) + canlı.
  * opts.knifeGuard: düşen bıçak koruması (knifeGuardOf); açıkken waiting → confirming → active | knife | expired.
@@ -283,9 +380,16 @@ export function trackPlan(plan, candles, now = Date.now(), opts = {}) {
   const events = [], patch = {};
   let P = plan; // teyitli girişten sonra aynı turda yeni giriş / erken hedef (plan + patch)
   const knifeAt = () => patch.knifeAt ?? plan.knifeAt;
+  // Sinyal mumunun gönderimden sonraki kalanı (alt TF varken; windowTrack): sonuç ana döngünün başlangıç durumu olur.
+  const w = o.lower ? windowTrack(plan, candles, now, o.lower, g) : null;
+  if (w) {
+    status = w.status; events.push(...w.events); Object.assign(patch, w.patch); P = { ...plan, ...patch };
+    if (CLOSED.has(status)) return { status, events, patch };
+  }
   // Tura dolmuş olarak başlayan plan (active/tp1/early): dolumdan ÖNCEKİ mumlar işlenmez (limit long'da fiyat girişe
   // yukarıdan iner; o mumların tepesi erken hedefi geçmiş olabilir → sahte 'early'). Dolum mumu (fillRes / alt TF) işlenir.
-  const bars = plan.status === 'active' || plan.status === 'tp1' || plan.status === 'early' ? filledBarsOf(plan, candles) : null;
+  // Pencerede dolan plan da (filledAt = 15m mumu) aynı yoldan: sinyal TF mumu zaten atlanır, sonraki TF mumları işlenir.
+  const bars = status === 'active' || status === 'tp1' || status === 'early' ? filledBarsOf({ ...P, status }, candles) : null;
   let lastT = null; // kapanışın görüldüğü mum (geç takipte gerçek kapanış zamanı)
   for (let j = 0; j < candles.length; j++) {
     const c = candles[j];
@@ -468,7 +572,21 @@ export function onCooldown(plan, sent, now, cooldownHours) {
  * Farklı seviyedeki plan (fark > tolPct) ve dolmuş / kapanmış planlar engellemez.
  */
 export function sameWaiting(plan, sent, tolPct = 0.1) {
+  return sameEntry(plan, sent, tolPct, ['waiting']);
+}
+
+/**
+ * Aynı coin + yön + TF'de riski hâlâ tam açık (active: dolmuş, stop özgün yerinde · confirming: bıçak teyidi bekliyor) bir plan
+ * varken girişi `tolPct` içinde olan yeni plan mı? (19.11, DEDUP_WAITING=1 altında: BNB short 593,28 açıkken 593,31 ikinci
+ * plan gönderildi, iki "erken hedef" mesajı aynı dakikada.) early / tp1 (kısmi kapanmış, stop girişte) ve kapanmış planlar engellemez.
+ */
+export function sameOpen(plan, sent, tolPct = 0.1) {
+  return sameEntry(plan, sent, tolPct, ['active', 'confirming']);
+}
+
+/** sameWaiting / sameOpen ortak gövdesi: verilen durumlardaki planlarla aynı coin + yön + TF ve giriş farkı ≤ tolPct %. */
+export function sameEntry(plan, sent, tolPct = 0.1, statuses = ['waiting']) {
   if (!(plan?.entry > 0)) return false;
-  return sent.some((p) => p.status === 'waiting' && p.coin === plan.coin && p.direction === plan.direction && p.tf === plan.tf
+  return sent.some((p) => statuses.includes(p.status) && p.coin === plan.coin && p.direction === plan.direction && p.tf === plan.tf
     && p.entry > 0 && Math.abs(p.entry - plan.entry) / p.entry * 100 <= tolPct);
 }

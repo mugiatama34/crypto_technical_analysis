@@ -287,3 +287,20 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   filtresiz 23.518 $. Aynı anda 25 açık pozisyona kadar çıkıyor (%25 açık risk).
 - Testler 510 (507 geçer, 2 todo, 1 bilinen `levels`). Not: `bybitOf('PUMP')` yanlış sembol üretiyor (Bybit'te `PUMPFUNUSDT`); `backtest/sweep.mjs`
   ana modül kontrolü bu Mac'in yolunda (`~`) sessizce çalışmayabilir. İkisi de düzeltilmedi.
+
+## 19.11.2026 (yerel oturum) — dört istek: mesaj biçimi, arkadaş sistemi aktarımı, sinyal mumu penceresi, tekrar engeli
+- **İlk sinyal mesajı:** seviyeler başlığın altında, her biri ayrı satır ve tek sayı `<code>` (dokun-kopyala); sonda tek "Çıkış" satırı (`bot/telegram.js` `formatSetup`).
+- **Sinyal mumu penceresi (canlı takip düzeltmesi, `bot/plan.js` `windowTrack`):** bekleyen plan, sinyalin gönderildiği 4H mumun kalanında hiç kontrol
+  edilmiyordu (JTO 18.11: gönderim 17:45 UTC, 18:45 15m mumu girişe değdi, kullanıcının gerçek emri doldu, kâğıt "bekliyor"; TIA / SOL / XRP'deki
+  `borsa_doldu_kagit_bekliyor` sapmasının nedeni). Artık gönderimden sonra açılan 15m mumlarla işleniyor. Gerçek OKX mumlarıyla yeniden oynatma:
+  JTO eski takip dolum 19.11 04:00 → yeni 18.11 18:45. Motor (backtest) değişmedi; parity testi geçiyor. **19.11 öncesi ve sonrası canlı dolum
+  sayıları aynı havuzda toplanmaz** (dolum oranı artar). Sınır: gönderimi içeren 15m mumu sayılmaz (ilk ≤ 15 dk'daki dolum görülmez). Dağıtımda son
+  ~50 saatte gönderilmiş bekleyen planlar geriye dönük "giriş" mesajı üretebilir. Demo emrinin dolmaması (fiyat girişe yalnız değdi) Bybit demo
+  eşleştirmesidir, düzeltilemez. Bıçak koruması (`KNIFE_GUARD=1`) açıkken hızlı gelişte kâğıt hâlâ teyit bekler → gerçekle birebir için kapatmak kullanıcı kararı.
+- **Tekrar engeli genişledi (`sameOpen`, aynı `DEDUP_WAITING` bayrağı):** "aynı dakikada iki BNB erken hedef mesajı" hata değil, iki ayrı plandı
+  (593,282 dolmuşken 593,314 gönderildi). Artık `active` / `confirming` plan da engeller; `early` / `tp1` engellemez.
+- **Arkadaş sistemi aktarımı (`FRIEND_WAVE`, varsayılan KAPALI; kullanıcı açacak):** `bot/friend.js`, kayıt `docs/signals/friend.json`. Güncel sayım
+  (19.11): 4H short 15 / 15 (+20,0R, 8'i SOL, BTC 82,9k → 63,8k döneminde), long 8'de 1 (−4,2R); açık short stopları %7–16. Kanıt değil; ileriye
+  dönük sayım bu dosyada birikecek.
+- Testler: 538 (535 geçti, 1 bilinen `levels` hatası, 2 todo).
+- **Bekleyen:** ilk canlı turda yeni mesaj biçimini ve pencere dolumunu logdan kontrol et · `FRIEND_WAVE` kullanıcı kararı · `KNIFE_GUARD` kararı.

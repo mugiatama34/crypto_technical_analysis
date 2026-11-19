@@ -95,17 +95,27 @@ export function formatSetup(plan, dec, size) {
   const head = (dec.trade === 'take' ? '✅ İŞLEM ADAYI' : '⏳ BEKLE') + (dec.source === 'rules' ? ' (kural motoru)' : '');
   const tv = `https://www.tradingview.com/chart/?symbol=OKX:${plan.coin}USDT.P`;
   const sigs = [...new Set(plan.signals.filter((s) => s.direction === plan.direction || s.direction === 'neutral').map((s) => s.name))].slice(0, 8).join(' · ');
+  const BL = '\u0000'; // bilinçli boş satır işareti ('' satırları filtrelenir)
+  const fin = Number.isFinite;
+  const zone = fin(dec.entry_low) && fin(dec.entry_high) && dec.entry_low !== dec.entry_high ? ` · bölge ${fp(dec.entry_low)}–${fp(dec.entry_high)}` : '';
+  const entryLine = fin(dec.entry)
+    ? `📍 Giriş  <code>${fp(dec.entry)}</code>${plan.inZone ? ' (fiyat bölgede)' : ''}${zone}`
+    : `📍 Giriş  <code>${fp(dec.entry_low)} – ${fp(dec.entry_high)}</code>${plan.inZone ? ' (fiyat bölgede)' : ''}`;
+  const pay = fin(plan.earlyPortion) ? ` · %${Math.round(plan.earlyPortion * 100)} kapat, stop girişe` : ' · kısmi kapat, stop girişe';
   const lines = [
     `<b>${head}</b> — <b>${esc(plan.coin)}</b> ${esc(plan.tf)} ${dir}  ${CONF_ICON[dec.confidence] || ''} güven ${esc(dec.confidence)}`,
-    `Puan ${plan.score}${plan.mtf ? ` · MTF ${esc(plan.mtf.tfs.join('+'))}` : ''} · fiyat ${fp(plan.price)}`,
-    formatBreakdown(plan),
-    '',
-    `Giriş: <code>${fp(dec.entry_low)} – ${fp(dec.entry_high)}</code>${plan.inZone ? ' (fiyat bölgede)' : ''}`,
-    `Stop: <code>${fp(dec.stop)}</code>  (${pctFrom(dec.entry, dec.stop)})`,
-    `TP1: <code>${fp(dec.tp1)}</code> (${pctFrom(dec.entry, dec.tp1)} · ${dec.rr1}R)   TP2: <code>${fp(dec.tp2)}</code> (${pctFrom(dec.entry, dec.tp2)} · ${dec.rr}R)`,
+    BL,
+    entryLine,
+    `🛑 Stop  <code>${fp(dec.stop)}</code>  (${pctFrom(dec.entry, dec.stop)})`,
+    fin(plan.early) ? `⚡ Erken  <code>${fp(plan.early)}</code>  (${pctFrom(dec.entry, plan.early)}${pay})` : '',
+    `🎯 TP1  <code>${fp(dec.tp1)}</code>  (${pctFrom(dec.entry, dec.tp1)} · ${dec.rr1}R)`,
+    `🏁 TP2  <code>${fp(dec.tp2)}</code>  (${pctFrom(dec.entry, dec.tp2)} · ${dec.rr}R)`,
     maxLeverage(dec.entry, dec.stop) ? `Kaldıraç: en fazla <b>${maxLeverage(dec.entry, dec.stop)}x</b> (likidasyon stopun ≥ 1,5 katı uzakta; izole marjin, kaldıraç yalnız teminatı belirler)` : '',
     size ? `Pozisyon (risk ${size.riskUsd} USDT): ${size.qty} ${esc(plan.coin)} ≈ ${size.notional} USDT` : '',
     bybitLine(plan.coin, [['giriş', [dec.entry_low, dec.entry_high]], ['stop', dec.stop], ...(plan.early ? [['erken', plan.early]] : []), ['TP1', dec.tp1], ['TP2', dec.tp2]], size?.qty),
+    BL,
+    `Puan ${plan.score}${plan.mtf ? ` · MTF ${esc(plan.mtf.tfs.join('+'))}` : ''} · fiyat ${fp(plan.price)}`,
+    formatBreakdown(plan),
     '',
     `<b>Yapılar:</b> ${esc(sigs)}`,
     dec.evidence?.length ? `<b>Kanıt:</b>\n${dec.evidence.map((e) => `• ${esc(e)}`).join('\n')}` : '',
@@ -115,7 +125,7 @@ export function formatSetup(plan, dec, size) {
     dec.adjusted?.length ? `<i>Seviyeler kural motoruna göre düzeltildi: ${esc(dec.adjusted.join(', '))}</i>` : '',
     `<a href="${tv}">TradingView</a> · Yatırım tavsiyesi değildir.`,
   ];
-  return lines.filter((l) => l !== '').join('\n').replace(/\n{3,}/g, '\n\n');
+  return lines.filter((l) => l !== '').join('\n').replace(/\u0000/g, '').replace(/\n{3,}/g, '\n\n');
 }
 
 const STATUS_TR = { active: '▶️ Giriş bölgesine geldi', tp1: '🎯 TP1 görüldü — stop girişe çekilebilir', done: '🏁 TP2 görüldü, plan tamamlandı', stopped: '🛑 Stop oldu', expired: '⌛ Süresi doldu (fiyat bölgeye gelmedi)', missed: '💨 Girişsiz gitti (TP1 bölgeye gelmeden görüldü)', confirming: '⚠️ Bölgeye çok hızlı geldi (düşen bıçak) — teyit mumu bekleniyor', knife: '🔪 Düşen bıçak: teyitten önce stop geçildi — plan iptal (işlem yok)', unconfirmed: '⌛ Hızlı dolum teyit edilmedi — plan iptal', time_stop: '⏱️ Zaman stopu: TP1 süresinde görülmedi — kapanıştan kapat', early: '⚡ Erken hedef görüldü — kısmi kapat, stopu girişe çek', mid: '🎯 TP1 görüldü (3 kademe) — ara kısmı kapat', be: '⚪ Kalan kısım stopta kapandı (erken kâr alındı)' };

@@ -30,7 +30,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runScan } from '../src/scan/scanner.js';
-import { buildPlan, positionSize, trackPlan, onCooldown, sameWaiting, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, needsOwnCandles, mergeAgentCands } from './plan.js';
+import { buildPlan, positionSize, trackPlan, onCooldown, sameWaiting, sameOpen, signalWindowPending, CLOSED, PLAN_DEFAULTS, mergeRule, knifeGuardOf, isWeekendUtc, timeStopOf, earlyTpOf, earlyPriceOf, orphansOf, catchUpTf, needsOwnCandles, mergeAgentCands } from './plan.js';
 import { askBrain, validateDecision } from './brain.js';
 import { sendTelegramEx, sendTelegramPhotoEx, formatSetup, formatUpdate, formatUpdates, formatSummary } from './telegram.js';
 import { recordRun, recordOkx, recordTelegram, recordAgent, recordError, healthAlerts, healthLine, windowSum, dailySummaryOf } from './health.js';
@@ -45,6 +45,7 @@ import { finalR } from './review/metrics.js';
 import { applyRescore } from '../src/ui/signals-lib.js';
 import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenarioOf, panelOf } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
+import { FRIEND_URL, syncFriend, formatFriendOpen, formatFriendClose } from './friend.js';
 import { setBybitOverrides } from '../src/data/bybit-symbols.js';
 setBybitOverrides(process.env.BYBIT_MULT || ''); // Bybit çarpanlı sözleşme düzeltmeleri (JSON)
 import { featuresOf, modelProb } from '../backtest/features.js';
@@ -84,6 +85,8 @@ const CFG = {
   tgSignal: { token: env('TELEGRAM_BOT_TOKEN', ''), chatId: env('TELEGRAM_SIGNAL_CHAT_ID', '') || env('TELEGRAM_CHAT_ID', '') },
   signalShared: !!env('TELEGRAM_SIGNAL_CHAT_ID', ''),
   // Fib kesişimi izleme uyarısı (0,618×1,272; işlem sinyali değil). FIB_ALERT=1 açar; TF'ler SCAN_TFS içinde olmalı.
+  // Arkadaşın Elliott dalga botunun (Hasanwavebot) 4H kâğıt hesabındaki yeni SHORT'ları ayrı etiketle aktar (bot/friend.js). Varsayılan kapalı.
+  friendWave: env('FRIEND_WAVE', '0') === '1',
   fibAlert: env('FIB_ALERT', '0') === '1',
   fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
   fibAlertMax: +env('FIB_ALERT_MAX', 6),
@@ -281,13 +284,29 @@ async function main() {
     } catch (err) { log(`Fib uyarısı hatası: ${err.message}`); console.error(err); recordError(state, 'fib', now); }
   }
 
+  // 0b) Arkadaş sistemi aktarımı (bizim sinyal kaydına / demoya / ajanlara karışmaz; kayıt docs/signals/friend.json)
+  if (CFG.friendWave) {
+    try {
+      const ff = path.join(path.dirname(CFG.historyFile), 'friend.json');
+      let prev = null; try { prev = JSON.parse(fs.readFileSync(ff, 'utf8')); } catch { /* ilk çalıştırma */ }
+      const r = await fetch(FRIEND_URL, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const { next, opened, closed } = syncFriend(prev, await r.json(), { now });
+      for (const it of opened) await notifySignal(formatFriendOpen(it, { price: res.rows.find((x) => x.coin === it.coin && !x.error)?.price }), state);
+      for (const it of closed) await notifySignal(formatFriendClose(it), state);
+      log(`Arkadaş sistemi: ${opened.length} yeni short, ${closed.length} kapanış, izlenen ${next.items.filter((x) => x.status === 'open').length}${prev ? '' : ' (ilk çalıştırma: mevcut pozisyonlar bildirilmedi)'}`);
+      if (CFG.dry) log('DRY: friend.json yazılmadı'); else { fs.mkdirSync(path.dirname(ff), { recursive: true }); fs.writeFileSync(ff, JSON.stringify(next, null, 1)); }
+    } catch (err) { log(`Arkadaş sistemi hatası: ${err.message}`); }
+  }
+
   // 1) Açık planları güncelle. Durumda olmayan açık geçmiş kayıtları (önbellek kaybı) sessizce yeniden takibe alınır.
   const orphans = orphansOf(history.items, state.sent);
   if (orphans.length) { state.sent.push(...orphans); log(`Sahipsiz ${orphans.length} açık kayıt yeniden takibe alındı (bildirim yok)`); }
   // Dolum mumunda sıra için alt TF (15m) mumları: taramada varsa oradan, yoksa açık plan başına indir (tur başına ≤ 12)
   const lowerCache = new Map(); let lowerFetches = 0;
   const lowerOf = async (p) => {
-    if (p.tf === '15m' || !['waiting', 'active'].includes(p.status) || p.fillRes) return null;
+    // + sinyal mumunun kalanında dolmuş / bıçağa düşmüş, penceresi yeni kapanmış plan (signalWindowPending, 19.11)
+    if (p.tf === '15m' || !((['waiting', 'active'].includes(p.status) && !p.fillRes) || signalWindowPending(p, now))) return null;
     const r15 = byKey.get(`${p.coin}|15m`);
     if (r15 && !r15.error) return r15.live ? [...r15.candles, r15.live] : r15.candles;
     if (!lowerCache.has(p.coin)) {
@@ -376,6 +395,7 @@ async function main() {
     liveEligible.push(plan);
     if (onCooldown(plan, state.sent, now, rule.cooldownHours)) continue;
     if (CFG.dedupWaiting && sameWaiting(plan, state.sent, CFG.dedupPct)) { reject('aynı girişli plan bekliyor'); continue; }
+    if (CFG.dedupWaiting && sameOpen(plan, state.sent, CFG.dedupPct)) { reject('aynı girişli plan açık'); continue; } // active / confirming
     cands.push(plan);
   }
   if (MODEL) log(`Öğrenilen model ${CFG.modelMinProb > 0 ? `aktif (eşik ${CFG.modelMinProb})` : `var ama KAPALI (önerilen eşik ${MODEL.threshold ?? '–'}; açmak için MODEL_MIN_PROB)`}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)}`);
@@ -423,7 +443,9 @@ async function main() {
     if (!v.sendable) { log(`  ${plan.coin} ${plan.tf}: ${v.trade} (${v.confidence}) — gönderilmedi`); continue; }
     const size = positionSize({ ...plan, entry: v.entry, risk: Math.abs(v.entry - v.stop) }, CFG.account, CFG.riskPct);
     const early = earlyPriceOf(plan, v.entry, CFG.earlyTp);
-    await notifySignal(formatSetup(early ? { ...plan, early } : plan, v, CFG.signalShared ? null : size) + (early ? `\n⚡ Erken hedef ${early} (+%${CFG.earlyTp.pct}) → %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek; ${CFG.earlyTp.mid > 0 && plan.d * (v.tp1 - early) > 0 && plan.d * (v.tp2 - v.tp1) > 0 ? `TP1'de %${Math.round(CFG.earlyTp.mid * 100)} daha kapat${CFG.earlyTp.midStop === 'early' ? ', stopu erken hedefe çek' : ''}; kalan TP2` : 'kalan TP2'}` : ''), state);
+    const three = early && CFG.earlyTp.mid > 0 && plan.d * (v.tp1 - early) > 0 && plan.d * (v.tp2 - v.tp1) > 0;
+    const exitLine = early ? `\n<b>Çıkış:</b> erken hedefte %${Math.round(CFG.earlyTp.portion * 100)} kapat, stopu girişe çek → ${three ? `TP1'de %${Math.round(CFG.earlyTp.mid * 100)} daha kapat${CFG.earlyTp.midStop === 'early' ? ', stopu erken hedefe çek' : ''} → kalan TP2` : 'kalan TP2'}` : '';
+    await notifySignal(formatSetup(early ? { ...plan, early, earlyPortion: CFG.earlyTp.portion } : plan, v, CFG.signalShared ? null : size) + exitLine, state);
     const rec = { key: plan.key, coin: plan.coin, tf: plan.tf, direction: plan.direction, d: plan.d, entry: v.entry, stop: v.stop, tp1: v.tp1, tp2: v.tp2, rr1: v.rr1, rr: v.rr, score: plan.score, mtf: plan.mtf?.tfs || null, trade: v.trade, confidence: v.confidence, atr: plan.atr, zone: [v.entry_low, v.entry_high], ...(early ? { early, earlyPortion: CFG.earlyTp.portion, ...(CFG.earlyTp.mid > 0 ? { midPortion: CFG.earlyTp.mid, midStop: CFG.earlyTp.midStop === 'early' ? 'early' : 'entry' } : {}) } : {}), htfTrend: plan.htfTrend ?? null, cfg: cfgTag, sentAt: now, status: plan.inZone ? 'active' : 'waiting', activeAt: plan.inZone ? now : null };
     if (CFG.signalChart && row && !row.error) {
       try {

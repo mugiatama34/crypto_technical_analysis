@@ -97,6 +97,7 @@ jobs:
           SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
           DEDUP_WAITING: ${{ vars.DEDUP_WAITING }}
           DEDUP_PCT: ${{ vars.DEDUP_PCT }}
+          FRIEND_WAVE: ${{ vars.FRIEND_WAVE }}
           TIME_STOP: ${{ vars.TIME_STOP }}
           EARLY_TP: ${{ vars.EARLY_TP }}
           HTF_TREND: ${{ vars.HTF_TREND }}
@@ -135,6 +136,7 @@ jobs:
           git add docs/agent/*.json docs/signals/history.json 2>/dev/null || true
           git add docs/agent/archive 2>/dev/null || true
           git add docs/signals/demo.json 2>/dev/null || true # Bybit demo kaydı (BYBIT_DEMO=1 iken oluşur; ayrı satır: dosya yoksa diğerleri etkilenmez)
+          git add docs/signals/friend.json 2>/dev/null || true # arkadaş sistemi aktarım kaydı (FRIEND_WAVE=1 iken oluşur)
           git diff --cached --quiet && exit 0
           git commit -q -m "bot: ajan/sinyal geçmişi güncellemesi (run ${{ github.run_id }})"
           # 3 deneme; hepsi başarısızsa adım KIRMIZI biter (eskiden sleep'in 0 koduyla sessizce başarılı sayılıyordu)
