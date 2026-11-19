@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795069643705,
+ "updatedAt": 1795070549459,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1204,21 +1204,33 @@
      "at": 1795069643705,
      "qty": 50545,
      "price": 0.2559,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795069645433
     },
     "T2": {
      "link": "bd-b7ed85c4bc575d31-T2",
      "at": 1795069643705,
      "qty": 25272.5,
      "price": 0.2463,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795069645631
     },
     "T3": {
      "link": "bd-b7ed85c4bc575d31-T3",
      "at": 1795069643705,
      "qty": 25272.5,
      "price": 0.2362,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795069645814
     }
    },
    "stops": [],
