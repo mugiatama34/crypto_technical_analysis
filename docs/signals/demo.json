@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795075075728,
+ "updatedAt": 1795075981153,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1206,10 +1206,10 @@
      "qty": 50545,
      "price": 0.2559,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795069645433
+     "status": "Filled",
+     "cumExecQty": 50545,
+     "avgPrice": 0.2559,
+     "updatedAt": 1795075533460
     },
     "T2": {
      "link": "bd-b7ed85c4bc575d31-T2",
@@ -1234,7 +1234,13 @@
      "updatedAt": 1795069645814
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 0.259,
+     "at": 1795075981153,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "kagit_doldu_borsa_dolmadi",
@@ -1295,7 +1301,8 @@
     "exchangeAt": 1795069260310,
     "paperAt": 1795060800000,
     "minutes": -141
-   }
+   },
+   "stopLevel": 0.259
   },
   "ETC|4H|short|45|1795029287085": {
    "id": "ETC|4H|short|45|1795029287085",
@@ -2024,6 +2031,14 @@
    "price": 0.259,
    "qty": 101090,
    "paper": "early"
+  },
+  {
+   "at": 1795075981153,
+   "id": "JTO|4H|short|30|1795023929960",
+   "symbol": "JTOUSDT",
+   "ev": "stop",
+   "price": 0.259,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
