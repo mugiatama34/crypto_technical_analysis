@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795107187297,
+ "updatedAt": 1795108093139,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1570,10 +1570,10 @@
      "qty": 1859.5,
      "price": 5.757,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795079606269
+     "status": "Filled",
+     "cumExecQty": 1859.5,
+     "avgPrice": 5.757,
+     "updatedAt": 1795107766201
     },
     "T3": {
      "link": "bd-1f5197d30c1f1d54-T3",
@@ -1592,6 +1592,11 @@
      "price": 5.944,
      "at": 1795101756813,
      "why": "erken hedef doldu → stop girişe"
+    },
+    {
+     "price": 5.873,
+     "at": 1795108093139,
+     "why": "TP1 (ara kademe) doldu → stop erken hedefe"
     }
    ],
    "deviations": [
@@ -1654,7 +1659,7 @@
     "paperAt": 1795078800000,
     "minutes": -6
    },
-   "stopLevel": 5.944
+   "stopLevel": 5.873
   },
   "ADA|4H|short|42|1795106729287": {
    "id": "ADA|4H|short|42|1795106729287",
@@ -1678,7 +1683,11 @@
      "at": 1795107187297,
      "qty": 287319,
      "price": 0.1533,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795107189594
     }
    },
    "stops": [],
@@ -2324,6 +2333,14 @@
    "entry": 0.1533,
    "stop": 0.1569,
    "lev": 20
+  },
+  {
+   "at": 1795108093139,
+   "id": "ETC|4H|short|47|1795077041988",
+   "symbol": "ETCUSDT",
+   "ev": "stop",
+   "price": 5.873,
+   "why": "TP1 (ara kademe) doldu → stop erken hedefe"
   }
  ],
  "lastError": null
