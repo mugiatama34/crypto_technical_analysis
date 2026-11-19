@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795076886582,
+ "updatedAt": 1795077791555,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1496,6 +1496,58 @@
    "riskTarget": 1025.69,
    "leverage": 20,
    "lastAtCreate": 9.118
+  },
+  "ETC|4H|short|47|1795077041988": {
+   "id": "ETC|4H|short|47|1795077041988",
+   "coin": "ETC",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795077041988,
+   "createdAt": 1795077791555,
+   "paper": {
+    "status": "waiting",
+    "entry": 5.94422,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-1f5197d30c1f1d54-E",
+     "at": 1795077791555,
+     "qty": 7438.2,
+     "price": 5.944,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ETCUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 5.944,
+    "stop": 6.082,
+    "tp1": 5.757,
+    "tp2": 5.606,
+    "early": 5.873,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 7438.2,
+   "riskUsd": 1026.4716,
+   "riskTarget": 1026.48,
+   "leverage": 20,
+   "lastAtCreate": 5.919
   }
  },
  "insts": {
@@ -2039,6 +2091,16 @@
    "ev": "stop",
    "price": 0.259,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795077791555,
+   "id": "ETC|4H|short|47|1795077041988",
+   "symbol": "ETCUSDT",
+   "ev": "emir",
+   "qty": 7438.2,
+   "entry": 5.944,
+   "stop": 6.082,
+   "lev": 20
   }
  ],
  "lastError": null
