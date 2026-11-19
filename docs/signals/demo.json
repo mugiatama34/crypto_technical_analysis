@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795061496185,
+ "updatedAt": 1795062403234,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1180,9 +1180,9 @@
    "sentAt": 1795023929960,
    "createdAt": 1795028120580,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.259,
-    "filledAt": null,
+    "filledAt": 1795060800000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -1201,7 +1201,14 @@
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "kagit_doldu_borsa_dolmadi",
+     "at": 1795062403234,
+     "paper": "active",
+     "paperFilledAt": 1795060800000
+    }
+   ],
    "symbol": "JTOUSDT",
    "mult": 1,
    "inst": {
@@ -1386,7 +1393,11 @@
      "at": 1795061496185,
      "qty": 3256.1,
      "price": 9.545,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795061499607
     }
    },
    "stops": [],
