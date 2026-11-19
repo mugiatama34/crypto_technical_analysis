@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795119868477,
+ "updatedAt": 1795120773787,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1670,7 +1670,7 @@
    "sentAt": 1795106729287,
    "createdAt": 1795107187297,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 0.153253,
     "filledAt": 1795108500000,
     "confirmedAt": null,
@@ -1695,10 +1695,10 @@
      "qty": 143659,
      "price": 0.1515,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795109905412
+     "status": "Filled",
+     "cumExecQty": 143659,
+     "avgPrice": 0.1515,
+     "updatedAt": 1795120157791
     },
     "T2": {
      "link": "bd-aebbbfa32e6cdb1c-T2",
@@ -1723,7 +1723,13 @@
      "updatedAt": 1795109905778
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 0.1533,
+     "at": 1795120773787,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "ADAUSDT",
    "mult": 1,
@@ -1777,7 +1783,8 @@
     "exchangeAt": 1795109176182,
     "paperAt": 1795108500000,
     "minutes": -11
-   }
+   },
+   "stopLevel": 0.1533
   },
   "DOGE|4H|short|45|1795110329758": {
    "id": "DOGE|4H|short|45|1795110329758",
@@ -1788,7 +1795,7 @@
    "sentAt": 1795110329758,
    "createdAt": 1795110809343,
    "paper": {
-    "status": "active",
+    "status": "early",
     "entry": 0.0588,
     "filledAt": 1795112100000,
     "confirmedAt": null,
@@ -1813,10 +1820,10 @@
      "qty": 181529,
      "price": 0.0581,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795113530079
+     "status": "Filled",
+     "cumExecQty": 181529,
+     "avgPrice": 0.0581,
+     "updatedAt": 1795120194501
     },
     "T2": {
      "link": "bd-aa2731f50931dd0b-T2",
@@ -1841,7 +1848,13 @@
      "updatedAt": 1795113530451
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 0.0588,
+     "at": 1795120773787,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [],
    "symbol": "DOGEUSDT",
    "mult": 1,
@@ -1895,7 +1908,8 @@
     "exchangeAt": 1795112719713,
     "paperAt": 1795112100000,
     "minutes": -10
-   }
+   },
+   "stopLevel": 0.0588
   },
   "SHIB|4H|short|51|1795110329758": {
    "id": "SHIB|4H|short|51|1795110329758",
@@ -2018,11 +2032,11 @@
    "sentAt": 1795113041537,
    "createdAt": 1795113527178,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 64439.7,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795120242396,
     "R": null
    },
    "orders": {
@@ -2035,7 +2049,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795113531188
+     "updatedAt": 1795113531188,
+     "cancelAt": 1795120773787
     }
    },
    "stops": [],
@@ -2063,7 +2078,8 @@
    "riskUsd": 1026.5684,
    "riskTarget": 1026.73,
    "leverage": 20,
-   "lastAtCreate": 63221.4
+   "lastAtCreate": 63221.4,
+   "cancelWhy": "kâğıt missed"
   },
   "TRUMP|4H|short|34|1795114849797": {
    "id": "TRUMP|4H|short|34|1795114849797",
@@ -2869,6 +2885,22 @@
    "entry": 0.963,
    "stop": 0.989,
    "lev": 20
+  },
+  {
+   "at": 1795120773787,
+   "id": "ADA|4H|short|42|1795106729287",
+   "symbol": "ADAUSDT",
+   "ev": "stop",
+   "price": 0.1533,
+   "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795120773787,
+   "id": "DOGE|4H|short|45|1795110329758",
+   "symbol": "DOGEUSDT",
+   "ev": "stop",
+   "price": 0.0588,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
