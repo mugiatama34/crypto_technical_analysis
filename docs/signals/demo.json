@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795120773787,
+ "updatedAt": 1795121680270,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2046,10 +2046,10 @@
      "qty": 0.572,
      "price": 64439.7,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795113531188,
+     "updatedAt": 1795120776757,
      "cancelAt": 1795120773787
     }
    },
@@ -2062,7 +2062,7 @@
     "qtyStep": "0.001",
     "minQty": 0.001
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 64439.7,
@@ -2079,7 +2079,9 @@
    "riskTarget": 1026.73,
    "leverage": 20,
    "lastAtCreate": 63221.4,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795121680270
   },
   "TRUMP|4H|short|34|1795114849797": {
    "id": "TRUMP|4H|short|34|1795114849797",
@@ -2901,6 +2903,13 @@
    "ev": "stop",
    "price": 0.0588,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795121680270,
+   "id": "BTC|4H|short|58|1795113041537",
+   "symbol": "BTCUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
   }
  ],
  "lastError": null
