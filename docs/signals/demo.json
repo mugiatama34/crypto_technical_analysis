@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795122586204,
+ "updatedAt": 1795123491654,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -583,10 +583,10 @@
      "qty": 174.82,
      "price": 36.13,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951367082
+     "status": "Filled",
+     "cumExecQty": 174.82,
+     "avgPrice": 36.13,
+     "updatedAt": 1795122930859
     },
     "T3": {
      "link": "bd-328ef07e39fa0d23-T3",
@@ -605,6 +605,11 @@
      "price": 38.25,
      "at": 1794977667646,
      "why": "erken hedef doldu → stop girişe"
+    },
+    {
+     "price": 37.8,
+     "at": 1795123491654,
+     "why": "TP1 (ara kademe) doldu → stop erken hedefe"
     }
    ],
    "deviations": [],
@@ -661,7 +666,7 @@
     "paperAt": 1794945600000,
     "minutes": -90
    },
-   "stopLevel": 38.25
+   "stopLevel": 37.8
   },
   "BNB|4H|short|55|1794937535397": {
    "id": "BNB|4H|short|55|1794937535397",
@@ -2910,6 +2915,14 @@
    "symbol": "BTCUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
+  },
+  {
+   "at": 1795123491654,
+   "id": "DASH|4H|short|31|1794933928433",
+   "symbol": "DASHUSDT",
+   "ev": "stop",
+   "price": 37.8,
+   "why": "TP1 (ara kademe) doldu → stop erken hedefe"
   }
  ],
  "lastError": null
