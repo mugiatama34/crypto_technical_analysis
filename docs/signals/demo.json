@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795106282339,
+ "updatedAt": 1795107187297,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1655,6 +1655,58 @@
     "minutes": -6
    },
    "stopLevel": 5.944
+  },
+  "ADA|4H|short|42|1795106729287": {
+   "id": "ADA|4H|short|42|1795106729287",
+   "coin": "ADA",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795106729287,
+   "createdAt": 1795107187297,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.153253,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-aebbbfa32e6cdb1c-E",
+     "at": 1795107187297,
+     "qty": 287319,
+     "price": 0.1533,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ADAUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.1533,
+    "stop": 0.1569,
+    "tp1": 0.1479,
+    "tp2": 0.1443,
+    "early": 0.1515,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 287319,
+   "riskUsd": 1034.3484,
+   "riskTarget": 1034.35,
+   "leverage": 20,
+   "lastAtCreate": 0.1519
   }
  },
  "insts": {
@@ -1808,6 +1860,20 @@
     "tick": "0.001",
     "qtyStep": "0.1",
     "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "ADA": {
+   "at": 1795107187297,
+   "inst": {
+    "coin": "ADA",
+    "symbol": "ADAUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1,
     "minNotional": 5,
     "maxLev": 75
    }
@@ -2248,6 +2314,16 @@
    "symbol": "LINKUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
+  },
+  {
+   "at": 1795107187297,
+   "id": "ADA|4H|short|42|1795106729287",
+   "symbol": "ADAUSDT",
+   "ev": "emir",
+   "qty": 287319,
+   "entry": 0.1533,
+   "stop": 0.1569,
+   "lev": 20
   }
  ],
  "lastError": null
