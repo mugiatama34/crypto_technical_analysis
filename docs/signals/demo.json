@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795102661945,
+ "updatedAt": 1795103566913,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1488,10 +1488,10 @@
      "qty": 3256.1,
      "price": 9.545,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795061499607,
+     "updatedAt": 1795102663359,
      "cancelAt": 1795102661945
     }
    },
@@ -1504,7 +1504,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 9.545,
@@ -1521,7 +1521,9 @@
    "riskTarget": 1025.69,
    "leverage": 20,
    "lastAtCreate": 9.118,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795103566913
   },
   "ETC|4H|short|47|1795077041988": {
    "id": "ETC|4H|short|47|1795077041988",
@@ -2239,6 +2241,13 @@
    "ev": "stop",
    "price": 5.944,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795103566913,
+   "id": "LINK|4H|short|43|1795060845753",
+   "symbol": "LINKUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
   }
  ],
  "lastError": null
