@@ -102,3 +102,16 @@ seçimler dosyada `unstatedChoices` (A: 14, B: 11 madde); sonuca bakılarak hiç
   (stop kapanışla ama seviyeden yazılıyor, aynı mumda TP1 + stop = kazanç, düşük maliyet). Betiğin gerçek işlemleri ölçülmedi; bunun tek yolu
   betiğin kendi alarm / işlem listesini (TradingView hesabıyla) dışa alıp gerçek muhasebeyle yeniden hesaplamak. Başka eşik denenmez.
 
+## Ek (20.11.2026) — betiğin KENDİ işlemlerinin denetimi (ön kayıtlı test değil; n 46, karar vermez)
+Kullanıcı betiği kendi TradingView grafiğine ekleyip simülasyon tablosunu gönderdi (Binance spot BTC / ETH / SOL / XRP / DOGE, 4H, başlangıç
+20.12.2024, marjin 1.000 $, "zaman dilimine özel TP/SL" açık → 8x). Tablolardaki son 9–10 işlem (toplam 46; 26.05–13.11.2026) Binance 4H
+mumlarıyla yeniden oynatıldı: `docs/arastirma/psl-denetim/` (`trades.mjs` okunan tablolar, `replay.mjs`, çıktı `sonuc.txt`; test yok, tek seferlik denetim).
+- **İşlem planı birebir çözüldü:** tablo saati = tetik mumunun açılışı (UTC+3); giriş = tetik mumunun kapanışı; stop = giriş ± 2,000 × ATR(14,
+  Wilder, tetik mumu dahil); hedefler girişten 1 / 1,5 / 2,5 / 3,5R; 4H düzeni: kısmi kâr yok, TP1 geçilince stop TP1'e, TP3 geçilince TP2'ye,
+  TP4'te kapanış; stop mum kapanışıyla, taşınan stop sonraki mumdan. Bu kuralla **46 işlemin 46'sında K/Z tablodakiyle dolar hassasiyetinde aynı**
+  (etiket 45 / 46). Bilinmeyen tek şey tetikleyici (hangi mumda plan oluşuyor).
+- **Aynı 46 işlem, üç muhasebe** (pozisyon 8.000 $): yazarın tablosu **+2.936 $** (ort. +0,256R, PF 1,53) · aynı kural ama stopta çıkış o mumun
+  KAPANIŞ fiyatından + maliyet toplam %0,20: **−1.777 $** (ort. −0,133R, PF 0,76) · stop borsada emir (fitille, seviyeden) + %0,20: **0 $**
+  (ort. +0,001R, PF 1,00). Long 17 işlem: −1.146 / −3.192 / −1.350 $ · short 29 işlem: +4.082 / +1.415 / +1.350 $ (dönem düşüş).
+- Sınır: n 46, 5 coin, 6 ay, tek yönlü dönem, coin ve dönem seçimi kullanıcının / tablonun "son 10" sınırı. Karar değil; Aşama A / B sonucuyla aynı yönde.
+

@@ -318,4 +318,8 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   **GEÇMEDİ** (−0,003 / +0,017R, hedge'li eksi; n 672 / 453) ve betiğin 10 BTC işleminden yalnız 3'ünü üretti → "betikten esinlenen kural".
   Asıl bulgu: aynı işlemler yazarın muhasebesiyle +0,20…+0,29R. Kayıtlar: `psl.json`, `bulgular.md`, `tuzaklar.md` (madde 9), CLAUDE kapananlar.
   Testler 572 (569 geçti, 1 bilinen `levels`, 2 todo). Açık: kullanıcı isterse betiğin kendi işlem listesi (TradingView'e kendisi giriş yaparsa) gerçek muhasebeyle yeniden hesaplanır.
+- **Betiğin kendi işlemleri denetlendi (20.11, kullanıcı iş bilgisayarından tablo görüntülerini gönderdi):** 5 coin × son 9–10 işlem = 46 işlem,
+  Binance 4H mumlarıyla yeniden oynatıldı (`docs/arastirma/psl-denetim/`). İşlem planı birebir çözüldü (giriş = tetik mumu kapanışı, stop 2 × ATR14,
+  hedefler 1 / 1,5 / 2,5 / 3,5R, taşımalı stop) → 46 / 46 K/Z tabloyla aynı. Aynı işlemler: yazarın tablosu +2.936 $ · stopta kapanış fiyatından
+  çıkış + gerçekçi maliyet −1.777 $ · borsada stop emri 0 $. Tetikleyici hâlâ bilinmiyor. LINK görüntüsü bekleniyor (gelirse eklenir).
 

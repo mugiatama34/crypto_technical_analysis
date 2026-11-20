@@ -1,0 +1,54 @@
+BTC   52 S 12.11 15:00 TP4           tablo  +732 | yeniden  +732 TP4           OK | kapanış  +720 TP4           | fitil  +194 TP2+TP1 stop
+BTC   51 S 08.11 23:00 TP1+TP1 stop  tablo  +160 | yeniden  +160 TP1+TP1 stop  OK | kapanış  +131 TP1+TP1 stop  | fitil  +148 TP1+TP1 stop
+BTC   50 L 02.10 03:00 SL            tablo  -173 | yeniden  -173 SL            OK | kapanış  -209 SL            | fitil  -185 SL
+BTC   49 L 18.09 15:00 TP3+TP2 stop  tablo  +296 | yeniden  +296 TP3+TP2 stop  OK | kapanış  +258 TP3+TP2 stop  | fitil  +284 TP3+TP2 stop
+BTC   48 L 03.09 15:00 SL            tablo  -207 | yeniden  -207 SL            OK | kapanış  -264 SL            | fitil  -219 SL
+BTC   47 L 25.08 03:00 SL            tablo  -260 | yeniden  -260 SL            OK | kapanış  -305 SL            | fitil  -272 SL
+BTC   46 S 29.07 19:00 SL            tablo  -173 | yeniden  -173 SL            OK | kapanış  -197 SL            | fitil  -185 SL
+BTC   45 S 24.06 15:00 TP1+TP1 stop  tablo  +234 | yeniden  +234 TP1+TP1 stop  OK | kapanış  +107 TP1+TP1 stop  | fitil  +222 TP1+TP1 stop
+BTC   44 S 02.06 07:00 TP4           tablo  +667 | yeniden  +667 TP4           OK | kapanış  +655 TP4           | fitil  +655 TP4
+BTC   43 S 26.05 23:00 TP4           tablo  +572 | yeniden  +572 TP4           OK | kapanış  +560 TP4           | fitil  +149 TP1+TP1 stop
+ETH   52 S 13.11 03:00 TP3+TP2 stop  tablo  +476 | yeniden  +476 TP3+TP2 stop  OK | kapanış  +463 TP3+TP2 stop  | fitil  +304 TP1+TP1 stop
+ETH   51 L 21.10 15:00 SL            tablo  -240 | yeniden  -240 SL            OK | kapanış  -278 SL            | fitil  -252 SL
+ETH   50 L 11.10 15:00 SL            tablo  -156 | yeniden  -156 SL            OK | kapanış  -295 SL            | fitil  -168 SL
+ETH   49 L 29.09 11:00 SL            tablo  -217 | yeniden  -217 SL            OK | kapanış  -371 SL            | fitil  -229 SL
+ETH   48 L 18.09 19:00 TP2+TP1 stop  tablo  +266 | yeniden  +266 TP2+TP1 stop  OK | kapanış   +43 TP2+TP1 stop  | fitil  +254 TP1+TP1 stop
+ETH   47 L 14.09 07:00 TP1+TP1 stop  tablo  +211 | yeniden  +211 TP1+TP1 stop  OK | kapanış   -95 TP1+TP1 stop  | fitil  +199 TP1+TP1 stop
+ETH   46 S 01.08 19:00 SL            tablo  -211 | yeniden  -211 SL            OK | kapanış  -225 SL            | fitil  -223 SL
+ETH   45 S 17.07 07:00 SL            tablo  -253 | yeniden  -253 SL            OK | kapanış  -299 SL            | fitil  -265 SL
+ETH   44 S 30.06 03:00 SL            tablo  -308 | yeniden  -308 SL            OK | kapanış  -334 SL            | fitil  -320 SL
+SOL   66 S 13.11 03:00 TP1+TP1 stop  tablo  +345 | yeniden  +345 TP1+TP1 stop  OK | kapanış  +311 TP1+TP1 stop  | fitil  -365 SL
+SOL   65 S 08.11 23:00 TP2+TP1 stop  tablo  +281 | yeniden  +281 TP2+TP1 stop  OK | kapanış  +223 TP2+TP1 stop  | fitil  +269 TP2+TP1 stop
+SOL   64 S 02.11 19:00 SL            tablo  -287 | yeniden  -287 SL            OK | kapanış  -446 SL            | fitil  -299 SL
+SOL   63 L 21.10 15:00 SL            tablo  -270 | yeniden  -270 SL            OK | kapanış  -315 SL            | fitil  -282 SL
+SOL   62 L 12.10 07:00 SL            tablo  -224 | yeniden  -224 SL            OK | kapanış  -278 SL            | fitil  -236 SL
+SOL   61 L 25.09 11:00 SL            tablo  -324 | yeniden  -324 SL            OK | kapanış  -344 SL            | fitil  -336 SL
+SOL   60 L 20.09 23:00 TP2+TP1 stop  tablo  +275 | yeniden  +275 TP2+TP1 stop  OK | kapanış  +178 TP2+TP1 stop  | fitil  +263 TP2+TP1 stop
+SOL   59 L 18.09 07:00 TP2+TP1 stop  tablo  +277 | yeniden  +277 TP2+TP1 stop  OK | kapanış  +219 TP2+TP1 stop  | fitil  +265 TP2+TP1 stop
+SOL   58 L 06.09 03:00 SL            tablo  -269 | yeniden  -269 SL            OK | kapanış  -288 SL            | fitil  -281 SL
+XRP   68 S 12.11 15:00 TP1+TP1 stop  tablo  +351 | yeniden  +351 TP1+TP1 stop  OK | kapanış  +234 TP1+TP1 stop  | fitil  +339 TP1+TP1 stop
+XRP   67 S 05.11 23:00 TP1+TP1 stop  tablo  +346 | yeniden  +346 TP1+TP1 stop  OK | kapanış  +194 TP1+TP1 stop  | fitil  +334 TP1+TP1 stop
+XRP   66 S 29.10 23:00 SL            tablo  -316 | yeniden  -316 SL            OK | kapanış  -342 SL            | fitil  -328 SL
+XRP   65 S 22.10 19:00 TP1+TP1 stop  tablo  +266 | yeniden  +266 TP1+TP1 stop  OK | kapanış   +88 TP1+TP1 stop  | fitil  +254 TP1+TP1 stop
+XRP   64 S 15.10 03:00 SL            tablo  -321 | yeniden  -321 SL            OK | kapanış  -334 SL            | fitil  -333 SL
+XRP   63 S 12.10 15:00 TP2+TP1 stop  tablo  +223 | yeniden  +223 TP1+TP1 stop  OK | kapanış   +37 TP1+TP1 stop  | fitil  +211 TP1+TP1 stop
+XRP   62 L 21.09 19:00 TP1+TP1 stop  tablo  +341 | yeniden  +341 TP1+TP1 stop  OK | kapanış   +28 TP1+TP1 stop  | fitil  +329 TP1+TP1 stop
+XRP   61 S 10.09 11:00 TP1+TP1 stop  tablo  +269 | yeniden  +269 TP1+TP1 stop  OK | kapanış  +179 TP1+TP1 stop  | fitil  +257 TP1+TP1 stop
+XRP   60 S 11.08 07:00 SL            tablo  -185 | yeniden  -185 SL            OK | kapanış  -518 SL            | fitil  -197 SL
+DOGE  61 S 09.11 19:00 TP1+TP1 stop  tablo  +313 | yeniden  +313 TP1+TP1 stop  OK | kapanış  +282 TP1+TP1 stop  | fitil  +301 TP1+TP1 stop
+DOGE  60 S 05.11 23:00 TP1+TP1 stop  tablo  +379 | yeniden  +379 TP1+TP1 stop  OK | kapanış  +159 TP1+TP1 stop  | fitil  +367 TP1+TP1 stop
+DOGE  59 S 02.11 19:00 SL            tablo  -251 | yeniden  -251 SL            OK | kapanış  -399 SL            | fitil  -263 SL
+DOGE  58 S 22.10 07:00 TP2+TP1 stop  tablo  +277 | yeniden  +277 TP2+TP1 stop  OK | kapanış  +236 TP2+TP1 stop  | fitil  +265 TP2+TP1 stop
+DOGE  57 S 17.10 15:00 TP1+TP1 stop  tablo  +295 | yeniden  +295 TP1+TP1 stop  OK | kapanış   -32 TP1+TP1 stop  | fitil  +283 TP1+TP1 stop
+DOGE  56 S 12.10 23:00 TP1+TP1 stop  tablo  +290 | yeniden  +290 TP1+TP1 stop  OK | kapanış  +169 TP1+TP1 stop  | fitil  -310 SL
+DOGE  55 S 08.10 15:00 SL            tablo  -396 | yeniden  -396 SL            OK | kapanış  -460 SL            | fitil  -408 SL
+DOGE  54 S 07.10 03:00 TP1+TP1 stop  tablo  +306 | yeniden  +306 TP1+TP1 stop  OK | kapanış  +251 TP1+TP1 stop  | fitil  +294 TP1+TP1 stop
+DOGE  53 L 23.09 03:00 SL            tablo  -471 | yeniden  -471 SL            OK | kapanış  -876 SL            | fitil  -483 SL
+
+n 46 · K/Z eşleşen 46 · etiket eşleşen 45
+tablo toplamı       +2936 $
+yazarın muhasebesi  toplam +2936 $ · ort 0.256R · kazanan 25/46 · PF 1.53
+kapanıştan çıkış    toplam -1777 $ · ort -0.133R · kazanan 23/46 · PF 0.76
+borsada stop emri   toplam +0 $ · ort 0.001R · kazanan 23/46 · PF 1.00
+L n 17 tablo -1146 kapanış -3192 fitil -1350
+S n 29 tablo +4082 kapanış +1415 fitil +1350
