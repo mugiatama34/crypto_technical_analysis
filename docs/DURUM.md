@@ -304,3 +304,12 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   dönük sayım bu dosyada birikecek.
 - Testler: 538 (535 geçti, 1 bilinen `levels` hatası, 2 todo).
 - **Bekleyen:** ilk canlı turda yeni mesaj biçimini ve pencere dolumunu logdan kontrol et · `FRIEND_WAVE` kullanıcı kararı · `KNIFE_GUARD` kararı.
+
+## 20.11.2026 (yerel oturum) — "PSL AI" indikatörü incelendi; ön kayıt TASLAĞI
+- Kullanıcı isteği: Kripto Pusulası yayınındaki (youtube `OTQdTZl1U0s`) "PSL AI" TradingView indikatörünü yeniden üretip ölçmek.
+- Bulgu: kaynak kodu kapalı. Yayımlanan tek kural 8 ölçütlü puan (MACD, RSI, Stokastik, hacim, mum yönü, EMA50 / 169, ADX + DI, CCI); v2
+  işlem planının tetikleyicisi ve ATR katsayıları yayımlanmamış. Yayındaki getiriler yazarın kendi tablosu: stop kapanışta ama seviyeden
+  yazılıyor, aynı mumda TP1 + stop = kazanç, zaman dilimine göre geçmişe kalibrasyon, komisyon toplam %0,05, kayma / fonlama yok.
+- `docs/arastirma/on-kayit-psl-ai.md` **taslak** (Aşama A: yayımlanmış puan + 1D uyumu, 4H, kendi çıkış planımız; Aşama B: betiğin gerçek
+  seviyelerini TradingView'den okumak). **Ölçüm koşulmadı; kullanıcı onayı bekleniyor.**
+
