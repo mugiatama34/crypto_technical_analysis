@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795176009586,
+ "updatedAt": 1795176915200,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1586,10 +1586,10 @@
      "qty": 1859.6,
      "price": 5.606,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795079606806
+     "status": "Filled",
+     "cumExecQty": 1859.6,
+     "avgPrice": 5.606,
+     "updatedAt": 1795176459687
     }
    },
    "stops": [
@@ -1618,7 +1618,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 5.944,
@@ -1664,7 +1664,20 @@
     "paperAt": 1795078800000,
     "minutes": -6
    },
-   "stopLevel": 5.873
+   "stopLevel": 5.873,
+   "closed": {
+    "at": 1795176915200,
+    "pnl": 1221.1729,
+    "pnlSrc": "closed-pnl",
+    "R": 1.19,
+    "exitBy": "TP2",
+    "legs": [
+     "T1",
+     "T2",
+     "T3"
+    ],
+    "paperStatus": "early"
+   }
   },
   "ADA|4H|short|42|1795106729287": {
    "id": "ADA|4H|short|42|1795106729287",
@@ -3005,6 +3018,14 @@
    "ev": "stop",
    "price": 0.1515,
    "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+  },
+  {
+   "at": 1795176915200,
+   "id": "ETC|4H|short|47|1795077041988",
+   "symbol": "ETCUSDT",
+   "ev": "kapanış",
+   "R": 1.19,
+   "exitBy": "TP2"
   }
  ],
  "lastError": null
