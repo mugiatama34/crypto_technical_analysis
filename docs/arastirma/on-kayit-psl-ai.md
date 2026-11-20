@@ -1,7 +1,12 @@
 # Ön kayıt — "PSL AI" tarzı 8 ölçütlü gösterge puanı + üst zaman dilimi uyumu (20.11.2026)
 
-**Durum: TASLAK (kullanıcı onayı bekliyor; ölçüm koşulmadı).** Kullanıcı isteği (20.11): "indikatöre reverse engineering yapıp
-yeniden üret ve performansını biz kendimiz ölçelim". Tanım / eşik onaydan sonra değişmez (değişirse tarihli not + neden).
+**Durum: ONAYLANDI (kullanıcı, 20.11.2026 — "İki isteğini de onaylıyorum": Aşama A koşusu + Aşama B için betiğin TradingView grafiğine
+eklenmesi). Bu dosya yazıldığında bu kural için ölçüm yoktu.** Tanım / eşik değişmez (değişirse tarihli not + neden). Soru ve kaynak kullanıcının;
+gösterge dönemleri, eşik (6 / 8), 1D uyum tanımı ve çıkış planı orkestratörün seçimi.
+
+**Not (20.11.2026, koşudan önce — dönem netleştirildi):** dönem 20.11.2024 00:00 – 20.11.2026 00:00 UTC (2 yıl; sinyal mumu kapanışı bu
+aralıkta). Göstergelerin ısınması için öncesinden en az 200 günlük (1D) ve 300 mumluk (4H / 1H) veri çekilir; ısınma mumlarında sinyal
+üretilmez. Evren: 20.11.2026 itibarıyla OKX hacminde ilk 50 (tarama ile aynı liste kuralı). Eğitim / doğrulama zamanla 2/3 · 1/3.
 
 ## Nereden çıktı (görülmüş veri — kanıt sayılmaz)
 - Kaynak: Kripto Pusulası yayını (19.11.2026, youtube `OTQdTZl1U0s`) ve TradingView betiği "PSL AI - Analytical Intelligence"
