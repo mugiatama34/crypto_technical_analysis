@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795139798398,
+ "updatedAt": 1795140703566,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1925,11 +1925,11 @@
    "sentAt": 1795110329758,
    "createdAt": 1795110809343,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 0.00000388085,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795140055219,
     "R": null
    },
    "orders": {
@@ -1942,7 +1942,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795110813028
+     "updatedAt": 1795110813028,
+     "cancelAt": 1795140703566
     }
    },
    "stops": [],
@@ -1970,7 +1971,8 @@
    "riskUsd": 1034.7196,
    "riskTarget": 1034.72,
    "leverage": 20,
-   "lastAtCreate": 0.00383
+   "lastAtCreate": 0.00383,
+   "cancelWhy": "kâğıt missed"
   },
   "BNB|4H|short|65|1795113041537": {
    "id": "BNB|4H|short|65|1795113041537",
@@ -2101,11 +2103,11 @@
    "sentAt": 1795114849797,
    "createdAt": 1795115340750,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 0.963024,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795140055219,
     "R": null
    },
    "orders": {
@@ -2118,7 +2120,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795115343127
+     "updatedAt": 1795115343127,
+     "cancelAt": 1795140703566
     }
    },
    "stops": [],
@@ -2146,7 +2149,8 @@
    "riskUsd": 1035.1978,
    "riskTarget": 1035.2,
    "leverage": 20,
-   "lastAtCreate": 0.958
+   "lastAtCreate": 0.958,
+   "cancelWhy": "kâğıt missed"
   },
   "ETC|4H|short|46|1795127456536": {
    "id": "ETC|4H|short|46|1795127456536",
