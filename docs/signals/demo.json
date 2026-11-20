@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795188682337,
+ "updatedAt": 1795189586731,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1703,12 +1703,12 @@
    "sentAt": 1795106729287,
    "createdAt": 1795107187297,
    "paper": {
-    "status": "early",
+    "status": "done",
     "entry": 0.153253,
     "filledAt": 1795108500000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795188644606,
+    "R": 1.2545736434108543
    },
    "orders": {
     "E": {
@@ -1835,7 +1835,8 @@
      "T3"
     ],
     "paperStatus": "early"
-   }
+   },
+   "paperDone": true
   },
   "DOGE|4H|short|45|1795110329758": {
    "id": "DOGE|4H|short|45|1795110329758",
@@ -1882,10 +1883,10 @@
      "qty": 90764,
      "price": 0.0539,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795113530267
+     "status": "Filled",
+     "cumExecQty": 90764,
+     "avgPrice": 0.0539,
+     "updatedAt": 1795189348261
     },
     "T3": {
      "link": "bd-aa2731f50931dd0b-T3",
@@ -1904,6 +1905,11 @@
      "price": 0.0588,
      "at": 1795120773787,
      "why": "erken hedef doldu → stop girişe"
+    },
+    {
+     "price": 0.0581,
+     "at": 1795189586731,
+     "why": "TP1 (ara kademe) doldu → stop erken hedefe"
     }
    ],
    "deviations": [],
@@ -1960,7 +1966,7 @@
     "paperAt": 1795112100000,
     "minutes": -10
    },
-   "stopLevel": 0.0588
+   "stopLevel": 0.0581
   },
   "SHIB|4H|short|51|1795110329758": {
    "id": "SHIB|4H|short|51|1795110329758",
@@ -3070,6 +3076,14 @@
    "ev": "kapanış",
    "R": 1.232,
    "exitBy": "TP2"
+  },
+  {
+   "at": 1795189586731,
+   "id": "DOGE|4H|short|45|1795110329758",
+   "symbol": "DOGEUSDT",
+   "ev": "stop",
+   "price": 0.0581,
+   "why": "TP1 (ara kademe) doldu → stop erken hedefe"
   }
  ],
  "lastError": null
