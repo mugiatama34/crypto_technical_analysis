@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795186870937,
+ "updatedAt": 1795187776436,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -594,10 +594,10 @@
      "qty": 174.83,
      "price": 34.36,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1794951367264
+     "status": "Filled",
+     "cumExecQty": 174.83,
+     "avgPrice": 34.36,
+     "updatedAt": 1795187440679
     }
    },
    "stops": [
@@ -620,7 +620,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 38.25,
@@ -666,7 +666,20 @@
     "paperAt": 1794945600000,
     "minutes": -90
    },
-   "stopLevel": 37.8
+   "stopLevel": 37.8,
+   "closed": {
+    "at": 1795187776436,
+    "pnl": 1205.2096,
+    "pnlSrc": "closed-pnl",
+    "R": 1.205,
+    "exitBy": "TP2",
+    "legs": [
+     "T1",
+     "T2",
+     "T3"
+    ],
+    "paperStatus": "early"
+   }
   },
   "BNB|4H|short|55|1794937535397": {
    "id": "BNB|4H|short|55|1794937535397",
@@ -1736,10 +1749,10 @@
      "qty": 71831,
      "price": 0.1443,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795109905778
+     "status": "Filled",
+     "cumExecQty": 71831,
+     "avgPrice": 0.1443,
+     "updatedAt": 1795187371101
     }
    },
    "stops": [
@@ -1762,7 +1775,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.1533,
@@ -1808,7 +1821,20 @@
     "paperAt": 1795108500000,
     "minutes": -11
    },
-   "stopLevel": 0.1515
+   "stopLevel": 0.1515,
+   "closed": {
+    "at": 1795187776436,
+    "pnl": 1274.0331,
+    "pnlSrc": "closed-pnl",
+    "R": 1.232,
+    "exitBy": "TP2",
+    "legs": [
+     "T1",
+     "T2",
+     "T3"
+    ],
+    "paperStatus": "early"
+   }
   },
   "DOGE|4H|short|45|1795110329758": {
    "id": "DOGE|4H|short|45|1795110329758",
@@ -3026,6 +3052,22 @@
    "symbol": "ETCUSDT",
    "ev": "kapanış",
    "R": 1.19,
+   "exitBy": "TP2"
+  },
+  {
+   "at": 1795187776436,
+   "id": "DASH|4H|short|31|1794933928433",
+   "symbol": "DASHUSDT",
+   "ev": "kapanış",
+   "R": 1.205,
+   "exitBy": "TP2"
+  },
+  {
+   "at": 1795187776436,
+   "id": "ADA|4H|short|42|1795106729287",
+   "symbol": "ADAUSDT",
+   "ev": "kapanış",
+   "R": 1.232,
    "exitBy": "TP2"
   }
  ],
