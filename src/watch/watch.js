@@ -1,7 +1,9 @@
 // ★ Takip listesi (klonnist/ew-setup-scanner fikri): taramadaki kurulum dondurulur (giriş / stop / TP1 / TP2, botun buildPlan'ı)
 // ve sonraki mumlarla botun trackPlan'ı ile izlenir: bekliyor → girildi → TP1 → tamam | stop | süre doldu | kaçtı.
 // Saf fonksiyonlar + tarayıcı deposu (localStorage) + isteğe bağlı ☁ bulut eşitlemesi (özel GitHub deposu, cloud.js). DOM yok.
-import { buildPlan, trackPlan, CLOSED, PLAN_DEFAULTS } from '../../bot/plan.js';
+// 20.11: yeni kayıtlarda canlı botun 3 kademeli çıkışı (erken hedef → TP1 → TP2; WATCH_EARLY). Eski kayıtlar (early alanı yok) eski kuralla.
+import { buildPlan, trackPlan, CLOSED, PLAN_DEFAULTS, earlyPriceOf, midOk } from '../../bot/plan.js';
+import { finalR, planOpenR, earlyR } from '../ui/signals-lib.js';
 import { loadCloud, syncDoc } from '../sync/cloud.js';
 
 const KEY = 'cta-watch-v1', DEL_KEY = 'cta-watch-del-v1', CLOUD_PATH = 'watch.json';
@@ -9,7 +11,28 @@ const KEY = 'cta-watch-v1', DEL_KEY = 'cta-watch-del-v1', CLOUD_PATH = 'watch.js
 export const WATCH_LABEL = {
   waiting: 'Bekliyor', active: 'Girildi', tp1: 'TP1 görüldü', done: 'TP2 — tamam', stopped: 'Stop oldu', be: 'Başa baş',
   expired: 'Süre doldu (girişe gelmedi)', missed: 'Kaçtı (girişsiz TP1)', knife: 'Düşen bıçak', timeout: 'Zaman stopu', confirming: 'Teyit bekleniyor',
+  early: 'Erken hedef görüldü',
 };
+
+/**
+ * Erken hedef düzeni: canlı botun EARLY_TP'si ile aynı oranlar (bot/run.mjs, Variables 13.11: pct 1,2 · portion 0,5 · mid 0,25 ·
+ * midStop early) — tek yer. Erken hedefte %50 kapat + stop girişe; TP1'de %25 daha + stop erken hedefe; kalan %25 TP2.
+ * Bot yalnız 4H'de uygular; takip listesi her TF'de (kural tutmazsa eklenmez, bkz. watchEarlyOf).
+ */
+export const WATCH_EARLY = Object.freeze({ pct: 1.2, portion: 0.5, mid: 0.25, midStop: 'early' });
+
+/**
+ * Plan için erken hedef alanları ({ early, earlyPortion, midPortion, midStop }) ya da {} (eski düzen).
+ * Fiyat: bottaki earlyPriceOf (girişten kâr yönünde %pct); price verilirse o (elle kayıt). Kural: erken hedef girişin kâr
+ * tarafında ve TP1'den ÖNCE olmalı (canlı 4H geçmişinde 184 erken hedefin hepsi böyle); değilse erken hedef yok.
+ * Ara kademe (TP1'de %25) bottaki gibi midOk ile izlenir: TP2 TP1'in ötesinde değilse (tek hedef) erken + TP2 iki kademe.
+ */
+export function watchEarlyOf(p, price = null) {
+  const e = WATCH_EARLY;
+  const early = price != null ? price : earlyPriceOf(p, p.entry, { ...e, tfs: [p.tf] });
+  if (!Number.isFinite(early) || !(p.d * (early - p.entry) > 0) || !(p.d * (p.tp1 - early) > 0)) return {};
+  return { early, earlyPortion: e.portion, midPortion: e.mid, midStop: e.midStop };
+}
 
 /** Taramadaki satırdan takip kaydı; plan kurulamazsa { error }. Eşikler gevşek: kullanıcı ne gördüyse onu dondurur. */
 export function makeWatch(row, now = Date.now()) {
@@ -19,7 +42,7 @@ export function makeWatch(row, now = Date.now()) {
     id: `${p.key}|${now}`, key: p.key, coin: p.coin, instId: p.instId, tf: p.tf, direction: p.direction, d: p.d,
     entry: p.entry, stop: p.stop, tp1: p.tp1, tp2: p.tp2, rr1: p.rr1, rr: p.rr, zone: p.zone, atr: p.atr, score: p.score,
     priceAtAdd: p.price, sentAt: now, addedAt: now, status: p.status, activeAt: p.inZone ? now : null,
-    signals: p.signals.slice(0, 6).map((s) => s.name), note: '', updatedAt: now, lastPrice: p.price,
+    signals: p.signals.slice(0, 6).map((s) => s.name), note: '', updatedAt: now, lastPrice: p.price, ...watchEarlyOf(p),
   };
 }
 
@@ -28,7 +51,8 @@ const num = (v) => (typeof v === 'number' ? v : +String(v ?? '').trim().replace(
 /**
  * Elle takip kaydı (taramada olmayan işlem: arkadaşın, kendi PA işlemin…): giriş/stop/TP verilir, bot kurallarıyla izlenir.
  * tp2 boşsa tp1 (tek hedef). sentAt: kurulumun zamanı (geçmiş olabilir: o andan sonraki mumlar takip edilir).
- * expireHours: limit emrin geçerlilik süresi (vars. 24, bot ile aynı). → kayıt ya da { error }.
+ * expireHours: limit emrin geçerlilik süresi (vars. 24, bot ile aynı). early: isteğe bağlı erken hedef fiyatı (giriş ile TP1
+ * arasında; boşsa erken hedefsiz, eski düzen; doluysa WATCH_EARLY payları). → kayıt ya da { error }.
  */
 export function makeManualWatch(f, now = Date.now()) {
   const coin = String(f.coin || '').trim().toUpperCase().replace(/[-/]?USDT(\.P)?$|-USDT-SWAP$/, '');
@@ -38,6 +62,9 @@ export function makeManualWatch(f, now = Date.now()) {
   if (![entry, stop, tp1, tp2].every((x) => Number.isFinite(x) && x > 0)) return { error: 'Giriş, stop ve TP sayı olmalı' };
   if (d * (entry - stop) <= 0) return { error: `Stop ${direction === 'long' ? 'girişin altında' : 'girişin üstünde'} olmalı` };
   if (d * (tp1 - entry) <= 0 || d * (tp2 - tp1) < 0) return { error: 'Hedefler kâr yönünde ve TP2 ≥ TP1 olmalı' };
+  const early = f.early === '' || f.early == null ? null : num(f.early);
+  const ef = early == null ? {} : watchEarlyOf({ d, entry, tp1, tp2 }, early);
+  if (early != null && !ef.early) return { error: 'Erken hedef giriş ile TP1 arasında olmalı' };
   const sentAt = Number.isFinite(f.sentAt) ? Math.min(f.sentAt, now) : now, risk = d * (entry - stop);
   const label = WATCH_TAGS.includes(f.label) ? f.label : 'kendi';
   return {
@@ -45,7 +72,7 @@ export function makeManualWatch(f, now = Date.now()) {
     entry, stop, tp1, tp2, rr1: +((d * (tp1 - entry)) / risk).toFixed(2), rr: +((d * (tp2 - entry)) / risk).toFixed(2), zone: [entry, entry], atr: risk, score: null,
     priceAtAdd: null, sentAt, addedAt: now, status: 'waiting', activeAt: null, signals: [`elle · ${label}`], label, manual: true,
     expireHours: Number.isFinite(num(f.expireHours)) && num(f.expireHours) > 0 ? num(f.expireHours) : PLAN_DEFAULTS.expireHours,
-    note: String(f.note || ''), updatedAt: now, lastPrice: null,
+    note: String(f.note || ''), updatedAt: now, lastPrice: null, ...ef,
   };
 }
 
@@ -57,16 +84,31 @@ export function updateWatch(item, candles, now = Date.now()) {
   for (const ev of r.events) {
     if (ev === 'active') next.activeAt = r.patch.filledAt ?? now;
     else if (ev === 'tp1') next.tp1At = now;
+    else if (ev === 'early') next.earlyAt = r.patch.earlyAt ?? now; // erken hedef mumu (trackPlan yaması)
+    else if (ev === 'mid') next.tp1At = r.patch.midAt ?? now; // 3 kademe: TP1'de ara kapanış
     else next.closedAt = r.patch.closedBar ?? now; // geçmiş tarihli kayıtta gerçek kapanış mumu
   }
+  if (next.early != null && next.midAt && !next.tp1At) next.tp1At = next.midAt; // TP1 ile TP2 aynı mumda (mid olayı yazılmaz)
   return { item: next, events: r.events };
 }
 
-/** Anlık / sonuç R'si (TP1'de yarı + başa baş varsayımı, bot ile aynı). Bekleyen ve girişsiz kapananlar null. */
+/**
+ * Anlık / sonuç R'si. Erkensiz (eski) kayıt: TP1'de yarı + başa baş varsayımı (bot ile aynı). Erken hedefli kayıt: sinyal
+ * sayfasının finalR / planOpenR'si (signals-lib; kapanış = pay × erken R + ara pay × R1 + kalan × TP2 R ya da stop seviyesi).
+ * Bekleyen ve girişsiz kapananlar null.
+ */
 export function watchR(w) {
   const risk = w.d * (w.entry - w.stop);
   if (!(risk > 0)) return null;
   const rr1 = (w.d * (w.tp1 - w.entry)) / risk, rr2 = (w.d * (w.tp2 - w.entry)) / risk;
+  if (w.early != null) {
+    const x = { ...w, rr1, rr: rr2 }; // kesin R'ler (kayıttaki rr1/rr yuvarlanmış)
+    if (CLOSED.has(w.status)) return finalR(x);
+    const uR = (w.d * (w.lastPrice - w.entry)) / risk;
+    if (w.status === 'active') return uR;
+    if (w.status === 'early') return planOpenR(x, uR)?.R ?? null;
+    return null;
+  }
   if (w.status === 'stopped') return w.tp1At ? 0.5 * rr1 : -1;
   if (w.status === 'done') return 0.5 * rr1 + 0.5 * rr2;
   if (w.status === 'active') return (w.d * (w.lastPrice - w.entry)) / risk;
@@ -75,6 +117,29 @@ export function watchR(w) {
 }
 
 export const isOpen = (w) => !CLOSED.has(w.status);
+
+/** Erken hedefin R'si (giriş/stop'a göre) ya da null (erkensiz kayıt / plan). */
+export const watchEarlyR = (w) => (w?.early != null ? earlyR(w) : null);
+/** 3 kademe mi (TP1'de ara kapanış uygulanır mı; bottaki midOk). */
+export const watchThree = (w) => midOk(w);
+
+/** Kart / ayrıntı durum metni. Erkensiz kayıtta eski metin (TP1 sonrası stop = başa baş). */
+export function watchStatusText(w) {
+  if (w.early == null) return w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
+  if (w.status === 'early') return w.midAt ? 'TP1 görüldü (erken hedef sonrası)' : WATCH_LABEL.early;
+  if (w.status === 'be') return w.midAt && w.midStop === 'early' ? 'TP1 sonrası erken hedefte stop' : 'Erken hedef sonrası başa baş';
+  return WATCH_LABEL[w.status] || w.status;
+}
+
+/** Olay bildirimi metni. Erkensiz kayıtta eski davranış (olay tp1 değilse kaydın durumu). */
+export function watchEventText(ev, w) {
+  if (w.early == null) return WATCH_LABEL[ev === 'tp1' ? 'tp1' : w.status] || ev;
+  const pct = (x) => `%${Math.round(x * 100)}`;
+  if (ev === 'active') return WATCH_LABEL.active;
+  if (ev === 'early') return `Erken hedef görüldü (${pct(w.earlyPortion ?? WATCH_EARLY.portion)} kapat, stop girişe)`;
+  if (ev === 'mid') return `TP1 görüldü (${pct(w.midPortion ?? WATCH_EARLY.mid)} daha kapat${w.midStop === 'early' ? ', stop erken hedefe' : ''})`;
+  return watchStatusText(w);
+}
 
 export function loadWatch() {
   try { const a = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(a) ? a : []; } catch { return []; }

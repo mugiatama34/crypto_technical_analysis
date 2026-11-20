@@ -334,3 +334,13 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   kontrol listesi kartında liste. Yerelde gözle doğrulandı (BTC 15m long: 0,0R iFVG · 1,3R OB · 1,7R FVG TP1 sonrası; konsol hatası yok).
 - Bot: `shadow.pathN1 / pathN2 / pathFirstR / pathLiq` (yalnız kayıt; puan, plan, mesaj değişmez). 13.12 değerlendirmesinde n yeterliyse tek ön kayıtlı test.
 - Testler 580 (577 geçti, 1 bilinen `levels`, 2 todo). Açık: ilk canlı turda gölge alanlarının dolduğunu kontrol et.
+
+## 20.11.2026 (yerel oturum, akşam 2) — takip listesine erken hedef (botun 3 kademesi)
+- Kullanıcı isteği: ★ takip kayıtlarında yalnız TP1 / TP2 vardı. `src/watch/watch.js`: `WATCH_EARLY` (pct 1,2 · %50 · TP1'de %25 · stop erkene; bot `EARLY_TP`'nin
+  kopyası, Variables değişirse elle güncellenir), `watchEarlyOf` (erken hedef giriş ile TP1 arasındaysa eklenir; **tüm TF'lerde**, bot yalnız 4H), `watchR`
+  erken hedefli kayıtta `signals-lib` `finalR / planOpenR`. Elle kayıtta isteğe bağlı "Erken" kutusu. **Eski kayıtlar değişmez** (alan yoksa eski kural).
+- Arayüz: tarama satırı, ayrıntı, takip kartı ve ayrıntısında Erken (fiyat · R · pay), grafikte sarı Erken çizgisi, "Erken hedef görüldü" durumu / bildirimi.
+  Yerelde gözle doğrulandı (ETH 4H long: giriş 1.751,19 → erken 1.772,20 = 0,46R; konsol hatası yok).
+- Bulunan sorun: `app.js` yeni dışa aktarım isterken tarayıcı eski `watch.js`'i önbellekten verince sayfa hiç açılmıyordu → `app.js` içinde
+  `watch.js?v=11` ve `checklist.js?v=11` (index `app.js?v=11`). Bu iki modüle yeni dışa aktarım eklenince sürümü artır.
+- Testler 588 (585 geçti, 1 bilinen `levels`, 2 todo).

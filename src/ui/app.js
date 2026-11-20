@@ -1,13 +1,13 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
 import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
-import { checklistOf, CHECKS, pathObstacles, pathOverlay } from '../scan/checklist.js';
+import { checklistOf, CHECKS, pathObstacles, pathOverlay } from '../scan/checklist.js?v=11';
 import { structureOverlay } from '../detectors/structure.js';
 import { makeContext } from '../scan/context.js';
 import { runDetectors } from '../scan/registry.js';
 import { UP_TF } from '../scan/regime.js';
 import { buildPlan } from '../../bot/plan.js';
 import { scenarioSignal } from '../scan/scenario.js';
-import { makeWatch, makeManualWatch, WATCH_TAGS, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, WATCH_LABEL, syncWatchCloud, onWatchCloud } from '../watch/watch.js';
+import { makeWatch, makeManualWatch, WATCH_TAGS, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, syncWatchCloud, onWatchCloud, watchEarlyOf, watchEarlyR, watchThree, watchStatusText, watchEventText } from '../watch/watch.js?v=11'; // sürüm: yeni dışa aktarım eklenince artır (eski önbellekle sayfa açılmaz)
 import { mountCloudForm } from '../sync/cloud-ui.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
@@ -212,7 +212,7 @@ function renderRows() {
         <div><span>Hedef</span> <b>${tgtP != null && Number.isFinite(tgtP) ? fmtPrice(tgtP, r.price) : '–'}</b></div>
         ${pl ? `<div title="Takibe alınca dondurulacak plan"><span>Giriş</span> <b>${fmtPrice(pl.entry, r.price)}</b></div>
         <div><span>Stop</span> <b>${fmtPrice(pl.stop, r.price)}</b></div>
-        <div><span>TP1</span> <b>${fmtPrice(pl.tp1, r.price)}</b> <small>${pl.rr1}R</small></div>
+        ${earlyCell(pl, r.price, true)}<div><span>TP1</span> <b>${fmtPrice(pl.tp1, r.price)}</b> <small>${pl.rr1}R</small></div>
         <div><span>TP2</span> <b>${fmtPrice(pl.tp2, r.price)}</b> <small>${pl.rr}R</small></div>` : ''}
       </div>
     </article>`;
@@ -236,6 +236,19 @@ function select(r) {
   if (window.innerWidth < 1100) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/**
+ * Erken hedef (takip listesinin 3 kademeli çıkışı, watch.js WATCH_EARLY) → { price, R, pay, text } ya da null.
+ * compute: taramadaki plan için kuraldan hesapla (takibe alınca dondurulacak olan); takip kaydında yalnız kayıttaki alan
+ * (eski kayıtlar erken hedefsiz kalır).
+ */
+function earlyOf(p, compute = false) {
+  const e = p.early != null ? p : compute ? watchEarlyOf(p) : {}; if (e.early == null) return null;
+  const R = watchEarlyR({ ...p, ...e }), three = watchThree({ ...p, ...e });
+  const pay = `%${Math.round(e.earlyPortion * 100)}${three ? ` · TP1 %${Math.round(e.midPortion * 100)}` : ''}`;
+  return { price: e.early, R, pay, text: `erken ${fmtPrice(e.early)} (${R.toFixed(2)}R) %${Math.round(e.earlyPortion * 100)} kapat + stop girişe${three ? `, TP1'de %${Math.round(e.midPortion * 100)} + stop erken hedefe` : ''}, kalan TP2` };
+}
+const earlyCell = (p, ref, compute = false) => { const e = earlyOf(p, compute); return e ? `<div title="Erken hedef: ${esc(e.text)}"><span>Erken</span> <b>${fmtPrice(e.price, ref)}</b> <small>${e.R.toFixed(2)}R · ${e.pay}</small></div>` : ''; };
+
 /** Satırın planı (takibe alınca dondurulacak olanla aynı: makeWatch'taki gevşek buildPlan); satır başına bir kez hesaplanır. */
 const planCache = new WeakMap();
 function planOf(r) {
@@ -252,7 +265,7 @@ function renderDetail(r) {
     ['Fiyat', fmtPrice(r.price)], ['ATR', fmtPrice(r.atr, r.price)], ['Küme puanı', `${r.score}`],
     ['MTF', r.mtf ? `${r.mtf.direction === r.direction ? r.mtf.tfs.join('+') : 'çelişkili'} · ${r.mtf.score}` : '–'],
     ['vs BTC (20 bar)', r.trend?.rsBtc != null ? `${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}% · ${r.trend.rsSide > 0 ? 'güçlü' : 'zayıf'}` : '–'],
-    ...(planOf(r) ? ((pl) => [['Giriş', fmtPrice(pl.entry, r.price)], ['Stop', fmtPrice(pl.stop, r.price)], ['TP1', `${fmtPrice(pl.tp1, r.price)} · ${pl.rr1}R`], ['TP2', `${fmtPrice(pl.tp2, r.price)} · ${pl.rr}R`]])(planOf(r)) : []),
+    ...(planOf(r) ? ((pl) => [['Giriş', fmtPrice(pl.entry, r.price)], ['Stop', fmtPrice(pl.stop, r.price)], ...((eo) => (eo ? [['Erken', `${fmtPrice(eo.price, r.price)} · ${eo.R.toFixed(2)}R · ${eo.pay}`]] : []))(earlyOf(pl, true)), ['TP1', `${fmtPrice(pl.tp1, r.price)} · ${pl.rr1}R`], ['TP2', `${fmtPrice(pl.tp2, r.price)} · ${pl.rr}R`]])(planOf(r)) : []),
   ];
   $('#detail').innerHTML = `
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>
@@ -407,7 +420,8 @@ async function addWatch(r) {
   if (w.error) { banner(`Takibe alınamadı: ${w.error}`, 'err'); return; }
   try { const cl = await checklistFor(r); if (!cl.error) w.checklist = { n: cl.n, of: cl.of, items: cl.items.map((x) => ({ id: x.id, ok: x.ok })) }; } catch { /* check list'siz */ }
   state.watch = saveWatch([w, ...state.watch]); $('#watchPanel').open = true;
-  banner(`★ ${r.coin} ${r.tf} ${r.direction.toUpperCase()} takipte: giriş ${fmtPrice(w.entry)}, stop ${fmtPrice(w.stop)}, TP1 ${fmtPrice(w.tp1)}, TP2 ${fmtPrice(w.tp2)}.`);
+  const eo = earlyOf(w);
+  banner(`★ ${r.coin} ${r.tf} ${r.direction.toUpperCase()} takipte: giriş ${fmtPrice(w.entry)}, stop ${fmtPrice(w.stop)}, ${eo ? `${eo.text}; ` : ''}TP1 ${fmtPrice(w.tp1)}, TP2 ${fmtPrice(w.tp2)}.`);
   try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch { /* yok */ }
   renderWatch(); renderDetail(r);
 }
@@ -436,7 +450,7 @@ async function refreshWatch() {
     state.watch = state.watch.map((w) => {
       if (`${w.instId}|${w.tf}` !== key || !isOpen(w)) return w;
       const { item, events } = updateWatch(w, cs, now);
-      for (const ev of events) msgs.push(`${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${WATCH_LABEL[ev === 'tp1' ? 'tp1' : item.status] || ev}`);
+      for (const ev of events) msgs.push(`${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${watchEventText(ev, item)}`);
       return item;
     });
   }
@@ -453,14 +467,14 @@ function renderWatch() {
   if (!list.length) { $('#watchList').innerHTML = '<p class="empty">Henüz takip yok. Bir satır seçip ayrıntıda "☆ Takibe al"a bas.</p>'; return; }
   $('#watchList').innerHTML = list.map((w) => {
     const R = watchR(w);
-    const st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
+    const st = watchStatusText(w);
     return `<article class="watch ${isOpen(w) ? '' : 'closed'}${state.selected === `watch|${w.id}` ? ' sel' : ''}" data-id="${esc(w.id)}" role="button" tabindex="0" title="Ayrıntı ve grafik için dokun">
       <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
         <span class="badge">${esc(st)}</span>${w.label ? `<span class="badge tag">${esc(w.label)}</span>` : ''}${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
         <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
       <div class="row-grid">
         <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>
-        <div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
+        ${earlyCell(w)}<div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
         <div><span>Son fiyat</span> <b>${fmtPrice(w.lastPrice)}</b> <small>${fmtTime(w.updatedAt)}</small></div><div><span>Eklendi</span> <b>${fmtTime(w.addedAt)}</b></div>
       </div>
       <div class="sig-note">${esc((w.signals || []).join(' · '))}</div>
@@ -477,18 +491,19 @@ async function renderWatchDetail(w) {
   state.selected = `watch|${w.id}`;
   for (const el of document.querySelectorAll('.row')) el.classList.remove('sel');
   for (const el of document.querySelectorAll('.watch')) el.classList.toggle('sel', el.dataset.id === w.id);
-  const R = watchR(w), st = w.status === 'stopped' && w.tp1At ? 'TP1 sonrası başa baş' : WATCH_LABEL[w.status] || w.status;
+  const R = watchR(w), st = watchStatusText(w), eo = earlyOf(w);
   const tv = `https://www.tradingview.com/chart/?symbol=OKX:${encodeURIComponent(w.coin + 'USDT.P')}`;
   const cl = w.checklist?.items ? w.checklist.items.map((x) => ({ ...CHECKS.find((c) => c.id === x.id), ok: x.ok })).filter((x) => x.label) : null;
-  const when = [['Eklendi', w.addedAt], ['Girildi', w.activeAt], ['TP1', w.tp1At], ['Kapandı', w.closedAt]].filter(([, t]) => t);
+  const when = [['Eklendi', w.addedAt], ['Girildi', w.activeAt], ['Erken', w.earlyAt], ['TP1', w.tp1At], ['Kapandı', w.closedAt]].filter(([, t]) => t);
   $('#detail').innerHTML = `
     <div class="detail-head"><h3>★ ${esc(w.coin)} <small class="row-tf">${w.tf}</small></h3><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
       <span class="badge">${esc(st)}</span>${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showStructW" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label></div>
     <div class="chart" id="chart"><p class="empty">Mumlar yükleniyor…</p></div>
-    <div class="stat-strip">${[['Giriş', fmtPrice(w.entry)], ['Stop', fmtPrice(w.stop)], ['TP1', `${fmtPrice(w.tp1)} · ${w.rr1}R`], ['TP2', `${fmtPrice(w.tp2)} · ${w.rr}R`], ['Son fiyat', fmtPrice(w.lastPrice)]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
+    <div class="stat-strip">${[['Giriş', fmtPrice(w.entry)], ['Stop', fmtPrice(w.stop)], ...(eo ? [['Erken', `${fmtPrice(eo.price)} · ${eo.R.toFixed(2)}R · ${eo.pay}`]] : []), ['TP1', `${fmtPrice(w.tp1)} · ${w.rr1}R`], ['TP2', `${fmtPrice(w.tp2)} · ${w.rr}R`], ['Son fiyat', fmtPrice(w.lastPrice)]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
     <p class="note">${when.map(([k, t]) => `${k} ${fmtTime(t)}`).join(' · ')}${w.priceAtAdd ? ` · eklendiğinde fiyat ${fmtPrice(w.priceAtAdd)}` : ''}</p>
+    <p class="note">Çıkış: ${eo ? esc(eo.text) + ' (canlı botun 3 kademesi)' : 'TP1\'de yarı + stop girişe, kalan TP2 (erken hedefsiz kayıt)'}</p>
     ${cl ? `<div class="checklist"><h2>Check list (takibe alındığı an) <b>${cl.filter((x) => x.ok === true).length}/${cl.length}</b></h2><ul class="cl">${cl.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev">${esc(x.ev)}</small></span></li>`).join('')}</ul></div>` : '<p class="note">Bu kayıtta check list yok (check list eklenmeden önce takibe alınmış).</p>'}
     <h2>Sinyaller (takibe alındığı an)</h2><div class="sig-note">${esc((w.signals || []).join(' · ')) || '–'}</div>
     ${w.note ? `<h2>Not</h2><div class="sig-note">${esc(w.note)}</div>` : ''}`;
@@ -503,7 +518,7 @@ async function renderWatchDetail(w) {
     const { item, events } = updateWatch(w, all, Date.now());
     if (events.length || item.lastPrice !== w.lastPrice) {
       state.watch = state.watch.map((x) => (x.id === w.id ? item : x)); state.watch = saveWatch(state.watch); renderWatch();
-      if (events.length) notifyWatch(`★ ${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${events.map((ev) => WATCH_LABEL[ev === 'tp1' ? 'tp1' : item.status] || ev).join(' · ')}`);
+      if (events.length) notifyWatch(`★ ${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${events.map((ev) => watchEventText(ev, item)).join(' · ')}`);
       return renderWatchDetail(item);
     }
   }
@@ -511,12 +526,14 @@ async function renderWatchDetail(w) {
   const sig = { id: 'watch', name: 'Takip', type: 'watch', group: 'smc', direction: w.direction, strength: 1, draw: [
     { kind: 'hline', price: w.entry, color: '#3987e5', label: 'Giriş', style: 'solid' },
     { kind: 'hline', price: w.stop, color: '#ef5350', label: 'Stop', style: 'dashed' },
+    ...(eo ? [{ kind: 'hline', price: eo.price, color: '#f0c75e', label: 'Erken', style: 'dotted' }] : []),
     { kind: 'hline', price: w.tp1, color: '#7cc4a8', label: 'TP1', style: 'dashed' },
     { kind: 'hline', price: w.tp2, color: '#7cc4a8', label: 'TP2', style: 'dashed' },
     ...mk(w.addedAt, '★ eklendi', '#f0c75e'),
     ...(w.activeAt ? mk(w.activeAt, 'giriş', '#3987e5', w.d === 1 ? 'belowBar' : 'aboveBar', w.d === 1 ? 'arrowUp' : 'arrowDown') : []),
+    ...(w.earlyAt ? mk(w.earlyAt, 'Erken', '#f0c75e') : []),
     ...(w.tp1At ? mk(w.tp1At, 'TP1', '#7cc4a8') : []),
-    ...(w.closedAt ? mk(w.closedAt, st, w.status === 'done' ? '#7cc4a8' : '#ef5350') : []),
+    ...(w.closedAt ? mk(w.closedAt, st, w.status === 'done' || (w.status === 'be' && w.earlyAt) ? '#7cc4a8' : '#ef5350') : []),
   ] };
   $('#chart').innerHTML = '';
   drawRow($('#chart'), cs, data.live, withStruct([sig], { candles: cs, live: data.live, tf: w.tf, coin: w.coin }), all[all.length - 1]?.close);
@@ -546,10 +563,10 @@ function bindWatch() {
   $('#mAdd').addEventListener('click', () => {
     const v = (id) => $(id).value;
     const t = Date.parse(v('#mTime')); // datetime-local = cihazın yerel saati
-    const w = makeManualWatch({ coin: v('#mCoin'), tf: v('#mTf'), direction: v('#mDir'), entry: v('#mEntry'), stop: v('#mStop'), tp1: v('#mTp1'), tp2: v('#mTp2'), label: v('#mTag'), expireHours: v('#mExp'), note: v('#mNote'), sentAt: Number.isFinite(t) ? t : Date.now() });
+    const w = makeManualWatch({ coin: v('#mCoin'), tf: v('#mTf'), direction: v('#mDir'), entry: v('#mEntry'), stop: v('#mStop'), tp1: v('#mTp1'), tp2: v('#mTp2'), early: v('#mEarly'), label: v('#mTag'), expireHours: v('#mExp'), note: v('#mNote'), sentAt: Number.isFinite(t) ? t : Date.now() });
     if (w.error) { $('#mMsg').textContent = w.error; return; }
-    state.watch = saveWatch([w, ...state.watch]); $('#mMsg').textContent = `${w.coin} ${w.tf} ${w.direction} eklendi (${w.rr1}R / ${w.rr}R).`;
-    for (const id of ['#mEntry', '#mStop', '#mTp1', '#mTp2', '#mNote']) $(id).value = '';
+    state.watch = saveWatch([w, ...state.watch]); $('#mMsg').textContent = `${w.coin} ${w.tf} ${w.direction} eklendi (${w.rr1}R / ${w.rr}R${w.early != null ? ` · erken ${watchEarlyR(w).toFixed(2)}R` : ''}).`;
+    for (const id of ['#mEntry', '#mStop', '#mEarly', '#mTp1', '#mTp2', '#mNote']) $(id).value = '';
     renderWatch(); refreshWatch();
   });
   $('#watchImport').addEventListener('change', async (e) => {

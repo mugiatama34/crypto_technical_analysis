@@ -81,6 +81,15 @@ başa baş) | Süre doldu (24 saat) | Kaçtı. Her taramada, "Güncelle" ile ve 
 değişince bildirim. Not alanı, ✕, "Kapananları sil", JSON dışa/içe aktar. Liste yalnız bu tarayıcıda (`src/watch/watch.js`).
 Karta dokununca ayrıntı: grafik (giriş / stop / TP1 / TP2 çizgileri; ★ eklendi, giriş, TP1 ve kapanış işaretleri), takibe
 alındığı anki check list, sinyaller ve not.
+**Erken hedef (20.11, canlı botla aynı 3 kademe):** yeni kayıtlara erken hedef dondurulur: girişten kâr yönünde %1,2
+(`earlyPriceOf`); orada %50 kapat + stop girişe → TP1'de %25 daha + stop erken hedefe → kalan %25 TP2 (oranlar tek yerde:
+`WATCH_EARLY`, `src/watch/watch.js`; bot `EARLY_TP` Variables'ı ile aynı, sonradan Variables değişirse buradan güncellenir).
+Bot erken hedefi yalnız **4H**'de kullanır; takip listesi **tüm TF'lerde** uygular ama yalnız erken hedef girişle TP1 arasındaysa
+(değilse kayıt erken hedefsiz, eski "TP1'de yarı + başa baş" düzeniyle). TP2 = TP1 ise ara kademe yok (erken %50 + TP2 %50).
+İzleme botun `trackPlan`'ı (durumlar: Erken hedef görüldü → başa baş / TP1 sonrası erken hedefte stop / TP2), R sinyal sayfasının
+`finalR` / `planOpenR`'si (`src/ui/signals-lib.js`). Elle kayıtta isteğe bağlı "Erken hedef" kutusu (boş = yok; giriş ile TP1
+arasında olmalı). Kartta / ayrıntıda Erken satırı (fiyat · R · pay), zaman çizelgesinde ve grafikte (sarı noktalı çizgi + işaret);
+taramadaki plan özetinde de görünür. **Eski kayıtlar** (alan yok) değişmez, eski kuralla izlenir. Test: `tests/watch-early.test.js`.
 
 **Yapı katmanı** (tarayıcı ayrıntısında "Yapı HH/HL · BOS" kutusu, coin sayfasında Katmanlar → "Yapı"): son 8 swing noktası
 HH/HL/LH/LL etiketiyle ve son 4 yapı kırılımı (BOS/CHoCH) kesikli çizgi + etiketle (`structureOverlay`, yapı detektörüyle

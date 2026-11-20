@@ -79,6 +79,7 @@
           <label>Etiket <select id="mTag"><option>arkadaş</option><option>kendi</option><option>izlenen</option><option>bot</option></select></label>
           <label>Giriş <input id="mEntry" inputmode="decimal"></label>
           <label>Stop <input id="mStop" inputmode="decimal"></label>
+          <label title="İsteğe bağlı: giriş ile TP1 arasında. Doluysa botun 3 kademesi: erken hedefte %50 + stop girişe, TP1'de %25 + stop erken hedefe, kalan TP2">Erken hedef <input id="mEarly" inputmode="decimal" placeholder="boş = yok"></label>
           <label>TP1 <input id="mTp1" inputmode="decimal"></label>
           <label>TP2 <input id="mTp2" inputmode="decimal" placeholder="boş = TP1"></label>
           <label>Kurulum zamanı <input id="mTime" type="datetime-local"></label>
@@ -144,6 +145,6 @@
   </footer>
 </div>
 <script src="lib/lightweight-charts.standalone.production.js"></script>
-<script type="module" src="src/ui/app.js?v=9"></script>
+<script type="module" src="src/ui/app.js?v=11"></script>
 </body>
 </html>
