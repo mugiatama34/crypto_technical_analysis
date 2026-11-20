@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795140703566,
+ "updatedAt": 1795141608775,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1711,10 +1711,10 @@
      "qty": 71829,
      "price": 0.1479,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795109905594
+     "status": "Filled",
+     "cumExecQty": 71829,
+     "avgPrice": 0.1479,
+     "updatedAt": 1795141504791
     },
     "T3": {
      "link": "bd-aebbbfa32e6cdb1c-T3",
@@ -1733,6 +1733,11 @@
      "price": 0.1533,
      "at": 1795120773787,
      "why": "erken hedef doldu → stop girişe"
+    },
+    {
+     "price": 0.1515,
+     "at": 1795141608775,
+     "why": "TP1 (ara kademe) doldu → stop erken hedefe"
     }
    ],
    "deviations": [],
@@ -1789,7 +1794,7 @@
     "paperAt": 1795108500000,
     "minutes": -11
    },
-   "stopLevel": 0.1533
+   "stopLevel": 0.1515
   },
   "DOGE|4H|short|45|1795110329758": {
    "id": "DOGE|4H|short|45|1795110329758",
@@ -1939,10 +1944,10 @@
      "qty": 9492840,
      "price": 0.003881,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795110813028,
+     "updatedAt": 1795140705275,
      "cancelAt": 1795140703566
     }
    },
@@ -1955,7 +1960,7 @@
     "qtyStep": "10",
     "minQty": 10
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.003881,
@@ -1972,7 +1977,9 @@
    "riskTarget": 1034.72,
    "leverage": 20,
    "lastAtCreate": 0.00383,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795141608775
   },
   "BNB|4H|short|65|1795113041537": {
    "id": "BNB|4H|short|65|1795113041537",
@@ -2117,10 +2124,10 @@
      "qty": 39815.3,
      "price": 0.963,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795115343127,
+     "updatedAt": 1795140705464,
      "cancelAt": 1795140703566
     }
    },
@@ -2133,7 +2140,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.963,
@@ -2150,7 +2157,9 @@
    "riskTarget": 1035.2,
    "leverage": 20,
    "lastAtCreate": 0.958,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795141608775
   },
   "ETC|4H|short|46|1795127456536": {
    "id": "ETC|4H|short|46|1795127456536",
@@ -2974,6 +2983,28 @@
    "symbol": "ETCUSDT",
    "ev": "atlandı",
    "why": "aynı sembolde açık demo işi var"
+  },
+  {
+   "at": 1795141608775,
+   "id": "SHIB|4H|short|51|1795110329758",
+   "symbol": "SHIB1000USDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
+  },
+  {
+   "at": 1795141608775,
+   "id": "TRUMP|4H|short|34|1795114849797",
+   "symbol": "TRUMPUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
+  },
+  {
+   "at": 1795141608775,
+   "id": "ADA|4H|short|42|1795106729287",
+   "symbol": "ADAUSDT",
+   "ev": "stop",
+   "price": 0.1515,
+   "why": "TP1 (ara kademe) doldu → stop erken hedefe"
   }
  ],
  "lastError": null
