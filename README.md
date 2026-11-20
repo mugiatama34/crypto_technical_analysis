@@ -679,6 +679,9 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **Bybit hacim eşiği ölçümü (18.11, ön kayıtlı: `docs/arastirma/on-kayit-hacim-esigi.md`)**: `backtest/liq.mjs` (+ saf kısım `liq.js`,
   test `tests/liq.test.js`) → `docs/backtest/liq.json`. YEREL koşu (Bybit API Actions'tan kapalı): `node backtest/liq.mjs`; Bybit günlük
   cirosu `backtest/cache/liq/bybit-turnover.json` önbelleğinde. Kayma duyarlılığı, 100.000 $ hesabı (bileşik %1 / sabit 1.000 $) dahil.
+- **"PSL AI" tarzı 8 ölçütlü puan ölçümü (20.11, ön kayıtlı: `docs/arastirma/on-kayit-psl-ai.md`, Aşama A)**: `backtest/psl.mjs` (+ saf kısım
+  `psl.js`: 8 ölçüt, CCI, 1D EMA50/169 uyumu, motor + yazarın muhasebesi / 4 hedef simülatörü; test `tests/psl.test.js`) → `docs/backtest/psl.json`.
+  YEREL koşu: `node backtest/psl.mjs` (mumlar `backtest/cache/psl/`); ön kayıtta yazmayan seçimler JSON'da `unstatedChoices`.
 - **Sinyal kanalı (17.11)**: Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa işlem sinyalleri (kurulum mesajı + grafiği, takip güncellemeleri, sonuç
   grafiği) yalnız o sohbete / kanala gider; özet, denetçi, momentum, fib uyarısı, sabah özeti ve sağlık uyarıları ana sohbette kalır.
   Paylaşılan kanalda kişisel "Pozisyon (risk … USDT)" satırı yazılmaz. Boşsa davranış değişmez. Bot kanalda yönetici olmalı.
