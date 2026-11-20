@@ -3,13 +3,15 @@
 // → docs/backtest/psl.json. Bugünün OKX hacminde ilk 50 USDT sürekli vadelisi, sinyal mumu kapanışı 20.11.2024–20.11.2026 UTC.
 // Karar satırı + bilgi satırları (eşik 5 / 7, üst TF şartsız, long / short, 1H, yazarın muhasebesi, 4 hedef, kümelenme). Saf kısım: psl.js.
 //   node backtest/psl.mjs                                                         (tam koşu, yerel)
+//   node backtest/psl.mjs --clone                                                 (Aşama B klon: psl.json'a 'clone' anahtarı; Aşama A alanları aynen)
 //   node backtest/psl.mjs --coins BTC,ETH --out /tmp/x --cache /tmp/c --no1h      (deneme; yorumlanmaz)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getTopCoins, instIdOf, TIMEFRAMES } from '../src/data/okx.js';
 import { getHistoryCached } from './data.js';
-import { PSL, DAY, ROWS, indicatorsOf, dailyOf, runSeries, simFor, pslReport } from './psl.js';
+import zlib from 'node:zlib';
+import { PSL, DAY, ROWS, indicatorsOf, dailyOf, runSeries, simFor, pslReport, CLONE, htfOf, runClone, cloneRecord, cloneValidation, cloneReport } from './psl.js';
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : (process.argv.includes(`--${k}`) ? true : d); };
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -99,4 +101,66 @@ async function main() {
   const p = out.groups.primary;
   log(`Bitti: ${out.meta.elapsedSec} sn → ${file}; karar n eğ ${p.train.n} / doğr ${p.valid.n} → ${out.result}`);
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((e) => { console.error(e); process.exit(1); });
+
+export const CLONE_UNSTATED = [
+  'Üst TF mumları: haftalık (Pazartesi 00:00 UTC) ve aylık (takvim ayı UTC) mumlar OKX 1D mumlarından toplandı (açılış ilk gün, tepe / dip uç, kapanış son gün, hacim toplam); yalnız kapanışı ≤ sinyal anı olan mum kullanılır. Coin\'in ilk (kısmi) haftası / ayı da mum sayılır. 1D: açılışı + 1 gün ≤ T.',
+  'Üst TF yönü: o mumda 8 ölçütlü puanın long > short → AL, short > long → SAT; eşitse uyumlu değil. Hesaplanamayan ölçüt (ör. aylıkta EMA169) oy vermez; Aşama A\'nın sınır kuralları (açık aralıklar) aynen. Üst TF\'de eşik yok (yalnız büyük taraf).',
+  '"Yön terse dönerse": madde 1\'e göre ters yön sinyali (ters taraf ≥ 6 ve büyük). Puanın 6\'nın altına inmesi planı iptal etmez. "Uyum bozulursa": üç üst TF\'den biri plan yönünde değil. Plana süre sınırı yok.',
+  'Bir mumda sıra: önce iptal kontrolü, sonra tetik (kapanış seviyenin ötesinde → o kapanıştan giriş); iptal edilen mumda koşullar sağlanıyorsa yeni plan aynı mumda oluşabilir. Plan oluştuğu mumda tetiklenemez (seviye o mumu içerir).',
+  'Durum makinesi her coinde ısınmadan (ilk 300 mum) sonra tüm seri boyunca koşar; dönem filtresi tetik mumunun KAPANIŞINA (= giriş) uygulanır [20.11.2024, 20.11.2026). Bölme 2/3, tetik kapanışına göre.',
+  'Açık işlem çıkış mumuna kadar coinde yeni plan engeller (kilit KARAR muhasebesinin çıkışına göre); çıkış mumunun kapanışında yeni plan serbest. Yazarın muhasebesi satırı aynı işlemleri (aynı tetikler) kendi çıkışıyla yazar.',
+  'Hedefler fitille, sırayla; bir mumda birden çok hedef geçilebilir. Bizim muhasebe: önce mum başındaki stopa göre kapanış (aynı mumda hedef + stop → stop); hedefler stopu taşıdıktan sonra kapanış taşınmış stopun ötesindeyse de o kapanıştan çıkış (dokunuş kapanıştan önce olduğu için nedensel). Yazar: hedefler önce, kapanış taşınmış stopun ötesindeyse stop seviyesinden.',
+  'Kayma: giriş (tetik kapanışı) ve stop çıkışı (kapanış) aleyhe %0,05; hedef çıkışları limit, kaymasız. Komisyon 2 × fee × giriş. R birimi |seviye − geçersiz| = 2 ATR (gerçek giriş seviyenin ötesinde olduğundan stopta kayıp genelde > 1R).',
+  'Hedge\'li R: sweep.mjs hedgeOf aynen; BTC başlangıcı tetik mumunun kapanışı (= giriş), bitiş çıkış mumunun kapanışı; kısmi çıkış yok (tam pozisyon); R birimine çevirmek için hedgeOf\'a stop = giriş ∓ 2 ATR verilir. Yazar satırında hedge komisyonu %0,025.',
+  'Veri sonunda açık kalan işlem son kapanmış mumun kapanışından (kayma dahil). Aşama A ile aynı evren (psl.json meta.coins) ve aynı önbellek mumları.',
+  'Doğrulama: betik tablosundaki saatler (UTC+3) mum AÇILIŞI sayıldı → UTC; klonun tetik mumu açılışıyla aynı yön ve ± 1 mum içinde eşleşme (tek tek, en yakın). Fazladan işlem = [ilk − 1 mum, son + 1 mum] aralığında eşleşmeyen klon tetikleri. Panel karşılaştırması: önbellekteki BTC 4H serisinin son 3000 mumunda tetiklenen işlemler ve TP1\'e (fitil) ulaşanların payı (betik görüntüsünün alındığı an bilinmiyor; OKX ↔ Bitget fitil farkı).',
+];
+
+const loadCached = (dir, instId, tf) => { try { return JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(dir, `${instId}_${tf}.json.gz`))).toString()).candles; } catch { return null; } };
+
+async function cloneMain() {
+  const t0 = Date.now();
+  const file = String(arg('file', 'docs/backtest/psl.json')), cacheDir = String(arg('cache', 'backtest/cache/psl'));
+  const raw = fs.readFileSync(file, 'utf8'), base = JSON.parse(raw);
+  const coins = base.meta.coins;
+  const get = async (instId, tf) => loadCached(cacheDir, instId, tf) || getHistoryCached(instId, tf, tf === '1D' ? Date.UTC(2017, 0, 1) : PSL.period.from - 200 * DAY, Date.now(), { cacheDir });
+  const btc4 = await get(instIdOf('BTC'), '4H');
+  const recs = { real: [], author: [] }, coverage = {}, skipped = {};
+  let validation = null;
+  for (const coin of coins) {
+    const instId = instIdOf(coin);
+    let daily, c4;
+    try { daily = await get(instId, '1D'); c4 = coin === 'BTC' ? btc4 : await get(instId, '4H'); } catch (e) { skipped[coin] = e.message; continue; }
+    if (!daily?.length || !c4 || c4.length <= PSL.warmBars) { skipped[coin] = `${c4?.length || 0} 4H mum`; continue; }
+    const htf = htfOf(daily), ind = indicatorsOf(c4);
+    const r = runClone(c4, { tf: '4H', ind, htf, accts: ['real', 'author'] });
+    const real = r.trades.map((x) => cloneRecord(c4, coin, '4H', x, 'real', btc4));
+    const au = r.trades.map((x) => cloneRecord(c4, coin, '4H', x, 'author', btc4));
+    recs.real.push(...real); recs.author.push(...au);
+    coverage[coin] = { h4: c4.length, d1: daily.length, trades: r.trades.length, cancelled: r.cancelled, pending: !!r.pending };
+    if (coin === 'BTC') {
+      const v = cloneValidation(real);
+      const last = real.filter((t) => t.trigTime >= c4[Math.max(0, c4.length - CLONE.panel.bars)].time);
+      v.panel = { script: CLONE.panel, clone: { bars: CLONE.panel.bars, from: c4[Math.max(0, c4.length - CLONE.panel.bars)].time, to: c4[c4.length - 1].time, trades: last.length, tp1Reached: last.filter((t) => t.tp1Reached).length, tp1Rate: last.length ? +(last.filter((t) => t.tp1Reached).length / last.length).toFixed(3) : null } };
+      v.threshold = 8; v.presentAs = v.matched >= v.threshold ? 'betiğin kendisi (örtüşme ≥ 8 / 10)' : 'betikten esinlenen kural (örtüşme < 8 / 10)';
+      validation = v;
+      log(`  doğrulama BTC: ${v.matched} / ${v.of} eşleşti, aralıkta klon ${v.cloneInWindow} işlem (${v.extra} fazladan); son 3000 mum ${last.length} işlem`);
+    }
+    log(`  ${coin.padEnd(8)} ${String(r.trades.length).padStart(4)} işlem (iptal ${r.cancelled})`);
+  }
+  const rep = cloneReport(recs);
+  const clone = {
+    meta: { prereg: PSL.prereg, section: '## Aşama B — klon', tf: '4H', coins: coins.length, params: { threshold: CLONE.threshold, levelBars: CLONE.levelBars, invAtr: CLONE.invAtr, tpX: CLONE.tpX, cost: { ...CLONE.cost, fundingPct8h: 0 }, authorCost: CLONE.authorCost },
+      htfSource: '1G = OKX 1D; 1H(afta) / 1A = 1D mumlarından toplandı', criterion: 'karar = klon, bizim muhasebe: eğitim ve doğrulamada ort. R > 0, PF > 1,1, hedge\'li R > 0; dilim başına n ≥ 100', generatedAt: Date.now(), elapsedSec: null },
+    validation, unstatedChoices: CLONE_UNSTATED, series: Object.keys(coverage).length, skipped, coverage, ...rep,
+  };
+  clone.meta.elapsedSec = Math.round((Date.now() - t0) / 1000);
+  const out = { ...base, clone };
+  const before = JSON.stringify(base);
+  fs.writeFileSync(file, JSON.stringify(out));
+  const check = JSON.parse(fs.readFileSync(file, 'utf8')); delete check.clone;
+  if (JSON.stringify(check) !== before) throw new Error('Aşama A alanları değişti!');
+  const p = rep.groups.primary;
+  log(`Klon bitti: ${clone.meta.elapsedSec} sn → ${file}; karar n eğ ${p.train.n} / doğr ${p.valid.n} → ${rep.result}; Aşama A alanları aynen`);
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) (process.argv.includes('--clone') ? cloneMain : main)().catch((e) => { console.error(e); process.exit(1); });

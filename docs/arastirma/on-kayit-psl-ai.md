@@ -85,3 +85,20 @@ Hesap: |giriş − geçersiz| = 2.230,2 = 2,00 × ATR (1.114,3). Tabloda son 10 
 - Kapalı kaynak: Aşama A betiğin birebir kopyası değildir (v2 tetikleyicisi ve mesafeleri bilinmiyor).
 - Hayatta kalma yanlılığı (bugünün ilk 50 coini), dönem tek yönlüyse yön etkisi (hedge'li R ve long / short ayrımı bunun için).
 - Yayındaki 1m / 5m sonuçları ölçülmez: bizim veri ve maliyet varsayımıyla 5m'de komisyon + kayma R'nin büyük kısmıdır.
+
+## Sonuç (20.11.2026) — Aşama A GEÇMEDİ · Aşama B GEÇMEDİ (klon doğrulanamadı: 3 / 10)
+Sonuç dosyası `docs/backtest/psl.json` (betik `backtest/psl.mjs`, `--clone`; yerel koşu, 49 seri, BTW atlandı). Ön kayıtta yazmayan
+seçimler dosyada `unstatedChoices` (A: 14, B: 11 madde); sonuca bakılarak hiçbiri değiştirilmedi.
+- **Aşama A (karar satırı, 4H, puan ≥ 6 + 1D uyumu):** eğ n 3.087, ort. +0,007R, PF 1,01, hedge'li −0,035 · doğr n 2.374, −0,072R, PF 0,86,
+  hedge'li −0,064 → **geçmedi**. Bilgi: long −0,069 / −0,152 · short +0,047 / −0,036 (hedge'li −0,006 / −0,049) · eşik 5 −0,001 / −0,086 ·
+  eşik 7 −0,007 / −0,030 · üst TF şartsız −0,001 / −0,023 · 1H −0,071 / −0,121 · 4 hedefli +0,030 / −0,104.
+  **Aynı sinyaller, yazarın muhasebesi: +0,201 / +0,149R, PF 1,48 / 1,35** → işlem başına ≈ +0,2R yalnız muhasebeden.
+- **Aşama B (klon, bizim muhasebe):** eğ n 672, −0,003R, PF 0,99, hedge'li −0,032 · doğr n 453, +0,017R, PF 1,03, hedge'li −0,012 →
+  **geçmedi**. Yazarın muhasebesi +0,266 / +0,291R (PF 1,70 / 1,76). Long −0,213 / −0,015 · short +0,116 / +0,028 (hedge'li +0,047 / −0,021).
+- **Klon doğrulaması:** betiğin 10 BTC 4H işleminden 3'ü üretildi (24.06 SAT, 03.09 AL +1 mum, 18.09 AL), aynı aralıkta 3 fazladan işlem;
+  son 3000 mumda klon 16 işlem (panel 37), TP1 oranı %56 (panel %62). **Örtüşme < 8 / 10 → Aşama B "betiğin kendisi" değil, "betikten
+  esinlenen kural" ölçümüdür.** Betiğin üst TF yönü / tetik tanımı bizim kestirimimizden farklı; kaynak kapalı olduğu için tanım değiştirilmedi.
+- **Sonuç cümlesi:** yayımlanmış puan ve görüntüden çıkarılan plan yapısı kenar göstermiyor; yayındaki kazancın ölçülebilen kaynağı muhasebe
+  (stop kapanışla ama seviyeden yazılıyor, aynı mumda TP1 + stop = kazanç, düşük maliyet). Betiğin gerçek işlemleri ölçülmedi; bunun tek yolu
+  betiğin kendi alarm / işlem listesini (TradingView hesabıyla) dışa alıp gerçek muhasebeyle yeniden hesaplamak. Başka eşik denenmez.
+

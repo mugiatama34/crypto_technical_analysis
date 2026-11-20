@@ -312,4 +312,10 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   yazılıyor, aynı mumda TP1 + stop = kazanç, zaman dilimine göre geçmişe kalibrasyon, komisyon toplam %0,05, kayma / fonlama yok.
 - `docs/arastirma/on-kayit-psl-ai.md` **taslak** (Aşama A: yayımlanmış puan + 1D uyumu, 4H, kendi çıkış planımız; Aşama B: betiğin gerçek
   seviyelerini TradingView'den okumak). **Ölçüm koşulmadı; kullanıcı onayı bekleniyor.**
+- **Onay (20.11) ve sonuç:** Aşama A **GEÇMEDİ** (eğ +0,007R PF 1,01 hedge'li −0,035, n 3.087 · doğr −0,072R PF 0,86 hedge'li −0,064, n 2.374).
+  Aşama B: TradingView misafir grafiğine betik eklenemedi (hesap gerekli, tarayıcıda oturum yok) → betik sayfasındaki grafik görüntüsünden
+  plan yapısı okundu (üst TF uyumu, 50 mum kırılımında kapanışla giriş, stop 2 ATR, hedefler 1 / 1,5 / 2,5 / 3,5R) ve ön kayda yazıldı. Klon
+  **GEÇMEDİ** (−0,003 / +0,017R, hedge'li eksi; n 672 / 453) ve betiğin 10 BTC işleminden yalnız 3'ünü üretti → "betikten esinlenen kural".
+  Asıl bulgu: aynı işlemler yazarın muhasebesiyle +0,20…+0,29R. Kayıtlar: `psl.json`, `bulgular.md`, `tuzaklar.md` (madde 9), CLAUDE kapananlar.
+  Testler 572 (569 geçti, 1 bilinen `levels`, 2 todo). Açık: kullanıcı isterse betiğin kendi işlem listesi (TradingView'e kendisi giriş yaparsa) gerçek muhasebeyle yeniden hesaplanır.
 

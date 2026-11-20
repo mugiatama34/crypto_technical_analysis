@@ -39,3 +39,5 @@
 6. Komisyon, kayma, fonlama var mı; kısmi kâr ve stop hangi fiyattan yazılıyor (mumun ucu mu, seviye mi)?
 7. Kayıt sıfırlanmış mı, diğer zaman dilimleri / sekmeler ne gösteriyor (seçim)?
 8. Sonuç dili: "sayılar gerçek mi" ile "kenar kanıtı mı" ayrı sorulardır.
+9. Stop ve hedef aynı kurala mı bağlı (20.11, PSL AI): hedef fitille, stop kapanışla ama zarar stop seviyesinden yazılıyorsa ve aynı mumda
+   TP1 + stop kazanç sayılıyorsa, aynı sinyaller işlem başına ≈ +0,2…0,3R iyi görünür. Aynı işlemleri kendi muhasebenle yeniden hesapla.

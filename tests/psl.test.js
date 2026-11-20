@@ -3,6 +3,7 @@
 // aynı yönde açık işlem kilidi.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { CLONE, aggregate, computableOf, htfDirOf, htfSeries, htfDirAt, htfAligned, clonePlanOf, simulateClone, runClone, cloneRecord, cloneValidation, cloneReport } from '../backtest/psl.js';
 import { PSL, DAY, cci, indicatorsOf, criteriaOf, scoreOf, signalOf, dailyTrendAt, dailyOf, levelsOf, simEngine, simulateExit, runSeries, valuesAt, pslReport, ROWS, CRITERIA } from '../backtest/psl.js';
 
 const H4 = 4 * 3600e3;
@@ -253,4 +254,137 @@ test('psl: rapor — karar yalnız birincil satırdan, bilgi satırları infoVer
   assert.ok(Object.keys(ROWS).every((k) => rep.groups[k]));
   const few = pslReport({ primary: prim.slice(0, 150) });
   assert.equal(few.verdict, 'sonucsuz');
+});
+
+// ---------------- Aşama B — klon ----------------
+test('klon: sabitler (ön kayıt Aşama B)', () => {
+  assert.equal(CLONE.threshold, 6); assert.equal(CLONE.levelBars, 50); assert.equal(CLONE.invAtr, 2); assert.deepEqual(CLONE.tpX, [1, 1.5, 2.5, 3.5]);
+  assert.deepEqual(CLONE.cost, { fee: 0.05, slip: 0.05 }); assert.deepEqual(CLONE.authorCost, { fee: 0.025, slip: 0 });
+  assert.equal(CLONE.validation.length, 10);
+  assert.equal(new Date(CLONE.validation[0].time).toISOString(), '2026-06-02T04:00:00.000Z', '02.06 07:00 UTC+3');
+  assert.equal(new Date(CLONE.validation[8].time).toISOString(), '2026-11-08T20:00:00.000Z', '08.11 23:00 UTC+3');
+  assert.deepEqual(CLONE.validation.map((v) => v.d), [-1, -1, -1, -1, 1, 1, 1, 1, -1, -1]);
+});
+
+test('klon: 1D → haftalık (Pazartesi UTC) / aylık mumlar; kısmi hafta da mum', () => {
+  const t0 = Date.UTC(2026, 0, 28); // Çarşamba
+  const ds = Array.from({ length: 12 }, (_, k) => ({ time: t0 + k * DAY, open: 10 + k, high: 20 + k, low: 5 + k, close: 11 + k, volume: 1 }));
+  const w = aggregate(ds, 'W');
+  assert.equal(w.length, 2);
+  assert.equal(new Date(w[0].time).toISOString(), '2026-01-26T00:00:00.000Z'); // Pazartesi
+  assert.equal(w[0].closeTime, Date.UTC(2026, 1, 2));
+  assert.deepEqual([w[0].open, w[0].high, w[0].low, w[0].close, w[0].volume], [10, 24, 5, 15, 5]); // Çar–Paz 5 gün
+  const m = aggregate(ds, 'M');
+  assert.equal(m.length, 2); assert.equal(m[0].closeTime, Date.UTC(2026, 1, 1)); assert.equal(m[1].time, Date.UTC(2026, 1, 1)); assert.equal(m[0].close, 14);
+});
+
+test('klon: üst TF yönü yalnız KAPANMIŞ mumdan (kapanış ≤ T); süren hafta / ay kullanılmaz', () => {
+  const s = { closeTimes: [100, 200, 300], dirs: [1, -1, 1] };
+  assert.equal(htfDirAt(s, 99), 0); assert.equal(htfDirAt(s, 100), 1); assert.equal(htfDirAt(s, 299), -1); assert.equal(htfDirAt(s, 300), 1);
+  const ds = walk(400, 3, Date.UTC(2025, 0, 1), DAY);
+  const wk = htfSeries(aggregate(ds, 'W'), (c) => c.closeTime);
+  const T = ds[300].time + 12 * 3600e3;
+  const ds2 = ds.map((c, k) => (k >= 300 ? { ...c, close: c.close * 5, high: c.high * 5 } : c));
+  const wk2 = htfSeries(aggregate(ds2, 'W'), (c) => c.closeTime);
+  assert.equal(htfDirAt(wk2, T), htfDirAt(wk, T), 'süren haftanın günleri kararı değiştirmez');
+  const hs = { D: s, W: s, M: s };
+  assert.equal(htfAligned(hs, 150, 1), true); assert.equal(htfAligned(hs, 250, 1), false);
+  assert.equal(htfAligned({ D: s, W: s, M: { closeTimes: [], dirs: [] } }, 150, 1), false, 'üst TF yok → uyumlu değil');
+});
+
+test('klon: üst TF büyük taraf; eşitlik ve hesaplanamayan ölçüt', () => {
+  assert.equal(computableOf({}), 0); assert.equal(htfDirOf({}), 0, 'hiç ölçüt yok → 0');
+  assert.equal(computableOf({ open: 1, close: 2 }), 1);
+  assert.equal(htfDirOf({ open: 1, close: 2 }), 1, 'yalnız mum yönü hesaplanabiliyor → o');
+  assert.equal(htfDirOf({ open: 1, close: 2, ema50: 1, ema169: 2 }), 0, '1 / 1 eşit');
+  assert.equal(htfDirOf({ open: 2, close: 1, ema50: 1, ema169: 2, rsi: 40 }), -1);
+});
+
+const bar = (k, o, h, l, c) => ({ time: k * H4, open: o, high: h, low: l, close: c, volume: 1 });
+test('klon: plan seviyesi = mum dahil son 50 mumun dibi / tepesi; geçersiz 2 ATR; hedefler 1 / 1,5 / 2,5 / 3,5 ×', () => {
+  const cs = Array.from({ length: 60 }, (_, k) => bar(k, 100, 101 + (k === 20 ? 5 : 0), 99 - (k === 5 ? 10 : 0) - (k === 30 ? 3 : 0), 100));
+  const s = clonePlanOf(cs, 59, -1, 1);
+  assert.equal(s.level, 96, 'k=30 dibi (k=5 50 mumun dışında)'); assert.equal(s.invalid, 98); assert.deepEqual(s.tps, [94, 93, 91, 89]);
+  const l = clonePlanOf(cs, 59, 1, 1); assert.equal(l.level, 106); assert.equal(l.invalid, 104); assert.deepEqual(l.tps, [108, 109, 111, 113]);
+});
+
+// SAT planı: seviye 100, birim 2 (geçersiz 102), hedefler 98 / 97 / 95 / 93. Tetik mumu 0 kapanış 99,5.
+const P = { d: -1, level: 100, unit: 2, invalid: 102, tps: [98, 97, 95, 93], formedI: 0 };
+const Z0 = { fee: 0, slip: 0 };
+test('klon çıkışı (bizim): stop kapanışla ve KAPANIŞTAN; fitil stopu tetiklemez', () => {
+  const wick = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 103, 99, 101), bar(2, 101, 101, 92, 92.5)];
+  const s = simulateClone(wick, 0, P, { cost: Z0 });
+  assert.equal(s.outcome, 'tp2'); assert.equal(s.R, +((99.5 - 93) / 2).toFixed(3), 'fitil 103 stopu çalıştırmaz; TP4 93');
+  const closeOut = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 104, 99, 103)];
+  const c = simulateClone(closeOut, 0, P, { cost: Z0 });
+  assert.equal(c.outcome, 'stopped'); assert.equal(c.R, -1.75, 'çıkış kapanış 103 (seviye 102 değil): (99,5 − 103) ÷ 2');
+  assert.equal(simulateClone(closeOut, 0, P, { acct: 'author', cost: Z0 }).R, -1.25, 'yazar: seviye 102\'den');
+});
+test('klon çıkışı: aynı mumda TP1 + stop kapanışı → bizim stop, yazar kazanç', () => {
+  const both = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 103, 97.5, 102.5)];
+  const r = simulateClone(both, 0, P, { cost: Z0 });
+  assert.equal(r.outcome, 'stopped'); assert.equal(r.R, -1.5);
+  const a = simulateClone(both, 0, P, { acct: 'author', cost: Z0 });
+  assert.equal(a.outcome, 'tp1_be'); assert.equal(a.R, 0.75, 'TP1 98 → stop 98, kapanış ötesinde → 98\'den: (99,5 − 98) ÷ 2');
+});
+test('klon çıkışı: TP1 → stop TP1, TP2 değişmez, TP3 → stop TP2; maliyet', () => {
+  const ladder = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 99.6, 96.8, 97.2), bar(2, 97.2, 98.2, 97, 98.1)];
+  const s = simulateClone(ladder, 0, P, { cost: Z0 });
+  assert.equal(s.hits, 2); assert.equal(s.outcome, 'tp1_be'); assert.equal(s.R, +((99.5 - 98.1) / 2).toFixed(3), 'stop TP1 (98), kapanış 98,1 → çıkış');
+  const l3 = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 99.6, 94.8, 95.2), bar(2, 95.2, 97.2, 95, 97.1)];
+  const s3 = simulateClone(l3, 0, P, { cost: Z0 });
+  assert.equal(s3.hits, 3); assert.equal(s3.R, +((99.5 - 97.1) / 2).toFixed(3), 'stop TP2 (97)');
+  const hold = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 99.6, 96.8, 97.9)];
+  const h = simulateClone(hold, 0, P, { cost: Z0 });
+  assert.equal(h.openAtEnd, true); assert.equal(h.outcome, 'tp1_timeout');
+  // maliyet: giriş kayması + çıkış kayması + 2 × %0,05 × giriş, birim 2
+  const cs = [bar(0, 100, 100, 99, 99.5), bar(1, 99.5, 104, 99, 103)];
+  const m = simulateClone(cs, 0, P);
+  const e = 99.5 * (1 - 0.0005), x = 103 * (1 + 0.0005);
+  assert.ok(Math.abs(m.R - (-(x - e) - 0.001 * e) / 2) < 1e-3);
+  const ma = simulateClone(cs, 0, P, { acct: 'author' });
+  assert.ok(Math.abs(ma.R - (-(102 - 99.5) - 0.0005 * 99.5) / 2) < 1e-3);
+});
+
+test('klon durum makinesi: plan kilitlenir, iptal (yön terse / uyum bozulur), kapanışla tetik, açık işlemde yeni plan yok', () => {
+  const n = 360, base = Array.from({ length: n }, (_, k) => bar(k, 100, 101, 99, 100));
+  const S = { macd: 0, macdSig: 1, rsi: 40, stochK: 30, rvol: 2, open: 11, close: 10, ema50: 4, ema169: 5, adx: 30, pdi: 10, mdi: 30, cci: -50, atr: 1 };
+  const indOf = () => Object.fromEntries(Object.keys(S).map((k) => [k, Array(n).fill(S[k])]));
+  const down = { closeTimes: [0], dirs: [-1] }, htf = { D: down, W: down, M: down };
+  // Plan 300'de: seviye 99, birim 2. 305'te kapanış 98,5 → tetik; sonra 307'de kapanış 101,5 > 101 → stop
+  const cs = base.map((c, k) => (k === 305 ? bar(k, 100, 100, 98, 98.5) : k === 307 ? bar(k, 99, 102, 99, 101.5) : c));
+  const r = runClone(cs, { tf: '4H', ind: indOf(), htf, accts: ['real', 'author'] });
+  assert.equal(r.trades[0].plan.formedI, 300); assert.equal(r.trades[0].plan.level, 99); assert.equal(r.trades[0].ti, 305);
+  assert.equal(r.trades[0].sims.real.exitI, 307);
+  assert.equal(r.trades.length, 1); assert.equal(r.pending.formedI, 307, 'çıkış mumunun kapanışında yeni plan serbest (açık işlemde plan yok: 306 atlandı)');
+  // Uyum bozulursa (D yönü 302'den sonra +1) tetiklenmemiş plan iptal
+  const ms = 4 * 3600e3;
+  const flip = { closeTimes: [0, cs[302].time + ms], dirs: [-1, 1] };
+  const r2 = runClone(cs, { tf: '4H', ind: indOf(), htf: { D: flip, W: down, M: down } });
+  assert.equal(r2.trades.length, 0); assert.equal(r2.cancelled, 1);
+  // 4H yönü terse dönerse iptal: 303'te long 8 / 8
+  const ind3 = indOf();
+  Object.assign(ind3, Object.fromEntries(Object.entries({ macd: 2, rsi: 60, stochK: 60, close: 12, ema50: 6, pdi: 30, mdi: 10, cci: 50 }).map(([k, v]) => [k, ind3[k].map((x, i) => (i === 303 ? v : x))])));
+  const r3 = runClone(cs, { tf: '4H', ind: ind3, htf });
+  assert.equal(r3.cancelled, 1); assert.equal(r3.trades[0].plan.formedI, 304, 'iptalden sonra yeni plan');
+  // kayıt: hedgeOf için time = tetik − 1 mum, entryTime = tetik kapanışı
+  const rec = cloneRecord(cs, 'X', '4H', r.trades[0], 'real', null);
+  assert.equal(rec.entryTime, cs[305].time + ms); assert.equal(rec.time, cs[304].time); assert.equal(Math.abs(rec.entryFill - rec.stop), 2);
+});
+
+test('klon doğrulaması: aynı yön ± 1 mum eşleşir, fazladan işlemler sayılır', () => {
+  const ms = 4 * 3600e3, ref = [{ time: 10 * ms, d: -1 }, { time: 50 * ms, d: 1 }, { time: 90 * ms, d: 1 }];
+  const tr = [{ trigTime: 11 * ms, d: -1 }, { trigTime: 52 * ms, d: 1 }, { trigTime: 70 * ms, d: -1 }, { trigTime: 90 * ms, d: -1 }, { trigTime: 200 * ms, d: 1 }];
+  const v = cloneValidation(tr, ref, ms);
+  assert.deepEqual(v.rows.map((r) => r.found), [true, false, false]); assert.equal(v.rows[0].diffBars, 1);
+  assert.equal(v.matched, 1); assert.equal(v.cloneInWindow, 4); assert.equal(v.extra, 3);
+});
+
+test('klon raporu: karar yalnız bizim muhasebe, dönem tetik kapanışıyla', () => {
+  const mk = (k, R, d) => ({ coin: `C${k % 5}`, tf: '4H', time: PSL.period.from + k * 6 * 3600e3 - 8 * 3600e3, entryTime: PSL.period.from + k * 6 * 3600e3, waitBars: 1, bars: 1, d, outcome: R > 0 ? 'tp2' : 'stopped', R, hedgedR: R, tp1Reached: R > 0 });
+  const real = Array.from({ length: 2900 }, (_, k) => mk(k, k % 2 ? 1 : -1.2, k % 2 ? 1 : -1));
+  const rep = cloneReport({ real, author: real.map((t) => ({ ...t, R: 1, hedgedR: 1 })) });
+  assert.equal(rep.verdict, 'gecmez'); assert.equal(rep.groups.author.infoVerdict, 'gecer');
+  assert.equal(rep.groups.long.all.n + rep.groups.short.all.n, rep.groups.primary.all.n);
+  assert.equal(rep.groups.primary.tp1Rate, 0.5);
 });

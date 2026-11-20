@@ -248,3 +248,194 @@ export function pslReport(rows, period = PSL.period) {
     clustering: { train: clusteringOf(prim.filter((t) => t.time < sp)), valid: clusteringOf(prim.filter((t) => t.time >= sp)), all: clusteringOf(prim), ...coinSpread(prim) },
   };
 }
+
+// ============================================================================================================================
+// Aşama B — klon (ön kayıt "## Aşama B — klon", commit 6c499cb2). Tanım ön kayıttan birebir; burada değiştirilmez.
+// ============================================================================================================================
+export const CLONE = {
+  threshold: 6, levelBars: 50, invAtr: 2, atrLen: 14, tpX: [1, 1.5, 2.5, 3.5],
+  cost: { fee: 0.05, slip: 0.05 }, authorCost: { fee: 0.025, slip: 0 },
+  // Klon doğrulaması: betik tablosundaki son 10 işlem (UTC+3 → UTC; mum açılış saati), BTC 4H
+  validation: [
+    ['2026-06-02T04:00Z', -1], ['2026-06-24T12:00Z', -1], ['2026-07-29T16:00Z', -1], ['2026-08-11T12:00Z', -1],
+    ['2026-08-25T00:00Z', 1], ['2026-09-03T12:00Z', 1], ['2026-09-18T12:00Z', 1], ['2026-10-02T00:00Z', 1],
+    ['2026-11-08T20:00Z', -1], ['2026-11-12T12:00Z', -1],
+  ].map(([s, d]) => ({ time: Date.parse(s.replace('Z', ':00Z')), d })),
+  panel: { bars: 3000, trades: 37, tp1Rate: 0.62 },
+};
+
+/** 1D mumlarından haftalık (Pazartesi 00:00 UTC) / aylık (takvim ayı UTC) mumlar; closeTime = dönemin bitişi. Kısmi dönem de mumdur. */
+export function aggregate(daily, unit) {
+  const keyOf = (t) => {
+    if (unit === 'W') { const wk = Math.floor((Math.floor(t / DAY) + 3) / 7); const start = (wk * 7 - 3) * DAY; return [start, start + 7 * DAY]; }
+    const d = new Date(t); return [Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1), Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)];
+  };
+  const out = [];
+  for (const c of daily) {
+    const [start, end] = keyOf(c.time);
+    const last = out[out.length - 1];
+    if (last && last.time === start) { last.high = Math.max(last.high, c.high); last.low = Math.min(last.low, c.low); last.close = c.close; last.volume += c.volume; }
+    else out.push({ time: start, closeTime: end, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume });
+  }
+  return out;
+}
+
+const CRIT_FIELDS = { macd: ['macd', 'macdSig'], rsi: ['rsi'], stoch: ['stochK'], rvol: ['rvol', 'open', 'close'], candle: ['open', 'close'], ema: ['ema50', 'ema169'], dmi: ['adx', 'pdi', 'mdi'], cci: ['cci'] };
+/** Hesaplanabilen ölçüt sayısı (göstergesi null olmayan). */
+export const computableOf = (x) => Object.values(CRIT_FIELDS).filter((fs) => fs.every((f) => x[f] != null && Number.isFinite(x[f]))).length;
+/** Üst TF yönü: büyük taraf +1 / −1, eşit ya da hiç hesaplanabilen ölçüt yoksa 0. */
+export function htfDirOf(x) {
+  if (!computableOf(x)) return 0;
+  const s = scoreOf(x);
+  return s.long > s.short ? 1 : s.short > s.long ? -1 : 0;
+}
+/** Üst TF serisi: { closeTimes, dirs } (her mumun kendi kapanışına kadarki veriyle). */
+export function htfSeries(candles, closeTimeOf) {
+  const ind = indicatorsOf(candles);
+  return { closeTimes: candles.map(closeTimeOf), dirs: candles.map((_, i) => htfDirOf(valuesAt(ind, i))) };
+}
+/** T anında kapanmış son üst TF mumunun yönü (kapanışı ≤ T); yoksa 0. */
+export function htfDirAt(s, T) {
+  if (!s?.closeTimes.length) return 0;
+  let lo = 0, hi = s.closeTimes.length - 1, k = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (s.closeTimes[m] <= T) { k = m; lo = m + 1; } else hi = m - 1; }
+  return k < 0 ? 0 : s.dirs[k];
+}
+/** 1G / 1H(afta) / 1A yön serileri (1D mumlarından). */
+export function htfOf(daily) {
+  return {
+    D: htfSeries(daily, (c) => c.time + DAY),
+    W: htfSeries(aggregate(daily, 'W'), (c) => c.closeTime),
+    M: htfSeries(aggregate(daily, 'M'), (c) => c.closeTime),
+  };
+}
+/** Uyum: üç üst TF'nin hepsi d yönünde. */
+export const htfAligned = (htf, T, d) => ['D', 'W', 'M'].every((k) => htfDirAt(htf[k], T) === d);
+
+/** Plan seviyeleri: seviye = i dahil son 50 mumun dibi (SAT) / tepesi (AL); geçersiz = seviye ± 2 ATR; hedefler seviyeden k × (2 ATR). */
+export function clonePlanOf(candles, i, d, atrV, p = CLONE) {
+  let lv = d === 1 ? -Infinity : Infinity;
+  for (let j = Math.max(0, i - p.levelBars + 1); j <= i; j++) lv = d === 1 ? Math.max(lv, candles[j].high) : Math.min(lv, candles[j].low);
+  const unit = p.invAtr * atrV;
+  return { d, formedI: i, level: lv, unit, invalid: lv - d * unit, tps: p.tpX.map((x) => lv + d * x * unit) };
+}
+
+/**
+ * Klon çıkışı: giriş = tetik mumu (ti) kapanışı ± kayma; kısmi yok; TP1 geçilince (fitil) stop TP1'e, TP3 geçilince TP2'ye, TP4'te tamamı.
+ * Stop yalnız KAPANIŞ stopun ötesindeyse. acct 'real' (KARAR): önce mum başındaki stopa göre kapanış (aynı mumda hedef + stop → stop),
+ * çıkış KAPANIŞ fiyatından − kayma; sonra hedefler; hedef sonrası kapanış taşınmış stopun ötesindeyse yine kapanıştan çıkış.
+ * acct 'author': hedefler önce, sonra kapanış (taşınmış) stopun ötesindeyse çıkış stop SEVİYESİNDEN; aynı mumda TP1 + stop → kazanç.
+ * R = (yönlü K/Z − 2 × komisyon × giriş) ÷ |seviye − geçersiz|. Veri biterse son kapanıştan (openAtEnd).
+ */
+export function simulateClone(candles, ti, plan, { acct = 'real', cost = acct === 'author' ? CLONE.authorCost : CLONE.cost } = {}) {
+  const d = plan.d, slip = cost.slip / 100, fee = cost.fee / 100, unit = plan.unit;
+  const entry = candles[ti].close * (1 + d * slip);
+  const beyond = (px, lvl) => (d === 1 ? px < lvl : px > lvl);
+  const reach = (c, lvl) => (d === 1 ? c.high >= lvl : c.low <= lvl);
+  let stop = plan.invalid, hits = 0, exit = null, exitI = ti, outcome = null, firstTpBars = null;
+  const moveOn = (c, k) => {
+    while (hits < 4 && reach(c, plan.tps[hits])) {
+      if (hits === 0) { stop = plan.tps[0]; firstTpBars = k - ti; } else if (hits === 2) stop = plan.tps[1];
+      hits++;
+    }
+    if (hits === 4) { exit = plan.tps[3]; outcome = 'tp2'; exitI = k; return true; }
+    return false;
+  };
+  const stopOut = (k, px) => { exit = px; outcome = hits ? 'tp1_be' : 'stopped'; exitI = k; };
+  for (let k = ti + 1; k < candles.length; k++) {
+    const c = candles[k];
+    if (acct === 'real') {
+      if (beyond(c.close, stop)) { stopOut(k, c.close * (1 - d * slip)); break; }
+      if (moveOn(c, k)) break;
+      if (beyond(c.close, stop)) { stopOut(k, c.close * (1 - d * slip)); break; }
+    } else {
+      if (moveOn(c, k)) break;
+      if (beyond(c.close, stop)) { stopOut(k, stop); break; }
+    }
+  }
+  let openAtEnd = false;
+  if (exit == null) { exitI = candles.length - 1; exit = candles[exitI].close * (1 - d * slip); outcome = hits ? 'tp1_timeout' : 'timeout'; openAtEnd = true; }
+  const R = (d * (exit - entry) - 2 * fee * entry) / unit;
+  return { outcome, R: +R.toFixed(3), hits, entryFill: +entry.toPrecision(6), exitI, bars: exitI - ti, firstTpBars, openAtEnd, tp1Reached: hits >= 1 };
+}
+
+/**
+ * Klon durum makinesi (tüm seri boyunca, ısınmadan sonra; nedensel: her adım yalnız kapanmış mumlar). Mum i kapanışında sırayla:
+ * (1) açık işlem varsa çıkış mumuna kadar bekle (çıkış mumunun kapanışında yeni plan serbest); (2) bekleyen plan varsa önce iptal (4H yönü
+ * terse döndü ya da üst TF uyumu bozuldu), sonra tetik (kapanış seviyenin ötesinde → giriş); (3) plan yoksa ve madde 1 + 2 sağlanıyorsa plan
+ * oluşur ve kilitlenir. o: { tf, ind, htf, warmBars, acct }. → [{ plan, ti, sim }] (tetiklenen işlemler) + cancelled sayısı.
+ */
+export function runClone(candles, o) {
+  const ms = TIMEFRAMES[o.tf || '4H'].ms, warm = o.warmBars ?? PSL.warmBars, accts = o.accts || ['real'];
+  const out = [];
+  let plan = null, busyUntil = -1, cancelled = 0;
+  for (let i = warm; i < candles.length; i++) {
+    if (i < busyUntil) continue;
+    const T = candles[i].time + ms;
+    const sc = scoreOf(valuesAt(o.ind, i));
+    const dir = signalOf(sc, CLONE.threshold, 0, false);
+    if (plan) {
+      if (dir === -plan.d || !htfAligned(o.htf, T, plan.d)) { plan = null; cancelled++; }
+      else if (d1Beyond(candles[i].close, plan)) {
+        const sims = Object.fromEntries(accts.map((a) => [a, simulateClone(candles, i, plan, { acct: a })]));
+        out.push({ plan, ti: i, sims });
+        busyUntil = sims[accts[0]].exitI;
+        plan = null;
+        continue;
+      }
+    }
+    if (!plan && dir && o.ind.atr[i] > 0 && htfAligned(o.htf, T, dir)) plan = clonePlanOf(candles, i, dir, o.ind.atr[i]);
+  }
+  return { trades: out, cancelled, pending: plan };
+}
+const d1Beyond = (close, plan) => (plan.d === 1 ? close > plan.level : close < plan.level);
+
+/** Klon işlem kaydı (rapor işlevleri için). time = tetik mumundan bir önceki mumun açılışı ve waitBars 1 → hedgeOf'un BTC başlangıcı
+ *  (closeAt(t0)) = tetik mumunun kapanışı = giriş anı; entryTime = tetik mumunun kapanışı. hedgeOf'a R birimi 2 ATR olacak stop verilir. */
+export function cloneRecord(candles, coin, tf, x, acct, btc) {
+  const ms = TIMEFRAMES[tf].ms, s = x.sims[acct], c = candles[x.ti];
+  const t = { coin, tf, time: c.time - ms, entryTime: c.time + ms, trigTime: c.time, formedTime: candles[x.plan.formedI].time, d: x.plan.d, outcome: s.outcome, R: s.R, bars: s.bars, tp1Bars: null, waitBars: 1,
+    entryFill: s.entryFill, level: x.plan.level, invalid: x.plan.invalid, stop: s.entryFill - x.plan.d * x.plan.unit, hits: s.hits, tp1Reached: s.tp1Reached, openAtEnd: s.openAtEnd };
+  Object.assign(t, hedgeOf(t, btc, (acct === 'author' ? CLONE.authorCost : CLONE.cost).fee, 0));
+  return t;
+}
+
+/** Klon doğrulaması: betik işlemleri ↔ klon işlemleri (aynı yön, tetik mumu açılışı ± 1 mum). */
+export function cloneValidation(trades, ref = CLONE.validation, ms = 4 * 3600e3) {
+  const used = new Set();
+  const rows = ref.map((r) => {
+    let best = null;
+    trades.forEach((t, j) => { if (used.has(j) || t.d !== r.d) return; const db = Math.round((t.trigTime - r.time) / ms); if (Math.abs(db) <= 1 && (best == null || Math.abs(db) < Math.abs(best.db))) best = { j, db }; });
+    if (best) used.add(best.j);
+    return { time: r.time, d: r.d, found: !!best, diffBars: best ? best.db : null, cloneTrig: best ? trades[best.j].trigTime : null };
+  });
+  const lo = ref[0].time - ms, hi = ref[ref.length - 1].time + ms;
+  const inWin = trades.map((t, j) => [t, j]).filter(([t]) => t.trigTime >= lo && t.trigTime <= hi);
+  const extra = inWin.filter(([, j]) => !used.has(j)).map(([t]) => ({ trigTime: t.trigTime, d: t.d }));
+  return { rows, matched: rows.filter((r) => r.found).length, of: ref.length, cloneInWindow: inWin.length, extra: extra.length, extraList: extra };
+}
+
+/** Klon raporu: karar = 'primary' (bizim muhasebe); bilgi = author, long, short. split: tetik mumu kapanışı → kayıt time (−2 mum). */
+export function cloneReport(recs, period = PSL.period, tf = '4H') {
+  const split = splitOf(period), sp = split - 2 * TIMEFRAMES[tf].ms;
+  const inP = (ts) => ts.filter((t) => t.entryTime >= period.from && t.entryTime < period.to);
+  const prim = inP(recs.real), au = inP(recs.author);
+  const defs = {
+    primary: ['klon · 4H · bizim muhasebe (KARAR)', prim],
+    author: ['klon · aynı işlemler · yazarın muhasebesi (bilgi)', au],
+    long: ['klon · bizim muhasebe · yalnız long (bilgi)', prim.filter((t) => t.d === 1)],
+    short: ['klon · bizim muhasebe · yalnız short (bilgi)', prim.filter((t) => t.d === -1)],
+  };
+  const groups = {};
+  for (const [k, [label, ts]] of Object.entries(defs)) {
+    const s = sliceStats(ts, sp);
+    groups[k] = { label, tf, ...s, openAtEnd: openCount(ts), tp1Rate: ts.length ? +(ts.filter((t) => t.tp1Reached).length / ts.length).toFixed(3) : null, ...(k === 'primary' ? {} : { infoVerdict: verdictOf(s, PSL.minN).verdict }) };
+  }
+  const v = verdictOf(groups.primary, PSL.minN);
+  return {
+    period, split, n: { trades: prim.length },
+    verdict: v.verdict, result: VERDICT_TEXT[v.verdict], strict: v.strict, hedgedOk: v.hedgedOk, reasons: v.reasons, conclusion: v.conclusion,
+    groups,
+    clustering: { train: clusteringOf(prim.filter((t) => t.time < sp)), valid: clusteringOf(prim.filter((t) => t.time >= sp)), all: clusteringOf(prim), ...coinSpread(prim) },
+  };
+}

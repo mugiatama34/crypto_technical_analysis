@@ -682,6 +682,8 @@ ileriye dönük kâğıt testidir. Repo → Settings → Variables: `MOMENTUM=1`
 - **"PSL AI" tarzı 8 ölçütlü puan ölçümü (20.11, ön kayıtlı: `docs/arastirma/on-kayit-psl-ai.md`, Aşama A)**: `backtest/psl.mjs` (+ saf kısım
   `psl.js`: 8 ölçüt, CCI, 1D EMA50/169 uyumu, motor + yazarın muhasebesi / 4 hedef simülatörü; test `tests/psl.test.js`) → `docs/backtest/psl.json`.
   YEREL koşu: `node backtest/psl.mjs` (mumlar `backtest/cache/psl/`); ön kayıtta yazmayan seçimler JSON'da `unstatedChoices`.
+  Aşama B (klon: üst TF 1G / hafta / ay uyumu, 50 mum seviyesi, 2 ATR, taşımalı 4 hedef, kapanışla stop): `node backtest/psl.mjs --clone`
+  → aynı dosyada `clone` anahtarı (BTC doğrulaması `clone.validation`); Aşama A alanları değişmez (betik kontrol eder).
 - **Sinyal kanalı (17.11)**: Secret `TELEGRAM_SIGNAL_CHAT_ID` doluysa işlem sinyalleri (kurulum mesajı + grafiği, takip güncellemeleri, sonuç
   grafiği) yalnız o sohbete / kanala gider; özet, denetçi, momentum, fib uyarısı, sabah özeti ve sağlık uyarıları ana sohbette kalır.
   Paylaşılan kanalda kişisel "Pozisyon (risk … USDT)" satırı yazılmaz. Boşsa davranış değişmez. Bot kanalda yönetici olmalı.

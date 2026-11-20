@@ -65,4 +65,11 @@ günlük `docs/DURUM-arsiv.md`. Bu metin 17.11.2026'da `CLAUDE.md`'den buraya ta
   **GEÇMEDİ:** eğ −0,110R PF 0,69 n 766 hedge'li −0,144 · doğr −0,018R PF 0,94 n 347 hedge'li −0,117. Filtresiz (bilgi) −0,067 / −0,007R;
   eşik altı −0,034 / −0,016R; 5 M$ ve 50 M$ eşikleri de eksi. 100.000 $, %1 bileşik: yıl sonu 35.038 $ (−%65, maks. düşüş %74,6, toplam
   −91R, aynı anda 25 açık pozisyon); kayma %0,20 ile 23.798 $. Hacim eşiği kenar yaratmıyor; başka eşik denenmez. Dönem görülmüş (tek dönem).
+- **"PSL AI" tarzı gösterge puanı (20.11, ön kayıtlı: `docs/arastirma/on-kayit-psl-ai.md`, sonuç `docs/backtest/psl.json`, yerel koşu):**
+  kapalı kaynaklı TradingView betiğinin yayımlanmış 8 ölçütlü puanı (MACD, RSI, Stokastik, hacim, mum yönü, EMA50 / 169, ADX + DI, CCI) ≥ 6
+  + 1D uyumu, 4H, ilk 50 coin, 20.11.2024–20.11.2026 → **GEÇMEDİ:** eğ +0,007R PF 1,01 n 3.087 hedge'li −0,035 · doğr −0,072R PF 0,86
+  n 2.374 hedge'li −0,064. Görüntüden çıkarılan plan klonu (üst TF uyumu + 50 mum kırılımı + 2 ATR stop + 1 / 1,5 / 2,5 / 3,5R, kapanışla
+  stop) → **GEÇMEDİ:** −0,003 / +0,017R, PF 0,99 / 1,03, hedge'li −0,032 / −0,012 (n 672 / 453); klon betiğin 10 işleminden 3'ünü üretti
+  (betiğin kendisi ölçülmedi). **Aynı işlemler yazarın muhasebesiyle +0,20…+0,29R** (stop kapanışta ama seviyeden, aynı mumda TP1 + stop =
+  kazanç) → dış sonuçlarda önce muhasebeye bak. Başka eşik denenmez.
 
