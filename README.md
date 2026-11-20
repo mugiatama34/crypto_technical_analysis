@@ -93,6 +93,13 @@ hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok. Her madde �
 tutarsız); FVG/OB detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı ve ağırlıklı puan ölçümde ayırt etmedi
 (kontrol aracı, karar aracı değil). "Hedefte likidite" (olumsuz) ve "≥ 2 yöntem" (etkisiz) ölçüm sonrası çıkarıldı.
 ★ Takibe alınan kayda o anki check list dondurulur (kartta ✓ n/8).
+**Yol engelleri** (20.11, `pathObstacles` / `pathDetail` / `pathOverlay`, `src/scan/checklist.js`): madde 8'in ayrıntısı giriş→TP2 yolundaki
+tüm **engelleri** (ters yönlü, ölü olmayan FVG / iFVG / Order Block / Breaker; giriş + 0,1 ATR ötesi) ve yol üstü **likiditeyi** (alınmamış
+EQH/EQL, PDH/PDL/PWH/PWL "yakın"; yalnız işlem yönündeki taraf — long'da tepe, short'ta dip; süpürülmüş / kırılmış sayılmaz) girişe R uzaklığına
+göre sıralı listeler: "0,8R FVG ↓ · 3,9R Order Block ↓ (TP1 sonrası) · likidite: 1,9R EQH", hedef likiditenin ≤ 0,3R ötesindeyse
+"⚠ TP1 likiditenin 0,2R ötesinde". Likidite olası dönüş noktasıdır, ✓/✗'e girmez; **✓/✗ eski kuralla aynı** (yalnız giriş→TP1 engelleri,
+ölçüm buna dayanır). Grafikte "Yol engelleri" seçeneği: engel = turuncu kutu (açık turuncu = TP1 sonrası), likidite = camgöbeği kesikli çizgi.
+Yalnız gösterim; ölçülmedi.
 **Ölçüm** (`backtest/checklist.mjs`, Actions → backtest → `mode=checklist`, rapor `docs/backtest/checklist.json`): son tam
 koşunun planlarında her planın karar anında maddeler (yalnız o ana kadarki veri) → (A) tüm planlar, temel çıkış ve (B) canlı
 4H düzeni; madde madde etki (✓ − ✗ ort. R), ağırlıksız sayım kovaları ve eğitim diliminden öğrenilen ağırlıklarla puan
@@ -249,7 +256,7 @@ her ailede uygular). Tarama "canlıya eşit: …" satırları canlı botun long/
 
 **Durum satırı** (`bot/status.js`, 14.11): günlük özet mesajında `Durum: BTC trend … (50/200 günlük) · kısa vade … (4H: 12s/1g/1h) · oynaklık … · fonlama …` — BTC günlük SMA50 / 200 dizilimi, 4H kısa vade dizilimi (kapanış / SMA3 / SMA6 / SMA42), 30 günlük oynaklık ÷ 365 günlük medyanı, son 7 günün fonlaması (OKX, 8 saatlik eşdeğer; > %0,010 yüksek, < %0,0033 düşük). **Yalnız gösterim**; tanımlar `backtest/regime-map.js` ile ortak, dinamik içe aktarılır (hata olursa satır boş kalır, özet yine gider).
 
-**Gölge etiketler** (`bot/shadow.js`, 13.11): gönderilen her sinyalin geçmiş kaydına `shadow` nesnesi yazılır — `offMin` (mum içinde gönderim dakikası), `openSame` / `openAll` (o an açık plan sayısı), `riskPct`, `rs` / `rsRank` / `rsN` (BTC'ye göre güç ve o turdaki sırası), `funding` / `fundingIntH` / `fundingBtc` (fonlama oranı, dönemi), `oiChg24h` (açık pozisyonun 24 saatlik değişimi; `state.oiSnap` saatlik görüntülerinden). **Yalnız kayıt: hiçbir kararda kullanılmaz**, hata olursa alanlar `null` kalır ve bot devam eder. Amaç ve değerlendirme: `docs/arastirma/on-kayit.md`.
+**Gölge etiketler** (`bot/shadow.js`, 13.11): gönderilen her sinyalin geçmiş kaydına `shadow` nesnesi yazılır — `offMin` (mum içinde gönderim dakikası), `openSame` / `openAll` (o an açık plan sayısı), `riskPct`, `rs` / `rsRank` / `rsN` (BTC'ye göre güç ve o turdaki sırası), `funding` / `fundingIntH` / `fundingBtc` (fonlama oranı, dönemi), `oiChg24h` (açık pozisyonun 24 saatlik değişimi; `state.oiSnap` saatlik görüntülerinden), `pathN1` / `pathN2` (giriş→TP1 / TP1→TP2 arası ters FVG / OB sayısı), `pathFirstR` (ilk engelin R uzaklığı), `pathLiq` (yol üstü alınmamış likidite sayısı; 20.11, `pathObstacles`, sinyal anındaki satır mumlarıyla). **Yalnız kayıt: hiçbir kararda kullanılmaz**, hata olursa alanlar `null` kalır ve bot devam eder. Amaç ve değerlendirme: `docs/arastirma/on-kayit.md`.
 
 **Bot sağlığı** (`bot/health.js`, 13.11): günlük özetin sonunda `Sağlık 24s: koşu · OKX hata % · Telegram · ajan karar/hata` satırı; ajan art arda 3
 karar hatası, bir turda OKX hata oranı > %20 ya da 24 saatlik koşu sayısı beklenenin yarısının altındaysa `⚠️ Sağlık` mesajı (tür başına 6 saatte

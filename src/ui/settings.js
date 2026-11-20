@@ -18,6 +18,7 @@ export const UI_DEFAULTS = {
   apiKey: '',
   showStructure: false, // grafikte HH/HL/LH/LL ve BOS/CHoCH katmanı
   showScenario: true, // grafikte plan senaryosu okları (ana / alternatif)
+  showPath: true, // grafikte giriş→TP2 yolundaki engeller (FVG / OB) ve likidite
   ew: { ...EW_UI_DEFAULTS }, // Ayarlar bölmesi (Elliott dalga-3 + SMT)
 };
 

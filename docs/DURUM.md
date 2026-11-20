@@ -323,3 +323,14 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   hedefler 1 / 1,5 / 2,5 / 3,5R, taşımalı stop) → 46 / 46 K/Z tabloyla aynı. Aynı işlemler: yazarın tablosu +2.936 $ · stopta kapanış fiyatından
   çıkış + gerçekçi maliyet −1.777 $ · borsada stop emri 0 $. Tetikleyici hâlâ bilinmiyor. LINK görüntüsü bekleniyor (gelirse eklenir).
 
+
+## 20.11.2026 (yerel oturum, akşam) — yol engelleri: madde 8 TP2'ye kadar liste + grafik kutuları + gölge etiket
+- Kullanıcı isteği: fib kesişimi (ve diğer presetlerde) girişten TP1 / TP2'ye giden yolda FVG / iFVG / OB / likidite var mı görünsün. Karar (kullanıcı onayı):
+  puana ve 9. maddeye girmez; madde 8 genişler, grafikte çizilir, kayda gölge etiket yazılır.
+- `src/scan/checklist.js`: `pathObstacles(plan, smc)` (engel = ters FVG / iFVG / OB / breaker, giriş + 0,1 ATR → TP2; likidite = işlem yönündeki alınmamış
+  EQH/EQL, PDH/PDL/PWH/PWL "yakın" → "olası dönüş noktası", karara girmez; R uzaklığı, TP1 öncesi / sonrası; hedef likiditenin ≤ 0,3R ötesindeyse uyarı),
+  `pathDetail`, `pathOverlay`. **Madde 8'in ✓/✗ kuralı değişmedi** (eski ölçümle karşılaştırılabilir; 3000 rastgele durumlu test).
+- Tarayıcı: ayrıntıda "Yol engelleri" kutusu (varsayılan açık), grafikte turuncu kutu (TP1 sonrası açık turuncu) + camgöbeği kesikli likidite çizgisi,
+  kontrol listesi kartında liste. Yerelde gözle doğrulandı (BTC 15m long: 0,0R iFVG · 1,3R OB · 1,7R FVG TP1 sonrası; konsol hatası yok).
+- Bot: `shadow.pathN1 / pathN2 / pathFirstR / pathLiq` (yalnız kayıt; puan, plan, mesaj değişmez). 13.12 değerlendirmesinde n yeterliyse tek ön kayıtlı test.
+- Testler 580 (577 geçti, 1 bilinen `levels`, 2 todo). Açık: ilk canlı turda gölge alanlarının dolduğunu kontrol et.

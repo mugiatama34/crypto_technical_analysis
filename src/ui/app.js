@@ -1,6 +1,6 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
 import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
-import { checklistOf, CHECKS } from '../scan/checklist.js';
+import { checklistOf, CHECKS, pathObstacles, pathOverlay } from '../scan/checklist.js';
 import { structureOverlay } from '../detectors/structure.js';
 import { makeContext } from '../scan/context.js';
 import { runDetectors } from '../scan/registry.js';
@@ -260,7 +260,8 @@ function renderDetail(r) {
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label>
       <label class="chip small" title="Son 8 swing (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)"><input type="checkbox" id="showStruct" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label>
-      <label class="chip small" title="Plana göre ana (yeşil) ve alternatif (kırmızı) yol; tahmin değil"><input type="checkbox" id="showScen" ${state.settings.showScenario !== false ? 'checked' : ''}> Senaryo okları</label></div>
+      <label class="chip small" title="Plana göre ana (yeşil) ve alternatif (kırmızı) yol; tahmin değil"><input type="checkbox" id="showScen" ${state.settings.showScenario !== false ? 'checked' : ''}> Senaryo okları</label>
+      <label class="chip small" title="Giriş→TP2 yolundaki ters FVG / OB (turuncu kutu; açık turuncu = TP1 sonrası) ve alınmamış likidite (camgöbeği kesikli çizgi)"><input type="checkbox" id="showPath" ${state.settings.showPath !== false ? 'checked' : ''}> Yol engelleri</label></div>
     <div class="chart" id="chart"></div>
     <div class="legend">${[...new Set(shown.map((s) => s.group))].map((g) => `<span><i style="background:${GROUPS[g].color}"></i>${esc(GROUPS[g].label)}</span>`).join('')}</div>
     <div class="stat-strip">${stats.map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
@@ -272,6 +273,7 @@ function renderDetail(r) {
   drawRow($('#chart'), r.candles, r.live, withStruct(shown, r), r.price);
   $('#showStruct').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderDetail(r); });
   $('#showScen').addEventListener('change', (e) => { update({ showScenario: e.target.checked }); renderDetail(r); });
+  $('#showPath').addEventListener('change', (e) => { update({ showPath: e.target.checked }); renderDetail(r); });
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
   checklistFor(r).then((cl) => { if (state.selected === rowKey(r)) renderChecklist(cl); });
@@ -290,6 +292,17 @@ function withStruct(sigs, r) {
   // Senaryo okları: botun planı (gevşek eşikle) → ana (yeşil) / alternatif (kırmızı) yol
   if (state.settings.showScenario !== false && r.best && r.candles?.length) {
     try { const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true }); if (plan.ok) out = [...out, scenarioSignal(plan, r.candles.length - (r.live ? 0 : 1), r.price)]; } catch { /* plan yok */ }
+  }
+  // Yol engelleri: giriş→TP2 şeridindeki ters FVG / OB (kutu) ve alınmamış likidite (kesikli çizgi); check list madde 8 ile aynı hesap
+  if (state.settings.showPath !== false && r.best && r.candles?.length) {
+    try {
+      const plan = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true });
+      if (plan.ok) {
+        const smc = runDetectors(makeContext({ candles: r.candles, live: r.live, tf: r.tf, symbol: r.coin, opts: {} }), ['fvg', 'orderblock', 'liquidity']);
+        const po = pathObstacles(plan, smc);
+        if (po.items.length) out = [...out, pathOverlay(po, r.candles.length - (r.live ? 0 : 1))];
+      }
+    } catch { /* engel çizilemedi */ }
   }
   return out;
 }
@@ -379,7 +392,13 @@ function renderChecklist(cl) {
   if (cl.error) { el.innerHTML = `<p class="note">Check list yok: ${esc(cl.error)}</p>`; return; }
   el.innerHTML = `<h2>Check list <b>${cl.n}/${cl.of}</b>${cl.known < cl.of ? ` <small>(${cl.of - cl.known} madde verisiz)</small>` : ''}</h2>
     <p class="note">Ölçüm (12 ay, 1H/4H): madde sayısı ve ağırlıklı puan doğrulamada ayırt etmedi. Etiket = maddenin kendi ölçümü (sağlam / zayıf + / tutarsız / olumsuz / etkisiz); ayrıntı için maddeye uzun bas.</p>
-    <ul class="cl">${cl.items.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev ${x.ev === 'sağlam' ? 'm' : x.ev === 'zayıf +' ? 'w' : x.ev === 'olumsuz' ? 'n' : ''}">${esc(x.ev)}</small><br><small>${esc(x.detail || '')}</small></span></li>`).join('')}</ul>`;
+    <ul class="cl">${cl.items.map((x) => `<li class="${x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na'}" title="${esc(x.hint)}"><span class="mk">${x.ok === true ? '✓' : x.ok === false ? '✗' : '?'}</span><span class="lb">${esc(x.label)} <small class="ev ${x.ev === 'sağlam' ? 'm' : x.ev === 'zayıf +' ? 'w' : x.ev === 'olumsuz' ? 'n' : ''}">${esc(x.ev)}</small><br><small>${esc(x.detail || '')}</small>${x.obstacles?.items?.length ? obstacleList(x.obstacles) : ''}</span></li>`).join('')}</ul>`;
+}
+
+/** Madde 8 altında yol listesi: engel (✗ kararına giren TP1 öncesi koyu) ve likidite (olası dönüş noktası, karara girmez). */
+function obstacleList(po) {
+  const r = (v) => `${v.toFixed(1).replace('.', ',')}R`;
+  return `<ul class="path-obs">${po.items.map((x) => `<li class="${x.kind === 'engel' ? (x.beforeTp1 ? 'eng' : 'eng2') : 'liq'}"><b>${r(x.r)}</b> ${esc(x.name)} <small>${x.kind === 'engel' ? 'engel' : 'likidite · olası dönüş'} · ${fmtPrice(x.zone[0])}–${fmtPrice(x.zone[1])}${x.beforeTp1 ? '' : ' · TP1 sonrası'}</small></li>`).join('')}</ul>${po.warnings.length ? `<small class="path-warn">⚠ ${po.warnings.map(esc).join(' · ')}</small>` : ''}`;
 }
 
 // ------------------------------------------------------------------ ★ takip listesi

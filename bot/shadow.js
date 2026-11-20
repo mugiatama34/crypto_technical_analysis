@@ -7,12 +7,18 @@
 //   rs/rsRank/rsN     BTC'ye göre güç (%), aynı turda aynı TF'de taranan coinler arasındaki yüzdelik sıra (0 en zayıf, 1 en güçlü), kaç coin
 //   funding/fundingBtc  güncel fonlama oranı (%, OKX'in o coin için dönemi başına; fundingIntH = dönem saati, çıkarılabildiyse)
 //   oiChg24h          açık pozisyonun ~24 saat öncesine göre % değişimi (state'teki saatlik görüntülerden; yoksa null)
+//   pathN1/pathN2     giriş→TP1 / TP1→TP2 arasındaki ters FVG / iFVG / OB / breaker sayısı (src/scan/checklist.js pathObstacles;
+//                     sinyal anındaki satır mumlarıyla fvg / orderblock / liquidity detektörleri, preset'ten bağımsız)
+//   pathFirstR        ilk engelin girişe uzaklığı (R; engel yoksa null) · pathLiq  yol üstü (TP2'ye kadar) alınmamış likidite sayısı
 import { CLOSED } from './plan.js';
+import { pathObstacles } from '../src/scan/checklist.js';
+import { makeContext } from '../src/scan/context.js';
+import { runDetectors } from '../src/scan/registry.js';
 
 const num = (x) => { if (x == null || x === '') return null; const v = typeof x === 'number' ? x : Number(x); return Number.isFinite(v) ? v : null; };
 const round = (x, k) => (x == null ? null : +x.toFixed(k));
 
-export const SHADOW_KEYS = ['offMin', 'openSame', 'openAll', 'riskPct', 'rs', 'rsRank', 'rsN', 'funding', 'fundingIntH', 'fundingBtc', 'oiChg24h'];
+export const SHADOW_KEYS = ['offMin', 'openSame', 'openAll', 'riskPct', 'rs', 'rsRank', 'rsN', 'funding', 'fundingIntH', 'fundingBtc', 'oiChg24h', 'pathN1', 'pathN2', 'pathFirstR', 'pathLiq'];
 export const emptyShadow = () => Object.fromEntries(SHADOW_KEYS.map((k) => [k, null]));
 
 /** Kendi TF mumunun açılışından bu yana dakika. Canlı mum varsa onun açılışı, yoksa UTC hizalı mum sınırı. */
@@ -60,6 +66,15 @@ export function rsRankOf(rows, tf, coin) {
   return { rs, rsRank: rs == null ? null : pctRank(same.map((r) => r.trend.rsBtc), rs), rsN: same.length || null };
 }
 
+/** Yol engelleri: satırın (sinyal anındaki) mumlarıyla SMC detektörleri → pathObstacles. smc verilirse detektör çalıştırılmaz (test). */
+export function pathShadowOf(rec, row, smc = null) {
+  const sig = smc ?? (row?.candles?.length ? runDetectors(makeContext({ candles: row.candles, live: row.live || null, tf: row.tf || rec.tf, symbol: row.coin || rec.coin, opts: {} }), ['fvg', 'orderblock', 'liquidity']) : null);
+  if (!sig) return { pathN1: null, pathN2: null, pathFirstR: null, pathLiq: null };
+  const po = pathObstacles({ d: rec.d, entry: num(rec.entry), stop: num(rec.stop), tp1: num(rec.tp1), tp2: num(rec.tp2), atr: num(rec.atr) }, sig);
+  if (!(po.R > 0)) return { pathN1: null, pathN2: null, pathFirstR: null, pathLiq: null };
+  return { pathN1: po.n1, pathN2: po.n2, pathFirstR: po.firstR, pathLiq: po.liq };
+}
+
 /** Senkron etiketler (ağsız). Ağ alanları null kalır; collectShadowNet + applyShadowNet sonra doldurur. */
 export function shadowBase({ now, tfMs, row, rec, sent, rows }) {
   const s = emptyShadow();
@@ -68,6 +83,7 @@ export function shadowBase({ now, tfMs, row, rec, sent, rows }) {
   tryk(() => { Object.assign(s, openCounts(sent, rec.d, rec.key != null ? `${rec.key}|${rec.sentAt}` : null)); });
   tryk(() => { s.riskPct = riskPctOf(rec.entry, rec.stop); });
   tryk(() => { Object.assign(s, rsRankOf(rows, rec.tf, rec.coin)); });
+  tryk(() => { Object.assign(s, pathShadowOf(rec, row)); });
   return s;
 }
 
