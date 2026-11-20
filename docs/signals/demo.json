@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795213105204,
+ "updatedAt": 1795214009502,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2236,6 +2236,162 @@
    },
    "phase": "skipped",
    "reason": "aynı sembolde açık demo işi var"
+  },
+  "ONDO|4H|short|32|1795213839956": {
+   "id": "ONDO|4H|short|32|1795213839956",
+   "coin": "ONDO",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795213839956,
+   "createdAt": 1795214009502,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.2895,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-4728203decce379a-E",
+     "at": 1795214009502,
+     "qty": 156795,
+     "price": 0.2895,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ONDOUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.2895,
+    "stop": 0.2963,
+    "tp1": 0.2794,
+    "tp2": 0.2726,
+    "early": 0.2861,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 156795,
+   "riskUsd": 1066.206,
+   "riskTarget": 1066.21,
+   "leverage": 20,
+   "lastAtCreate": 0.2814
+  },
+  "ADA|4H|short|36|1795213839956": {
+   "id": "ADA|4H|short|36|1795213839956",
+   "coin": "ADA",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795213839956,
+   "createdAt": 1795214009502,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.1471,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-803e0e26bd15b00e-E",
+     "at": 1795214009502,
+     "qty": 273387,
+     "price": 0.1471,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ADAUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.1471,
+    "stop": 0.151,
+    "tp1": 0.1399,
+    "tp2": 0.1361,
+    "early": 0.1454,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 273387,
+   "riskUsd": 1066.2093,
+   "riskTarget": 1066.21,
+   "leverage": 20,
+   "lastAtCreate": 0.1429
+  },
+  "DOT|4H|short|37|1795213839956": {
+   "id": "DOT|4H|short|37|1795213839956",
+   "coin": "DOT",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795213839956,
+   "createdAt": 1795214009502,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.6926,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-e2ee2e26946a6df2-E",
+     "at": 1795214009502,
+     "qty": 49361.5,
+     "price": 0.6926,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "DOTUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.6926,
+    "stop": 0.7142,
+    "tp1": 0.6603,
+    "tp2": 0.6387,
+    "early": 0.6843,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 49361.5,
+   "riskUsd": 1066.2084,
+   "riskTarget": 1066.21,
+   "leverage": 20,
+   "lastAtCreate": 0.6701
   }
  },
  "insts": {
@@ -2394,7 +2550,7 @@
    }
   },
   "ADA": {
-   "at": 1795107187297,
+   "at": 1795214009502,
    "inst": {
     "coin": "ADA",
     "symbol": "ADAUSDT",
@@ -2457,6 +2613,34 @@
     "mult": 1,
     "status": "Trading",
     "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "ONDO": {
+   "at": 1795214009502,
+   "inst": {
+    "coin": "ONDO",
+    "symbol": "ONDOUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "DOT": {
+   "at": 1795214009502,
+   "inst": {
+    "coin": "DOT",
+    "symbol": "DOTUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
     "qtyStep": "0.1",
     "minQty": 0.1,
     "minNotional": 5,
@@ -3084,6 +3268,36 @@
    "ev": "stop",
    "price": 0.0581,
    "why": "TP1 (ara kademe) doldu → stop erken hedefe"
+  },
+  {
+   "at": 1795214009502,
+   "id": "ONDO|4H|short|32|1795213839956",
+   "symbol": "ONDOUSDT",
+   "ev": "emir",
+   "qty": 156795,
+   "entry": 0.2895,
+   "stop": 0.2963,
+   "lev": 20
+  },
+  {
+   "at": 1795214009502,
+   "id": "ADA|4H|short|36|1795213839956",
+   "symbol": "ADAUSDT",
+   "ev": "emir",
+   "qty": 273387,
+   "entry": 0.1471,
+   "stop": 0.151,
+   "lev": 20
+  },
+  {
+   "at": 1795214009502,
+   "id": "DOT|4H|short|37|1795213839956",
+   "symbol": "DOTUSDT",
+   "ev": "emir",
+   "qty": 49361.5,
+   "entry": 0.6926,
+   "stop": 0.7142,
+   "lev": 20
   }
  ],
  "lastError": null
