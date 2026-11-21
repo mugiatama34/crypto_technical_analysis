@@ -344,3 +344,10 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Bulunan sorun: `app.js` yeni dışa aktarım isterken tarayıcı eski `watch.js`'i önbellekten verince sayfa hiç açılmıyordu → `app.js` içinde
   `watch.js?v=11` ve `checklist.js?v=11` (index `app.js?v=11`). Bu iki modüle yeni dışa aktarım eklenince sürümü artır.
 - Testler 588 (585 geçti, 1 bilinen `levels`, 2 todo).
+
+## 21.11.2026 (yerel oturum) — tarayıcıda check list süzgeci + satır rozeti
+- Kullanıcı isteği: sonuçlar yalnız check list'i tutanları göstersin. "Min puan"ın yanında **Check list** seçici (Hepsi / ≥ 4…7 ✓ / 8 / 8; `settings.minCheck`),
+  her satırda "✓ n/8" rozeti. Hesap tarama bitince arka planda (`computeChecklists`, 4 eşzamanlı; üst TF mumu coin başına bir ek istek); plansız satır süzgeçte gizlenir.
+- Yerelde doğrulandı (ICT giriş, 15m + 4H, Cumartesi): 86 sonuç → ≥ 6 ✓ ile 16; 8 / 8 = 0 (hafta sonu "hafta içi" maddesi ✗, en fazla 7). Konsol hatası yok.
+- ✓ sayısı kanıtlanmış kalite ölçüsü değil (3 madde sağlam, diğerleri zayıf / tutarsız); süzgeç yalnız görünüm. `app.js?v=12`, `checklist.js?v=12`.
+- Testler 589 (586 geçti, 1 bilinen `levels`, 2 todo).

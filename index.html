@@ -45,6 +45,7 @@
       <select id="dirFilter"><option value="all">Hepsi</option><option value="long">Long</option><option value="short">Short</option></select>
     </label>
     <label class="field"><span>Min puan</span><input type="number" id="minScore" min="0" max="100" step="5" value="30" style="width:84px"></label>
+    <label class="field" title="Yalnız check list'te en az bu kadar ✓ alan satırlar (plan kurulamayan satırlar gizlenir)"><span>Check list</span><select id="minCheck"><option value="0">Hepsi</option><option value="4">≥ 4 ✓</option><option value="5">≥ 5 ✓</option><option value="6">≥ 6 ✓</option><option value="7">≥ 7 ✓</option><option value="8">8 / 8</option></select></label>
     <button type="button" class="btn primary" id="scanBtn">Tara</button>
     <button type="button" class="btn danger" id="cancelBtn" hidden>İptal</button>
     <div class="progress" id="progress" hidden><div class="bar"><span id="progressBar"></span></div><small id="progressText"></small></div>
@@ -145,6 +146,6 @@
   </footer>
 </div>
 <script src="lib/lightweight-charts.standalone.production.js"></script>
-<script type="module" src="src/ui/app.js?v=11"></script>
+<script type="module" src="src/ui/app.js?v=12"></script>
 </body>
 </html>

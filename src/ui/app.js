@@ -1,6 +1,6 @@
 // Sayfa mantığı: araç çubuğu, tarama, sonuç listesi, ayrıntı paneli (grafik + sinyaller), screenshot paneli.
 import { runScan, compareByScore, okxProvider, barsFor } from '../scan/scanner.js';
-import { checklistOf, CHECKS, pathObstacles, pathOverlay } from '../scan/checklist.js?v=11';
+import { checklistOf, CHECKS, pathObstacles, pathOverlay, passesMinCheck } from '../scan/checklist.js?v=12';
 import { structureOverlay } from '../detectors/structure.js';
 import { makeContext } from '../scan/context.js';
 import { runDetectors } from '../scan/registry.js';
@@ -41,6 +41,7 @@ function renderToolbar() {
   $('#preset').value = s.preset;
   $('#dirFilter').value = s.dirFilter;
   $('#minScore').value = s.minScore;
+  $('#minCheck').value = String(s.minCheck ?? 0);
   $('#sortBy').value = s.sortBy;
   $('#apiKey').value = s.apiKey || '';
   renderDetectors();
@@ -92,6 +93,7 @@ function bindToolbar() {
   $('#detGrid').addEventListener('change', customize);
   $('#dirFilter').addEventListener('change', (e) => { update({ dirFilter: e.target.value }); renderRows(); });
   $('#minScore').addEventListener('change', (e) => { update({ minScore: +e.target.value || 0 }); renderRows(); });
+  $('#minCheck').addEventListener('change', (e) => { update({ minCheck: +e.target.value || 0 }); state.page = 0; renderRows(); if (state.settings.minCheck > 0) computeChecklists(); });
   $('#sortBy').addEventListener('change', (e) => { update({ sortBy: e.target.value }); renderRows(); });
   $('#search').addEventListener('input', () => { state.page = 0; renderRows(); });
   $('#scanBtn').addEventListener('click', scan);
@@ -157,7 +159,41 @@ async function scan() {
     refreshWatch();
     state.page = 0;
     renderRows();
+    computeChecklists(); // arka planda; await edilmez
   }
+}
+
+// ------------------------------------------------------------------ toplu check list (rozet + süzgeç)
+const checkCache = new WeakMap(); // satır nesnesi -> { n, of, known } | { error: true }
+let checkRun = false;
+function cacheChecklist(r, cl) { checkCache.set(r, !cl || cl.error ? { error: true } : { n: cl.n, of: cl.of, known: cl.known }); }
+
+async function computeChecklists() {
+  if (checkRun) return;
+  const rowsRef = state.rows;
+  const todo = rowsRef.filter((r) => !r.error && r.best && !checkCache.has(r));
+  if (!todo.length) return;
+  checkRun = true;
+  let next = 0, sinceDraw = 0;
+  const worker = async () => {
+    while (next < todo.length && state.rows === rowsRef) {
+      const r = todo[next++];
+      let cl;
+      try { cl = await checklistFor(r); } catch { cl = { error: true }; }
+      if (state.rows !== rowsRef) return; // yeni tarama başladı
+      cacheChecklist(r, cl);
+      if (++sinceDraw >= 10) { sinceDraw = 0; renderRows(); }
+    }
+  };
+  try { await Promise.all([worker(), worker(), worker(), worker()]); } finally { checkRun = false; }
+  if (state.rows === rowsRef) renderRows();
+  else computeChecklists(); // satırlar değiştiyse yeni kümeyi hesapla
+}
+
+/** Süzgeç açıkken hesabı bitmemiş satır sayısı: [k, N]. */
+function checkProgress() {
+  const all = state.rows.filter((r) => !r.error && r.best);
+  return [all.filter((r) => checkCache.has(r)).length, all.length];
 }
 
 // ------------------------------------------------------------------ sonuç listesi
@@ -165,6 +201,7 @@ function filteredRows() {
   const s = state.settings;
   const q = $('#search').value.trim().toLowerCase();
   let rows = state.rows.filter((r) => !r.error && r.best);
+  if (s.minCheck > 0) rows = rows.filter((r) => passesMinCheck(checkCache.get(r), s.minCheck));
   rows = rows.filter((r) => r.score >= s.minScore); // kartta görünen küme puanı (MTF puanı süzmeyi aşmaz)
   if (s.dirFilter !== 'all') rows = rows.filter((r) => r.direction === s.dirFilter);
   if (q) rows = rows.filter((r) => r.coin.toLowerCase().includes(q) || r.best.signals.some((x) => x.name.toLowerCase().includes(q)));
@@ -185,15 +222,21 @@ function badge(sig) {
   return `<span class="badge ${sig.status === 'forming' || sig.status === 'mitigated' ? 'dim' : ''}" title="${esc(sig.note || '')}"><i style="background:${g.color}"></i>${esc(sig.name)}${sig.meta?.wave ? ` · ${esc(sig.meta.wave.text)}` : ''}</span>`; // fib kesişimi iç sayımı (bilgi)
 }
 
+function ckBadge(r) {
+  const c = checkCache.get(r);
+  return c && !c.error ? `<span class="badge" title="Check list: 8 maddeden kaç ✓">✓ ${c.n}/${c.of}</span>` : '';
+}
+
 function renderRows() {
   const rows = filteredRows();
   const total = rows.length;
   const pages = Math.max(1, Math.ceil(total / PAGE));
   state.page = Math.min(state.page, pages - 1);
   const slice = rows.slice(state.page * PAGE, (state.page + 1) * PAGE);
-  $('#listTitle').textContent = `Sonuçlar (${total})`;
+  const mc = state.settings.minCheck, [ckDone, ckAll] = checkProgress(), ckBusy = mc > 0 && ckDone < ckAll;
+  $('#listTitle').textContent = `Sonuçlar (${total})${ckBusy ? ` · Check list hesaplanıyor… ${ckDone}/${ckAll}` : ''}`;
   if (!state.rows.length) { $('#rows').innerHTML = `<p class="empty">${state.busy ? 'Taranıyor…' : 'Henüz tarama yok.'}</p>`; $('#pager').hidden = true; return; }
-  if (!total) { $('#rows').innerHTML = '<p class="empty">Filtreye uyan sonuç yok. Min puanı düşür ya da yön filtresini kaldır.</p>'; $('#pager').hidden = true; return; }
+  if (!total) { $('#rows').innerHTML = `<p class="empty">${ckBusy ? `Check list hesaplanıyor… ${ckDone}/${ckAll}` : mc > 0 ? `Check list ≥ ${mc} ✓ olan sonuç yok.` : 'Filtreye uyan sonuç yok. Min puanı düşür ya da yön filtresini kaldır.'}</p>`; $('#pager').hidden = true; return; }
   $('#rows').innerHTML = slice.map((r) => {
     const b = r.best, pl = planOf(r);
     const mtf = r.mtf && r.mtf.direction === r.direction && r.mtf.tfs.length > 1 ? `<span class="mtf" title="Aynı yön: ${r.mtf.tfs.join(', ')}${r.mtf.conflicting.length ? ` · çelişen: ${r.mtf.conflicting.join(', ')}` : ''}">MTF ${r.mtf.tfs.join('+')} · ${r.mtf.score}</span>` : '';
@@ -203,7 +246,7 @@ function renderRows() {
     const tgtP = tgt.length ? (r.direction === 'long' ? Math.min(...tgt.filter((t) => t > r.price)) : Math.max(...tgt.filter((t) => t < r.price))) : null;
     const rs = r.trend?.rsBtc != null ? `<span class="mtf rs ${r.trend.rsSide > 0 ? 'rs-up' : 'rs-down'}" title="BTC'ye göre göreli güç: coin/BTC oranının son 20 bardaki değişimi; ${r.trend.rsSide > 0 ? 'oran EMA50 üstünde (güçlü)' : 'oran EMA50 altında (zayıf)'}">vs BTC ${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}%</span>` : '';
     return `<article class="row ${state.selected === rowKey(r) ? 'sel' : ''}" data-key="${rowKey(r)}" tabindex="0">
-      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}<span class="score ${scoreClass(r.score)}">${r.score}</span></div>
+      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}${ckBadge(r)}<span class="score ${scoreClass(r.score)}">${r.score}</span></div>
       <div class="badges">${b.signals.slice(0, 8).map(badge).join('')}${b.signals.length > 8 ? `<span class="badge dim">+${b.signals.length - 8}</span>` : ''}</div>
       <div class="row-grid">
         <div><span>Fiyat</span> <b>${fmtPrice(r.price)}</b></div>
@@ -289,7 +332,7 @@ function renderDetail(r) {
   $('#showPath').addEventListener('change', (e) => { update({ showPath: e.target.checked }); renderDetail(r); });
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
-  checklistFor(r).then((cl) => { if (state.selected === rowKey(r)) renderChecklist(cl); });
+  checklistFor(r).then((cl) => { cacheChecklist(r, cl); if (state.selected === rowKey(r)) renderChecklist(cl); });
   $('#detail').querySelectorAll('[data-sig]').forEach((cb) => cb.addEventListener('change', (e) => {
     if (e.target.checked) state.hiddenSignals.delete(e.target.dataset.sig); else state.hiddenSignals.add(e.target.dataset.sig);
     const show = (state.showAllSignals ? r.signals : b.signals).filter((s) => !state.hiddenSignals.has(s.id));

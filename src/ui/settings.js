@@ -13,6 +13,7 @@ export const UI_DEFAULTS = {
   detectors: null, // null = preset'e göre
   weights: {},
   minScore: 30,
+  minCheck: 0, // check list en az ✓ sayısı (0 = hepsi)
   dirFilter: 'all',
   sortBy: 'score',
   apiKey: '',

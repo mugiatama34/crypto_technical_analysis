@@ -102,6 +102,9 @@ hafta içi · stop ≥ %0,8 · giriş→TP1 yolunda ters FVG/OB yok. Her madde �
 tutarsız); FVG/OB detektörleri preset'ten bağımsız çalıştırılır. Madde sayısı ve ağırlıklı puan ölçümde ayırt etmedi
 (kontrol aracı, karar aracı değil). "Hedefte likidite" (olumsuz) ve "≥ 2 yöntem" (etkisiz) ölçüm sonrası çıkarıldı.
 ★ Takibe alınan kayda o anki check list dondurulur (kartta ✓ n/8).
+**Sonuç listesinde** (21.11): her satırda **✓ n/8** rozeti ve araç çubuğunda **Check list** süzgeci (Hepsi / ≥ 4…≥ 7 / 8 de 8; plan kurulamayan satırlar süzgeç açıkken gizlenir).
+Check list'ler tarama bittikten sonra arka planda (en çok 4 eşzamanlı) hesaplanır; süzgeç açıkken liste dolarken "Check list hesaplanıyor… k/N" görünür.
+Üst TF / BTC 1D mumları için coin başına ek istek gider (`state.cache` ile paylaşılır). Süzgeç `passesMinCheck` (saf, test edilir).
 **Yol engelleri** (20.11, `pathObstacles` / `pathDetail` / `pathOverlay`, `src/scan/checklist.js`): madde 8'in ayrıntısı giriş→TP2 yolundaki
 tüm **engelleri** (ters yönlü, ölü olmayan FVG / iFVG / Order Block / Breaker; giriş + 0,1 ATR ötesi) ve yol üstü **likiditeyi** (alınmamış
 EQH/EQL, PDH/PDL/PWH/PWL "yakın"; yalnız işlem yönündeki taraf — long'da tepe, short'ta dip; süpürülmüş / kırılmış sayılmaz) girişe R uzaklığına

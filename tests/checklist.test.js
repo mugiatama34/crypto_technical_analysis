@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checklistOf, CHECKS } from '../src/scan/checklist.js';
+import { checklistOf, CHECKS, passesMinCheck } from '../src/scan/checklist.js';
 import { build } from './helpers.js';
 
 const H4 = 4 * 3600e3;
@@ -52,4 +52,14 @@ test('check list raporu: madde etkisi (✓ − ✗), sayım kovaları, ağırlı
   assert.ok(hi.valid.avgR <= 0, 'doğrulamada ağırlık işe yaramazsa bunu göstermeli');
   const c = byCount(trades, 50);
   assert.equal(c.find((b) => b.label === '≤ 3').train.n, 80);
+});
+
+test('passesMinCheck: check list süzgeci', () => {
+  assert.equal(passesMinCheck(undefined, 0), true); // süzgeç kapalı: her şey geçer
+  assert.equal(passesMinCheck({ error: true }, 0), true);
+  assert.equal(passesMinCheck(undefined, 5), false); // henüz hesaplanmadı
+  assert.equal(passesMinCheck({ error: true }, 4), false); // plansız / hatalı
+  assert.equal(passesMinCheck({ n: 5, of: 8 }, 5), true);
+  assert.equal(passesMinCheck({ n: 4, of: 8 }, 5), false);
+  assert.equal(passesMinCheck({ n: 8, of: 8 }, 8), true);
 });

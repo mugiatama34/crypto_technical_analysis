@@ -135,3 +135,10 @@ export function checklistOf({ plan, candles, btcDaily = null, upCandles = null, 
   const items = CHECKS.map((c) => ({ ...c, ...res[c.id] }));
   return { items, n: items.filter((x) => x.ok === true).length, known: items.filter((x) => x.ok != null).length, of: items.length };
 }
+
+/** Check list süzgeci (saf): min <= 0 -> geçer; kayıt yok / hatalı (plansız) -> geçmez; değilse n >= min. */
+export function passesMinCheck(entry, min) {
+  if (!(min > 0)) return true;
+  if (!entry || entry.error || !Number.isFinite(entry.n)) return false;
+  return entry.n >= min;
+}
