@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795223962715,
+ "updatedAt": 1795224868036,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2260,10 +2260,10 @@
      "qty": 156795,
      "price": 0.2895,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214012273,
+     "updatedAt": 1795223964437,
      "cancelAt": 1795223962715
     }
    },
@@ -2276,7 +2276,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.2895,
@@ -2293,7 +2293,9 @@
    "riskTarget": 1066.21,
    "leverage": 20,
    "lastAtCreate": 0.2814,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795224868036
   },
   "ADA|4H|short|36|1795213839956": {
    "id": "ADA|4H|short|36|1795213839956",
@@ -3401,6 +3403,13 @@
    "at": 1795223057694,
    "id": "DOT|4H|short|37|1795213839956",
    "symbol": "DOTUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
+  },
+  {
+   "at": 1795224868036,
+   "id": "ONDO|4H|short|32|1795213839956",
+   "symbol": "ONDOUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
   }
