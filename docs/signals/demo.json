@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795233914218,
+ "updatedAt": 1795234819663,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -1847,12 +1847,12 @@
    "sentAt": 1795110329758,
    "createdAt": 1795110809343,
    "paper": {
-    "status": "early",
+    "status": "done",
     "entry": 0.0588,
     "filledAt": 1795112100000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795234532239,
+    "R": 1.2339547466797836
    },
    "orders": {
     "E": {
@@ -1894,10 +1894,10 @@
      "qty": 90766,
      "price": 0.05105,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795113530451
+     "status": "Filled",
+     "cumExecQty": 90766,
+     "avgPrice": 0.05105,
+     "updatedAt": 1795234068272
     }
    },
    "stops": [
@@ -1920,7 +1920,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.0588,
@@ -1966,7 +1966,21 @@
     "paperAt": 1795112100000,
     "minutes": -10
    },
-   "stopLevel": 0.0581
+   "stopLevel": 0.0581,
+   "closed": {
+    "at": 1795234819663,
+    "pnl": 1264.6261,
+    "pnlSrc": "closed-pnl",
+    "R": 1.222,
+    "exitBy": "TP2",
+    "legs": [
+     "T1",
+     "T2",
+     "T3"
+    ],
+    "paperStatus": "done"
+   },
+   "paperDone": true
   },
   "SHIB|4H|short|51|1795110329758": {
    "id": "SHIB|4H|short|51|1795110329758",
@@ -3434,6 +3448,14 @@
    "symbol": "PENGUUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
+  },
+  {
+   "at": 1795234819663,
+   "id": "DOGE|4H|short|45|1795110329758",
+   "symbol": "DOGEUSDT",
+   "ev": "kapanış",
+   "R": 1.222,
+   "exitBy": "TP2"
   }
  ],
  "lastError": null
