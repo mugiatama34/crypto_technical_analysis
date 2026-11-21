@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795232104256,
+ "updatedAt": 1795233008873,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2320,10 +2320,10 @@
      "qty": 273387,
      "price": 0.1471,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214012637,
+     "updatedAt": 1795232105211,
      "cancelAt": 1795232104256
     }
    },
@@ -2336,7 +2336,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.1471,
@@ -2353,7 +2353,9 @@
    "riskTarget": 1066.21,
    "leverage": 20,
    "lastAtCreate": 0.1429,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795233008873
   },
   "DOT|4H|short|37|1795213839956": {
    "id": "DOT|4H|short|37|1795213839956",
@@ -2424,11 +2426,11 @@
    "sentAt": 1795214729442,
    "createdAt": 1795214916610,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 0.00440795,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795232730799,
     "R": null
    },
    "orders": {
@@ -2441,7 +2443,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214918529
+     "updatedAt": 1795214918529,
+     "cancelAt": 1795233008873
     }
    },
    "stops": [],
@@ -2469,7 +2472,8 @@
    "riskUsd": 1066.1887,
    "riskTarget": 1066.19,
    "leverage": 18,
-   "lastAtCreate": 0.004322
+   "lastAtCreate": 0.004322,
+   "cancelWhy": "kâğıt missed"
   }
  },
  "insts": {
@@ -3412,6 +3416,13 @@
    "at": 1795224868036,
    "id": "ONDO|4H|short|32|1795213839956",
    "symbol": "ONDOUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
+  },
+  {
+   "at": 1795233008873,
+   "id": "ADA|4H|short|36|1795213839956",
+   "symbol": "ADAUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
   }
