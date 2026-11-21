@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795233008873,
+ "updatedAt": 1795233914218,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2440,10 +2440,10 @@
      "qty": 6748030,
      "price": 0.004408,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214918529,
+     "updatedAt": 1795233010613,
      "cancelAt": 1795233008873
     }
    },
@@ -2456,7 +2456,7 @@
     "qtyStep": "10",
     "minQty": 10
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.004408,
@@ -2473,7 +2473,9 @@
    "riskTarget": 1066.19,
    "leverage": 18,
    "lastAtCreate": 0.004322,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795233914218
   }
  },
  "insts": {
@@ -3423,6 +3425,13 @@
    "at": 1795233008873,
    "id": "ADA|4H|short|36|1795213839956",
    "symbol": "ADAUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
+  },
+  {
+   "at": 1795233914218,
+   "id": "PENGU|4H|short|24|1795214729442",
+   "symbol": "PENGUUSDT",
    "ev": "iptal",
    "why": "kâğıt missed"
   }
