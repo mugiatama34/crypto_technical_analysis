@@ -18,6 +18,7 @@ import { renderSettingsPanel, EW_UI_DEFAULTS } from './settingsPanel.js';
 import { drawRow, destroyChart } from './chart.js';
 import { analyzeScreenshot } from './screenshot.js';
 import { fmtPrice, fmtTime, esc } from './format.js';
+import { shareCardModel, shareCard } from './share-card.js?v=1';
 
 const $ = (s) => document.querySelector(s);
 const PAGE = 40;
@@ -246,7 +247,7 @@ function renderRows() {
     const tgtP = tgt.length ? (r.direction === 'long' ? Math.min(...tgt.filter((t) => t > r.price)) : Math.max(...tgt.filter((t) => t < r.price))) : null;
     const rs = r.trend?.rsBtc != null ? `<span class="mtf rs ${r.trend.rsSide > 0 ? 'rs-up' : 'rs-down'}" title="BTC'ye göre göreli güç: coin/BTC oranının son 20 bardaki değişimi; ${r.trend.rsSide > 0 ? 'oran EMA50 üstünde (güçlü)' : 'oran EMA50 altında (zayıf)'}">vs BTC ${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}%</span>` : '';
     return `<article class="row ${state.selected === rowKey(r) ? 'sel' : ''}" data-key="${rowKey(r)}" tabindex="0">
-      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}${ckBadge(r)}<span class="score ${scoreClass(r.score)}">${r.score}</span></div>
+      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}${ckBadge(r)}<span class="score ${scoreClass(r.score)}">${r.score}</span>${shareBtn(`data-share="${esc(rowKey(r))}"`)}</div>
       <div class="badges">${b.signals.slice(0, 8).map(badge).join('')}${b.signals.length > 8 ? `<span class="badge dim">+${b.signals.length - 8}</span>` : ''}</div>
       <div class="row-grid">
         <div><span>Fiyat</span> <b>${fmtPrice(r.price)}</b></div>
@@ -267,8 +268,29 @@ function renderRows() {
 
 function bindRows() {
   const pick = (el) => { const r = state.rows.find((x) => rowKey(x) === el.dataset.key); if (r) select(r); };
-  $('#rows').addEventListener('click', (e) => { const el = e.target.closest('.row'); if (el) pick(el); });
-  $('#rows').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { const el = e.target.closest('.row'); if (el) { e.preventDefault(); pick(el); } } });
+  $('#rows').addEventListener('click', (e) => {
+    const sh = e.target.closest('[data-share]'); // Paylaş: satırı seçmez (yayılım burada kesilir)
+    if (sh) { e.stopPropagation(); const r = state.rows.find((x) => rowKey(x) === sh.dataset.share); if (r) shareRow(r); return; }
+    const el = e.target.closest('.row'); if (el) pick(el);
+  });
+  $('#rows').addEventListener('keydown', (e) => { if (e.target.closest('button')) return; /* düğme kendi Enter/Boşluk tıklamasını alır */ if (e.key === 'Enter' || e.key === ' ') { const el = e.target.closest('.row'); if (el) { e.preventDefault(); pick(el); } } });
+}
+
+// ------------------------------------------------------------------ resim olarak paylaş (src/ui/share-card.js)
+const shareBtn = (attrs, cls = 'small') => `<button type="button" class="btn ${cls} share-btn" ${attrs} aria-label="Resim olarak paylaş" title="Sinyal kartını resim olarak paylaş (WhatsApp, Telegram…; yoksa panoya / indir)">⤴ Paylaş</button>`;
+/** Tarama satırı → kart → paylaş. Tıklama işleyicisinden senkron çağrılır (iOS kullanıcı hareketi). */
+function shareRow(r) {
+  const pl = planOf(r);
+  let reason = '';
+  if (!pl) { try { reason = buildPlan(r, { minScore: 0, minRR: 0, minRR1: 0, maxDistAtr: 99, fibPlan: true }).reason || ''; } catch { /* */ } }
+  const c = checkCache.get(r);
+  shareCard(shareCardModel(r, pl, { checklist: c && !c.error ? c : null, now: state.scan?.at ?? Date.now(), noPlanReason: reason }), banner);
+}
+/** ★ takip kaydı → kart (dondurulmuş seviyeler; mumlar önbellekte varsa grafik). Not / etiket yazılmaz. */
+function shareWatch(w) {
+  const data = state.cache.get(`${w.instId}|${w.tf}`);
+  const row = { coin: w.coin, tf: w.tf, direction: w.direction, score: w.score, price: Number.isFinite(w.lastPrice) ? w.lastPrice : null, candles: data?.candles || [], live: data?.live || null, signalNames: w.signals || [] };
+  shareCard(shareCardModel(row, w, { checklist: w.checklist || null, now: w.updatedAt || Date.now(), computeEarly: false }), banner);
 }
 
 // ------------------------------------------------------------------ ayrıntı
@@ -314,6 +336,7 @@ function renderDetail(r) {
     <div class="detail-head"><h3>${esc(r.coin)} <small class="row-tf">${r.tf}</small></h3><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>
       <button type="button" class="btn" id="watchBtn" title="Giriş / stop / hedefleri dondur ve sonraki mumlarla izle">${state.watch.some((w) => w.coin === r.coin && w.tf === r.tf && w.direction === r.direction && isOpen(w)) ? '★ Takipte' : '☆ Takibe al'}</button>
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
+      ${shareBtn('id="shareBtn"', '')}
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showAll" ${state.showAllSignals ? 'checked' : ''}> tüm sinyaller</label>
       <label class="chip small" title="Son 8 swing (HH/HL/LH/LL) ve son 4 yapı kırılımı (BOS/CHoCH)"><input type="checkbox" id="showStruct" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label>
       <label class="chip small" title="Plana göre ana (yeşil) ve alternatif (kırmızı) yol; tahmin değil"><input type="checkbox" id="showScen" ${state.settings.showScenario !== false ? 'checked' : ''}> Senaryo okları</label>
@@ -332,6 +355,7 @@ function renderDetail(r) {
   $('#showPath').addEventListener('change', (e) => { update({ showPath: e.target.checked }); renderDetail(r); });
   $('#showAll').addEventListener('change', (e) => { state.showAllSignals = e.target.checked; renderDetail(r); });
   $('#watchBtn').addEventListener('click', () => addWatch(r));
+  $('#shareBtn').addEventListener('click', () => shareRow(r));
   checklistFor(r).then((cl) => { cacheChecklist(r, cl); if (state.selected === rowKey(r)) renderChecklist(cl); });
   $('#detail').querySelectorAll('[data-sig]').forEach((cb) => cb.addEventListener('change', (e) => {
     if (e.target.checked) state.hiddenSignals.delete(e.target.dataset.sig); else state.hiddenSignals.add(e.target.dataset.sig);
@@ -514,7 +538,7 @@ function renderWatch() {
     return `<article class="watch ${isOpen(w) ? '' : 'closed'}${state.selected === `watch|${w.id}` ? ' sel' : ''}" data-id="${esc(w.id)}" role="button" tabindex="0" title="Ayrıntı ve grafik için dokun">
       <div class="row-top"><span class="row-sym">${esc(w.coin)}</span><span class="row-tf">${w.tf}</span><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
         <span class="badge">${esc(st)}</span>${w.label ? `<span class="badge tag">${esc(w.label)}</span>` : ''}${w.checklist ? `<span class="badge" title="Takibe alındığı andaki check list">✓ ${w.checklist.n}/${w.checklist.of}</span>` : ''}${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
-        <button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar" style="margin-left:auto">✕</button></div>
+        ${shareBtn(`data-share-w="${esc(w.id)}"${R != null ? '' : ' style="margin-left:auto"'}`)}<button type="button" class="btn small" data-del="${esc(w.id)}" aria-label="Takipten çıkar">✕</button></div>
       <div class="row-grid">
         <div><span>Giriş</span> <b>${fmtPrice(w.entry)}</b></div><div><span>Stop</span> <b>${fmtPrice(w.stop)}</b></div>
         ${earlyCell(w)}<div><span>TP1</span> <b>${fmtPrice(w.tp1)}</b> <small>${w.rr1}R</small></div><div><span>TP2</span> <b>${fmtPrice(w.tp2)}</b> <small>${w.rr}R</small></div>
@@ -542,6 +566,7 @@ async function renderWatchDetail(w) {
     <div class="detail-head"><h3>★ ${esc(w.coin)} <small class="row-tf">${w.tf}</small></h3><span class="dir ${w.direction}">${w.direction.toUpperCase()}</span>
       <span class="badge">${esc(st)}</span>${R != null ? `<span class="score ${R >= 0 ? 'hi' : 'lo'}">${R >= 0 ? '+' : ''}${R.toFixed(2)}R${isOpen(w) ? ' anlık' : ''}</span>` : ''}
       <a class="btn" href="${tv}" target="_blank" rel="noopener">TradingView ↗</a>
+      ${shareBtn('id="shareBtnW"', '')}
       <label class="chip small" style="margin-left:auto"><input type="checkbox" id="showStructW" ${state.settings.showStructure ? 'checked' : ''}> Yapı HH/HL · BOS</label></div>
     <div class="chart" id="chart"><p class="empty">Mumlar yükleniyor…</p></div>
     <div class="stat-strip">${[['Giriş', fmtPrice(w.entry)], ['Stop', fmtPrice(w.stop)], ...(eo ? [['Erken', `${fmtPrice(eo.price)} · ${eo.R.toFixed(2)}R · ${eo.pay}`]] : []), ['TP1', `${fmtPrice(w.tp1)} · ${w.rr1}R`], ['TP2', `${fmtPrice(w.tp2)} · ${w.rr}R`], ['Son fiyat', fmtPrice(w.lastPrice)]].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>
@@ -551,6 +576,7 @@ async function renderWatchDetail(w) {
     <h2>Sinyaller (takibe alındığı an)</h2><div class="sig-note">${esc((w.signals || []).join(' · ')) || '–'}</div>
     ${w.note ? `<h2>Not</h2><div class="sig-note">${esc(w.note)}</div>` : ''}`;
   $('#showStructW').addEventListener('change', (e) => { update({ showStructure: e.target.checked }); renderWatchDetail(w); });
+  $('#shareBtnW').addEventListener('click', () => shareWatch(state.watch.find((x) => x.id === w.id) || w));
   if (window.innerWidth < 1100) $('#detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   let data;
   try { data = await candlesOf(w.instId, w.tf); } catch (err) { $('#chart').innerHTML = `<p class="empty">Mumlar alınamadı: ${esc(err.message)}</p>`; return; }
@@ -584,6 +610,8 @@ async function renderWatchDetail(w) {
 
 function bindWatch() {
   $('#watchList').addEventListener('click', (e) => {
+    const sw = e.target.closest('[data-share-w]')?.dataset.shareW;
+    if (sw) { e.stopPropagation(); const w = state.watch.find((x) => x.id === sw); if (w) shareWatch(w); return; }
     const id = e.target.closest('[data-del]')?.dataset.del;
     if (id) { state.watch = state.watch.filter((w) => w.id !== id); state.watch = saveWatch(state.watch); renderWatch(); return; }
     if (e.target.closest('input')) return;

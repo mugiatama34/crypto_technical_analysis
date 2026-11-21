@@ -95,6 +95,13 @@ taramadaki plan özetinde de görünür. **Eski kayıtlar** (alan yok) değişme
 HH/HL/LH/LL etiketiyle ve son 4 yapı kırılımı (BOS/CHoCH) kesikli çizgi + etiketle (`structureOverlay`, yapı detektörüyle
 aynı pivotlar). Seçim tarayıcıda saklanır.
 
+**Resim olarak paylaş** (21.11, `src/ui/share-card.js`): sonuç satırında, ayrıntıda ve ★ takip kartı / ayrıntısında **⤴ Paylaş**.
+Sinyal kartı 1080 px genişlikte PNG olarak çizilir (Canvas 2D, kütüphanesiz): coin · TF · yön · küme puanı · ✓ n/8 · UTC saat, fiyat ve
+bölge, Giriş / Stop (%) / Erken (R, pay) / TP1 / TP2 (R), son 90 mumun grafiği (seviye çizgileri takip grafiğinin renkleriyle) ve ilk
+6 yapı. Plan kurulamayan satırda "Plan kurulamadı (neden)" + grafik + yapılar. Paylaşım sayfası varsa (iOS / Android) oradan; yoksa
+panoya kopyalanır, o da olmazsa indirilir (`<coin>-<tf>-<yön>-<tarih>.png`). Resimde not / etiket / hesap bilgisi yok. Takip kaydında
+seviyeler dondurulmuş kayıttan, grafik önbellekteki mumlardan (yoksa grafiksiz). Saf model `shareCardModel`; test `tests/share-card.test.js`.
+
 ### İşlem check list'i (8 madde)
 Ayrıntıda grafiğin altında **Check list x/8** (`src/scan/checklist.js`, kullanıcı onayı 28.10): BTC günlük rejimi aynı yön ·
 coin'in üst TF trendi aynı yön · BTC'ye göre güç işlem yönünde · limit giriş · bölgeye yavaş yaklaşma (düşen bıçak değil) ·

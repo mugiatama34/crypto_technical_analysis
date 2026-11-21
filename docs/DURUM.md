@@ -351,3 +351,12 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Yerelde doğrulandı (ICT giriş, 15m + 4H, Cumartesi): 86 sonuç → ≥ 6 ✓ ile 16; 8 / 8 = 0 (hafta sonu "hafta içi" maddesi ✗, en fazla 7). Konsol hatası yok.
 - ✓ sayısı kanıtlanmış kalite ölçüsü değil (3 madde sağlam, diğerleri zayıf / tutarsız); süzgeç yalnız görünüm. `app.js?v=12`, `checklist.js?v=12`.
 - Testler 589 (586 geçti, 1 bilinen `levels`, 2 todo).
+
+## 21.11.2026 (yerel oturum, devam) — sinyal kartını resim olarak paylaşma
+- Kullanıcı isteği: tarama sonucundaki sinyali arkadaşına kart olarak göndermek. "⤴ Paylaş" düğmesi sonuç satırında, ayrıntıda, ★ takip kartında ve takip ayrıntısında.
+  `src/ui/share-card.js`: `shareCardModel` (saf), `drawShareCard` (Canvas 2D, 1080 × ≈ 1368 px; başlık + check list rozeti + puan, giriş / stop / erken / TP1 / TP2
+  ve R'leri, 90 mumluk grafik + seviye çizgileri, ilk 6 yapı, "kâğıt işlem · yatırım tavsiyesi değildir"), `shareCard` (telefon: `navigator.share` dosyayla;
+  masaüstü: panoya kopya → olmazsa PNG indir). Harici kütüphane yok; resimde not / kişisel veri yok. Tıklama zinciri senkron (iOS kullanıcı hareketi şartı).
+- Yerelde doğrulandı: kart çizimi (BCH 15m short, erken hedefli), düğmeye basmak satırı seçmiyor, konsol hatası yok. **Doğrulanmadı:** iPhone paylaşım menüsü
+  (kullanıcı deneyecek), masaüstünde panoya kopya / indirme yolu, WhatsApp'ın resim + metni nasıl aldığı. `app.js?v=13`, `styles.css?v=4`, `share-card.js?v=1`.
+- Testler 596 (593 geçti, 1 bilinen `levels`, 2 todo).
