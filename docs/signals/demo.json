@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795221248481,
+ "updatedAt": 1795222152934,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2358,11 +2358,11 @@
    "sentAt": 1795213839956,
    "createdAt": 1795214009502,
    "paper": {
-    "status": "waiting",
+    "status": "missed",
     "entry": 0.6926,
     "filledAt": null,
     "confirmedAt": null,
-    "closedAt": null,
+    "closedAt": 1795221937245,
     "R": null
    },
    "orders": {
@@ -2375,7 +2375,8 @@
      "status": "New",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214013009
+     "updatedAt": 1795214013009,
+     "cancelAt": 1795222152934
     }
    },
    "stops": [],
@@ -2403,7 +2404,8 @@
    "riskUsd": 1066.2084,
    "riskTarget": 1066.21,
    "leverage": 20,
-   "lastAtCreate": 0.6701
+   "lastAtCreate": 0.6701,
+   "cancelWhy": "kâğıt missed"
   },
   "PENGU|4H|short|24|1795214729442": {
    "id": "PENGU|4H|short|24|1795214729442",
