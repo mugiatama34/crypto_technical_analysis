@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795222152934,
+ "updatedAt": 1795223057694,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2372,10 +2372,10 @@
      "qty": 49361.5,
      "price": 0.6926,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795214013009,
+     "updatedAt": 1795222154127,
      "cancelAt": 1795222152934
     }
    },
@@ -2388,7 +2388,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "cancelled",
    "lv": {
     "d": -1,
     "entry": 0.6926,
@@ -2405,7 +2405,9 @@
    "riskTarget": 1066.21,
    "leverage": 20,
    "lastAtCreate": 0.6701,
-   "cancelWhy": "kâğıt missed"
+   "cancelWhy": "kâğıt missed",
+   "reason": "kâğıt missed",
+   "closedAt": 1795223057694
   },
   "PENGU|4H|short|24|1795214729442": {
    "id": "PENGU|4H|short|24|1795214729442",
@@ -3392,6 +3394,13 @@
    "entry": 0.004408,
    "stop": 0.004566,
    "lev": 18
+  },
+  {
+   "at": 1795223057694,
+   "id": "DOT|4H|short|37|1795213839956",
+   "symbol": "DOTUSDT",
+   "ev": "iptal",
+   "why": "kâğıt missed"
   }
  ],
  "lastError": null
