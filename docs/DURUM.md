@@ -444,3 +444,4 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   Okuma: "hedefe gitti" çoğu zaman 1–1,5 ATR'lik itki ucunun yeniden görülmesi; kaçırılan büyük kazanç değil. Piyasa girişi / yakın giriş fib kesişiminde daha önce
   ölçülüp kapandı (giriş biçimi) → yeniden ölçülmez. Dolanlar "düzeltmesi derinleşenler" olduğundan dolum, kazanç hakkında bir şey söylemez (seçilim).
 - Testler 639 (636 geçti, 1 bilinen `levels`, 2 todo).
+- **"Dolma şansı" rozeti (kullanıcı onayı, 22.11 gece 2):** tarayıcı sonuç satırında `Dolma ~%N` (`src/scan/fillchance.js`, test `tests/fillchance.test.js`; takip geçmişi aracı aynı işlevi kullanıyor). Kırmızı < %30 · sarı < %50 · yeşil; fiyat bölgedeyse yok. Görünüm, kural değil. `app.js?v=15`, `styles.css?v=5`, `fillchance.js?v=1`. **Tarayıcıda gözle doğrulanmadı** (yalnız testler + sözdizimi); kullanıcı telefonda bakacak. Testler 640 (637 geçti, 1 bilinen, 2 todo).

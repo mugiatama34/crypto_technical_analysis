@@ -4,6 +4,8 @@
 const itemsOf = (json) => (Array.isArray(json) ? json : Array.isArray(json?.items) ? json.items : null);
 
 /** versions: eskiden yeniye [{ time(ms), json }] → [{ last, firstSeen, lastSeen, gone }]. Bozuk sürüm atlanır. */
+import { fillChance } from '../../src/scan/fillchance.js';
+
 export function rebuild(versions) {
   const map = new Map();
   for (const v of versions || []) {
@@ -53,7 +55,7 @@ export function diag(w, candles) {
   const distEntryAtr = hasP && w.atr > 0 ? distEntry / w.atr : null;
   const distEntryR = hasP && risk > 0 ? distEntry / risk : null;
   let pFill = null;
-  if (hasP) pFill = distEntry <= 0 ? 1 : distTp1 <= 0 ? 0 : distTp1 / (distEntry + distTp1);
+  if (hasP) pFill = fillChance(w.d, w.priceAtAdd, w.entry, w.tp1);
   let gapLeft = null;
   if (hasP && candles?.length) {
     if (distEntry <= 0) gapLeft = 0;

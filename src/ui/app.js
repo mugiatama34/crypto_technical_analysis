@@ -20,6 +20,7 @@ import { drawRow, destroyChart } from './chart.js';
 import { analyzeScreenshot } from './screenshot.js';
 import { fmtPrice, fmtTime, esc } from './format.js';
 import { shareCardModel, shareCard } from './share-card.js?v=1';
+import { fillChance, fillChanceClass } from '../scan/fillchance.js?v=1';
 
 const $ = (s) => document.querySelector(s);
 const PAGE = 40;
@@ -229,6 +230,14 @@ function ckBadge(r) {
   return c && !c.error ? `<span class="badge" title="Check list: 8 maddeden kaç ✓">✓ ${c.n}/${c.of}</span>` : '';
 }
 
+/** "Dolma şansı" rozeti: fiyat TP1'den önce girişe dokunur mu (yönsüz piyasa varsayımı). Fiyat bölgedeyse gösterilmez. */
+function fcBadge(r, pl) {
+  if (!pl || pl.inZone) return '';
+  const p = fillChance(pl.d, r.price, pl.entry, pl.tp1);
+  if (p == null || p >= 1) return '';
+  return `<span class="mtf fc fc-${fillChanceClass(p)}" title="Dolma şansı: fiyatın TP1'den önce girişe gelme olasılığı (TP1'e uzaklık ÷ toplam uzaklık; yönsüz piyasa varsayımı, trend TP1 yönündeyse daha düşük). %30'un altı: takip kaydında bugüne dek hiç dolmadı. Kural değil, bilgi.">Dolma ~%${Math.round(p * 100)}</span>`;
+}
+
 function renderRows() {
   const rows = filteredRows();
   const total = rows.length;
@@ -248,7 +257,7 @@ function renderRows() {
     const tgtP = tgt.length ? (r.direction === 'long' ? Math.min(...tgt.filter((t) => t > r.price)) : Math.max(...tgt.filter((t) => t < r.price))) : null;
     const rs = r.trend?.rsBtc != null ? `<span class="mtf rs ${r.trend.rsSide > 0 ? 'rs-up' : 'rs-down'}" title="BTC'ye göre göreli güç: coin/BTC oranının son 20 bardaki değişimi; ${r.trend.rsSide > 0 ? 'oran EMA50 üstünde (güçlü)' : 'oran EMA50 altında (zayıf)'}">vs BTC ${r.trend.rsBtc > 0 ? '+' : ''}${r.trend.rsBtc}%</span>` : '';
     return `<article class="row ${state.selected === rowKey(r) ? 'sel' : ''}" data-key="${rowKey(r)}" tabindex="0">
-      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}${ckBadge(r)}<span class="score ${scoreClass(r.score)}">${r.score}</span>${shareBtn(`data-share="${esc(rowKey(r))}"`)}</div>
+      <div class="row-top"><span class="row-sym">${esc(r.coin)}</span><span class="row-tf">${r.tf}</span><span class="dir ${r.direction}">${r.direction.toUpperCase()}</span>${mtf}${rs}${ckBadge(r)}${fcBadge(r, pl)}<span class="score ${scoreClass(r.score)}">${r.score}</span>${shareBtn(`data-share="${esc(rowKey(r))}"`)}</div>
       <div class="badges">${b.signals.slice(0, 8).map(badge).join('')}${b.signals.length > 8 ? `<span class="badge dim">+${b.signals.length - 8}</span>` : ''}</div>
       <div class="row-grid">
         <div><span>Fiyat</span> <b>${fmtPrice(r.price)}</b></div>

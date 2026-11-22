@@ -144,6 +144,10 @@ footer a { color: var(--ink-2); }
 /* BTC'ye göre göreli güç çipi */
 .mtf.rs-up { color: #4cc24c; }
 .mtf.rs-down { color: #ef7d7d; }
+.mtf.fc { border-color: rgba(160,160,160,0.45); color: #b9c0c8; }
+.mtf.fc-low { border-color: rgba(239,125,125,0.55); color: #ef7d7d; }
+.mtf.fc-mid { border-color: rgba(230,180,60,0.55); color: #e6b43c; }
+.mtf.fc-ok { border-color: rgba(12,163,12,0.5); color: #4cc24c; }
 
 /* Ayarlar bölmesi */
 .set-group { border: 1px solid var(--grid); border-radius: var(--radius); margin: 0 0 10px; }
