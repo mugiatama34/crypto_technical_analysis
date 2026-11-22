@@ -54,6 +54,7 @@
 </div>
 <script type="module">
 import { breakdownText, CLOSED, finalR, dailyR, monthGrid, closedTrades, liveInfo, isOpen, familyStats, agentVsSignal, planOpenR, applyRescore } from './src/ui/signals-lib.js';
+import { friendSummary, friendRows } from './src/ui/friend-lib.js';
 import { okxGet } from './src/data/okx.js';
 import { parseClosedPnl, dailyTrades } from './src/trades/bybit.js';
 import { bybitOf, bybitPx } from './src/data/bybit-symbols.js';
@@ -210,6 +211,25 @@ async function renderRules() {
       <li><b>Ölçüm durumu:</b> 12 ay tarama (gerçekçi dolum sırası) ≈ 0R (eğitim −0,04 / doğr. +0,07R); canlı 26.10'dan beri bkz. üstteki sayı. Kural değişikliği yalnız ölçümle ve Variables'tan.</li>
     </ol>`;
 }
+function friendUtc(ms) { return Number.isFinite(ms) ? new Date(ms).toISOString().slice(5, 16).replace('T', ' ') : '–'; }
+async function renderFriend() {
+  const box = document.querySelector('#friend'), cnt = document.querySelector('#friendCount');
+  let f = null;
+  try { const r = await fetch('docs/signals/friend.json', { cache: 'no-store' }); if (r.ok) f = await r.json(); } catch { f = null; }
+  const arr = f && Array.isArray(f.items) ? f.items : [];
+  const note = '<p class="note">Arkadaşın Elliott dalga botunun kâğıt hesabından aktarılan short\'lar; bizim sinyal kaydına, istatistiklere ve demoya dahil değildir. Sonuçlar onların muhasebesiyle yazılır. <a href="https://klonnist.github.io/Hasanwavebot/" target="_blank" rel="noopener">Onların sitesi</a></p>';
+  if (!arr.length) { cnt.textContent = ''; box.innerHTML = `${note}<p class="empty">Henüz kayıt yok.</p>`; return; }
+  const sm = friendSummary(arr), rows = friendRows(arr);
+  cnt.textContent = `${arr.length} kayıt`;
+  const tiles = [['Açık', sm.open], ['Kapanan', sm.closed], ['Kazanç oranı', sm.closed ? `${fmt(sm.wins / sm.closed * 100, 0)}%` : '–'], ['Toplam R', fmt(sm.sumR, 1), cls(sm.sumR)], ['Ort. R', sm.avgR == null ? '–' : fmt(sm.avgR), cls(sm.avgR)]];
+  const status = (x) => {
+    if (x.status === 'open') return `${Number.isFinite(x.unrealizedR) ? `<span class="${cls(x.unrealizedR)}">${fmt(x.unrealizedR)}R</span> ` : ''}<span class="st active">açık</span>${x.breakeven ? ' <span class="st be">başa başta</span>' : ''}${x.partialDone ? ' <span class="st tp1">kısmi alındı</span>' : ''}`;
+    if (x.status === 'closed') return `${esc(x.result ?? 'kapandı')} <span class="${cls(x.r)}">${Number.isFinite(x.r) ? `${fmt(x.r)}R` : '–'}</span> · ${friendUtc(x.closeTime)}`;
+    return '<span class="st missed">kayıt bulunamadı</span>';
+  };
+  box.innerHTML = `${note}<div class="tiles">${tiles.map(([k, v, c]) => `<div class="stat"><div class="k">${k}</div><div class="v ${c || ''}">${v}</div></div>`).join('')}</div>${sm.closed < 30 ? '<p class="note">Küçük örneklem (n &lt; 30): sonuçtan iddia çıkarılmaz.</p>' : ''}
+    <div class="tablewrap" style="margin-top:10px"><table class="grid"><thead><tr><th>Açılış (UTC)</th><th>Coin</th><th>Kaynak</th><th>Giriş</th><th>Stop</th><th>Hedef</th><th>Son fiyat</th><th>Durum</th></tr></thead><tbody>${rows.map((x) => `<tr><td>${friendUtc(x.openTime)}</td><td><a href="https://www.tradingview.com/chart/?symbol=OKX:${esc(x.coin)}USDT.P" target="_blank" rel="noopener">${esc(x.coin)}</a> ${esc(x.tf ?? '')}</td><td>${esc(x.srcLabel)}</td><td>${fp(x.entry)}</td><td>${fp(x.stop)}${x.stopPct == null ? '' : ` (${fmt(x.stopPct, 1)}%)`}</td><td>${fp(x.tp)}${x.tpPct == null ? '' : ` (${fmt(x.tpPct, 1)}% · ${x.planR == null ? '–' : fmt(x.planR, 1)}R)`}</td><td>${fp(x.lastPrice)}</td><td>${status(x)}</td></tr>`).join('')}</tbody></table></div>`;
+}
 async function main() {
   let h;
   try { const r = await fetch('docs/signals/history.json', { cache: 'no-store' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); h = await r.json(); }
@@ -226,6 +246,7 @@ async function main() {
     <section><h2>Şu an açık <span class="count" id="openCount"></span></h2><p class="note" id="openNote">Bekleyen (limit dolmadı) ve aktif sinyaller; fiyat OKX'ten 60 sn'de bir yenilenir.</p><div id="open" class="cards"></div><div id="stale"></div></section>
     <section><h2>R takvimi</h2><p class="note">Bot sinyalleri ya da kendi Bybit işlemlerin; ☁ bulut kaydı açıksa işlemlerin tüm cihazlarında görünür.</p><div id="cal"></div></section>
     <section><h2>Son kapananlar</h2><div id="recent"></div></section>
+    <section><h2>🌊 Arkadaş sistemi <span class="count" id="friendCount"></span></h2><div id="friend"><p class="empty">Yükleniyor…</p></div></section>
     <section><h2>Analiz yöntemleri</h2><div id="fam"></div></section>
     <section><h2>Ajan vs sinyal</h2><div id="avs"><p class="empty">Yükleniyor…</p></div></section>
     <details id="rules"><summary>📖 Kural kitabı: sinyal neye göre veriliyor?</summary><div id="rulesBody"><p class="empty">Yükleniyor…</p></div></details>
@@ -248,7 +269,7 @@ async function main() {
   document.querySelector('#fQ').addEventListener('input', () => { page = 0; renderList(); });
   renderList();
   const now = new Date(); calY = now.getUTCFullYear(); calM = now.getUTCMonth();
-  renderOpen(); renderCal(); renderRecent(); renderFam(); renderAvs(); renderRules(); loadPrices(); setInterval(loadPrices, 60e3);
+  renderOpen(); renderCal(); renderRecent(); renderFam(); renderAvs(); renderRules(); renderFriend(); loadPrices(); setInterval(loadPrices, 60e3);
 }
 main();
 </script>

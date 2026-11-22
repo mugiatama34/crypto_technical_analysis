@@ -391,3 +391,5 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Yeni hesabın sayımı (17–22.11): kapanan short 5 (4 kazanç, 1 stop; sitede BTC iki satır), +4,64R; açık short 5; stoplar %8–22; evrende küçük coinler
   (DGAI, PIEVERSE, AKE, XPL). Kanıt değil (n 5, tek düşüş haftası). İlk canlı turda log satırı `Arkadaş sistemi [r50-4h]` kontrol edilecek.
 - Testler 621 (618 geçti, 1 bilinen `levels`, 2 todo).
+- **Sinyal sayfasında "🌊 Arkadaş sistemi" bölümü** (`signals.html`, "Son kapananlar"dan sonra; `src/ui/friend-lib.js`, `tests/friend-lib.test.js`): `friend.json`'daki
+  aktarılan short'lar (özet kutucukları + tablo), bizim istatistiklere karışmaz. Yerelde doğrulandı (3 açık kayıt, taşma yok). Testler 626 (623 geçti, 1 bilinen, 2 todo).
