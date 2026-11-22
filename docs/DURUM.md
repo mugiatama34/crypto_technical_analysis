@@ -427,3 +427,7 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   R'ler (n 16, +0,63R) bu sayımla değiştirildi. Etiket (kendi / arkadaş / bot / izlenen) çıkarılmadı: emir geçmişinde yok, kullanıcı işaretlerse eklenir.
 - Testler 632 (629 geçti, 1 bilinen `levels`, 2 todo).
 - **Karar (kullanıcı, 22.11 gece):** Deney B **aynı kurallarla sürüyor** (30 işlem hedefi aşıldı ama 49'un 45'i short; long sayısı artana kadar sonuç yorumlanmaz). Sonraki sayım `tools/trades/fetch.mjs` ile; kural sapmaları (stop < %1, risk > 2,5 $) o sayımda yeniden bakılır.
+- **Takip listesi geçmişi (kullanıcı sorusu, 22.11 gece):** özel depodaki `watch.json` yalnız güncel listeyi + silinenlerin kimliğini tutar; silinen kayıtların **içeriği
+  depo geçmişinde** (16.11'den beri 288 sürüm) duruyor ve oradan yeniden kurulabiliyor (16.11 öncesi yalnız tarayıcıdaydı, yok). 15–22.11: 42 kayıt (5m 13 · 15m 24 ·
+  1H 3 · 4H 2; 37 short), **26'sı girişsiz kaçtı (%62)**, 4'ü hâlâ bekliyor, 12'si doldu: ort. +0,92R, 11 artı / 1 eksi (PUMP üç kez eklenmiş → bağımsız 10). Bırakılan
+  açık kayıtlar OKX mumlarıyla sonuna kadar oynatıldı. Kâğıt R, maliyetsiz; n < 30, tek düşüş haftası, 10 / 12 short → **iddia yok**. Betik kalıcı yazılmadı (tek seferlik).
