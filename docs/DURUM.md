@@ -393,3 +393,18 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Testler 621 (618 geçti, 1 bilinen `levels`, 2 todo).
 - **Sinyal sayfasında "🌊 Arkadaş sistemi" bölümü** (`signals.html`, "Son kapananlar"dan sonra; `src/ui/friend-lib.js`, `tests/friend-lib.test.js`): `friend.json`'daki
   aktarılan short'lar (özet kutucukları + tablo), bizim istatistiklere karışmaz. Yerelde doğrulandı (3 açık kayıt, taşma yok). Testler 626 (623 geçti, 1 bilinen, 2 todo).
+
+## 22.11.2026 (yerel oturum, akşam) — taramada BTC yönü süzgeci (`btcTrend`), geçersiz araştırma isteğinin reddi
+- **Araştırmacının "araç hatası" bulgusunun kök nedeni:** taramada `trend` alanı yalnız `adx | ema | both` (coin'in kendi ADX / EMA200 süzgeci). Denetçi BTC
+  yönü için `trend: "with" / "against"` yazınca değer sessizce yok sayıldı, varyant temel düzenle birebir aynı koştu (fark 0,00R). Hata değil, eksik alan.
+  `btc-trend-with` ve `btc-trend-against-sanity` isteklerinin sonuçları **geçersiz** (BTC yönü hiç ölçülmedi).
+- Yeni: `backtest/sweep.mjs` `passes(…, btcDaily)` + varyant alanı `btcTrend: with | against` (BTC günlük kapanış ↔ EMA50, yalnız kapanmış günler; seri yoksa
+  elenir; `liveCheck` `btcRegime` ile aynı tanım, iki yönde). Varsayılan tarama listesine **eklenmedi** (ön kayıtsız ölçüm olmasın); `--variants` / araştırma
+  kuyruğuyla kullanılır. `bot/review/auditor.js`: `VARIANT_ENUMS`, `parseVariantSpec` listede olmayan `trend` / `htfTrend` / `btcTrend` değerinde isteği tümden
+  reddeder; denetçi istemine alan açıklaması eklendi.
+- `CLAUDE.md` canlı ayar satırı Variables ile eşitlendi: **`KNIFE_GUARD=0` (kullanıcı, 20.11 10:13 UTC)**, `DEDUP_WAITING=1`, `FIB_ALERT=0` (14.11'den beri).
+  Denetçi kural setini 20.11'den yeniden sayıyor (22.11 06:00: 4 sinyal, 4 dolmadı).
+- **Açık:** araştırmacının temel düzeni (`bot/research/researcher.js` `BASE_LAYOUT`) hâlâ eski ayarda (bıçak koruması açık, erken %80); canlı = koruma kapalı,
+  %50 + 3 kademe → denetçinin günlük "beklenti satırı uyuşmuyor" uyarısının kaynağı. Eşitleme kullanıcı kararı bekliyor. · Not: `htfTrend: 'off'` taramada
+  `notAgainst` gibi davranıyor (kapatmıyor); `legacy-config-replay-12m` isteği bu yüzden istenenden farklı koşmuş olabilir. · Deney B CSV'leri bekleniyor.
+- Testler 627 (624 geçti, 1 bilinen `levels`, 2 todo).

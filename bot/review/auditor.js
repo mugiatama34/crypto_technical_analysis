@@ -3,7 +3,8 @@
 import { call } from '../agent/manager.js';
 
 /** Araştırmacının taramaya aktarabildiği güvenli alanlar (backtest/sweep.mjs passes/rebuild/evaluate). */
-export const VARIANT_FIELDS = ['tfs', 'minScore', 'onlyLimit', 'skipWeekend', 'hoursUtc', 'excludeHoursUtc', 'trend', 'adxMin', 'mtf', 'knifeGuard', 'timeStop', 'tp1Pct', 'tp1R', 'tp1Portion', 'keepTp2', 'tpScheme', 'trailAtr', 'stopPadAtr', 'minRiskAtr', 'htfTrend', 'excludeGroups', 'excludeDetectors', 'requireAnyGroup'];
+export const VARIANT_ENUMS = { trend: ['adx', 'ema', 'both'], htfTrend: ['with', 'notAgainst'], btcTrend: ['with', 'against'] };
+export const VARIANT_FIELDS = ['tfs', 'minScore', 'onlyLimit', 'skipWeekend', 'hoursUtc', 'excludeHoursUtc', 'trend', 'adxMin', 'mtf', 'knifeGuard', 'timeStop', 'tp1Pct', 'tp1R', 'tp1Portion', 'keepTp2', 'tpScheme', 'trailAtr', 'stopPadAtr', 'minRiskAtr', 'htfTrend', 'btcTrend', 'excludeGroups', 'excludeDetectors', 'requireAnyGroup'];
 
 export const AUDIT_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['summary', 'health', 'findings', 'researchRequests', 'varsSuggestion'],
@@ -11,7 +12,7 @@ export const AUDIT_SCHEMA = {
     summary: { type: 'string', description: '3–5 cümle: sistem bugün ne yaptı, beklentiye göre nerede, dikkat gereken şey' },
     health: { type: 'string', enum: ['ok', 'watch', 'alert'] },
     findings: { type: 'array', description: 'en fazla 6 bulgu', items: { type: 'object', additionalProperties: false, required: ['area', 'severity', 'evidence', 'action'], properties: { area: { type: 'string', enum: ['signals', 'agents', 'momentum', 'rules', 'data'] }, severity: { type: 'string', enum: ['info', 'warn', 'high'] }, evidence: { type: 'string', description: 'sayıyla: n, ort. R, oran' }, action: { type: 'string', description: 'izle / araştır / kullanıcıya öner' } } } },
-    researchRequests: { type: 'array', description: 'araştırmacı için test edilebilir hipotezler (en fazla 3; yoksa boş)', items: { type: 'object', additionalProperties: false, required: ['id', 'question', 'variantSpec', 'rationale', 'urgent'], properties: { id: { type: 'string', description: 'kısa kebab-case kimlik, ör. early-pct-1.5' }, question: { type: 'string' }, variantSpec: { type: 'string', description: `JSON nesnesi (metin olarak); yalnız şu alanlar: ${VARIANT_FIELDS.join(', ')}` }, rationale: { type: 'string' }, urgent: { type: 'boolean', description: 'true = haftalık koşuyu bekleme (yalnız high bulguda)' } } } },
+    researchRequests: { type: 'array', description: 'araştırmacı için test edilebilir hipotezler (en fazla 3; yoksa boş)', items: { type: 'object', additionalProperties: false, required: ['id', 'question', 'variantSpec', 'rationale', 'urgent'], properties: { id: { type: 'string', description: 'kısa kebab-case kimlik, ör. early-pct-1.5' }, question: { type: 'string' }, variantSpec: { type: 'string', description: `JSON nesnesi (metin olarak); yalnız şu alanlar: ${VARIANT_FIELDS.join(', ')}. trend = coin'in kendi ADX/EMA200 süzgeci (adx | ema | both); BTC günlük yönü için btcTrend (with | against); coin'in üst TF eğilimi için htfTrend (with | notAgainst). Listede olmayan değer isteği geçersiz kılar.` }, rationale: { type: 'string' }, urgent: { type: 'boolean', description: 'true = haftalık koşuyu bekleme (yalnız high bulguda)' } } } },
     varsSuggestion: { type: 'array', description: 'en fazla 1 öğe, yalnız araştırmacı tarafından doğrulanmış (confirmed) ve henüz uygulanmamış bir değişiklik varsa; aksi halde boş liste', items: { type: 'object', additionalProperties: false, required: ['name', 'value', 'why'], properties: { name: { type: 'string' }, value: { type: 'string' }, why: { type: 'string' } } } },
   },
 };
@@ -35,6 +36,7 @@ Veriyi okurken bil:
 - Tarama (araştırmacı) 12 aylık geçmişe uygulanır; "son 7 gün" gibi kısa dönem istekleri desteklenmez, isteme.
 - rescored alanı olan sinyaller yeniden puanlanmıştır (13.11 takip hatası düzeltmesi): status ve R düzeltilmiş değerdir, rescored.from kayıttaki eski durumdur; bunları hata olarak raporlama.
 Kurallar:
+- variantSpec alanları: trend = coin'in kendi ADX/EMA200 süzgeci (adx | ema | both); BTC günlük yönü için btcTrend (with | against); coin'in üst TF eğilimi için htfTrend (with | notAgainst). Listede olmayan değer isteği geçersiz kılar.
 - Kural değiştirme yetkin yok; yalnız öneri. Önerin her zaman test edilebilir bir tarama varyantı (variantSpec) olmalı.
 - Küçük örneklemden iddia üretme: aktif kurallarla n < 30 kapanan işlemde "beklentiden sapma" deme, "izle" de. Günlük R dalgalanması normaldir.
 - health: 'alert' yalnız uygulama hatası kanıtı (çalışmayan filtre, takip tutarsızlığı, veri kopukluğu) ya da aktif kurallarla n ≥ 30'da
@@ -56,7 +58,12 @@ export function parseVariantSpec(text) {
   try {
     const o = typeof text === 'string' ? JSON.parse(text) : text;
     if (!o || typeof o !== 'object') return null;
-    const out = {}; for (const k of Object.keys(o)) if (VARIANT_FIELDS.includes(k)) out[k] = o[k];
+    const out = {}; for (const k of Object.keys(o)) {
+      if (!VARIANT_FIELDS.includes(k)) continue;
+      const en = VARIANT_ENUMS[k];
+      if (en && !en.includes(o[k]) && !(k === 'htfTrend' && (o[k] === null || o[k] === 'off'))) return null; // geçersiz değer: spec tümden geçersiz (sessiz atılırsa varyant temel düzenle aynı koşar)
+      out[k] = o[k];
+    }
     return Object.keys(out).length ? out : null;
   } catch { return null; }
 }

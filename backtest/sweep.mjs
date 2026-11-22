@@ -137,8 +137,8 @@ const corr = (pts) => {
   return sxx && syy ? +(sxy / Math.sqrt(sxx * syy)).toFixed(2) : null;
 };
 
-/** Filtreler: true = plan dahil. */
-export function passes(t, v, series, mtfIndex, htf) {
+/** Filtreler: true = plan dahil. btcDaily (isteğe bağlı): BTC 1D mumları, v.btcTrend için; canlı karşılığı liveCheck içindeki btcRegime (günlük kapanış vs EMA50). */
+export function passes(t, v, series, mtfIndex, htf, btcDaily) {
   if (v.tfs && !v.tfs.includes(t.tf)) return false;
   if (v.minScore && t.plan.score < v.minScore) return false;
   if (v.onlyLimit && t.plan.inZone) return false;
@@ -166,6 +166,12 @@ export function passes(t, v, series, mtfIndex, htf) {
     // Seri yoksa eski varyantlarda filtre uygulanmaz (geçer); htfStrict (canlıya eşit) elenir — canlı: 'üst TF verisi yok' (bot/run.mjs:328)
     if (!h && v.htfStrict) return false;
     if (h && !htfOk(v.htfTrend, htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms), t.plan.d)) return false;
+  }
+  if (v.btcTrend) { // BTC günlük yönü (yalnız karar anında kapanmış günler); bilinmiyorsa elenir
+    const r = dailyTrendAt(btcDaily, decided);
+    if (!r) return false;
+    const same = (t.plan.d === 1) === r.up;
+    if (v.btcTrend === 'with' ? !same : same) return false;
   }
   if (v.mtf) {
     // Aynı coin + yön, bir üst TF'de ±1 üst-TF barı içinde plan var mı
@@ -403,7 +409,9 @@ async function main() {
   for (const t of cdList) { const k = `${t.coin}|${t.tf}`; if (!cdGroups.has(k)) cdGroups.set(k, []); cdGroups.get(k).push(t); }
   const hasCd = Array.isArray(meta.planFields) && meta.planFields.includes('cd');
   let btcDaily = htf.get('BTC|1D')?.hs.candles || null;
-  if (!btcDaily && all.some((t) => t.tf === '4H')) {
+  const extraV = VARIANTS_FILE ? JSON.parse(fs.readFileSync(String(VARIANTS_FILE), 'utf8')) : [];
+  const needBtc = all.some((t) => t.tf === '4H') || extraV.some((v) => v.btcTrend);
+  if (!btcDaily && needBtc) {
     try {
       if (FIXTURE) { const { fixtureProvider } = await import('../src/data/fixture.js'); btcDaily = (await fixtureProvider.candles('BTC-USDT-SWAP', '1D', 400)).candles; }
       else btcDaily = await getHistoryCached('BTC-USDT-SWAP', '1D', times[0] - 120 * 86400e3, times[times.length - 1] + 86400e3, { cacheDir: CACHE });
@@ -425,10 +433,10 @@ async function main() {
       const s = series.get(k); if (!s) continue;
       const list = v.live ? [...list0, ...(cdGroups.get(k) || [])] : list0;
       for (const t of list) {
-        if (!v.live) { if (passes(t, v, s, mtfIndex, htf)) picked.push({ t }); continue; }
-        if (!passes(t, { ...v, htfTrend: null }, s, mtfIndex, htf)) continue;
+        if (!v.live) { if (passes(t, v, s, mtfIndex, htf, btcDaily)) picked.push({ t }); continue; }
+        if (!passes(t, { ...v, htfTrend: null }, s, mtfIndex, htf, btcDaily)) continue;
         if (v.htfTrend && !htf.get(`${t.coin}|${UP_TF[t.tf]}`)) { info.unknown.htf++; continue; }
-        if (!passes(t, v, s, mtfIndex, htf)) continue;
+        if (!passes(t, v, s, mtfIndex, htf, btcDaily)) continue;
         info.candidates++;
         if (t.mtfBt) { info.mtfField++; const tk = t.mtfBt.tfs.join('+'); info.mtfTfs[tk] = (info.mtfTfs[tk] || 0) + 1; }
         const lc = liveCheck(t, { btcDaily });
@@ -481,7 +489,7 @@ async function main() {
 
   const results = [];
   log('Temel…'); results.push(evaluate(BASE));
-  const extra = VARIANTS_FILE ? JSON.parse(fs.readFileSync(String(VARIANTS_FILE), 'utf8')) : [];
+  const extra = extraV;
   for (const v of extra) { log(`  [araştırma] ${v.name}`); results.push({ ...evaluate(v), combo: true, targeted: true, research: true }); }
   if (ONLY) { writeOut(results, all, meta, split, t0); return; }
   for (const v of SINGLE) { log(`  ${v.name}`); results.push(evaluate(v)); }

@@ -69,7 +69,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
 - Eğitim: `docs/egitim/` (SMC/price action, arkadaşın yöntemi, örnekler, ölçüm notları).
 
 ## Canlı ayar (24.10.2026'da kuruldu, ilk sinyal 26.10 00:00 UTC; 24.10 00–08 UTC'deki 46 sinyal eski düzenden → canlı istatistiklerde 26.10'dan başla; DURUM.md günceldir)
-`KNIFE_GUARD=1 LIMIT_ONLY=1 SKIP_WEEKEND=1 EARLY_TP={"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"}` (13.11'den beri 3 kademe; önce `{"pct":1.2,"portion":0.8,"tfs":["4H"]}`) `
+`KNIFE_GUARD=0` (kullanıcı 20.11.2026 10:13 UTC'de kapattı; önce 1; bağlam DURUM 19.11 "gerçekle birebir" notu; denetçi kural setini bu andan yeniden sayıyor) `LIMIT_ONLY=1 SKIP_WEEKEND=1 DEDUP_WAITING=1` (17.11) `EARLY_TP={"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"}` (13.11'den beri 3 kademe; önce `{"pct":1.2,"portion":0.8,"tfs":["4H"]}`) `
 TF_RULES={"15m":{"off":true},"1H":{"off":true}} HTF_TREND=with AUDIT=1 MOMENTUM=1 MOMENTUM_VARIANT=short
 MOMENTUM_RANK=rel MOMENTUM_HEDGE=1`. `AGENT_SOURCE=signals AGENT_EXIT=1 AGENT_RESET=2026-11-13`. Yani yalnız 4H sinyalleri; güncel beklenti (13.11 taraması, gerçekçi sıra + düzeltilmiş bıçak kararı)
 eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlıda ≈ 220 sinyal / ay (≈ 115 dolum; 26.10–13.11 sayımı).
@@ -86,7 +86,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
 - Düzeltilmiş canlı kayıtlar `docs/signals/rescored.json` (ham history değişmez; `applyRescore`, sayfada ↻).
 
 ## Açık işler (11.11.2026)
-- **13.11 inceleme listesinden kalanlar** (DURUM 13.11 "Devam 2" girişi → "Açık kararlar / sıradaki" 1–8) ve karar: `KNIFE_GUARD` 3 kademe denemesi (30 kapanış) sonrası yeniden değerlendirilir. Canlı 4H düzeni **deneme** (kenar yok); n ≥ 30 kapanışta mevcut düzenin yeniden oynatmasıyla karşılaştır. Agresif ajan karar kaydı Actions logundan kontrol edilecek.
+- **13.11 inceleme listesinden kalanlar** (DURUM 13.11 "Devam 2" girişi → "Açık kararlar / sıradaki" 1–8) ve karar: `KNIFE_GUARD` 20.11'de kullanıcı tarafından kapatıldı (0). Canlı 4H düzeni **deneme** (kenar yok); n ≥ 30 kapanışta mevcut düzenin yeniden oynatmasıyla karşılaştır. Agresif ajan karar kaydı Actions logundan kontrol edilecek.
 - **Short tarafı ~13.12.2026'da canlı kayıtla değerlendirilir** (kullanıcı kararı 13.11: 15 dk adımlı canlı öykünmesi yazılmaz; taramadaki "canlıya eşit" satır yalnız long için geçerli). **"Ort. R nasıl artar" araştırması** aşama 0 + 1 bitti, hiçbir hipotez geçmedi (DURUM 13.11 son giriş); açık: H3 (fonlama / açık pozisyon) canlı gölge etiketle (`history.json` `shadow`; fonlama alanı ilk sinyalde doğrulanacak) ~13.12; momentum araştırması da bitti (M0 + M1, geçmedi; DURUM 13.11 son giriş) — 14.11'de kayıt sıfırlandı (`MOMENTUM_RESET=2026-11-14`, arşiv `docs/agent/archive/momentum-ilk/`; ilk dengeleme 16.11), yeniden boyutlama K/Z'si `trades`'e yazılıyor; **ileriye dönük ara bakış 17.05.2027** (ölçütler ön kayıtta; maks. düşüş > %20 ya da tek işlemde > %5 kayıp görülürse hemen haber ver). 13.12'de "puan v2" (gölge etiket + `bd` puan dökümü ile tek ön kayıtlı test) önerildi.
 - **Ajan adım 3 (13.11'de ertelendi):** ilk ajan ara değerlendirmesinde (10 kapanış; Telegram'da "📌 Hatırlatma") ajanın ek bilgi
   isteyebilmesini (sınırlı menü, karar başına ≤ 2) kullanıcıyla değerlendir. Önce 1–2. adımın (AGENT_EXIT=1, 13.11'de açıldı)
@@ -102,7 +102,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   korumadı: 10.11 SAND/KAITO SL, 11.11 BCH trailing kayboldu). Kullanıcı CSV'leri 10.11'den itibaren gönderecek →
   `tools/trades/rtable.mjs` + `replay.mjs`, önceki 65 pozisyonla tekrarları ayıkla, tablo (etiket kendi/arkadaş/bot/izlenen).
 - Deney C: BTC günlük yönü etiketi (history.json btcRead) — ilk 61'de "BTC'ye ters" +0,29R (n 14), gürültü olabilir.
-- FIB_ALERT=1 açık; 10.11'den beri "yaklaşıyor" aşaması 4 ATR'de (puan eşiği yalnız "bölgede"); mesaj sıklığını say.
+- FIB_ALERT 14.11'den beri kapalı (Variables `FIB_ALERT=0`); açıkken 10.11'den beri "yaklaşıyor" aşaması 4 ATR'de (puan eşiği yalnız "bölgede"); mesaj sıklığını say.
 - Tarayıcı takip listesi (kullanıcının "izlenen" kâğıt işlemleri, localStorage): ara sıra "Dışa aktar" ile al; kapananları silme.
 - QML / "kesişim + QML" ölçümü **askıda** (kullanıcı açmadıkça başlama).
 - Pazartesi haftalık sinyal raporu (WEEKLY_REPORT) birlikte okunur; P5 canlı 4H düzeninde n ≥ 100 beklenir.

@@ -24,6 +24,10 @@ test('metrics: finalR erken kâr/stop/zaman stopu; dönem istatistikleri; BTC te
 
 test('auditor: variantSpec güvenli alanlara indirgenir; kuyruk tekil; rapor metni; prompt gizli alan taşımaz', () => {
   assert.deepEqual(parseVariantSpec('{"tp1Pct":1.5,"apiKey":"x","tfs":["4H"]}'), { tp1Pct: 1.5, tfs: ['4H'] });
+  assert.equal(parseVariantSpec('{"trend":"with"}'), null); assert.equal(parseVariantSpec('{"tfs":["4H"],"trend":"against"}'), null);
+  assert.deepEqual(parseVariantSpec('{"btcTrend":"against","tfs":["4H"]}'), { btcTrend: 'against', tfs: ['4H'] });
+  assert.deepEqual(parseVariantSpec('{"trend":"adx"}'), { trend: 'adx' }); assert.deepEqual(parseVariantSpec('{"htfTrend":"off"}'), { htfTrend: 'off' });
+  assert.equal(parseVariantSpec('{"btcTrend":"x"}'), null);
   assert.equal(parseVariantSpec('{"apiKey":"x"}'), null); assert.equal(parseVariantSpec('bozuk'), null);
   let q = enqueue({ items: [] }, [{ id: 'a', question: 'q', variantSpec: '{"tp1Pct":1}', rationale: 'r', urgent: false }, { id: 'b', question: 'q', variantSpec: 'bozuk' }], now);
   assert.equal(q.items.length, 1); assert.equal(q.items[0].status, 'pending');

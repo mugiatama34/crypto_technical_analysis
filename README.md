@@ -224,6 +224,9 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
   için indirilir (tur başına ≤ 10). Tarama varyantları "üst TF eğilimi aynı yön / ters değil" ve temel kırılımı
   `byHtfTrend` (`sweep.html`); 6 ve 12 aylık koşularda "üst TF'de aynı yönde plan" filtresi kötüleştirmişti, eğilim
   filtresi ölçülmeden açılmaz.
+  Tarama varyantı alanı `btcTrend` (`with` | `against`): BTC günlük yönü (kapanmış günlük mum vs EMA50, karar anında; canlıdaki
+  `btcRegime` karşılığı), seri yoksa plan elenir. Denetçi / araştırmacı `variantSpec` isteğinde `trend` (adx | ema | both),
+  `htfTrend` (with | notAgainst) ve `btcTrend` için listede olmayan değer isteği tümden reddedilir (`parseVariantSpec` → null).
 
 ### Fib kesişimi (0,618 × 1,272)
 Bir itkiden (P0→P1) sonra ABC düzeltmesi: giriş bölgesi = itkinin **0,618 geri çekilmesi** ile düzeltmenin ilk bacağı

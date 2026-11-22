@@ -79,6 +79,22 @@ test('passes htfStrict: üst TF serisi yoksa eski varyant geçer, canlıya eşit
   assert.equal(passes(t, { htfTrend: 'with', htfStrict: true }, series, new Map(), new Map()), false);
 });
 
+test('passes btcTrend: BTC günlük yönü with / against; seri yoksa elenir; bakış-ileri yok', () => {
+  const series = { idx: new Map([[T0, 0]]), adx: { adx: [], pdi: [], mdi: [] }, ema200: [] };
+  const mk = (p) => ({ coin: 'X', tf: '4H', time: T0, plan: { ...p, groups: [], signals: [], inZone: false, price: 1 } });
+  const L = mk(plan()), S = mk(shortPlan()), up = daily(true), down = daily(false);
+  const run = (t, v, d) => passes(t, v, series, new Map(), new Map(), d);
+  assert.equal(run(L, { btcTrend: 'with' }, up), true); assert.equal(run(L, { btcTrend: 'against' }, up), false);
+  assert.equal(run(S, { btcTrend: 'with' }, up), false); assert.equal(run(S, { btcTrend: 'against' }, up), true);
+  assert.equal(run(L, { btcTrend: 'with' }, down), false); assert.equal(run(S, { btcTrend: 'with' }, down), true);
+  assert.equal(run(L, { btcTrend: 'with' }), false); assert.equal(run(L, { btcTrend: 'with' }, []), false);
+  assert.equal(run(L, {}), true); assert.equal(run(L, {}, down), true);
+  // bakış-ileri: karar anından sonraki günün (kapanmamış) mumu sonucu değiştirmez
+  const decided = T0 + H4, k = Math.floor(decided / DAY);
+  const withFuture = up.map((c, i) => (i >= k ? { ...c, open: 1, high: 1, low: 1, close: 1 } : c));
+  assert.equal(run(L, { btcTrend: 'with' }, withFuture), run(L, { btcTrend: 'with' }, up));
+});
+
 test('dirSplit: long / short eğitim ve doğrulama ayrı', () => {
   const tr = [{ d: 1, outcome: 'tp2', R: 2, time: 1 }, { d: -1, outcome: 'stopped', R: -1, time: 2 }], va = [{ d: -1, outcome: 'tp2', R: 1, time: 3 }];
   const x = dirSplit(tr, va);
