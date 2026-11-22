@@ -77,6 +77,7 @@ test('passes htfStrict: üst TF serisi yoksa eski varyant geçer, canlıya eşit
   const series = { idx: new Map([[T0, 0]]), adx: { adx: [], pdi: [], mdi: [] }, ema200: [] };
   assert.equal(passes(t, { htfTrend: 'with' }, series, new Map(), new Map()), true);
   assert.equal(passes(t, { htfTrend: 'with', htfStrict: true }, series, new Map(), new Map()), false);
+  assert.equal(passes(t, { htfTrend: 'off', htfStrict: true }, series, new Map(), new Map()), true); // 'off' = süzgeç yok
 });
 
 test('passes btcTrend: BTC günlük yönü with / against; seri yoksa elenir; bakış-ileri yok', () => {

@@ -161,7 +161,7 @@ export function passes(t, v, series, mtfIndex, htf, btcDaily) {
     const e = series.ema200[i];
     if (e == null || (t.plan.d === 1 ? t.plan.price < e : t.plan.price > e)) return false;
   }
-  if (v.htfTrend) { // coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D), karar anında kapanmış mumlarla
+  if (v.htfTrend && v.htfTrend !== 'off') { // coin'in kendi üst TF eğilimi (15m→1H, 1H→4H, 4H→1D), karar anında kapanmış mumlarla; 'off' = süzgeç yok
     const h = htf?.get(`${t.coin}|${UP_TF[t.tf]}`);
     // Seri yoksa eski varyantlarda filtre uygulanmaz (geçer); htfStrict (canlıya eşit) elenir — canlı: 'üst TF verisi yok' (bot/run.mjs:328)
     if (!h && v.htfStrict) return false;
@@ -435,7 +435,7 @@ async function main() {
       for (const t of list) {
         if (!v.live) { if (passes(t, v, s, mtfIndex, htf, btcDaily)) picked.push({ t }); continue; }
         if (!passes(t, { ...v, htfTrend: null }, s, mtfIndex, htf, btcDaily)) continue;
-        if (v.htfTrend && !htf.get(`${t.coin}|${UP_TF[t.tf]}`)) { info.unknown.htf++; continue; }
+        if (v.htfTrend && v.htfTrend !== 'off' && !htf.get(`${t.coin}|${UP_TF[t.tf]}`)) { info.unknown.htf++; continue; }
         if (!passes(t, v, s, mtfIndex, htf, btcDaily)) continue;
         info.candidates++;
         if (t.mtfBt) { info.mtfField++; const tk = t.mtfBt.tfs.join('+'); info.mtfTfs[tk] = (info.mtfTfs[tk] || 0) + 1; }

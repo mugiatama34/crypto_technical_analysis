@@ -408,3 +408,21 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   %50 + 3 kademe → denetçinin günlük "beklenti satırı uyuşmuyor" uyarısının kaynağı. Eşitleme kullanıcı kararı bekliyor. · Not: `htfTrend: 'off'` taramada
   `notAgainst` gibi davranıyor (kapatmıyor); `legacy-config-replay-12m` isteği bu yüzden istenenden farklı koşmuş olabilir. · Deney B CSV'leri bekleniyor.
 - Testler 627 (624 geçti, 1 bilinen `levels`, 2 todo).
+
+## 22.11.2026 (yerel oturum, gece) — araştırmacı temel düzeni canlıya eşit; `htfTrend: off`; Bybit verisini oturum çekiyor; Deney B sayımı
+- **Kullanıcı kararları:** (1) araştırmacının temel düzeni canlıya eşitlensin, (2) `htfTrend: 'off'` gerçekten "süzgeç yok" olsun, (3) Bybit CSV verisini oturum çeksin.
+- `bot/research/researcher.js` `BASE_LAYOUT`: bıçak koruması yok, 3 kademe (`tp1Portion 0,5 · midTp · midPortion 0,25 · midStopToTp1`). Hipotez erken payı
+  büyütürse (erken + ara ≥ %100) ara kademe alanları düşer. Variables değişince elle güncellenir. Sonraki araştırma raporunun "base" satırı öncekilerle
+  karşılaştırılamaz (düzen değişti). `backtest/sweep.mjs`: `htfTrend: 'off'` artık süzgeç uygulamıyor (önce `notAgainst` gibi davranıyordu).
+- **`tools/trades/fetch.mjs` (yeni):** Bybit v5 `closed-pnl` + `order/history` → `rtable.mjs` biçiminde CSV (`tools/trades/*.csv`, gitignore). Yalnız iki GET yolu
+  (testle kilitli), anahtar Mac anahtar zincirinden, loglanmaz. Öğrenilenler: site dışa aktarımındaki emir kimliği = `orderId`'nin **son** 8 karakteri ·
+  API iptal / devre dışı emirleri yalnız son ≈ 2–3 gün için veriyor (22.11'de 20.11'den eskisi yok) → `--merge <eski dışa aktarım>` · **giriş emrinin `stopLoss`
+  alanı plan stopunu veriyor** (114 / 114 giriş emrinde dolu; site dışa aktarımında yok) → `sl:` önekli yapay satır; stopsuz pozisyon 37 → 3 · fonlama API'de yok
+  (0 yazılır) · 17.11 P&L dosyasındaki saatler UTC + 1'di (API UTC; emir saatleri iki kaynakta aynı).
+- **Deney B sayımı (10–22.11, 50 pozisyon; hedef 30 aşıldı):** 35 artı / 15 eksi, toplam +24,09 $. İlk stopu bilinen 49'unda ort. **+0,47R** (toplam +23,2R,
+  kazanma %71); en büyük tek işlem (BNB +12,0R) hariç **+0,23R** (n 48). Short n 45 +0,61R · long n 4 −1,08R (dördü de kayıp) → sonuç **yön etkisi** (düşüş dönemi),
+  kenar kanıtı değil; n < 100 = sonuçsuz. Ort. kazanan +1,04R (n 35) / ort. kaybeden −0,95R (n 14). 10–17.11 n 30 +0,59R · 18–22.11 n 19 +0,29R.
+  Kural sapmaları: stop < %1 sekiz işlem (ort. +1,62R ama BNB dahil; kazanma %50) · risk > 2,5 $ yedi işlem (4'ü 10.11) · 1 tasfiye (ICP). Medyan risk 1,10 $.
+  İlk stop değişince eski satırların bir kısmı da değişti (ör. PENDLE 03.11 +5,00R → +0,16R; önceki "taşınmış stop"u ilk stop sanıyordu) → 17.11 ara bakışındaki
+  R'ler (n 16, +0,63R) bu sayımla değiştirildi. Etiket (kendi / arkadaş / bot / izlenen) çıkarılmadı: emir geçmişinde yok, kullanıcı işaretlerse eklenir.
+- Testler 632 (629 geçti, 1 bilinen `levels`, 2 todo).

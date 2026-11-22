@@ -45,6 +45,10 @@ test('auditor: variantSpec güvenli alanlara indirgenir; kuyruk tekil; rapor met
 test('researcher: varyantlar temel düzen üstüne kurulur; kuyruk boşsa varsayılanlar; sweep özeti ve rapor', () => {
   const v = buildVariants({ items: [{ id: 'h1', question: 's', spec: { tp1Pct: 1.5 }, status: 'pending' }, { id: 'h0', spec: {}, status: 'done' }] });
   assert.equal(v.length, 2); assert.equal(v[0].requestId, 'base'); assert.equal(v[1].requestId, 'h1'); assert.equal(v[1].tp1Pct, 1.5); assert.equal(v[1].htfTrend, BASE_LAYOUT.htfTrend); assert.equal(v[0].fillBarTp, 'lower');
+  // temel düzen = canlı (22.11): bıçak koruması yok, 3 kademe (%50 · TP1 %25 · stop erken hedefe)
+  assert.equal(BASE_LAYOUT.knifeGuard, undefined); assert.equal(BASE_LAYOUT.tp1Portion, 0.5); assert.equal(BASE_LAYOUT.midTp, true); assert.equal(BASE_LAYOUT.midPortion, 0.25); assert.equal(BASE_LAYOUT.midStopToTp1, true);
+  const big = buildVariants({ items: [{ id: 'p9', question: 'q', spec: { tp1Portion: 0.9 }, status: 'pending' }, { id: 'p6', question: 'q', spec: { tp1Portion: 0.6 }, status: 'pending' }] });
+  assert.equal(big[1].midTp, undefined); assert.equal(big[1].midStopToTp1, undefined); assert.equal(big[1].tp1Portion, 0.9); assert.equal(big[2].midTp, true); // erken + ara ≥ %100 → ara kademe düşer
   assert.ok(buildVariants({ items: [] }).length > 3);
   const rows = summarizeSweep({ results: [{ requestId: 'base', name: 'b', train: { n: 1, avgR: 0.06, profitFactor: 1.2, winRate: 0.7 }, valid: { n: 1, avgR: 0.08 }, byTf: { train: { '4H': { n: 300, avgR: 0.09 } }, valid: { '4H': { n: 290, avgR: 0.08 } } }, hedgedByTf: { valid: { '4H': { n: 290, avgR: 0.07 } } } }, { name: 'tek', train: {}, valid: {} }] });
   assert.equal(rows.length, 1); assert.equal(rows[0].tf4h.hedgedValid.avgR, 0.07);

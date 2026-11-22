@@ -2,8 +2,10 @@
 // sıkı ölçütle değerlendirir ve öneri üretir. Kural değiştirmez; yalnız rapor.
 import { call } from '../agent/manager.js';
 
-/** Canlı 4H düzeni (tarama adlarıyla aynı anlam): araştırma varyantları bunun üstüne kurulur. */
-export const BASE_LAYOUT = { knifeGuard: { maxApproachAtr: 2, maxFillBarAtr: 1.5, confirmBars: 3 }, skipWeekend: true, onlyLimit: true, tfs: ['1H', '4H'], tp1Pct: 1.2, tp1Portion: 0.8, keepTp2: true, htfTrend: 'with', fillBarTp: 'lower' }; // 29.10: dolum mumunda gerçek sıra (alt TF)
+/** Canlı 4H düzeni (tarama adlarıyla aynı anlam): araştırma varyantları bunun üstüne kurulur.
+ * 22.11.2026: canlıya eşitlendi — bıçak koruması kapalı (KNIFE_GUARD=0, 20.11), 3 kademe çıkış (EARLY_TP: erken %1,2'de %50 · TP1'de %25 ·
+ * TP1 sonrası stop erken hedefe). Variables değişirse burası elle güncellenir. */
+export const BASE_LAYOUT = { skipWeekend: true, onlyLimit: true, tfs: ['1H', '4H'], tp1Pct: 1.2, tp1Portion: 0.5, keepTp2: true, midTp: true, midPortion: 0.25, midStopToTp1: true, htfTrend: 'with', fillBarTp: 'lower' }; // 29.10: dolum mumunda gerçek sıra (alt TF)
 
 /** Kuyruk boşken denenen standart hipotezler (düzenin eşik komşuları). */
 export const DEFAULT_HYPOTHESES = [
@@ -19,7 +21,9 @@ export const DEFAULT_HYPOTHESES = [
 export function buildVariants(queue, defaults = DEFAULT_HYPOTHESES) {
   const pending = (queue?.items || []).filter((x) => x.status === 'pending');
   const list = pending.length ? pending : defaults.map((d) => ({ ...d, status: 'default' }));
-  return [{ name: 'canlı 4H düzeni (temel)', requestId: 'base', ...BASE_LAYOUT }, ...list.map((h) => ({ name: `${h.id}: ${h.question}`, requestId: h.id, ...BASE_LAYOUT, ...h.spec }))];
+  // Hipotez erken payı büyütürse (erken + ara kademe ≥ %100) ara kademeye yer kalmaz: 3 kademe alanları düşer (erken → kalan TP2).
+  const fit = (v) => { if (v.midTp && (v.tp1Portion ?? 0.5) + (v.midPortion ?? 0.25) >= 1) { const { midTp, midPortion, midStopToTp1, ...rest } = v; return rest; } return v; };
+  return [{ name: 'canlı 4H düzeni (temel)', requestId: 'base', ...BASE_LAYOUT }, ...list.map((h) => fit({ name: `${h.id}: ${h.question}`, requestId: h.id, ...BASE_LAYOUT, ...h.spec }))];
 }
 
 export const RESEARCH_SCHEMA = {
