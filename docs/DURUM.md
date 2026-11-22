@@ -381,3 +381,13 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Kullanıcıda:** Secrets `WATCH_REPO`, `WATCH_TOKEN` · Variables `WATCH_NOTIFY=1` · cron-job.org'da `watch.yml/dispatches` görevi (2 dk) · ☁ eşitleme açık.
 - **Doğrulanmadı:** iş akışı gerçek Actions'ta hiç koşmadı; ilk koşuda logu ve ilk mesajı kontrol et. `mfe` gibi alanlar değişince özel depoya yazma sıklığını say.
 - Testler 615 (612 geçti, 1 bilinen `levels`, 2 todo).
+
+## 22.11.2026 (yerel oturum, devam 2) — takip bildirimi çalışıyor; arkadaş sistemi kaynağı "ilk 50 coin 4H"
+- **Takip bildirimi canlı:** kullanıcı Secrets / Variables / cron-job.org'u kurdu; `watch.yml` 2 dk'da bir geliyor (koşu 9–14 sn), bulutta 1 açık kayıt
+  okunuyor, olay yokken özel depoya yazılmıyor. Gerçek Telegram mesajı henüz görülmedi (ilk olayda kontrol).
+- **Arkadaş sistemi (`FRIEND_WAVE=1` canlıda):** kaynak `data/4h` → `data/r50-4h` (`FRIEND_SOURCES`, varsayılan `r50-4h`; `FRIEND_SOURCE` Variables ile
+  geri alınır). Geçiş koşusunda yeni dosyadaki açık pozisyonlar yalnız "görüldü" sayılır (çift DOGE / AVAX mesajı olmasın); eski kaynaktan açık 3 short
+  (SOL, DOGE, AVAX, 22.11 08:31) kapanana kadar eski dosyadan izlenir (`syncFriendLegacy`). Kuru deneme canlı kayıt + gerçek dosyalarla: 0 yeni, 0 kapanış, 3 açık.
+- Yeni hesabın sayımı (17–22.11): kapanan short 5 (4 kazanç, 1 stop; sitede BTC iki satır), +4,64R; açık short 5; stoplar %8–22; evrende küçük coinler
+  (DGAI, PIEVERSE, AKE, XPL). Kanıt değil (n 5, tek düşüş haftası). İlk canlı turda log satırı `Arkadaş sistemi [r50-4h]` kontrol edilecek.
+- Testler 621 (618 geçti, 1 bilinen `levels`, 2 todo).

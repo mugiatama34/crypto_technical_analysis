@@ -98,6 +98,7 @@ jobs:
           DEDUP_WAITING: ${{ vars.DEDUP_WAITING }}
           DEDUP_PCT: ${{ vars.DEDUP_PCT }}
           FRIEND_WAVE: ${{ vars.FRIEND_WAVE }}
+          FRIEND_SOURCE: ${{ vars.FRIEND_SOURCE }}
           TIME_STOP: ${{ vars.TIME_STOP }}
           EARLY_TP: ${{ vars.EARLY_TP }}
           HTF_TREND: ${{ vars.HTF_TREND }}

@@ -45,7 +45,7 @@ import { finalR } from './review/metrics.js';
 import { applyRescore } from '../src/ui/signals-lib.js';
 import { signalChartSvg, setupDrawOf, stopContext, resultOf, renderPng, scenarioOf, panelOf } from './chart.js';
 import { fibAlerts, fibDigest } from './fibalert.js';
-import { FRIEND_URL, syncFriend, formatFriendOpen, formatFriendClose } from './friend.js';
+import { FRIEND_SOURCES, FRIEND_SOURCE_DEFAULT, syncFriend, syncFriendLegacy, formatFriendOpen, formatFriendClose } from './friend.js';
 import { setBybitOverrides } from '../src/data/bybit-symbols.js';
 setBybitOverrides(process.env.BYBIT_MULT || ''); // Bybit çarpanlı sözleşme düzeltmeleri (JSON)
 import { featuresOf, modelProb } from '../backtest/features.js';
@@ -87,6 +87,8 @@ const CFG = {
   // Fib kesişimi izleme uyarısı (0,618×1,272; işlem sinyali değil). FIB_ALERT=1 açar; TF'ler SCAN_TFS içinde olmalı.
   // Arkadaşın Elliott dalga botunun (Hasanwavebot) 4H kâğıt hesabındaki yeni SHORT'ları ayrı etiketle aktar (bot/friend.js). Varsayılan kapalı.
   friendWave: env('FRIEND_WAVE', '0') === '1',
+  // Aktarım kaynağı (bot/friend.js FRIEND_SOURCES anahtarı); boş / bilinmeyen → varsayılan
+  friendSource: Object.hasOwn(FRIEND_SOURCES, env('FRIEND_SOURCE', '')) ? env('FRIEND_SOURCE', '') : FRIEND_SOURCE_DEFAULT,
   fibAlert: env('FIB_ALERT', '0') === '1',
   fibAlertTfs: env('FIB_ALERT_TFS', '15m,1H,4H').split(',').map((s) => s.trim()).filter(Boolean),
   fibAlertMax: +env('FIB_ALERT_MAX', 6),
@@ -289,12 +291,25 @@ async function main() {
     try {
       const ff = path.join(path.dirname(CFG.historyFile), 'friend.json');
       let prev = null; try { prev = JSON.parse(fs.readFileSync(ff, 'utf8')); } catch { /* ilk çalıştırma */ }
-      const r = await fetch(FRIEND_URL, { signal: AbortSignal.timeout(10000) });
+      const r = await fetch(FRIEND_SOURCES[CFG.friendSource].url, { signal: AbortSignal.timeout(10000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const { next, opened, closed } = syncFriend(prev, await r.json(), { now });
+      const sync = syncFriend(prev, await r.json(), { now, src: CFG.friendSource });
+      let { next } = sync;
+      const { opened, legacy } = sync;
+      const closed = [...sync.closed];
+      // Eski kaynaklardan açılmış, hâlâ açık kayıtlar kapanana kadar kendi dosyalarından izlenir (hata ana akışı bozmaz)
+      for (const lsrc of legacy) {
+        try {
+          const lr = await fetch(FRIEND_SOURCES[lsrc].url, { signal: AbortSignal.timeout(10000) });
+          if (!lr.ok) throw new Error(`HTTP ${lr.status}`);
+          const l = syncFriendLegacy(next, await lr.json(), { now, src: lsrc });
+          if (l.next) next = l.next;
+          closed.push(...l.closed);
+        } catch (err) { log(`Arkadaş sistemi (${lsrc}) eski kaynak hatası: ${err.message}`); }
+      }
       for (const it of opened) await notifySignal(formatFriendOpen(it, { price: res.rows.find((x) => x.coin === it.coin && !x.error)?.price }), state);
       for (const it of closed) await notifySignal(formatFriendClose(it), state);
-      log(`Arkadaş sistemi: ${opened.length} yeni short, ${closed.length} kapanış, izlenen ${next.items.filter((x) => x.status === 'open').length}${prev ? '' : ' (ilk çalıştırma: mevcut pozisyonlar bildirilmedi)'}`);
+      log(`Arkadaş sistemi [${CFG.friendSource}]: ${opened.length} yeni short, ${closed.length} kapanış, izlenen ${next.items.filter((x) => x.status === 'open').length}${prev ? '' : ' (ilk çalıştırma: mevcut pozisyonlar bildirilmedi)'}`);
       if (CFG.dry) log('DRY: friend.json yazılmadı'); else { fs.mkdirSync(path.dirname(ff), { recursive: true }); fs.writeFileSync(ff, JSON.stringify(next, null, 1)); }
     } catch (err) { log(`Arkadaş sistemi hatası: ${err.message}`); }
   }
