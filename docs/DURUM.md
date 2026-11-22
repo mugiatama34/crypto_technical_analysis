@@ -426,3 +426,4 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   İlk stop değişince eski satırların bir kısmı da değişti (ör. PENDLE 03.11 +5,00R → +0,16R; önceki "taşınmış stop"u ilk stop sanıyordu) → 17.11 ara bakışındaki
   R'ler (n 16, +0,63R) bu sayımla değiştirildi. Etiket (kendi / arkadaş / bot / izlenen) çıkarılmadı: emir geçmişinde yok, kullanıcı işaretlerse eklenir.
 - Testler 632 (629 geçti, 1 bilinen `levels`, 2 todo).
+- **Karar (kullanıcı, 22.11 gece):** Deney B **aynı kurallarla sürüyor** (30 işlem hedefi aşıldı ama 49'un 45'i short; long sayısı artana kadar sonuç yorumlanmaz). Sonraki sayım `tools/trades/fetch.mjs` ile; kural sapmaları (stop < %1, risk > 2,5 $) o sayımda yeniden bakılır.
