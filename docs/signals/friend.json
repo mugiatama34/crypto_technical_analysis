@@ -23,7 +23,10 @@
    "openTime": 1795336295000,
    "seenAt": 1795337128870,
    "lastPrice": 69.88,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   },
   {
    "id": "DOGE|1795336296000",
@@ -38,7 +41,10 @@
    "openTime": 1795336296000,
    "seenAt": 1795337128870,
    "lastPrice": 0.05479,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   },
   {
    "id": "AVAX|1795336296000",
@@ -53,8 +59,11 @@
    "openTime": 1795336296000,
    "seenAt": 1795337128870,
    "lastPrice": 6.596,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   }
  ],
- "updatedAt": 1795337128870
+ "updatedAt": 1795338047919
 }
