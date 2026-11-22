@@ -4,8 +4,57 @@
  "seen": {
   "XRP|1794690443000": 1795081529917,
   "BTC|1794756167000": 1795081529917,
-  "ETH|1794940055000": 1795081529917
+  "ETH|1794940055000": 1795081529917,
+  "SOL|1795336295000": 1795337128870,
+  "DOGE|1795336296000": 1795337128870,
+  "AVAX|1795336296000": 1795337128870
  },
- "items": [],
- "updatedAt": 1795336244550
+ "items": [
+  {
+   "id": "SOL|1795336295000",
+   "coin": "SOL",
+   "symbol": "SOL/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "entry": 69.88,
+   "stop": 75.20706,
+   "tp": 49.41,
+   "openTime": 1795336295000,
+   "seenAt": 1795337128870,
+   "lastPrice": 69.88,
+   "status": "open"
+  },
+  {
+   "id": "DOGE|1795336296000",
+   "coin": "DOGE",
+   "symbol": "DOGE/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "entry": 0.05479,
+   "stop": 0.05915002,
+   "tp": 0.04093002,
+   "openTime": 1795336296000,
+   "seenAt": 1795337128870,
+   "lastPrice": 0.05479,
+   "status": "open"
+  },
+  {
+   "id": "AVAX|1795336296000",
+   "coin": "AVAX",
+   "symbol": "AVAX/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "entry": 6.596,
+   "stop": 7.161884,
+   "tp": 4.394,
+   "openTime": 1795336296000,
+   "seenAt": 1795337128870,
+   "lastPrice": 6.596,
+   "status": "open"
+  }
+ ],
+ "updatedAt": 1795337128870
 }
