@@ -367,3 +367,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   kapalı; özel depoya okuma-yazma anahtarı Secrets'a kullanıcı ekler). Web push önerilmedi (iOS aboneliği düşürüyor, yine 15 dk tura bağlı). Sonraki oturumda sor.
 - Tarama sıklığı sorusu (15 dk → 5 dk): tarama dış zamanlayıcıyla `workflow_dispatch` olarak geliyor (GitHub cron'u günde birkaç kez çalışıyor), koşu ≈ 65 sn,
   depo herkese açık (Actions dakikası ücretsiz). Cevap kullanıcıya verildi; karar yok.
+- **Ek (aynı gün):** kullanıcının takip ettiği işlemler 5m / 15m (scalp); 15 dk tur yetmiyor, 4H tarama sıklığı sorun değil. Güncel öneri: 4H taramaya dokunmadan
+  **ayrı, hafif bir takip iş akışı** (yalnız takip listesindeki coinler, dış zamanlayıcıyla 1–2 dk'da bir, olay olunca Telegram + özel depoya durum). Gecikme ≈ 1–3 dk.
+  Anlık gereken seviyeler için TradingView / Bybit alarmı. Karar kullanıcıda.
