@@ -9,3 +9,6 @@ bot/chart-*.svg
 
 # Kişisel işlem verisi (Bybit CSV) — repo herkese açık
 tools/trades/*.csv
+
+# Kişisel takip verisi (tools/watch/history.mjs çıktıları)
+tools/watch/out/

@@ -431,3 +431,16 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   depo geçmişinde** (16.11'den beri 288 sürüm) duruyor ve oradan yeniden kurulabiliyor (16.11 öncesi yalnız tarayıcıdaydı, yok). 15–22.11: 42 kayıt (5m 13 · 15m 24 ·
   1H 3 · 4H 2; 37 short), **26'sı girişsiz kaçtı (%62)**, 4'ü hâlâ bekliyor, 12'si doldu: ort. +0,92R, 11 artı / 1 eksi (PUMP üç kez eklenmiş → bağımsız 10). Bırakılan
   açık kayıtlar OKX mumlarıyla sonuna kadar oynatıldı. Kâğıt R, maliyetsiz; n < 30, tek düşüş haftası, 10 / 12 short → **iddia yok**. Betik kalıcı yazılmadı (tek seferlik).
+
+## 22.11.2026 (yerel oturum, gece 2) — takip geçmişi performans aracı; "neden girişsiz kaçıyor" tanısı
+- **Yeni araç (kullanıcı isteği):** `tools/watch/history.mjs` + `history-lib.mjs` (`tests/watch-history.test.js`, 7). Özel deponun git geçmişinden tüm ★ takip kayıtlarını
+  (silinenler dahil) yeniden kurar, aynı planın tekrarlarını ayıklar, bırakılan açık kayıtları OKX mumlarıyla sonuna kadar oynatır, performans + kırılım (TF, yön, sinyal,
+  check list, etiket, stop %, girişe uzaklık, pFill) basar. Depo adı dosyalara yazılmaz (`--repo` / `WATCH_REPO`; ad yerel oturum belleğinde). Çıktı `tools/watch/out/` (gitignore).
+- **Sayım (15–22.11, tekrarsız 39 kayıt; 35'i fib kesişimi 0,618×1,272):** dolan 10 (ort. +1,02R, net +0,96R, 9 artı / 1 eksi), girişsiz kaçan 26, bekleyen 3. n < 30 → iddia yok.
+- **Kaçma tanısı (fib kesişimi, kapanmış 33: dolan 9 / kaçan 24) — betimleme, kural değil:** planın TP1'i itkinin ucu (P1); kurulum B noktası oluşunca göründüğü için
+  eklerken fiyat çoğu zaman itki ucuna girişten daha yakın. Kaçanlarda medyan: TP1'e 1,2 ATR, girişe 2,6 ATR (dolanlarda 1,6 / 2,0). Eğilimsiz rastgele yürüyüşte
+  "önce girişe dokunma" olasılığı (`pFill`) toplamı 13,3 → gerçekleşen 9. **pFill < 0,3 olan 12 kaydın 0'ı doldu**; ≥ 0,3 olan 21'in 9'u. Kaçanların 15'i giriş
+  mesafesinin dörtte birini bile geri almadı; kaçış medyanı 4 mum / 53 dk. 20.11'de 14 kaydın 11'i kaçtı (tek düşüş hareketi, hepsi short → kümelenme).
+  Okuma: "hedefe gitti" çoğu zaman 1–1,5 ATR'lik itki ucunun yeniden görülmesi; kaçırılan büyük kazanç değil. Piyasa girişi / yakın giriş fib kesişiminde daha önce
+  ölçülüp kapandı (giriş biçimi) → yeniden ölçülmez. Dolanlar "düzeltmesi derinleşenler" olduğundan dolum, kazanç hakkında bir şey söylemez (seçilim).
+- Testler 639 (636 geçti, 1 bilinen `levels`, 2 todo).

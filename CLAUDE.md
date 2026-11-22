@@ -104,6 +104,7 @@ eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlı
   `tools/trades/rtable.mjs` + `replay.mjs`, önceki 65 pozisyonla tekrarları ayıkla, tablo (etiket kendi/arkadaş/bot/izlenen).
 - Deney C: BTC günlük yönü etiketi (history.json btcRead) — ilk 61'de "BTC'ye ters" +0,29R (n 14), gürültü olabilir.
 - FIB_ALERT 14.11'den beri kapalı (Variables `FIB_ALERT=0`); açıkken 10.11'den beri "yaklaşıyor" aşaması 4 ATR'de (puan eşiği yalnız "bölgede"); mesaj sıklığını say.
-- Tarayıcı takip listesi (kullanıcının "izlenen" kâğıt işlemleri, localStorage): ara sıra "Dışa aktar" ile al; kapananları silme.
+- Takip listesi performansı (22.11): `node tools/watch/history.mjs --repo <özel depo>` (ad yerel oturum belleğinde; silinen kayıtlar deponun git geçmişinden kurulur,
+  bırakılanlar sonuna kadar oynatılır). Kullanıcı çoğunlukla fib kesişimi 0,618×1,272 kaydediyor (5m / 15m). n ≥ 30 dolana kadar yalnız kayıt.
 - QML / "kesişim + QML" ölçümü **askıda** (kullanıcı açmadıkça başlama).
 - Pazartesi haftalık sinyal raporu (WEEKLY_REPORT) birlikte okunur; P5 canlı 4H düzeninde n ≥ 100 beklenir.
