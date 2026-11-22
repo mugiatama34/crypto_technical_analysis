@@ -8,6 +8,7 @@ import { UP_TF } from '../scan/regime.js';
 import { buildPlan } from '../../bot/plan.js';
 import { scenarioSignal } from '../scan/scenario.js';
 import { makeWatch, makeManualWatch, WATCH_TAGS, updateWatch, watchR, isOpen, loadWatch, saveWatch, mergeImport, syncWatchCloud, onWatchCloud, watchEarlyOf, watchEarlyR, watchThree, watchStatusText, watchEventText } from '../watch/watch.js?v=11'; // sürüm: yeni dışa aktarım eklenince artır (eski önbellekle sayfa açılmaz)
+import { watchGroups, applyWatchCandles, watchEventLine } from '../watch/refresh.js?v=1';
 import { mountCloudForm } from '../sync/cloud-ui.js';
 import { DETECTORS, GROUPS } from '../scan/registry.js';
 import { PRESETS, PRESET_MAP } from '../scan/presets.js';
@@ -504,22 +505,17 @@ async function refreshWatch() {
   if (!open.length) { renderWatch(); return; }
   const provider = FIXTURE ? fixtureProvider : okxProvider;
   const now = Date.now(), msgs = [];
-  for (const key of new Set(open.map((w) => `${w.instId}|${w.tf}`))) {
-    const [instId, tf] = key.split('|');
+  // Grup / mum sayısı ve güncelleme src/watch/refresh.js'te (takip bildirimi botu bot/watch/ de aynısını kullanır)
+  for (const { key, instId, tf, since, need } of watchGroups(open, now)) {
     let data = state.cache.get(key);
-    // Geçmiş tarihli (elle) kayıtlar için kurulumdan bu yana yetecek kadar mum (en fazla ~1400)
-    const since = Math.min(...open.filter((w) => `${w.instId}|${w.tf}` === key).map((w) => w.sentAt));
-    const need = Math.min(1400, Math.max(barsFor(tf), Math.ceil((now - since) / TIMEFRAMES[tf].ms) + 5));
     if (!data || now - data.at > TIMEFRAMES[tf].ms / 4 || (data.candles[0]?.time ?? Infinity) > since) {
       try { const r = await provider.candles(instId, tf, need); data = { candles: r.candles, live: r.live, at: now }; state.cache.set(key, data); } catch { continue; }
     }
     const cs = data.live ? [...data.candles, data.live] : data.candles;
-    state.watch = state.watch.map((w) => {
-      if (`${w.instId}|${w.tf}` !== key || !isOpen(w)) return w;
-      const { item, events } = updateWatch(w, cs, now);
-      for (const ev of events) msgs.push(`${w.coin} ${w.tf} ${w.direction.toUpperCase()}: ${watchEventText(ev, item)}`);
-      return item;
-    });
+    const prev = new Map(state.watch.map((w) => [w.id, w]));
+    const res = applyWatchCandles(state.watch, key, cs, now);
+    state.watch = res.list;
+    for (const { id, ev, item } of res.events) msgs.push(watchEventLine(prev.get(id), ev, item));
   }
   state.watch = saveWatch(state.watch);
   if (msgs.length) notifyWatch(`★ ${msgs.join(' · ')}`);

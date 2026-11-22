@@ -1,0 +1,43 @@
+name: watch-notify
+
+# ⭐ Takip listesi bildirimi (uygulama kapalıyken): özel depodaki watch.json → açık kayıtlar sayfayla aynı mantıkla güncellenir →
+# yeni olaylar KİŞİSEL Telegram sohbetine (sabah özetiyle aynı TELEGRAM_CHAT_ID; ortak sinyal kanalına asla) → belge geri yazılır.
+# Tetik: dış zamanlayıcı (cron-job.org) 1–2 dk'da bir workflow_dispatch; GitHub cron yalnız yedek (gecikebilir).
+# 4H taramasından (scan.yml) bağımsız; bu depoya commit atmaz. Bayrak: Variables WATCH_NOTIFY=1 (varsayılan kapalı).
+# Gizlilik: depo herkese açık → log yalnız sayı / hata sınıfı yazar (bot/watch/notify.js).
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+# Üst üste binmez; çalışan varken gelenlerden yalnız en yenisi bekler (eskiler iptal), birikme olmaz.
+concurrency:
+  group: watch-notify
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    if: vars.WATCH_NOTIFY == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src
+            bot
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Watch
+        env:
+          WATCH_NOTIFY: ${{ vars.WATCH_NOTIFY }}
+          WATCH_REPO: ${{ secrets.WATCH_REPO }}
+          WATCH_TOKEN: ${{ secrets.WATCH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node bot/watch/run.mjs

@@ -6,7 +6,9 @@ import { buildPlan, trackPlan, CLOSED, PLAN_DEFAULTS, earlyPriceOf, midOk } from
 import { finalR, planOpenR, earlyR } from '../ui/signals-lib.js';
 import { loadCloud, syncDoc } from '../sync/cloud.js';
 
-const KEY = 'cta-watch-v1', DEL_KEY = 'cta-watch-del-v1', CLOUD_PATH = 'watch.json';
+const KEY = 'cta-watch-v1', DEL_KEY = 'cta-watch-del-v1';
+/** Özel depodaki takip belgesi (sayfa eşitlemesi + takip bildirimi botu bot/watch/; yalnız Node tarafı içe aktarır). */
+export const CLOUD_PATH = 'watch.json';
 
 export const WATCH_LABEL = {
   waiting: 'Bekliyor', active: 'Girildi', tp1: 'TP1 görüldü', done: 'TP2 — tamam', stopped: 'Stop oldu', be: 'Başa baş',

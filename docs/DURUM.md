@@ -370,3 +370,14 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - **Ek (aynı gün):** kullanıcının takip ettiği işlemler 5m / 15m (scalp); 15 dk tur yetmiyor, 4H tarama sıklığı sorun değil. Güncel öneri: 4H taramaya dokunmadan
   **ayrı, hafif bir takip iş akışı** (yalnız takip listesindeki coinler, dış zamanlayıcıyla 1–2 dk'da bir, olay olunca Telegram + özel depoya durum). Gecikme ≈ 1–3 dk.
   Anlık gereken seviyeler için TradingView / Bybit alarmı. Karar kullanıcıda.
+
+## 22.11.2026 (yerel oturum, devam) — ⭐ takip bildirimi (uygulama kapalıyken), bayrak kullanıcıda
+- Kullanıcı onayladı; mesaj **kişisel** sohbete (sabah özetiyle aynı `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`), ortak sinyal kanalına değil.
+- Yeni: `.github/workflows/watch.yml` (`workflow_dispatch` + yedek `*/5` cron, `vars.WATCH_NOTIFY == '1'` değilse iş başlamaz, ana depoya commit yok),
+  `bot/watch/{notify.js,run.mjs}`, `src/watch/refresh.js` (sayfa ile botun ortak yenileme mantığı; `app.js?v=14`), `tests/watch-notify.test.js` (19).
+- Çift bildirim engeli: özel depodaki `watch.json` → `meta.watchNotify.sent` (kayıt başına bildirilmiş aşamalar). Önce defter yazılır, sonra gönderilir;
+  yazma başarısızsa mesaj gitmez, gönderim kesin başarısızsa defter geri alınır. İlk koşu sessiz (defter kurar); 12 saatten eski aşama bildirilmez.
+- Gizlilik: Actions logu herkese açık → yalnız sayı / hata sınıfı yazılır (testle kilitli). `WATCH_REPO` da Secret.
+- **Kullanıcıda:** Secrets `WATCH_REPO`, `WATCH_TOKEN` · Variables `WATCH_NOTIFY=1` · cron-job.org'da `watch.yml/dispatches` görevi (2 dk) · ☁ eşitleme açık.
+- **Doğrulanmadı:** iş akışı gerçek Actions'ta hiç koşmadı; ilk koşuda logu ve ilk mesajı kontrol et. `mfe` gibi alanlar değişince özel depoya yazma sıklığını say.
+- Testler 615 (612 geçti, 1 bilinen `levels`, 2 todo).

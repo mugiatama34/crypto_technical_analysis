@@ -91,6 +91,18 @@ Bot erken hedefi yalnız **4H**'de kullanır; takip listesi **tüm TF'lerde** uy
 arasında olmalı). Kartta / ayrıntıda Erken satırı (fiyat · R · pay), zaman çizelgesinde ve grafikte (sarı noktalı çizgi + işaret);
 taramadaki plan özetinde de görünür. **Eski kayıtlar** (alan yok) değişmez, eski kuralla izlenir. Test: `tests/watch-early.test.js`.
 
+**⭐ Takip bildirimi (uygulama kapalıyken, 22.11):** `.github/workflows/watch.yml` → `bot/watch/run.mjs` (çekirdek
+`bot/watch/notify.js`). ☁ bulut kaydındaki `watch.json`'u okur, açık kayıtları sayfayla **aynı** mantıkla günceller
+(`src/watch/refresh.js`: grup / mum sayısı + `updateWatch`; OKX, kaydın kendi TF'si) ve yeni olayları (Teyit bekleniyor,
+Girildi, Erken hedef, TP1, kapanış: TP2 / stop / başa baş / süre doldu / kaçtı …) **kişisel** Telegram sohbetine
+(`TELEGRAM_CHAT_ID`, sabah özetiyle aynı; ortak sinyal kanalına değil) "⭐ Takip · BTC 15m LONG — Girildi" biçiminde, koşu başına tek
+mesajda yazar. Çift bildirim engeli: belgedeki `meta.watchNotify` defteri (kayıt başına bildirilen aşamalar; önce defter yazılır, sonra
+gönderilir; gönderim kesin başarısızsa defter geri alınır). Olay yoksa belgeye yazmaz; ana depoya commit atmaz; log yalnız sayı yazar.
+Bot kayıtların `updatedAt`'ini yalnız 1 ms artırır (telefondaki not / etiket düzenlemesi birleştirmede kazanır). Ayar: Variables
+`WATCH_NOTIFY=1`; Secrets `WATCH_REPO` (owner/ad), `WATCH_TOKEN` (yalnız o depoya Contents okuma/yazma), `TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_CHAT_ID`. Tetik: dış zamanlayıcı (cron-job.org) 1–2 dakikada bir `POST /repos/<owner>/<repo>/actions/workflows/watch.yml/dispatches`
+(`{"ref":"<dal>"}`, Actions: write izinli ayrı ince token); `*/5` GitHub cron yalnız yedek. Test: `tests/watch-notify.test.js`.
+
 **Yapı katmanı** (tarayıcı ayrıntısında "Yapı HH/HL · BOS" kutusu, coin sayfasında Katmanlar → "Yapı"): son 8 swing noktası
 HH/HL/LH/LL etiketiyle ve son 4 yapı kırılımı (BOS/CHoCH) kesikli çizgi + etiketle (`structureOverlay`, yapı detektörüyle
 aynı pivotlar). Seçim tarayıcıda saklanır.
