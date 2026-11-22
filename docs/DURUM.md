@@ -360,3 +360,10 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Yerelde doğrulandı: kart çizimi (BCH 15m short, erken hedefli), düğmeye basmak satırı seçmiyor, konsol hatası yok. **Doğrulanmadı:** iPhone paylaşım menüsü
   (kullanıcı deneyecek), masaüstünde panoya kopya / indirme yolu, WhatsApp'ın resim + metni nasıl aldığı. `app.js?v=13`, `styles.css?v=4`, `share-card.js?v=1`.
 - Testler 596 (593 geçti, 1 bilinen `levels`, 2 todo).
+
+## 22.11.2026 (yerel oturum) — iki soru, kod değişikliği yok
+- **Hatırlat (kullanıcı kararı bekliyor):** takip listesi olayları (girdi, erken hedef, TP1 / TP2, stop, girişsiz kaçtı) uygulama kapalıyken de bildirilsin.
+  Öneri: bot her turda ☁ buluttaki takip listesini okur, Telegram'a "⭐ Takip" mesajı atar, durumu aynı dosyaya geri yazar (bayrak `WATCH_NOTIFY`, varsayılan
+  kapalı; özel depoya okuma-yazma anahtarı Secrets'a kullanıcı ekler). Web push önerilmedi (iOS aboneliği düşürüyor, yine 15 dk tura bağlı). Sonraki oturumda sor.
+- Tarama sıklığı sorusu (15 dk → 5 dk): tarama dış zamanlayıcıyla `workflow_dispatch` olarak geliyor (GitHub cron'u günde birkaç kez çalışıyor), koşu ≈ 65 sn,
+  depo herkese açık (Actions dakikası ücretsiz). Cevap kullanıcıya verildi; karar yok.
