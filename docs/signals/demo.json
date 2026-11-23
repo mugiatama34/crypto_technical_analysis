@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795442416729,
+ "updatedAt": 1795443345464,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2636,12 +2636,12 @@
    "sentAt": 1795395647554,
    "createdAt": 1795396118973,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 4.73387,
     "filledAt": 1795402800000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -2752,7 +2752,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "BNB|4H|short|51|1795401039665": {
    "id": "BNB|4H|short|51|1795401039665",
@@ -2763,12 +2764,12 @@
    "sentAt": 1795401039665,
    "createdAt": 1795401545101,
    "paper": {
-    "status": "early",
+    "status": "be",
     "entry": 563.023,
     "filledAt": 1795403700000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": 0.3976621542083612
    },
    "orders": {
     "E": {
@@ -2828,6 +2829,15 @@
      "kind": "borsa_doldu_kagit_bekliyor",
      "at": 1795404259395,
      "paper": "waiting"
+    },
+    {
+     "kind": "sonuc_farki",
+     "at": 1795443345464,
+     "exchangeR": 0.348,
+     "paperR": 0.398,
+     "diff": -0.05,
+     "paper": "be",
+     "exchange": "taşınmış stop"
     }
    ],
    "symbol": "BNBUSDT",
@@ -2894,7 +2904,8 @@
      "T1"
     ],
     "paperStatus": "early"
-   }
+   },
+   "paperDone": true
   },
   "WIF|4H|short|35|1795402851576": {
    "id": "WIF|4H|short|35|1795402851576",
@@ -2905,12 +2916,12 @@
    "sentAt": 1795402851576,
    "createdAt": 1795403353944,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.121133,
     "filledAt": 1795403700000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3027,7 +3038,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "AVAX|4H|short|39|1795403729337": {
    "id": "AVAX|4H|short|39|1795403729337",
@@ -3038,12 +3050,12 @@
    "sentAt": 1795403729337,
    "createdAt": 1795404259395,
    "paper": {
-    "status": "waiting",
+    "status": "stopped",
     "entry": 6.802,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3064,6 +3076,15 @@
      "kind": "borsa_doldu_kagit_bekliyor",
      "at": 1795442416729,
      "paper": "waiting"
+    },
+    {
+     "kind": "sonuc_farki",
+     "at": 1795443345464,
+     "exchangeR": -1.08,
+     "paperR": -1,
+     "diff": -0.08,
+     "paper": "stopped",
+     "exchange": "stop"
     }
    ],
    "symbol": "AVAXUSDT",
@@ -3104,7 +3125,13 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "waiting"
-   }
+   },
+   "fillLag": {
+    "exchangeAt": 1795442165152,
+    "paperAt": 1795435200000,
+    "minutes": -116
+   },
+   "paperDone": true
   },
   "SHIB|4H|short|44|1795403729337": {
    "id": "SHIB|4H|short|44|1795403729337",
@@ -3144,12 +3171,12 @@
    "sentAt": 1795403729337,
    "createdAt": 1795404259395,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.2895,
     "filledAt": 1795420800000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3266,7 +3293,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "DOGE|4H|short|42|1795404642026": {
    "id": "DOGE|4H|short|42|1795404642026",
@@ -3277,12 +3305,12 @@
    "sentAt": 1795404642026,
    "createdAt": 1795405169362,
    "paper": {
-    "status": "waiting",
+    "status": "stopped",
     "entry": 0.05664,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3343,7 +3371,13 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "waiting"
-   }
+   },
+   "fillLag": {
+    "exchangeAt": 1795442182231,
+    "paperAt": 1795435200000,
+    "minutes": -116
+   },
+   "paperDone": true
   },
   "CRV|4H|short|31|1795405528793": {
    "id": "CRV|4H|short|31|1795405528793",
@@ -3354,9 +3388,9 @@
    "sentAt": 1795405528793,
    "createdAt": 1795406075262,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.189939,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -3378,21 +3412,33 @@
      "at": 1795442416729,
      "qty": 78994.1,
      "price": 0.1877,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795442439817
     },
     "T2": {
      "link": "bd-fef79d4d9fe39c18-T2",
      "at": 1795442416729,
      "qty": 39497,
      "price": 0.1799,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795442440322
     },
     "T3": {
      "link": "bd-fef79d4d9fe39c18-T3",
      "at": 1795442416729,
      "qty": 39497.1,
      "price": 0.1746,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795442440831
     }
    },
    "stops": [],
@@ -3450,7 +3496,12 @@
      "qty": 39497.1
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795442306433,
+    "paperAt": 1795435200000,
+    "minutes": -118
+   }
   },
   "VIRTUAL|4H|short|33|1795405528793": {
    "id": "VIRTUAL|4H|short|33|1795405528793",
@@ -3461,12 +3512,12 @@
    "sentAt": 1795405528793,
    "createdAt": 1795406075262,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.3855,
     "filledAt": 1795420800000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795435200000,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3583,7 +3634,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "SUI|4H|short|35|1795405528793": {
    "id": "SUI|4H|short|35|1795405528793",
@@ -3594,12 +3646,12 @@
    "sentAt": 1795405528793,
    "createdAt": 1795406075262,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.6608,
     "filledAt": 1795406400000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3716,7 +3768,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "OKB|4H|short|39|1795406450955": {
    "id": "OKB|4H|short|39|1795406450955",
@@ -3727,12 +3780,12 @@
    "sentAt": 1795406450955,
    "createdAt": 1795406983458,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 82.9295,
     "filledAt": 1795410900000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -3850,7 +3903,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "ENA|4H|short|27|1795406450955": {
    "id": "ENA|4H|short|27|1795406450955",
@@ -3890,9 +3944,9 @@
    "sentAt": 1795412736783,
    "createdAt": 1795413322836,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.244138,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -3914,21 +3968,33 @@
      "at": 1795442416729,
      "qty": 44721.4,
      "price": 0.2413,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "Cancelled",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795443272002
     },
     "T2": {
      "link": "bd-f955f8ea29fccbde-T2",
      "at": 1795442416729,
      "qty": 22360.7,
      "price": 0.2232,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "Cancelled",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795443272002
     },
     "T3": {
      "link": "bd-f955f8ea29fccbde-T3",
      "at": 1795442416729,
      "qty": 22360.7,
      "price": 0.2089,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "Cancelled",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795443272002
     }
    },
    "stops": [],
@@ -3946,7 +4012,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.2441,
@@ -3986,7 +4052,21 @@
      "qty": 22360.7
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "closed": {
+    "at": 1795443345464,
+    "pnl": -1083.0255,
+    "pnlSrc": "closed-pnl",
+    "R": -1.018,
+    "exitBy": "stop",
+    "legs": [],
+    "paperStatus": "active"
+   },
+   "fillLag": {
+    "exchangeAt": 1795442239392,
+    "paperAt": 1795435200000,
+    "minutes": -117
+   }
   },
   "PUMP|4H|short|25|1795412736783": {
    "id": "PUMP|4H|short|25|1795412736783",
@@ -4026,12 +4106,12 @@
    "sentAt": 1795413646414,
    "createdAt": 1795414231094,
    "paper": {
-    "status": "waiting",
+    "status": "stopped",
     "entry": 64.711,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4092,7 +4172,13 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "waiting"
-   }
+   },
+   "fillLag": {
+    "exchangeAt": 1795442170294,
+    "paperAt": 1795435200000,
+    "minutes": -116
+   },
+   "paperDone": true
   },
   "ATOM|4H|short|39|1795414527973": {
    "id": "ATOM|4H|short|39|1795414527973",
@@ -4103,12 +4189,12 @@
    "sentAt": 1795414527973,
    "createdAt": 1795415139683,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 1.18989,
     "filledAt": 1795419000000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4225,7 +4311,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "PENGU|4H|short|31|1795428052052": {
    "id": "PENGU|4H|short|31|1795428052052",
@@ -4236,12 +4323,12 @@
    "sentAt": 1795428052052,
    "createdAt": 1795428770808,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.004365,
     "filledAt": 1795431600000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4358,7 +4445,8 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "active"
-   }
+   },
+   "paperDone": true
   },
   "BTC|4H|short|46|1795433446024": {
    "id": "BTC|4H|short|46|1795433446024",
@@ -4369,12 +4457,12 @@
    "sentAt": 1795433446024,
    "createdAt": 1795434229315,
    "paper": {
-    "status": "waiting",
+    "status": "stopped",
     "entry": 61653.6,
-    "filledAt": null,
+    "filledAt": 1795435200000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4395,6 +4483,15 @@
      "kind": "borsa_doldu_kagit_bekliyor",
      "at": 1795442416729,
      "paper": "waiting"
+    },
+    {
+     "kind": "sonuc_farki",
+     "at": 1795443345464,
+     "exchangeR": -1.068,
+     "paperR": -1,
+     "diff": -0.068,
+     "paper": "stopped",
+     "exchange": "stop"
     }
    ],
    "symbol": "BTCUSDT",
@@ -4435,7 +4532,13 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "waiting"
-   }
+   },
+   "fillLag": {
+    "exchangeAt": 1795442158057,
+    "paperAt": 1795435200000,
+    "minutes": -116
+   },
+   "paperDone": true
   },
   "HBAR|4H|short|42|1795436131497": {
    "id": "HBAR|4H|short|42|1795436131497",
@@ -4446,12 +4549,12 @@
    "sentAt": 1795436131497,
    "createdAt": 1795436957264,
    "paper": {
-    "status": "waiting",
+    "status": "stopped",
     "entry": 0.05268,
-    "filledAt": null,
+    "filledAt": 1795441500000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795442450326,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4512,7 +4615,13 @@
     "exitBy": "stop",
     "legs": [],
     "paperStatus": "waiting"
-   }
+   },
+   "fillLag": {
+    "exchangeAt": 1795442156343,
+    "paperAt": 1795441500000,
+    "minutes": -11
+   },
+   "paperDone": true
   }
  },
  "insts": {
@@ -6154,6 +6263,14 @@
    "symbol": "HBARUSDT",
    "ev": "kapanış",
    "R": -1.034,
+   "exitBy": "stop"
+  },
+  {
+   "at": 1795443345464,
+   "id": "WLD|4H|short|30|1795412736783",
+   "symbol": "WLDUSDT",
+   "ev": "kapanış",
+   "R": -1.018,
    "exitBy": "stop"
   }
  ],
