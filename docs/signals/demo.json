@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795407889954,
+ "updatedAt": 1795408794846,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2699,10 +2699,10 @@
      "qty": 62.89,
      "price": 556.27,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795404263119
+     "status": "Filled",
+     "cumExecQty": 62.89,
+     "avgPrice": 556.27,
+     "updatedAt": 1795408478228
     },
     "T2": {
      "link": "bd-a3bd6a2b791a96ed-T2",
@@ -2727,7 +2727,13 @@
      "updatedAt": 1795404263483
     }
    },
-   "stops": [],
+   "stops": [
+    {
+     "price": 563.02,
+     "at": 1795408794846,
+     "why": "erken hedef doldu → stop girişe"
+    }
+   ],
    "deviations": [
     {
      "kind": "borsa_doldu_kagit_bekliyor",
@@ -2787,7 +2793,8 @@
     "exchangeAt": 1795404087598,
     "paperAt": 1795403700000,
     "minutes": -6
-   }
+   },
+   "stopLevel": 563.02
   },
   "WIF|4H|short|35|1795402851576": {
    "id": "WIF|4H|short|35|1795402851576",
@@ -4605,6 +4612,14 @@
    "symbol": "ENAUSDT",
    "ev": "atlandı",
    "why": "Bybit fiyatı 0.10162 girişin (0.10142) ötesinde: limit anında dolardı"
+  },
+  {
+   "at": 1795408794846,
+   "id": "BNB|4H|short|51|1795401039665",
+   "symbol": "BNBUSDT",
+   "ev": "stop",
+   "price": 563.02,
+   "why": "erken hedef doldu → stop girişe"
   }
  ],
  "lastError": null
