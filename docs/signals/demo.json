@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795412417683,
+ "updatedAt": 1795413322836,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2500,9 +2500,9 @@
    "sentAt": 1795392049772,
    "createdAt": 1795392502337,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.07196,
-    "filledAt": null,
+    "filledAt": 1795406400000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -2514,10 +2514,31 @@
      "qty": 462826.8,
      "price": 0.07196,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795392503615
+     "status": "Filled",
+     "cumExecQty": 462826.8,
+     "avgPrice": 0.07196,
+     "updatedAt": 1795412419713
+    },
+    "T1": {
+     "link": "bd-a3c1148491a7f639-T1",
+     "at": 1795413322836,
+     "qty": 231413.4,
+     "price": 0.0711,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-a3c1148491a7f639-T2",
+     "at": 1795413322836,
+     "qty": 115706.7,
+     "price": 0.06851,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-a3c1148491a7f639-T3",
+     "at": 1795413322836,
+     "qty": 115706.7,
+     "price": 0.06412,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -2529,7 +2550,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.07196,
@@ -2545,7 +2566,36 @@
    "riskUsd": 1069.1299,
    "riskTarget": 1069.13,
    "leverage": 20,
-   "lastAtCreate": 0.0707
+   "lastAtCreate": 0.0707,
+   "fill": {
+    "price": 0.07196,
+    "qty": 462826.8,
+    "at": 1795412419713,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.0711,
+     "qty": 231413.4
+    },
+    {
+     "tag": "T2",
+     "price": 0.06851,
+     "qty": 115706.7
+    },
+    {
+     "tag": "T3",
+     "price": 0.06412,
+     "qty": 115706.7
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795412419713,
+    "paperAt": 1795406400000,
+    "minutes": -100
+   }
   },
   "UNI|4H|short|30|1795395647554": {
    "id": "UNI|4H|short|30|1795395647554",
@@ -3376,10 +3426,31 @@
      "qty": 450.71,
      "price": 82.93,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795406986509
+     "status": "Filled",
+     "cumExecQty": 450.71,
+     "avgPrice": 82.93,
+     "updatedAt": 1795412634731
+    },
+    "T1": {
+     "link": "bd-815ff91fef6a01d6-T1",
+     "at": 1795413322836,
+     "qty": 225.35,
+     "price": 81.94,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-815ff91fef6a01d6-T2",
+     "at": 1795413322836,
+     "qty": 112.67,
+     "price": 79.38,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-815ff91fef6a01d6-T3",
+     "at": 1795413322836,
+     "qty": 112.69,
+     "price": 74.05,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -3398,7 +3469,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 82.93,
@@ -3414,7 +3485,36 @@
    "riskUsd": 1072.6898,
    "riskTarget": 1072.69,
    "leverage": 20,
-   "lastAtCreate": 82.7
+   "lastAtCreate": 82.7,
+   "fill": {
+    "price": 82.93,
+    "qty": 450.71,
+    "at": 1795412634731,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 81.94,
+     "qty": 225.35
+    },
+    {
+     "tag": "T2",
+     "price": 79.38,
+     "qty": 112.67
+    },
+    {
+     "tag": "T3",
+     "price": 74.05,
+     "qty": 112.69
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795412634731,
+    "paperAt": 1795410900000,
+    "minutes": -29
+   }
   },
   "ENA|4H|short|27|1795406450955": {
    "id": "ENA|4H|short|27|1795406450955",
@@ -3444,6 +3544,87 @@
    },
    "phase": "skipped",
    "reason": "Bybit fiyatı 0.10162 girişin (0.10142) ötesinde: limit anında dolardı"
+  },
+  "WLD|4H|short|30|1795412736783": {
+   "id": "WLD|4H|short|30|1795412736783",
+   "coin": "WLD",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795412736783,
+   "createdAt": 1795413322836,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.244138,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-f955f8ea29fccbde-E",
+     "at": 1795413322836,
+     "qty": 89442.8,
+     "price": 0.2441,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "WLDUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.2441,
+    "stop": 0.256,
+    "tp1": 0.2232,
+    "tp2": 0.2089,
+    "early": 0.2413,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 89442.8,
+   "riskUsd": 1064.3693,
+   "riskTarget": 1064.37,
+   "leverage": 13,
+   "lastAtCreate": 0.2381
+  },
+  "PUMP|4H|short|25|1795412736783": {
+   "id": "PUMP|4H|short|25|1795412736783",
+   "coin": "PUMP",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795412736783,
+   "createdAt": 1795413322836,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.002672,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "PUMPUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "skipped",
+   "reason": "Bybit sözleşme durumu Closed"
   }
  },
  "insts": {
@@ -3837,6 +4018,34 @@
     "minQty": 1,
     "minNotional": 5,
     "maxLev": 75
+   }
+  },
+  "WLD": {
+   "at": 1795413322836,
+   "inst": {
+    "coin": "WLD",
+    "symbol": "WLDUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "PUMP": {
+   "at": 1795413322836,
+   "inst": {
+    "coin": "PUMP",
+    "symbol": "PUMPUSDT",
+    "mult": 1,
+    "status": "Closed",
+    "tick": "0.00001",
+    "qtyStep": "10",
+    "minQty": 10,
+    "minNotional": 5,
+    "maxLev": 20
    }
   }
  },
@@ -4704,6 +4913,41 @@
    "price": 0.6608,
    "qty": 44020,
    "paper": "waiting"
+  },
+  {
+   "at": 1795413322836,
+   "id": "OP|4H|short|34|1795392049772",
+   "symbol": "OPUSDT",
+   "ev": "dolum",
+   "price": 0.07196,
+   "qty": 462826.8,
+   "paper": "active"
+  },
+  {
+   "at": 1795413322836,
+   "id": "OKB|4H|short|39|1795406450955",
+   "symbol": "OKBUSDT",
+   "ev": "dolum",
+   "price": 82.93,
+   "qty": 450.71,
+   "paper": "active"
+  },
+  {
+   "at": 1795413322836,
+   "id": "WLD|4H|short|30|1795412736783",
+   "symbol": "WLDUSDT",
+   "ev": "emir",
+   "qty": 89442.8,
+   "entry": 0.2441,
+   "stop": 0.256,
+   "lev": 13
+  },
+  {
+   "at": 1795413322836,
+   "id": "PUMP|4H|short|25|1795412736783",
+   "symbol": "PUMPUSDT",
+   "ev": "atlandı",
+   "why": "Bybit sözleşme durumu Closed"
   }
  ],
  "lastError": null
