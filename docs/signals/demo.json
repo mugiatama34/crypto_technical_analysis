@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795443345464,
+ "updatedAt": 1795444250870,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3413,10 +3413,10 @@
      "qty": 78994.1,
      "price": 0.1877,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795442439817
+     "updatedAt": 1795443909413
     },
     "T2": {
      "link": "bd-fef79d4d9fe39c18-T2",
@@ -3424,10 +3424,10 @@
      "qty": 39497,
      "price": 0.1799,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795442440322
+     "updatedAt": 1795443909413
     },
     "T3": {
      "link": "bd-fef79d4d9fe39c18-T3",
@@ -3435,10 +3435,10 @@
      "qty": 39497.1,
      "price": 0.1746,
      "type": "Limit",
-     "status": "New",
+     "status": "Cancelled",
      "cumExecQty": 0,
      "avgPrice": null,
-     "updatedAt": 1795442440831
+     "updatedAt": 1795443909413
     }
    },
    "stops": [],
@@ -3456,7 +3456,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "open",
+   "phase": "closed",
    "lv": {
     "d": -1,
     "entry": 0.1899,
@@ -3501,6 +3501,15 @@
     "exchangeAt": 1795442306433,
     "paperAt": 1795435200000,
     "minutes": -118
+   },
+   "closed": {
+    "at": 1795444250870,
+    "pnl": -1083.913,
+    "pnlSrc": "closed-pnl",
+    "R": -1.009,
+    "exitBy": "stop",
+    "legs": [],
+    "paperStatus": "active"
    }
   },
   "VIRTUAL|4H|short|33|1795405528793": {
@@ -3944,12 +3953,12 @@
    "sentAt": 1795412736783,
    "createdAt": 1795413322836,
    "paper": {
-    "status": "active",
+    "status": "stopped",
     "entry": 0.244138,
     "filledAt": 1795435200000,
     "confirmedAt": null,
-    "closedAt": null,
-    "R": null
+    "closedAt": 1795443331798,
+    "R": -1
    },
    "orders": {
     "E": {
@@ -4066,7 +4075,8 @@
     "exchangeAt": 1795442239392,
     "paperAt": 1795435200000,
     "minutes": -117
-   }
+   },
+   "paperDone": true
   },
   "PUMP|4H|short|25|1795412736783": {
    "id": "PUMP|4H|short|25|1795412736783",
@@ -6271,6 +6281,14 @@
    "symbol": "WLDUSDT",
    "ev": "kapanış",
    "R": -1.018,
+   "exitBy": "stop"
+  },
+  {
+   "at": 1795444250870,
+   "id": "CRV|4H|short|31|1795405528793",
+   "symbol": "CRVUSDT",
+   "ev": "kapanış",
+   "R": -1.009,
    "exitBy": "stop"
   }
  ],
