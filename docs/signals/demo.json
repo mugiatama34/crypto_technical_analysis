@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795425135208,
+ "updatedAt": 1795426044884,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3326,14 +3326,41 @@
      "qty": 60696,
      "price": 0.3855,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795406079590
+     "status": "Filled",
+     "cumExecQty": 60696,
+     "avgPrice": 0.3855,
+     "updatedAt": 1795425419649
+    },
+    "T1": {
+     "link": "bd-818ed478886038d4-T1",
+     "at": 1795426044884,
+     "qty": 30348,
+     "price": 0.3809,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-818ed478886038d4-T2",
+     "at": 1795426044884,
+     "qty": 15174,
+     "price": 0.359,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-818ed478886038d4-T3",
+     "at": 1795426044884,
+     "qty": 15174,
+     "price": 0.3271,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795426044884,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "VIRTUALUSDT",
    "mult": 1,
    "inst": {
@@ -3341,7 +3368,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.3855,
@@ -3357,7 +3384,31 @@
    "riskUsd": 1074.3192,
    "riskTarget": 1074.32,
    "leverage": 14,
-   "lastAtCreate": 0.3767
+   "lastAtCreate": 0.3767,
+   "fill": {
+    "price": 0.3855,
+    "qty": 60696,
+    "at": 1795425419649,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.3809,
+     "qty": 30348
+    },
+    {
+     "tag": "T2",
+     "price": 0.359,
+     "qty": 15174
+    },
+    {
+     "tag": "T3",
+     "price": 0.3271,
+     "qty": 15174
+    }
+   ],
+   "legFails": {}
   },
   "SUI|4H|short|35|1795405528793": {
    "id": "SUI|4H|short|35|1795405528793",
@@ -5289,6 +5340,15 @@
    "ev": "dolum",
    "price": 0.2895,
    "qty": 133358,
+   "paper": "waiting"
+  },
+  {
+   "at": 1795426044884,
+   "id": "VIRTUAL|4H|short|33|1795405528793",
+   "symbol": "VIRTUALUSDT",
+   "ev": "dolum",
+   "price": 0.3855,
+   "qty": 60696,
    "paper": "waiting"
   }
  ],
