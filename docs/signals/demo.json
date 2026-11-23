@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795409700362,
+ "updatedAt": 1795410605534,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3252,14 +3252,41 @@
      "qty": 44020,
      "price": 0.6608,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795406080021
+     "status": "Filled",
+     "cumExecQty": 44020,
+     "avgPrice": 0.6608,
+     "updatedAt": 1795410088583
+    },
+    "T1": {
+     "link": "bd-75443d38d2337289-T1",
+     "at": 1795410605534,
+     "qty": 22010,
+     "price": 0.6529,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-75443d38d2337289-T2",
+     "at": 1795410605534,
+     "qty": 11000,
+     "price": 0.6243,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-75443d38d2337289-T3",
+     "at": 1795410605534,
+     "qty": 11010,
+     "price": 0.5873,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795410605534,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "SUIUSDT",
    "mult": 1,
    "inst": {
@@ -3267,7 +3294,7 @@
     "qtyStep": "10",
     "minQty": 10
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.6608,
@@ -3283,7 +3310,31 @@
    "riskUsd": 1074.088,
    "riskTarget": 1074.32,
    "leverage": 18,
-   "lastAtCreate": 0.6534
+   "lastAtCreate": 0.6534,
+   "fill": {
+    "price": 0.6608,
+    "qty": 44020,
+    "at": 1795410088583,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.6529,
+     "qty": 22010
+    },
+    {
+     "tag": "T2",
+     "price": 0.6243,
+     "qty": 11000
+    },
+    {
+     "tag": "T3",
+     "price": 0.5873,
+     "qty": 11010
+    }
+   ],
+   "legFails": {}
   },
   "OKB|4H|short|39|1795406450955": {
    "id": "OKB|4H|short|39|1795406450955",
@@ -4620,6 +4671,15 @@
    "ev": "stop",
    "price": 563.02,
    "why": "erken hedef doldu → stop girişe"
+  },
+  {
+   "at": 1795410605534,
+   "id": "SUI|4H|short|35|1795405528793",
+   "symbol": "SUIUSDT",
+   "ev": "dolum",
+   "price": 0.6608,
+   "qty": 44020,
+   "paper": "waiting"
   }
  ],
  "lastError": null
