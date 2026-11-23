@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795427862489,
+ "updatedAt": 1795428770808,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3969,6 +3969,58 @@
     "paperAt": 1795419000000,
     "minutes": 3
    }
+  },
+  "PENGU|4H|short|31|1795428052052": {
+   "id": "PENGU|4H|short|31|1795428052052",
+   "coin": "PENGU",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795428052052,
+   "createdAt": 1795428770808,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.004365,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-8b1f430315513367-E",
+     "at": 1795428770808,
+     "qty": 5412280,
+     "price": 0.004365,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "PENGUUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.000001",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.004365,
+    "stop": 0.004562,
+    "tp1": 0.004071,
+    "tp2": 0.003805,
+    "early": 0.004313,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 5412280,
+   "riskUsd": 1066.2192,
+   "riskTarget": 1066.22,
+   "leverage": 14,
+   "lastAtCreate": 0.004327
   }
  },
  "insts": {
@@ -4225,7 +4277,7 @@
    }
   },
   "PENGU": {
-   "at": 1795214916610,
+   "at": 1795428770808,
    "inst": {
     "coin": "PENGU",
     "symbol": "PENGUUSDT",
@@ -5367,6 +5419,16 @@
    "price": 0.3855,
    "qty": 60696,
    "paper": "waiting"
+  },
+  {
+   "at": 1795428770808,
+   "id": "PENGU|4H|short|31|1795428052052",
+   "symbol": "PENGUUSDT",
+   "ev": "emir",
+   "qty": 5412280,
+   "entry": 0.004365,
+   "stop": 0.004562,
+   "lev": 14
   }
  ],
  "lastError": null
