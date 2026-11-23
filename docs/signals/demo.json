@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795433318733,
+ "updatedAt": 1795434229315,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4093,6 +4093,58 @@
     "paperAt": 1795431600000,
     "minutes": -13
    }
+  },
+  "BTC|4H|short|46|1795433446024": {
+   "id": "BTC|4H|short|46|1795433446024",
+   "coin": "BTC",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795433446024,
+   "createdAt": 1795434229315,
+   "paper": {
+    "status": "waiting",
+    "entry": 61653.6,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-793a36c91cfe14c0-E",
+     "at": 1795434229315,
+     "qty": 0.859,
+     "price": 61653.6,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "BTCUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.10",
+    "qtyStep": "0.001",
+    "minQty": 0.001
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 61653.6,
+    "stop": 62884.5,
+    "tp1": 59807.2,
+    "tp2": 51617.1,
+    "early": 60913.8,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 0.859,
+   "riskUsd": 1057.3431,
+   "riskTarget": 1058.22,
+   "leverage": 20,
+   "lastAtCreate": 61502
   }
  },
  "insts": {
@@ -4293,7 +4345,7 @@
    }
   },
   "BTC": {
-   "at": 1795113527178,
+   "at": 1795434229315,
    "inst": {
     "coin": "BTC",
     "symbol": "BTCUSDT",
@@ -5510,6 +5562,16 @@
    "price": 0.004365,
    "qty": 5412280,
    "paper": "waiting"
+  },
+  {
+   "at": 1795434229315,
+   "id": "BTC|4H|short|46|1795433446024",
+   "symbol": "BTCUSDT",
+   "ev": "emir",
+   "qty": 0.859,
+   "entry": 61653.6,
+   "stop": 62884.5,
+   "lev": 20
   }
  ],
  "lastError": null
