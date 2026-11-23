@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795420590861,
+ "updatedAt": 1795421499102,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3090,14 +3090,41 @@
      "qty": 133358,
      "price": 0.2895,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795404265838
+     "status": "Filled",
+     "cumExecQty": 133358,
+     "avgPrice": 0.2895,
+     "updatedAt": 1795421413854
+    },
+    "T1": {
+     "link": "bd-90b6231c9d317c8e-T1",
+     "at": 1795421499102,
+     "qty": 66679,
+     "price": 0.2861,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-90b6231c9d317c8e-T2",
+     "at": 1795421499102,
+     "qty": 33339,
+     "price": 0.2776,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-90b6231c9d317c8e-T3",
+     "at": 1795421499102,
+     "qty": 33340,
+     "price": 0.2537,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795421499102,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "ONDOUSDT",
    "mult": 1,
    "inst": {
@@ -3105,7 +3132,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.2895,
@@ -3121,7 +3148,31 @@
    "riskUsd": 1066.864,
    "riskTarget": 1066.87,
    "leverage": 20,
-   "lastAtCreate": 0.2847
+   "lastAtCreate": 0.2847,
+   "fill": {
+    "price": 0.2895,
+    "qty": 133358,
+    "at": 1795421413854,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.2861,
+     "qty": 66679
+    },
+    {
+     "tag": "T2",
+     "price": 0.2776,
+     "qty": 33339
+    },
+    {
+     "tag": "T3",
+     "price": 0.2537,
+     "qty": 33340
+    }
+   ],
+   "legFails": {}
   },
   "DOGE|4H|short|42|1795404642026": {
    "id": "DOGE|4H|short|42|1795404642026",
@@ -5212,6 +5263,15 @@
    "ev": "dolum",
    "price": 1.19,
    "qty": 20679.2,
+   "paper": "waiting"
+  },
+  {
+   "at": 1795421499102,
+   "id": "ONDO|4H|short|35|1795403729337",
+   "symbol": "ONDOUSDT",
+   "ev": "dolum",
+   "price": 0.2895,
+   "qty": 133358,
    "paper": "waiting"
   }
  ],
