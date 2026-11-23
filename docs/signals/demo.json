@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795400641134,
+ "updatedAt": 1795401545101,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2602,6 +2602,58 @@
    "riskTarget": 1069.13,
    "leverage": 19,
    "lastAtCreate": 4.678
+  },
+  "BNB|4H|short|51|1795401039665": {
+   "id": "BNB|4H|short|51|1795401039665",
+   "coin": "BNB",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795401039665,
+   "createdAt": 1795401545101,
+   "paper": {
+    "status": "waiting",
+    "entry": 563.023,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-a3bd6a2b791a96ed-E",
+     "at": 1795401545101,
+     "qty": 125.78,
+     "price": 563.02,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "BNBUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 563.02,
+    "stop": 571.52,
+    "tp1": 550.29,
+    "tp2": 506.1,
+    "early": 556.27,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 125.78,
+   "riskUsd": 1069.13,
+   "riskTarget": 1069.13,
+   "leverage": 20,
+   "lastAtCreate": 552.62
   }
  },
  "insts": {
@@ -2676,7 +2728,7 @@
    }
   },
   "BNB": {
-   "at": 1795113527178,
+   "at": 1795401545101,
    "inst": {
     "coin": "BNB",
     "symbol": "BNBUSDT",
@@ -3616,6 +3668,16 @@
    "entry": 4.734,
    "stop": 4.894,
    "lev": 19
+  },
+  {
+   "at": 1795401545101,
+   "id": "BNB|4H|short|51|1795401039665",
+   "symbol": "BNBUSDT",
+   "ev": "emir",
+   "qty": 125.78,
+   "entry": 563.02,
+   "stop": 571.52,
+   "lev": 20
   }
  ],
  "lastError": null
