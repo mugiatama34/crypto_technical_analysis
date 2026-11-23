@@ -31,10 +31,16 @@
    "openTime": 1795336295000,
    "seenAt": 1795337128870,
    "lastPrice": 71.87,
-   "status": "open",
+   "status": "closed",
    "unrealizedR": -0.374,
    "breakeven": false,
-   "partialDone": false
+   "partialDone": false,
+   "exit": 75.20706,
+   "result": "SL",
+   "r": -1,
+   "pnl": -190.5788,
+   "partial": false,
+   "closeTime": 1795442100000
   },
   {
    "id": "DOGE|1795336296000",
@@ -49,10 +55,16 @@
    "openTime": 1795336296000,
    "seenAt": 1795337128870,
    "lastPrice": 0.05577,
-   "status": "open",
+   "status": "closed",
    "unrealizedR": -0.225,
    "breakeven": false,
-   "partialDone": false
+   "partialDone": false,
+   "exit": 0.05915002,
+   "result": "SL",
+   "r": -1,
+   "pnl": -198.9423,
+   "partial": false,
+   "closeTime": 1795443300000
   },
   {
    "id": "AVAX|1795336296000",
@@ -67,12 +79,18 @@
    "openTime": 1795336296000,
    "seenAt": 1795337128870,
    "lastPrice": 6.707,
-   "status": "open",
+   "status": "closed",
    "unrealizedR": -0.196,
    "breakeven": false,
-   "partialDone": false
+   "partialDone": false,
+   "exit": 7.161884,
+   "result": "SL",
+   "r": -1,
+   "pnl": -214.48,
+   "partial": false,
+   "closeTime": 1795443900000
   }
  ],
- "updatedAt": 1795448731193,
+ "updatedAt": 1795449653339,
  "src": "r50-4h"
 }
