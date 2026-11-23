@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795413322836,
+ "updatedAt": 1795414231094,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2524,21 +2524,33 @@
      "at": 1795413322836,
      "qty": 231413.4,
      "price": 0.0711,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413325801
     },
     "T2": {
      "link": "bd-a3c1148491a7f639-T2",
      "at": 1795413322836,
      "qty": 115706.7,
      "price": 0.06851,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413326077
     },
     "T3": {
      "link": "bd-a3c1148491a7f639-T3",
      "at": 1795413322836,
      "qty": 115706.7,
      "price": 0.06412,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413326258
     }
    },
    "stops": [],
@@ -3436,21 +3448,33 @@
      "at": 1795413322836,
      "qty": 225.35,
      "price": 81.94,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413326766
     },
     "T2": {
      "link": "bd-815ff91fef6a01d6-T2",
      "at": 1795413322836,
      "qty": 112.67,
      "price": 79.38,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413326948
     },
     "T3": {
      "link": "bd-815ff91fef6a01d6-T3",
      "at": 1795413322836,
      "qty": 112.69,
      "price": 74.05,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413327130
     }
    },
    "stops": [],
@@ -3567,7 +3591,11 @@
      "at": 1795413322836,
      "qty": 89442.8,
      "price": 0.2441,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795413327588
     }
    },
    "stops": [],
@@ -3625,6 +3653,58 @@
    },
    "phase": "skipped",
    "reason": "Bybit sözleşme durumu Closed"
+  },
+  "HYPE|4H|short|33|1795413646414": {
+   "id": "HYPE|4H|short|33|1795413646414",
+   "coin": "HYPE",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795413646414,
+   "createdAt": 1795414231094,
+   "paper": {
+    "status": "waiting",
+    "entry": 64.711,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-4fbe731b54d5ee9c-E",
+     "at": 1795414231094,
+     "qty": 658.77,
+     "price": 64.711,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "HYPEUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 64.711,
+    "stop": 66.331,
+    "tp1": 62.283,
+    "tp2": 55.779,
+    "early": 63.935,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 658.77,
+   "riskUsd": 1067.2074,
+   "riskTarget": 1067.21,
+   "leverage": 20,
+   "lastAtCreate": 63.028
   }
  },
  "insts": {
@@ -4046,6 +4126,20 @@
     "minQty": 10,
     "minNotional": 5,
     "maxLev": 20
+   }
+  },
+  "HYPE": {
+   "at": 1795414231094,
+   "inst": {
+    "coin": "HYPE",
+    "symbol": "HYPEUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.001",
+    "qtyStep": "0.01",
+    "minQty": 0.01,
+    "minNotional": 5,
+    "maxLev": 75
    }
   }
  },
@@ -4948,6 +5042,16 @@
    "symbol": "PUMPUSDT",
    "ev": "atlandı",
    "why": "Bybit sözleşme durumu Closed"
+  },
+  {
+   "at": 1795414231094,
+   "id": "HYPE|4H|short|33|1795413646414",
+   "symbol": "HYPEUSDT",
+   "ev": "emir",
+   "qty": 658.77,
+   "entry": 64.711,
+   "stop": 66.331,
+   "lev": 20
   }
  ],
  "lastError": null
