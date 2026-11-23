@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795395214929,
+ "updatedAt": 1795396118973,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2546,6 +2546,58 @@
    "riskTarget": 1069.13,
    "leverage": 20,
    "lastAtCreate": 0.0707
+  },
+  "UNI|4H|short|30|1795395647554": {
+   "id": "UNI|4H|short|30|1795395647554",
+   "coin": "UNI",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795395647554,
+   "createdAt": 1795396118973,
+   "paper": {
+    "status": "waiting",
+    "entry": 4.73387,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-bd6e2e8c097c50a8-E",
+     "at": 1795396118973,
+     "qty": 6682,
+     "price": 4.734,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "UNIUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 4.734,
+    "stop": 4.894,
+    "tp1": 4.496,
+    "tp2": 4.183,
+    "early": 4.678,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 6682,
+   "riskUsd": 1069.12,
+   "riskTarget": 1069.13,
+   "leverage": 19,
+   "lastAtCreate": 4.678
   }
  },
  "insts": {
@@ -2823,6 +2875,20 @@
     "mult": 1,
     "status": "Trading",
     "tick": "0.00001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "UNI": {
+   "at": 1795396118973,
+   "inst": {
+    "coin": "UNI",
+    "symbol": "UNIUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.001",
     "qtyStep": "0.1",
     "minQty": 0.1,
     "minNotional": 5,
@@ -3536,6 +3602,16 @@
    "entry": 0.07196,
    "stop": 0.07427,
    "lev": 20
+  },
+  {
+   "at": 1795396118973,
+   "id": "UNI|4H|short|30|1795395647554",
+   "symbol": "UNIUSDT",
+   "ev": "emir",
+   "qty": 6682,
+   "entry": 4.734,
+   "stop": 4.894,
+   "lev": 19
   }
  ],
  "lastError": null
