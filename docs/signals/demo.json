@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795402449959,
+ "updatedAt": 1795403353944,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2658,6 +2658,58 @@
    "riskTarget": 1069.13,
    "leverage": 20,
    "lastAtCreate": 552.62
+  },
+  "WIF|4H|short|35|1795402851576": {
+   "id": "WIF|4H|short|35|1795402851576",
+   "coin": "WIF",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795402851576,
+   "createdAt": 1795403353944,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.121133,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-2f02bd1351140e42-E",
+     "at": 1795403353944,
+     "qty": 178188,
+     "price": 0.1211,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "WIFUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00010",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.1211,
+    "stop": 0.1271,
+    "tp1": 0.1112,
+    "tp2": 0.1078,
+    "early": 0.1197,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 178188,
+   "riskUsd": 1069.128,
+   "riskTarget": 1069.13,
+   "leverage": 13,
+   "lastAtCreate": 0.1193
   }
  },
  "insts": {
@@ -2953,6 +3005,20 @@
     "minQty": 0.1,
     "minNotional": 5,
     "maxLev": 75
+   }
+  },
+  "WIF": {
+   "at": 1795403353944,
+   "inst": {
+    "coin": "WIF",
+    "symbol": "WIFUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00010",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 50
    }
   }
  },
@@ -3682,6 +3748,16 @@
    "entry": 563.02,
    "stop": 571.52,
    "lev": 20
+  },
+  {
+   "at": 1795403353944,
+   "id": "WIF|4H|short|35|1795402851576",
+   "symbol": "WIFUSDT",
+   "ev": "emir",
+   "qty": 178188,
+   "entry": 0.1211,
+   "stop": 0.1271,
+   "lev": 13
   }
  ],
  "lastError": null
