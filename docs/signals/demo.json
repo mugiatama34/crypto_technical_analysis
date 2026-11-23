@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795426044884,
+ "updatedAt": 1795426954341,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3312,9 +3312,9 @@
    "sentAt": 1795405528793,
    "createdAt": 1795406075262,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 0.3855,
-    "filledAt": null,
+    "filledAt": 1795420800000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -3336,21 +3336,33 @@
      "at": 1795426044884,
      "qty": 30348,
      "price": 0.3809,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795426050091
     },
     "T2": {
      "link": "bd-818ed478886038d4-T2",
      "at": 1795426044884,
      "qty": 15174,
      "price": 0.359,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795426050383
     },
     "T3": {
      "link": "bd-818ed478886038d4-T3",
      "at": 1795426044884,
      "qty": 15174,
      "price": 0.3271,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795426050583
     }
    },
    "stops": [],
@@ -3408,7 +3420,12 @@
      "qty": 15174
     }
    ],
-   "legFails": {}
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795425419649,
+    "paperAt": 1795420800000,
+    "minutes": -77
+   }
   },
   "SUI|4H|short|35|1795405528793": {
    "id": "SUI|4H|short|35|1795405528793",
