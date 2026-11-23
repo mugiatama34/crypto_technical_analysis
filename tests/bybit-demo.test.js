@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { BYBIT_DEMO_HOST, signOf, queryOf, demoUrl, createBybitDemo } from '../bot/exchange/bybit.js';
-import { gatherDemo, linkOf, decimalsOf, roundStep, fmtStep, parseInstrument, symbolCandidates, levelsOf, sizeOf, legsOf, decideDemo, applyResult, errorNotice, runDemo, emptyDemoState } from '../bot/exchange/demo.js';
+import { gatherDemo, linkOf, decimalsOf, roundStep, fmtStep, parseInstrument, symbolCandidates, levelsOf, sizeOf, legsOf, decideDemo, applyResult, errorNotice, runDemo, emptyDemoState, pendingNote } from '../bot/exchange/demo.js';
 
 const H = 3600e3;
 
@@ -217,6 +217,25 @@ test('kâğıt kapandı (expired / knife / missed) ve giriş dolmadı → iptal;
   const s4 = step(s1.state, [{ ...p, status: 'active', filledAt: T0 + 4 * H }], exOf({ openOrders: [ord(L, 'New', 0)] }), T0 + 5 * H);
   assert.deepEqual(s4.actions, []);
   assert.equal(s4.state.jobs[PID(p)].deviations[0].kind, 'kagit_doldu_borsa_dolmadi');
+  // teyit satırı: bir kez, Bybit son fiyatı ve girişe uzaklıkla (long, giriş 100, son 103 → 3 uzak)
+  const n4 = s4.state.events.filter((e) => e.msg);
+  assert.equal(n4.length, 1); assert.equal(n4[0].ev, 'bybit_bekliyor');
+  assert.match(n4[0].msg, /SOL long: OKX'te giriş doldu, Bybit demoda henüz dolmadı/); assert.match(n4[0].msg, /Bybit son 103 · girişe 3\.0 \(%3\.00\) uzak/);
+  const s5 = step(s4.state, [{ ...p, status: 'active', filledAt: T0 + 4 * H }], exOf({ openOrders: [ord(L, 'New', 0)] }), T0 + 5.25 * H);
+  assert.equal(s5.state.events.filter((e) => e.msg).length, 1); // tekrar yok
+  // sonra borsada da doldu → "Bybit'te de doldu" + gecikme (kâğıt 4. saat, borsa 6. saat → 120 dk)
+  const s6 = step(s5.state, [{ ...p, status: 'active', filledAt: T0 + 4 * H }], exOf({ byLink: { [L]: ord(L, 'Filled', s1.state.jobs[PID(p)].qty, 100, T0 + 6 * H) }, positions: { SOLUSDT: { side: 'Buy', size: s1.state.jobs[PID(p)].qty, avgPrice: 100 } } }), T0 + 6.25 * H);
+  assert.match(s6.state.events.filter((e) => e.msg).at(-1).msg, /SOL long: Bybit demoda da doldu \(100\), OKX'ten ≈ 120 dk sonra/);
+  // dolmadan iptal → "hiç dolmadı"
+  const s7 = step(s5.state, [{ ...p, status: 'be', filledAt: T0 + 4 * H }], exOf({ byLink: { [L]: ord(L, 'Cancelled', 0) } }), T0 + 7 * H);
+  assert.match(s7.state.events.filter((e) => e.msg).at(-1).msg, /Bybit demoda hiç dolmadı, emir iptal/);
+});
+
+test('pendingNote: short yönü, sırada bekleme ve fiyatsız durum', () => {
+  const job = { coin: 'OKB', direction: 'short', d: -1, lv: { entry: 82.93 } };
+  assert.match(pendingNote(job, 82.87), /giriş 82\.93\)\. Bybit son 82\.87 · girişe 0\.060 \(%0\.07\) uzak/);
+  assert.match(pendingNote(job, 82.95), /geçti, sırada bekliyor/);
+  assert.match(pendingNote(job, null), /henüz dolmadı \(giriş 82\.93\)\. Emir bekliyor\.$/);
 });
 
 test('dolum → reduce-only kademe emirleri; kâğıt bıçak/işlemsiz iken sapma yazılır, pozisyona dokunulmaz', () => {

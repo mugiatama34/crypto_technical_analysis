@@ -115,6 +115,14 @@ function addDev(job, kind, data, now) {
   job.deviations.push({ kind, at: now, ...data }); return true;
 }
 const ev = (st, now, job, e, extra = {}) => { st.events.push({ at: now, id: job.id, symbol: job.symbol ?? null, ev: e, ...extra }); };
+const hasDev = (job, kind) => (job.deviations || []).some((x) => x.kind === kind);
+/** "OKX'te doldu, Bybit'te henüz değil" satırı: Bybit son fiyatı ve girişe kalan uzaklık (son fiyat yoksa yalnız durum). */
+export function pendingNote(job, last) {
+  const e = job.lv?.entry ?? job.paper?.entry, head = `⏳ ${job.coin} ${job.direction}: OKX'te giriş doldu, Bybit demoda henüz dolmadı (giriş ${e}).`;
+  if (!(last > 0) || !(e > 0)) return `${head} Emir bekliyor.`;
+  const gap = job.d * (last - e); // > 0: fiyat girişe henüz ulaşmadı (long'da üstünde, short'ta altında)
+  return `${head} Bybit son ${last} · girişe ${Math.abs(gap).toPrecision(2)} (%${(Math.abs(gap) / e * 100).toFixed(2)}) ${gap > 0 ? 'uzak' : 'geçti, sırada bekliyor'}. Emir bekliyor.`;
+}
 const entryBody = (job) => ({ symbol: job.symbol, side: sideOf(job.d), orderType: 'Limit', qty: fmtStep(job.qty, job.inst.qtyStep), price: fmtStep(job.lv.entry, job.inst.tick), timeInForce: 'GTC', positionIdx: 0, orderLinkId: linkOf(job.id, 'E'), stopLoss: fmtStep(job.lv.stop, job.inst.tick), tpslMode: 'Full', slTriggerBy: 'LastPrice', slOrderType: 'Market' });
 const exitBody = (job, tag, price, qty, type = 'Limit') => ({ symbol: job.symbol, side: sideOf(-job.d), orderType: type, qty: fmtStep(qty, job.inst.qtyStep), ...(type === 'Limit' ? { price: fmtStep(price, job.inst.tick), timeInForce: 'GTC' } : {}), positionIdx: 0, reduceOnly: true, orderLinkId: linkOf(job.id, tag) });
 
@@ -197,7 +205,8 @@ function stepJob(st, job, plan, ex, orderOf, now, cfg, actions) {
     }
     if (!E.status) return; // durumu henüz okunamadı
     if (OPEN_ST.has(E.status)) {
-      if (plan && PAPER_FILLED.has(plan.status)) addDev(job, 'kagit_doldu_borsa_dolmadi', { paper: plan.status, paperFilledAt: plan.filledAt ?? plan.activeAt ?? null }, now);
+      if (plan && PAPER_FILLED.has(plan.status) && addDev(job, 'kagit_doldu_borsa_dolmadi', { paper: plan.status, paperFilledAt: plan.filledAt ?? plan.activeAt ?? null, last: ex.tickers?.[job.symbol] ?? null }, now))
+        ev(st, now, job, 'bybit_bekliyor', { msg: pendingNote(job, ex.tickers?.[job.symbol]) });
       if (paperGone || tooOld) {
         job.cancelWhy = tooOld ? `${cfg.maxPendingH} saatte dolmadı` : plan ? `kâğıt ${plan.status}` : 'kâğıt plan durumdan düştü';
         actions.push({ type: 'cancel', jobId: job.id, tag: 'E', symbol: job.symbol, link: E.link });
@@ -205,10 +214,11 @@ function stepJob(st, job, plan, ex, orderOf, now, cfg, actions) {
       return;
     }
     const filledQty = posSize || E.cumExecQty || 0;
-    if (!(E.cumExecQty > 0)) { job.phase = 'cancelled'; job.reason = job.cancelWhy ?? `giriş emri ${E.status}`; job.closedAt = now; ev(st, now, job, 'iptal', { why: job.reason }); return; }
+    if (!(E.cumExecQty > 0)) { job.phase = 'cancelled'; job.reason = job.cancelWhy ?? `giriş emri ${E.status}`; job.closedAt = now; ev(st, now, job, 'iptal', { why: job.reason, ...(hasDev(job, 'kagit_doldu_borsa_dolmadi') ? { msg: `✖️ ${job.coin} ${job.direction}: Bybit demoda hiç dolmadı, emir iptal (${job.reason}). Kâğıt kayıt OKX fiyatıyla sürüyor.` } : {}) }); return; }
     job.fill = { price: E.avgPrice ?? job.lv.entry, qty: filledQty, at: E.updatedAt ?? now, paperStatus: plan?.status ?? null };
     job.phase = 'open';
-    ev(st, now, job, 'dolum', { price: job.fill.price, qty: job.fill.qty, paper: plan?.status ?? null });
+    const late = (job.deviations || []).find((x) => x.kind === 'kagit_doldu_borsa_dolmadi');
+    ev(st, now, job, 'dolum', { price: job.fill.price, qty: job.fill.qty, paper: plan?.status ?? null, ...(late ? { msg: `✅ ${job.coin} ${job.direction}: Bybit demoda da doldu (${job.fill.price})${late.paperFilledAt ? `, OKX'ten ≈ ${Math.max(0, Math.round((job.fill.at - late.paperFilledAt) / 60e3))} dk sonra` : ''}.` } : {}) });
     if (plan?.status === 'waiting') addDev(job, 'borsa_doldu_kagit_bekliyor', { paper: 'waiting' }, now);
     else if (plan?.status === 'confirming') addDev(job, 'borsa_doldu_kagit_teyit', { paper: 'confirming', knifeAt: plan.knifeAt ?? null }, now);
   }
@@ -344,7 +354,7 @@ export async function gatherDemo(client, { state, plans, now, cfg }) {
     }
     if (okAny) { ex.insts[p.coin] = inst; cache[p.coin] = { at: now, inst }; } // ağ hatasında tanımsız kalır → sonraki tur
   }
-  const syms = new Set([...cand.map((p) => ex.insts[p.coin]?.symbol).filter(Boolean), ...jobs.filter((j) => j.phase === 'open').map((j) => j.symbol)]);
+  const syms = new Set([...cand.map((p) => ex.insts[p.coin]?.symbol).filter(Boolean), ...jobs.filter((j) => j.phase === 'open' || j.phase === 'pending').map((j) => j.symbol)]); // bekleyen: "OKX'te doldu, Bybit'te değil" satırındaki uzaklık için
   for (const s of syms) { const r = await client.ticker(s); const t = num(listOf(r)[0]?.lastPrice); if (t) ex.tickers[s] = t; }
   return ex;
 }
@@ -392,6 +402,8 @@ export async function runDemo({ client, plans, file, now = Date.now(), cfg = {},
     const ph = {}; for (const j of Object.values(st.jobs)) ph[j.phase] = (ph[j.phase] || 0) + 1;
     log(`Bybit demo: ${nAct} eylem · işler ${Object.entries(ph).map(([k, v]) => `${k} ${v}`).join(', ') || 'yok'}${errors.length ? ` · ${errors.length} hata (${errors[0]})` : ''}`);
   } catch (err) { errors.push(String(err?.message || err)); log(`Bybit demo hatası: ${errors[0]}`); }
+  const notes = (st.events || []).filter((e) => e.at === now && e.msg).map((e) => e.msg); // bu turun teyit satırları (OKX ↔ Bybit dolum farkı)
+  if (notes.length) { try { await notify(notes.join('\n')); } catch { /* bildirim hatası turu etkilemez */ } }
   const msg = errorNotice(st, errors, now);
   if (msg) { try { await notify(msg); } catch { /* bildirim hatası turu etkilemez */ } }
   if (save) saveDemo(file, st, now);

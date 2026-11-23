@@ -445,3 +445,10 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   ölçülüp kapandı (giriş biçimi) → yeniden ölçülmez. Dolanlar "düzeltmesi derinleşenler" olduğundan dolum, kazanç hakkında bir şey söylemez (seçilim).
 - Testler 639 (636 geçti, 1 bilinen `levels`, 2 todo).
 - **"Dolma şansı" rozeti (kullanıcı onayı, 22.11 gece 2):** tarayıcı sonuç satırında `Dolma ~%N` (`src/scan/fillchance.js`, test `tests/fillchance.test.js`; takip geçmişi aracı aynı işlevi kullanıyor). Kırmızı < %30 · sarı < %50 · yeşil; fiyat bölgedeyse yok. Görünüm, kural değil. `app.js?v=15`, `styles.css?v=5`, `fillchance.js?v=1`. **Tarayıcıda gözle doğrulanmadı** (yalnız testler + sözdizimi); kullanıcı telefonda bakacak. Testler 640 (637 geçti, 1 bilinen, 2 todo).
+
+- 23.11.2026 (yerel oturum, sabah) **OKX ↔ Bybit dolum farkı (kullanıcı gözlemi: OKB 4H short, giriş 82,9295):** 5 dk mumları: 05:20 UTC tepe OKX 82,96 / Bybit 82,89 →
+  OKX girişi 0,03 $ (%0,04) geçti, Bybit 0,04 $ altında kaldı ("değdi geçti" dolumu); 05:40'ta ikisi de 83,1 üstü. Bybit OKB 24s hacmi ≈ 0,26 M$ (OKX ≈ 16 M$).
+  Demo kaydı (17.11'den beri): kâğıtta dolan 17 emirden 16'sı Bybit demoda da doldu (n küçük, oran iddiası yok). **Eklendi (kullanıcı onayı):** demo koşucusu
+  teyit satırları (`bot/exchange/demo.js` `pendingNote`, olaylar `bybit_bekliyor` / geç `dolum` / `iptal` + `msg`; bekleyen emirlerin Bybit son fiyatı da okunuyor).
+  **Bekleyen:** Mac'teki `~/.config/kripto-demo/env` dosyasında `TELEGRAM_*` satırı YOK → kullanıcı ekleyene kadar mesaj gitmez (kayıt demo.json'a yazılır).
+  Açık öneriler (karar yok): emir fişinde OKX − Bybit farkı kadar giriş düzeltmesi; Avrupa sunucusu (fiyat araştırması yapıldı, sonuç sohbette). Testler 641 (638 geçti, 1 bilinen `levels`, 2 todo).

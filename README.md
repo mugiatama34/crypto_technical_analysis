@@ -766,4 +766,5 @@ yerel başlatıcıyla çalışır: `node bot/exchange/local.mjs` (bir tur) · `-
 `docs/signals/history.json`'dan okunur (en çok bir tur gecikme). `tools/demo-runner/run.sh <klon>` depoyu çeker, turu koşar,
 `docs/signals/demo.json` değiştiyse commit + push eder (launchd / cron 15 dakikada bir; klon iCloud dışında). Makine uykudayken
 yeni emir girilmez ve stop taşınmaz; açık pozisyonu borsadaki stop ve bekleyen kâr emirleri korur.
+**OKX ↔ Bybit dolum teyidi (23.11.2026):** kâğıt (OKX) girişi doldu sayarken Bybit demo emri hâlâ açıksa Telegram'a bir kez "OKX'te doldu, Bybit demoda henüz dolmadı" satırı gider (Bybit son fiyatı + girişe uzaklık); sonra dolarsa "Bybit demoda da doldu (≈ N dk sonra)", dolmadan iptal olursa "hiç dolmadı". Yalnız bilgi; emir / kural değişmez. Mesaj için yerel env dosyasında `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` gerekir; tur 15 dakikada bir koştuğundan satır giriş mesajından ≈ 15–30 dk sonra gelir.
 
