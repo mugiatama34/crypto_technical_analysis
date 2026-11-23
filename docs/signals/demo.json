@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795411512429,
+ "updatedAt": 1795412417683,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3362,9 +3362,9 @@
    "sentAt": 1795406450955,
    "createdAt": 1795406983458,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 82.9295,
-    "filledAt": null,
+    "filledAt": 1795410900000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -3383,7 +3383,14 @@
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "kagit_doldu_borsa_dolmadi",
+     "at": 1795412417683,
+     "paper": "active",
+     "paperFilledAt": 1795410900000
+    }
+   ],
    "symbol": "OKBUSDT",
    "mult": 1,
    "inst": {
