@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795414231094,
+ "updatedAt": 1795415139683,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3676,7 +3676,11 @@
      "at": 1795414231094,
      "qty": 658.77,
      "price": 64.711,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795414236036
     }
    },
    "stops": [],
@@ -3705,6 +3709,58 @@
    "riskTarget": 1067.21,
    "leverage": 20,
    "lastAtCreate": 63.028
+  },
+  "ATOM|4H|short|39|1795414527973": {
+   "id": "ATOM|4H|short|39|1795414527973",
+   "coin": "ATOM",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795414527973,
+   "createdAt": 1795415139683,
+   "paper": {
+    "status": "waiting",
+    "entry": 1.18989,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-e913255022164a17-E",
+     "at": 1795415139683,
+     "qty": 20679.2,
+     "price": 1.19,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ATOMUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0010",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 1.19,
+    "stop": 1.242,
+    "tp1": 1.136,
+    "tp2": 1.081,
+    "early": 1.176,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 20679.2,
+   "riskUsd": 1075.3184,
+   "riskTarget": 1075.32,
+   "leverage": 15,
+   "lastAtCreate": 1.181
   }
  },
  "insts": {
@@ -4138,6 +4194,20 @@
     "tick": "0.001",
     "qtyStep": "0.01",
     "minQty": 0.01,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "ATOM": {
+   "at": 1795415139683,
+   "inst": {
+    "coin": "ATOM",
+    "symbol": "ATOMUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0010",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
     "minNotional": 5,
     "maxLev": 75
    }
@@ -5052,6 +5122,16 @@
    "entry": 64.711,
    "stop": 66.331,
    "lev": 20
+  },
+  {
+   "at": 1795415139683,
+   "id": "ATOM|4H|short|39|1795414527973",
+   "symbol": "ATOMUSDT",
+   "ev": "emir",
+   "qty": 20679.2,
+   "entry": 1.19,
+   "stop": 1.242,
+   "lev": 15
   }
  ],
  "lastError": null
