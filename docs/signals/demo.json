@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795436048522,
+ "updatedAt": 1795436957264,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4149,6 +4149,58 @@
    "riskTarget": 1058.22,
    "leverage": 20,
    "lastAtCreate": 61502
+  },
+  "HBAR|4H|short|42|1795436131497": {
+   "id": "HBAR|4H|short|42|1795436131497",
+   "coin": "HBAR",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795436131497,
+   "createdAt": 1795436957264,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.05268,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-d9bb2c467f1838ed-E",
+     "at": 1795436957264,
+     "qty": 662062,
+     "price": 0.05268,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "HBARUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.05268,
+    "stop": 0.05429,
+    "tp1": 0.05028,
+    "tp2": 0.04798,
+    "early": 0.05205,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 662062,
+   "riskUsd": 1065.9198,
+   "riskTarget": 1065.92,
+   "leverage": 20,
+   "lastAtCreate": 0.05227
   }
  },
  "insts": {
@@ -4596,6 +4648,20 @@
     "tick": "0.0010",
     "qtyStep": "0.1",
     "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "HBAR": {
+   "at": 1795436957264,
+   "inst": {
+    "coin": "HBAR",
+    "symbol": "HBARUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1,
     "minNotional": 5,
     "maxLev": 75
    }
@@ -5575,6 +5641,16 @@
    "qty": 0.859,
    "entry": 61653.6,
    "stop": 62884.5,
+   "lev": 20
+  },
+  {
+   "at": 1795436957264,
+   "id": "HBAR|4H|short|42|1795436131497",
+   "symbol": "HBARUSDT",
+   "ev": "emir",
+   "qty": 662062,
+   "entry": 0.05268,
+   "stop": 0.05429,
    "lev": 20
   }
  ],
