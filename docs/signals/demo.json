@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795405169362,
+ "updatedAt": 1795406075262,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3076,7 +3076,11 @@
      "at": 1795405169362,
      "qty": 817007,
      "price": 0.05664,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795405171908
     }
    },
    "stops": [],
@@ -3105,6 +3109,162 @@
    "riskTarget": 1070.28,
    "leverage": 20,
    "lastAtCreate": 0.05549
+  },
+  "CRV|4H|short|31|1795405528793": {
+   "id": "CRV|4H|short|31|1795405528793",
+   "coin": "CRV",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795405528793,
+   "createdAt": 1795406075262,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.189939,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-fef79d4d9fe39c18-E",
+     "at": 1795406075262,
+     "qty": 157988.2,
+     "price": 0.1899,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "CRVUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.1899,
+    "stop": 0.1967,
+    "tp1": 0.1799,
+    "tp2": 0.1746,
+    "early": 0.1877,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 157988.2,
+   "riskUsd": 1074.3198,
+   "riskTarget": 1074.32,
+   "leverage": 18,
+   "lastAtCreate": 0.1807
+  },
+  "VIRTUAL|4H|short|33|1795405528793": {
+   "id": "VIRTUAL|4H|short|33|1795405528793",
+   "coin": "VIRTUAL",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795405528793,
+   "createdAt": 1795406075262,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.3855,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-818ed478886038d4-E",
+     "at": 1795406075262,
+     "qty": 60696,
+     "price": 0.3855,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "VIRTUALUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.3855,
+    "stop": 0.4032,
+    "tp1": 0.359,
+    "tp2": 0.3271,
+    "early": 0.3809,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 60696,
+   "riskUsd": 1074.3192,
+   "riskTarget": 1074.32,
+   "leverage": 14,
+   "lastAtCreate": 0.3767
+  },
+  "SUI|4H|short|35|1795405528793": {
+   "id": "SUI|4H|short|35|1795405528793",
+   "coin": "SUI",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795405528793,
+   "createdAt": 1795406075262,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.6608,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-75443d38d2337289-E",
+     "at": 1795406075262,
+     "qty": 44020,
+     "price": 0.6608,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "SUIUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00010",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.6608,
+    "stop": 0.6852,
+    "tp1": 0.6243,
+    "tp2": 0.5873,
+    "early": 0.6529,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 44020,
+   "riskUsd": 1074.088,
+   "riskTarget": 1074.32,
+   "leverage": 18,
+   "lastAtCreate": 0.6534
   }
  },
  "insts": {
@@ -3426,6 +3586,48 @@
     "tick": "0.001",
     "qtyStep": "0.1",
     "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "CRV": {
+   "at": 1795406075262,
+   "inst": {
+    "coin": "CRV",
+    "symbol": "CRVUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "VIRTUAL": {
+   "at": 1795406075262,
+   "inst": {
+    "coin": "VIRTUAL",
+    "symbol": "VIRTUALUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 50
+   }
+  },
+  "SUI": {
+   "at": 1795406075262,
+   "inst": {
+    "coin": "SUI",
+    "symbol": "SUIUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00010",
+    "qtyStep": "10",
+    "minQty": 10,
     "minNotional": 5,
     "maxLev": 75
    }
@@ -4231,6 +4433,36 @@
    "entry": 0.05664,
    "stop": 0.05795,
    "lev": 20
+  },
+  {
+   "at": 1795406075262,
+   "id": "CRV|4H|short|31|1795405528793",
+   "symbol": "CRVUSDT",
+   "ev": "emir",
+   "qty": 157988.2,
+   "entry": 0.1899,
+   "stop": 0.1967,
+   "lev": 18
+  },
+  {
+   "at": 1795406075262,
+   "id": "VIRTUAL|4H|short|33|1795405528793",
+   "symbol": "VIRTUALUSDT",
+   "ev": "emir",
+   "qty": 60696,
+   "entry": 0.3855,
+   "stop": 0.4032,
+   "lev": 14
+  },
+  {
+   "at": 1795406075262,
+   "id": "SUI|4H|short|35|1795405528793",
+   "symbol": "SUIUSDT",
+   "ev": "emir",
+   "qty": 44020,
+   "entry": 0.6608,
+   "stop": 0.6852,
+   "lev": 18
   }
  ],
  "lastError": null
