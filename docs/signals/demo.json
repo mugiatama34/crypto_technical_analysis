@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795406075262,
+ "updatedAt": 1795406983458,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3132,7 +3132,11 @@
      "at": 1795406075262,
      "qty": 157988.2,
      "price": 0.1899,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795406078864
     }
    },
    "stops": [],
@@ -3184,7 +3188,11 @@
      "at": 1795406075262,
      "qty": 60696,
      "price": 0.3855,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795406079590
     }
    },
    "stops": [],
@@ -3236,7 +3244,11 @@
      "at": 1795406075262,
      "qty": 44020,
      "price": 0.6608,
-     "type": "Limit"
+     "type": "Limit",
+     "status": "New",
+     "cumExecQty": 0,
+     "avgPrice": null,
+     "updatedAt": 1795406080021
     }
    },
    "stops": [],
@@ -3265,6 +3277,87 @@
    "riskTarget": 1074.32,
    "leverage": 18,
    "lastAtCreate": 0.6534
+  },
+  "OKB|4H|short|39|1795406450955": {
+   "id": "OKB|4H|short|39|1795406450955",
+   "coin": "OKB",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795406450955,
+   "createdAt": 1795406983458,
+   "paper": {
+    "status": "waiting",
+    "entry": 82.9295,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-815ff91fef6a01d6-E",
+     "at": 1795406983458,
+     "qty": 450.71,
+     "price": 82.93,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "OKBUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 82.93,
+    "stop": 85.31,
+    "tp1": 79.38,
+    "tp2": 74.05,
+    "early": 81.94,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 450.71,
+   "riskUsd": 1072.6898,
+   "riskTarget": 1072.69,
+   "leverage": 20,
+   "lastAtCreate": 82.7
+  },
+  "ENA|4H|short|27|1795406450955": {
+   "id": "ENA|4H|short|27|1795406450955",
+   "coin": "ENA",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795406450955,
+   "createdAt": 1795406983458,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.10142,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "ENAUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "skipped",
+   "reason": "Bybit fiyatı 0.10162 girişin (0.10142) ötesinde: limit anında dolardı"
   }
  },
  "insts": {
@@ -3628,6 +3721,34 @@
     "tick": "0.00010",
     "qtyStep": "10",
     "minQty": 10,
+    "minNotional": 5,
+    "maxLev": 75
+   }
+  },
+  "OKB": {
+   "at": 1795406983458,
+   "inst": {
+    "coin": "OKB",
+    "symbol": "OKBUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.01",
+    "qtyStep": "0.01",
+    "minQty": 0.01,
+    "minNotional": 5,
+    "maxLev": 25
+   }
+  },
+  "ENA": {
+   "at": 1795406983458,
+   "inst": {
+    "coin": "ENA",
+    "symbol": "ENAUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1,
     "minNotional": 5,
     "maxLev": 75
    }
@@ -4463,6 +4584,23 @@
    "entry": 0.6608,
    "stop": 0.6852,
    "lev": 18
+  },
+  {
+   "at": 1795406983458,
+   "id": "OKB|4H|short|39|1795406450955",
+   "symbol": "OKBUSDT",
+   "ev": "emir",
+   "qty": 450.71,
+   "entry": 82.93,
+   "stop": 85.31,
+   "lev": 20
+  },
+  {
+   "at": 1795406983458,
+   "id": "ENA|4H|short|27|1795406450955",
+   "symbol": "ENAUSDT",
+   "ev": "atlandı",
+   "why": "Bybit fiyatı 0.10162 girişin (0.10142) ötesinde: limit anında dolardı"
   }
  ],
  "lastError": null
