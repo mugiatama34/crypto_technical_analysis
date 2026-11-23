@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795418773298,
+ "updatedAt": 1795419681405,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -3733,14 +3733,41 @@
      "qty": 20679.2,
      "price": 1.19,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795415144930
+     "status": "Filled",
+     "cumExecQty": 20679.2,
+     "avgPrice": 1.19,
+     "updatedAt": 1795418807131
+    },
+    "T1": {
+     "link": "bd-e913255022164a17-T1",
+     "at": 1795419681405,
+     "qty": 10339.6,
+     "price": 1.176,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-e913255022164a17-T2",
+     "at": 1795419681405,
+     "qty": 5169.8,
+     "price": 1.136,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-e913255022164a17-T3",
+     "at": 1795419681405,
+     "qty": 5169.8,
+     "price": 1.081,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795419681405,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "ATOMUSDT",
    "mult": 1,
    "inst": {
@@ -3748,7 +3775,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 1.19,
@@ -3764,7 +3791,31 @@
    "riskUsd": 1075.3184,
    "riskTarget": 1075.32,
    "leverage": 15,
-   "lastAtCreate": 1.181
+   "lastAtCreate": 1.181,
+   "fill": {
+    "price": 1.19,
+    "qty": 20679.2,
+    "at": 1795418807131,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 1.176,
+     "qty": 10339.6
+    },
+    {
+     "tag": "T2",
+     "price": 1.136,
+     "qty": 5169.8
+    },
+    {
+     "tag": "T3",
+     "price": 1.081,
+     "qty": 5169.8
+    }
+   ],
+   "legFails": {}
   }
  },
  "insts": {
@@ -5136,6 +5187,15 @@
    "entry": 1.19,
    "stop": 1.242,
    "lev": 15
+  },
+  {
+   "at": 1795419681405,
+   "id": "ATOM|4H|short|39|1795414527973",
+   "symbol": "ATOMUSDT",
+   "ev": "dolum",
+   "price": 1.19,
+   "qty": 20679.2,
+   "paper": "waiting"
   }
  ],
  "lastError": null
