@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795403353944,
+ "updatedAt": 1795404259395,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -2556,9 +2556,9 @@
    "sentAt": 1795395647554,
    "createdAt": 1795396118973,
    "paper": {
-    "status": "waiting",
+    "status": "active",
     "entry": 4.73387,
-    "filledAt": null,
+    "filledAt": 1795402800000,
     "confirmedAt": null,
     "closedAt": null,
     "R": null
@@ -2570,10 +2570,31 @@
      "qty": 6682,
      "price": 4.734,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795396120712
+     "status": "Filled",
+     "cumExecQty": 6682,
+     "avgPrice": 4.734,
+     "updatedAt": 1795403626161
+    },
+    "T1": {
+     "link": "bd-bd6e2e8c097c50a8-T1",
+     "at": 1795404259395,
+     "qty": 3341,
+     "price": 4.678,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-bd6e2e8c097c50a8-T2",
+     "at": 1795404259395,
+     "qty": 1670.5,
+     "price": 4.496,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-bd6e2e8c097c50a8-T3",
+     "at": 1795404259395,
+     "qty": 1670.5,
+     "price": 4.183,
+     "type": "Limit"
     }
    },
    "stops": [],
@@ -2585,7 +2606,7 @@
     "qtyStep": "0.1",
     "minQty": 0.1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 4.734,
@@ -2601,7 +2622,36 @@
    "riskUsd": 1069.12,
    "riskTarget": 1069.13,
    "leverage": 19,
-   "lastAtCreate": 4.678
+   "lastAtCreate": 4.678,
+   "fill": {
+    "price": 4.734,
+    "qty": 6682,
+    "at": 1795403626161,
+    "paperStatus": "active"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 4.678,
+     "qty": 3341
+    },
+    {
+     "tag": "T2",
+     "price": 4.496,
+     "qty": 1670.5
+    },
+    {
+     "tag": "T3",
+     "price": 4.183,
+     "qty": 1670.5
+    }
+   ],
+   "legFails": {},
+   "fillLag": {
+    "exchangeAt": 1795403626161,
+    "paperAt": 1795402800000,
+    "minutes": -14
+   }
   },
   "BNB|4H|short|51|1795401039665": {
    "id": "BNB|4H|short|51|1795401039665",
@@ -2626,14 +2676,41 @@
      "qty": 125.78,
      "price": 563.02,
      "type": "Limit",
-     "status": "New",
-     "cumExecQty": 0,
-     "avgPrice": null,
-     "updatedAt": 1795401546504
+     "status": "Filled",
+     "cumExecQty": 125.78,
+     "avgPrice": 563.02,
+     "updatedAt": 1795404087598
+    },
+    "T1": {
+     "link": "bd-a3bd6a2b791a96ed-T1",
+     "at": 1795404259395,
+     "qty": 62.89,
+     "price": 556.27,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-a3bd6a2b791a96ed-T2",
+     "at": 1795404259395,
+     "qty": 31.44,
+     "price": 550.29,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-a3bd6a2b791a96ed-T3",
+     "at": 1795404259395,
+     "qty": 31.45,
+     "price": 506.1,
+     "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795404259395,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "BNBUSDT",
    "mult": 1,
    "inst": {
@@ -2641,7 +2718,7 @@
     "qtyStep": "0.01",
     "minQty": 0.01
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 563.02,
@@ -2657,7 +2734,31 @@
    "riskUsd": 1069.13,
    "riskTarget": 1069.13,
    "leverage": 20,
-   "lastAtCreate": 552.62
+   "lastAtCreate": 552.62,
+   "fill": {
+    "price": 563.02,
+    "qty": 125.78,
+    "at": 1795404087598,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 556.27,
+     "qty": 62.89
+    },
+    {
+     "tag": "T2",
+     "price": 550.29,
+     "qty": 31.44
+    },
+    {
+     "tag": "T3",
+     "price": 506.1,
+     "qty": 31.45
+    }
+   ],
+   "legFails": {}
   },
   "WIF|4H|short|35|1795402851576": {
    "id": "WIF|4H|short|35|1795402851576",
@@ -2681,11 +2782,42 @@
      "at": 1795403353944,
      "qty": 178188,
      "price": 0.1211,
+     "type": "Limit",
+     "status": "Filled",
+     "cumExecQty": 178188,
+     "avgPrice": 0.1211,
+     "updatedAt": 1795404024601
+    },
+    "T1": {
+     "link": "bd-2f02bd1351140e42-T1",
+     "at": 1795404259395,
+     "qty": 89094,
+     "price": 0.1197,
+     "type": "Limit"
+    },
+    "T2": {
+     "link": "bd-2f02bd1351140e42-T2",
+     "at": 1795404259395,
+     "qty": 44547,
+     "price": 0.1112,
+     "type": "Limit"
+    },
+    "T3": {
+     "link": "bd-2f02bd1351140e42-T3",
+     "at": 1795404259395,
+     "qty": 44547,
+     "price": 0.1078,
      "type": "Limit"
     }
    },
    "stops": [],
-   "deviations": [],
+   "deviations": [
+    {
+     "kind": "borsa_doldu_kagit_bekliyor",
+     "at": 1795404259395,
+     "paper": "waiting"
+    }
+   ],
    "symbol": "WIFUSDT",
    "mult": 1,
    "inst": {
@@ -2693,7 +2825,7 @@
     "qtyStep": "1",
     "minQty": 1
    },
-   "phase": "pending",
+   "phase": "open",
    "lv": {
     "d": -1,
     "entry": 0.1211,
@@ -2709,7 +2841,164 @@
    "riskUsd": 1069.128,
    "riskTarget": 1069.13,
    "leverage": 13,
-   "lastAtCreate": 0.1193
+   "lastAtCreate": 0.1193,
+   "fill": {
+    "price": 0.1211,
+    "qty": 178188,
+    "at": 1795404024601,
+    "paperStatus": "waiting"
+   },
+   "legs": [
+    {
+     "tag": "T1",
+     "price": 0.1197,
+     "qty": 89094
+    },
+    {
+     "tag": "T2",
+     "price": 0.1112,
+     "qty": 44547
+    },
+    {
+     "tag": "T3",
+     "price": 0.1078,
+     "qty": 44547
+    }
+   ],
+   "legFails": {}
+  },
+  "AVAX|4H|short|39|1795403729337": {
+   "id": "AVAX|4H|short|39|1795403729337",
+   "coin": "AVAX",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795403729337,
+   "createdAt": 1795404259395,
+   "paper": {
+    "status": "waiting",
+    "entry": 6.802,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-d244726d4aeee957-E",
+     "at": 1795404259395,
+     "qty": 5798.2,
+     "price": 6.802,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "AVAXUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 6.802,
+    "stop": 6.986,
+    "tp1": 6.527,
+    "tp2": 6.008,
+    "early": 6.721,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 5798.2,
+   "riskUsd": 1066.8688,
+   "riskTarget": 1066.87,
+   "leverage": 20,
+   "lastAtCreate": 6.705
+  },
+  "SHIB|4H|short|44|1795403729337": {
+   "id": "SHIB|4H|short|44|1795403729337",
+   "coin": "SHIB",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795403729337,
+   "createdAt": 1795404259395,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.000003589,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "SHIB1000USDT",
+   "mult": 1000,
+   "inst": {
+    "tick": "0.000001",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "skipped",
+   "reason": "Bybit fiyatı 0.003608 girişin (0.003589) ötesinde: limit anında dolardı"
+  },
+  "ONDO|4H|short|35|1795403729337": {
+   "id": "ONDO|4H|short|35|1795403729337",
+   "coin": "ONDO",
+   "tf": "4H",
+   "direction": "short",
+   "d": -1,
+   "sentAt": 1795403729337,
+   "createdAt": 1795404259395,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.2895,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {
+    "E": {
+     "link": "bd-90b6231c9d317c8e-E",
+     "at": 1795404259395,
+     "qty": 133358,
+     "price": 0.2895,
+     "type": "Limit"
+    }
+   },
+   "stops": [],
+   "deviations": [],
+   "symbol": "ONDOUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "pending",
+   "lv": {
+    "d": -1,
+    "entry": 0.2895,
+    "stop": 0.2975,
+    "tp1": 0.2776,
+    "tp2": 0.2537,
+    "early": 0.2861,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 133358,
+   "riskUsd": 1066.864,
+   "riskTarget": 1066.87,
+   "leverage": 20,
+   "lastAtCreate": 0.2847
   }
  },
  "insts": {
@@ -2896,7 +3185,7 @@
    }
   },
   "SHIB": {
-   "at": 1795110809343,
+   "at": 1795404259395,
    "inst": {
     "coin": "SHIB",
     "symbol": "SHIB1000USDT",
@@ -2938,7 +3227,7 @@
    }
   },
   "ONDO": {
-   "at": 1795214009502,
+   "at": 1795404259395,
    "inst": {
     "coin": "ONDO",
     "symbol": "ONDOUSDT",
@@ -3019,6 +3308,20 @@
     "minQty": 1,
     "minNotional": 5,
     "maxLev": 50
+   }
+  },
+  "AVAX": {
+   "at": 1795404259395,
+   "inst": {
+    "coin": "AVAX",
+    "symbol": "AVAXUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.001",
+    "qtyStep": "0.1",
+    "minQty": 0.1,
+    "minNotional": 5,
+    "maxLev": 75
    }
   }
  },
@@ -3758,6 +4061,60 @@
    "entry": 0.1211,
    "stop": 0.1271,
    "lev": 13
+  },
+  {
+   "at": 1795404259395,
+   "id": "UNI|4H|short|30|1795395647554",
+   "symbol": "UNIUSDT",
+   "ev": "dolum",
+   "price": 4.734,
+   "qty": 6682,
+   "paper": "active"
+  },
+  {
+   "at": 1795404259395,
+   "id": "BNB|4H|short|51|1795401039665",
+   "symbol": "BNBUSDT",
+   "ev": "dolum",
+   "price": 563.02,
+   "qty": 125.78,
+   "paper": "waiting"
+  },
+  {
+   "at": 1795404259395,
+   "id": "WIF|4H|short|35|1795402851576",
+   "symbol": "WIFUSDT",
+   "ev": "dolum",
+   "price": 0.1211,
+   "qty": 178188,
+   "paper": "waiting"
+  },
+  {
+   "at": 1795404259395,
+   "id": "AVAX|4H|short|39|1795403729337",
+   "symbol": "AVAXUSDT",
+   "ev": "emir",
+   "qty": 5798.2,
+   "entry": 6.802,
+   "stop": 6.986,
+   "lev": 20
+  },
+  {
+   "at": 1795404259395,
+   "id": "SHIB|4H|short|44|1795403729337",
+   "symbol": "SHIB1000USDT",
+   "ev": "atlandı",
+   "why": "Bybit fiyatı 0.003608 girişin (0.003589) ötesinde: limit anında dolardı"
+  },
+  {
+   "at": 1795404259395,
+   "id": "ONDO|4H|short|35|1795403729337",
+   "symbol": "ONDOUSDT",
+   "ev": "emir",
+   "qty": 133358,
+   "entry": 0.2895,
+   "stop": 0.2975,
+   "lev": 20
   }
  ],
  "lastError": null
