@@ -452,3 +452,11 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   teyit satırları (`bot/exchange/demo.js` `pendingNote`, olaylar `bybit_bekliyor` / geç `dolum` / `iptal` + `msg`; bekleyen emirlerin Bybit son fiyatı da okunuyor).
   **Bekleyen:** Mac'teki `~/.config/kripto-demo/env` dosyasında `TELEGRAM_*` satırı YOK → kullanıcı ekleyene kadar mesaj gitmez (kayıt demo.json'a yazılır).
   Açık öneriler (karar yok): emir fişinde OKX − Bybit farkı kadar giriş düzeltmesi; Avrupa sunucusu (fiyat araştırması yapıldı, sonuç sohbette). Testler 641 (638 geçti, 1 bilinen `levels`, 2 todo).
+- 24.11.2026 (yerel oturum) **23.11 ters yakalanma + eşzamanlı pozisyon sınırı (kullanıcı sorusu; yeni ölçüm yok, canlı kayıt sayımı + mevcut tarama satırları):**
+  Canlı 4H kâğıt kaydı 13–21.11: 29 kapanış **+8,9R** (28'i short); **23.11: 20 short, −16,3R** (17 stop, 3 başabaş) → küm. −7,4R. 20'sinin hepsi 23.11 03:00–13:45 UTC'de
+  doldu, 17 stop aynı 4H mumunda (12:00 mumu: BTC 61.396 → tepe 64.570 → kapanış 62.862; sonraki mum 61.233'e geri döndü = iğne). En çok eşzamanlı dolu pozisyon 19 (hepsi short).
+  Tarama (12 ay, `sweep.json` 22.11, aynı kurulumda taban ↔ "aynı yönde ≤ N açık"): ≤ 5 → eğ n 499 → 337, ort. 0,039 → 0,035R, toplam 19,6 → 11,9R, maks. düşüş 7,2 → 6,2R ·
+  doğr n 484 → 227, ort. 0,106 → 0,089R, toplam 51,4 → 20,2R, maks. düşüş 18,4 → 10,1R. Yani sınır işlem başına R'yi değiştirmiyor (seçim değeri yok, 13.11 bulgusuyla aynı),
+  toplam kazancı ve en kötü düşüşü birlikte küçültüyor (mutlak R'ler iyimser kurulumdan; yalnız taban ↔ sınır farkı okunur). Canlı kayıtta geriye dönük oynatma (kanıt değil,
+  tek olay): 26.10–23.11 n 124 sınırsız −2,8R · ≤ 10 → +6,1R · ≤ 5 → +8,2R · ≤ 3 → +2,1R; ≤ 10 sınırı 23.11'e kadar hiç devreye girmedi. Öneri (karar kullanıcıda):
+  sınır N = katlanılabilir tek günlük kayıp ÷ işlem başı risk; bot için Variables bayrağı (varsayılan kapalı) henüz yazılmadı.
