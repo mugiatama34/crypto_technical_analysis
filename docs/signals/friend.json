@@ -107,7 +107,10 @@
    "openTime": 1795488808000,
    "seenAt": 1795489253323,
    "lastPrice": 0.09998,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   },
   {
    "id": "LTC|1795488810000",
@@ -123,7 +126,10 @@
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
    "lastPrice": 41.01,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   },
   {
    "id": "INJ|1795488810000",
@@ -139,9 +145,12 @@
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
    "lastPrice": 6.179,
-   "status": "open"
+   "status": "open",
+   "unrealizedR": 0,
+   "breakeven": false,
+   "partialDone": false
   }
  ],
- "updatedAt": 1795489253323,
+ "updatedAt": 1795490130540,
  "src": "r50-4h"
 }
