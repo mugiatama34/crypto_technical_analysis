@@ -1,0 +1,432 @@
+{
+ "name": "canlıya eşit: long puan ≥ 65 · short kuralı · cooldown 6/12s · 3 kademe + stop erken hedefe %1.2 · sıra 1H · veri yoksa elenir",
+ "split": 1786435200000,
+ "source": {
+  "generatedAt": 1795523332108,
+  "trades": 668
+ },
+ "generatedAt": 1795523390234,
+ "s1": {
+  "train": {
+   "n": 164,
+   "days": 82,
+   "totalR": -5.592,
+   "avgR": -0.034,
+   "grossLoss": -54.921,
+   "worstDays": 4,
+   "worstDaysR": -21.865,
+   "worstDaysLossShare": 0.423,
+   "adverseDays": 4,
+   "adverseTrades": 32,
+   "adverseR": -21.865,
+   "adverseLossShare": 0.423,
+   "exAdverse": {
+    "n": 132,
+    "avgR": 0.123,
+    "totalR": 16.273
+   },
+   "worstDayList": [
+    {
+     "day": "2026-05-16",
+     "R": -7.403,
+     "n": 7,
+     "stopsLong": 7,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-07-16",
+     "R": -5.237,
+     "n": 5,
+     "stopsLong": 5,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-05-12",
+     "R": -4.795,
+     "n": 8,
+     "stopsLong": 5,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-05-15",
+     "R": -4.43,
+     "n": 12,
+     "stopsLong": 5,
+     "stopsShort": 0
+    }
+   ]
+  },
+  "valid": {
+   "n": 239,
+   "days": 60,
+   "totalR": -14.269,
+   "avgR": -0.06,
+   "grossLoss": -80.488,
+   "worstDays": 3,
+   "worstDaysR": -33.546,
+   "worstDaysLossShare": 0.436,
+   "adverseDays": 4,
+   "adverseTrades": 52,
+   "adverseR": -35.805,
+   "adverseLossShare": 0.501,
+   "exAdverse": {
+    "n": 187,
+    "avgR": 0.115,
+    "totalR": 21.536
+   },
+   "worstDayList": [
+    {
+     "day": "2026-10-07",
+     "R": -14.875,
+     "n": 15,
+     "stopsLong": 14,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-09-10",
+     "R": -13.377,
+     "n": 19,
+     "stopsLong": 14,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-10-08",
+     "R": -5.294,
+     "n": 5,
+     "stopsLong": 5,
+     "stopsShort": 0
+    }
+   ]
+  },
+  "all": {
+   "n": 403,
+   "days": 139,
+   "totalR": -19.861,
+   "avgR": -0.049,
+   "grossLoss": -135.409,
+   "worstDays": 7,
+   "worstDaysR": -55.411,
+   "worstDaysLossShare": 0.431,
+   "adverseDays": 8,
+   "adverseTrades": 84,
+   "adverseR": -57.67,
+   "adverseLossShare": 0.469,
+   "exAdverse": {
+    "n": 319,
+    "avgR": 0.119,
+    "totalR": 37.809
+   },
+   "worstDayList": [
+    {
+     "day": "2026-10-07",
+     "R": -14.875,
+     "n": 15,
+     "stopsLong": 14,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-09-10",
+     "R": -13.377,
+     "n": 19,
+     "stopsLong": 14,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-05-16",
+     "R": -7.403,
+     "n": 7,
+     "stopsLong": 7,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-10-08",
+     "R": -5.294,
+     "n": 5,
+     "stopsLong": 5,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-07-16",
+     "R": -5.237,
+     "n": 5,
+     "stopsLong": 5,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-05-12",
+     "R": -4.795,
+     "n": 8,
+     "stopsLong": 5,
+     "stopsShort": 0
+    },
+    {
+     "day": "2026-05-15",
+     "R": -4.43,
+     "n": 12,
+     "stopsLong": 5,
+     "stopsShort": 0
+    }
+   ]
+  }
+ },
+ "s2": {
+  "train": [
+   {
+    "cap": null,
+    "n": 164,
+    "avgR": -0.034,
+    "totalR": -5.592,
+    "maxDD": 20.222,
+    "worstDay": -7.403,
+    "worst7d": -16.245
+   },
+   {
+    "cap": 10,
+    "n": 156,
+    "avgR": -0.012,
+    "totalR": -1.879,
+    "maxDD": 16.509,
+    "worstDay": -6.353,
+    "worst7d": -13.576
+   },
+   {
+    "cap": 5,
+    "n": 133,
+    "avgR": 0.005,
+    "totalR": 0.612,
+    "maxDD": 10.955,
+    "worstDay": -4.187,
+    "worst7d": -7.761
+   },
+   {
+    "cap": 3,
+    "n": 110,
+    "avgR": -0.031,
+    "totalR": -3.404,
+    "maxDD": 13.174,
+    "worstDay": -3.174,
+    "worst7d": -5.942
+   }
+  ],
+  "valid": [
+   {
+    "cap": null,
+    "n": 239,
+    "avgR": -0.06,
+    "totalR": -14.269,
+    "maxDD": 24.791,
+    "worstDay": -14.875,
+    "worst7d": -21.42
+   },
+   {
+    "cap": 10,
+    "n": 177,
+    "avgR": 0.002,
+    "totalR": 0.329,
+    "maxDD": 19.418,
+    "worstDay": -9.502,
+    "worst7d": -16.047
+   },
+   {
+    "cap": 5,
+    "n": 122,
+    "avgR": -0.004,
+    "totalR": -0.479,
+    "maxDD": 13.155,
+    "worstDay": -5.294,
+    "worst7d": -9.784
+   },
+   {
+    "cap": 3,
+    "n": 95,
+    "avgR": -0.028,
+    "totalR": -2.69,
+    "maxDD": 10.865,
+    "worstDay": -5.294,
+    "worst7d": -8.103
+   }
+  ],
+  "all": [
+   {
+    "cap": null,
+    "n": 403,
+    "avgR": -0.049,
+    "totalR": -19.861,
+    "maxDD": 30.172,
+    "worstDay": -14.875,
+    "worst7d": -21.42
+   },
+   {
+    "cap": 10,
+    "n": 333,
+    "avgR": -0.005,
+    "totalR": -1.55,
+    "maxDD": 19.418,
+    "worstDay": -9.502,
+    "worst7d": -16.047
+   },
+   {
+    "cap": 5,
+    "n": 254,
+    "avgR": 0.005,
+    "totalR": 1.164,
+    "maxDD": 13.155,
+    "worstDay": -5.294,
+    "worst7d": -9.784
+   },
+   {
+    "cap": 3,
+    "n": 202,
+    "avgR": -0.027,
+    "totalR": -5.371,
+    "maxDD": 14.353,
+    "worstDay": -5.294,
+    "worst7d": -8.103
+   }
+  ]
+ },
+ "s3": {
+  "train": {
+   "monN": 35,
+   "monAvg": 0.024,
+   "otherN": 126,
+   "otherAvg": -0.058,
+   "diff": -0.082
+  },
+  "valid": {
+   "monN": 42,
+   "monAvg": -0.065,
+   "otherN": 195,
+   "otherAvg": -0.063,
+   "diff": 0.002
+  },
+  "all": {
+   "monN": 77,
+   "monAvg": -0.025,
+   "otherN": 321,
+   "otherAvg": -0.061,
+   "diff": -0.036
+  },
+  "ci95All": [
+   -0.276,
+   0.188
+  ],
+  "verdict": "sonuçsuz"
+ },
+ "weekday": {
+  "train": [
+   {
+    "day": "Pzt",
+    "n": 35,
+    "avgR": 0.024,
+    "totalR": 0.839
+   },
+   {
+    "day": "Sal",
+    "n": 36,
+    "avgR": -0.068,
+    "totalR": -2.438
+   },
+   {
+    "day": "Çar",
+    "n": 26,
+    "avgR": 0.067,
+    "totalR": 1.735
+   },
+   {
+    "day": "Per",
+    "n": 30,
+    "avgR": -0.053,
+    "totalR": -1.597
+   },
+   {
+    "day": "Cum",
+    "n": 34,
+    "avgR": -0.146,
+    "totalR": -4.979
+   },
+   {
+    "day": "Cmt",
+    "n": 3,
+    "avgR": 0.283,
+    "totalR": 0.848
+   }
+  ],
+  "valid": [
+   {
+    "day": "Pzt",
+    "n": 42,
+    "avgR": -0.065,
+    "totalR": -2.735
+   },
+   {
+    "day": "Sal",
+    "n": 57,
+    "avgR": 0.061,
+    "totalR": 3.487
+   },
+   {
+    "day": "Çar",
+    "n": 61,
+    "avgR": -0.079,
+    "totalR": -4.803
+   },
+   {
+    "day": "Per",
+    "n": 48,
+    "avgR": -0.035,
+    "totalR": -1.704
+   },
+   {
+    "day": "Cum",
+    "n": 29,
+    "avgR": -0.318,
+    "totalR": -9.229
+   },
+   {
+    "day": "Cmt",
+    "n": 2,
+    "avgR": 0.358,
+    "totalR": 0.715
+   }
+  ],
+  "all": [
+   {
+    "day": "Pzt",
+    "n": 77,
+    "avgR": -0.025,
+    "totalR": -1.896
+   },
+   {
+    "day": "Sal",
+    "n": 93,
+    "avgR": 0.011,
+    "totalR": 1.049
+   },
+   {
+    "day": "Çar",
+    "n": 87,
+    "avgR": -0.035,
+    "totalR": -3.068
+   },
+   {
+    "day": "Per",
+    "n": 78,
+    "avgR": -0.042,
+    "totalR": -3.301
+   },
+   {
+    "day": "Cum",
+    "n": 63,
+    "avgR": -0.226,
+    "totalR": -14.208
+   },
+   {
+    "day": "Cmt",
+    "n": 5,
+    "avgR": 0.313,
+    "totalR": 1.563
+   }
+  ]
+ }
+}

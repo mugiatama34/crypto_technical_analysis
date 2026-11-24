@@ -460,3 +460,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
   toplam kazancı ve en kötü düşüşü birlikte küçültüyor (mutlak R'ler iyimser kurulumdan; yalnız taban ↔ sınır farkı okunur). Canlı kayıtta geriye dönük oynatma (kanıt değil,
   tek olay): 26.10–23.11 n 124 sınırsız −2,8R · ≤ 10 → +6,1R · ≤ 5 → +8,2R · ≤ 3 → +2,1R; ≤ 10 sınırı 23.11'e kadar hiç devreye girmedi. Öneri (karar kullanıcıda):
   sınır N = katlanılabilir tek günlük kayıp ÷ işlem başı risk; bot için Variables bayrağı (varsayılan kapalı) henüz yazılmadı.
+- 24.11.2026 **Ters gün ölçümü (ön kayıtlı, koşu 45393710134; ayrıntı `bulgular.md` son madde, `docs/backtest/cluster.json`):** 12 ayda brüt kaybın %47'si 8 günden (günlerin %6'sı);
+  aynı yönde ≤ 5 açık sınırı ort. R'yi düşürmeden (−0,05 → ≈ 0) en kötü günü −14,9 → −5,3R, en kötü 7 günü −21,4 → −9,8R yaptı, işlem sayısı 403 → 254. Pazartesi: sonuçsuz, işaret yok.
+  **Bekleyen karar (kullanıcı):** bota `aynı yönde en çok N açık` Variables bayrağı (varsayılan kapalı) eklensin mi, N kaç. Testler 645 (642 geçti, 1 bilinen `levels`, 2 todo).

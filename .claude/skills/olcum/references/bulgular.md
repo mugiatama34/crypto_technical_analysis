@@ -72,4 +72,11 @@ günlük `docs/DURUM-arsiv.md`. Bu metin 17.11.2026'da `CLAUDE.md`'den buraya ta
   stop) → **GEÇMEDİ:** −0,003 / +0,017R, PF 0,99 / 1,03, hedge'li −0,032 / −0,012 (n 672 / 453); klon betiğin 10 işleminden 3'ünü üretti
   (betiğin kendisi ölçülmedi). **Aynı işlemler yazarın muhasebesiyle +0,20…+0,29R** (stop kapanışta ama seviyeden, aynı mumda TP1 + stop =
   kazanç) → dış sonuçlarda önce muhasebeye bak. Başka eşik denenmez.
+- **Ters gün yığılması, eşzamanlı pozisyon sınırı, Pazartesi (24.11.2026, ön kayıtlı: `docs/arastirma/on-kayit-ters-gun.md`; `cluster.json`, koşu 45393710134,
+  betik `backtest/cluster.mjs`):** "canlıya eşit" 3 kademeli satır (eğ n 164 −0,034R · doğr n 239 −0,060R). **S1:** aynı gün aynı yönde ≥ 5 stop olan 8 gün (139 günün %6'sı,
+  84 işlem) = −57,7R, brüt kaybın %47'si (eğ %42 / doğr %50); bu günler hariç ort. +0,12R (n 319; geleceği bilmek gerekir, kural değil). 12 ayın en kötü 7 gününün hepsi long.
+  **S2 (bilgi, seçim yok):** aynı yönde ≤ 10 / 5 / 3 açık → ort. R eğ −0,012 / +0,005 / −0,031 · doğr +0,002 / −0,004 / −0,028 (taban −0,034 / −0,060); en kötü gün −14,9 → −9,5 / −5,3 / −5,3R;
+  en kötü 7 gün −21,4 → −16,0 / −9,8 / −8,1R; işlem sayısı 403 → 333 / 254 / 202. Üçü de ön kayıttaki "bedelsiz koruma" ölçütünü tuttu (ort. R düşmüyor, kuyruk küçülüyor) ama
+  ort. R ≈ 0: **sınır kenar yaratmaz, kötü günü küçültür.** **S3 Pazartesi: sonuçsuz** (Pazartesi n 35 / 42 < 100; fark eğ −0,082 / doğr +0,002, %95 aralık [−0,28; +0,19]) → işaret bile yok.
+  Hafta günü tablosunda Cuma en kötü (n 63, −0,23R) = bilgi satırı, seçilmez. Başka N / başka gün denenmez.
 
