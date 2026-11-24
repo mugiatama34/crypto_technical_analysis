@@ -5,7 +5,7 @@
   "generatedAt": 1795523332108,
   "trades": 668
  },
- "generatedAt": 1795523390234,
+ "generatedAt": 1795523923993,
  "s1": {
   "train": {
    "n": 164,
@@ -426,6 +426,179 @@
     "n": 5,
     "avgR": 0.313,
     "totalR": 1.563
+   }
+  ]
+ },
+ "hedge": {
+  "train": [
+   {
+    "name": "A sınırsız",
+    "n": 164,
+    "avgR": -0.034,
+    "totalR": -5.592,
+    "maxDD": 20.222,
+    "worstDay": -7.403,
+    "worst7d": -16.245,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "B ≤ 10",
+    "n": 156,
+    "avgR": -0.012,
+    "totalR": -1.879,
+    "maxDD": 16.509,
+    "worstDay": -6.353,
+    "worst7d": -13.576,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "C ≤ 10 + yığın ≥ 8 hedge",
+    "n": 156,
+    "avgR": 0.006,
+    "totalR": 0.959,
+    "maxDD": 13.671,
+    "worstDay": -5.237,
+    "worst7d": -10.738,
+    "hedged": 15,
+    "hedgeDeltaR": 2.838
+   },
+   {
+    "name": "D sınırsız + yığın ≥ 8 hedge",
+    "n": 164,
+    "avgR": 0.008,
+    "totalR": 1.375,
+    "maxDD": 13.255,
+    "worstDay": -5.237,
+    "worst7d": -10.97,
+    "hedged": 30,
+    "hedgeDeltaR": 6.967
+   },
+   {
+    "name": "E her işlem hedge",
+    "n": 164,
+    "avgR": -0.063,
+    "totalR": -10.343,
+    "maxDD": 22.616,
+    "worstDay": -5.604,
+    "worst7d": -12.081,
+    "hedged": 164,
+    "hedgeDeltaR": -4.751
+   }
+  ],
+  "valid": [
+   {
+    "name": "A sınırsız",
+    "n": 239,
+    "avgR": -0.06,
+    "totalR": -14.269,
+    "maxDD": 24.791,
+    "worstDay": -14.875,
+    "worst7d": -21.42,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "B ≤ 10",
+    "n": 177,
+    "avgR": 0.002,
+    "totalR": 0.329,
+    "maxDD": 19.418,
+    "worstDay": -9.502,
+    "worst7d": -16.047,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "C ≤ 10 + yığın ≥ 8 hedge",
+    "n": 177,
+    "avgR": -0.011,
+    "totalR": -1.892,
+    "maxDD": 17.396,
+    "worstDay": -7.48,
+    "worst7d": -14.025,
+    "hedged": 55,
+    "hedgeDeltaR": -2.221
+   },
+   {
+    "name": "D sınırsız + yığın ≥ 8 hedge",
+    "n": 239,
+    "avgR": -0.093,
+    "totalR": -22.122,
+    "maxDD": 29.158,
+    "worstDay": -12.182,
+    "worst7d": -18.445,
+    "hedged": 135,
+    "hedgeDeltaR": -7.853
+   },
+   {
+    "name": "E her işlem hedge",
+    "n": 239,
+    "avgR": -0.121,
+    "totalR": -28.818,
+    "maxDD": 28.818,
+    "worstDay": -11.944,
+    "worst7d": -15.921,
+    "hedged": 239,
+    "hedgeDeltaR": -14.549
+   }
+  ],
+  "all": [
+   {
+    "name": "A sınırsız",
+    "n": 403,
+    "avgR": -0.049,
+    "totalR": -19.861,
+    "maxDD": 30.172,
+    "worstDay": -14.875,
+    "worst7d": -21.42,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "B ≤ 10",
+    "n": 333,
+    "avgR": -0.005,
+    "totalR": -1.55,
+    "maxDD": 19.418,
+    "worstDay": -9.502,
+    "worst7d": -16.047,
+    "hedged": 0,
+    "hedgeDeltaR": 0
+   },
+   {
+    "name": "C ≤ 10 + yığın ≥ 8 hedge",
+    "n": 333,
+    "avgR": -0.003,
+    "totalR": -0.933,
+    "maxDD": 17.396,
+    "worstDay": -7.48,
+    "worst7d": -14.025,
+    "hedged": 70,
+    "hedgeDeltaR": 0.617
+   },
+   {
+    "name": "D sınırsız + yığın ≥ 8 hedge",
+    "n": 403,
+    "avgR": -0.051,
+    "totalR": -20.747,
+    "maxDD": 30.769,
+    "worstDay": -12.182,
+    "worst7d": -18.445,
+    "hedged": 165,
+    "hedgeDeltaR": -0.886
+   },
+   {
+    "name": "E her işlem hedge",
+    "n": 403,
+    "avgR": -0.097,
+    "totalR": -39.161,
+    "maxDD": 43.848,
+    "worstDay": -11.944,
+    "worst7d": -15.921,
+    "hedged": 403,
+    "hedgeDeltaR": -19.3
    }
   ]
  }

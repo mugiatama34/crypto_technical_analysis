@@ -463,3 +463,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - 24.11.2026 **Ters gün ölçümü (ön kayıtlı, koşu 45393710134; ayrıntı `bulgular.md` son madde, `docs/backtest/cluster.json`):** 12 ayda brüt kaybın %47'si 8 günden (günlerin %6'sı);
   aynı yönde ≤ 5 açık sınırı ort. R'yi düşürmeden (−0,05 → ≈ 0) en kötü günü −14,9 → −5,3R, en kötü 7 günü −21,4 → −9,8R yaptı, işlem sayısı 403 → 254. Pazartesi: sonuçsuz, işaret yok.
   **Bekleyen karar (kullanıcı):** bota `aynı yönde en çok N açık` Variables bayrağı (varsayılan kapalı) eklensin mi, N kaç. Testler 645 (642 geçti, 1 bilinen `levels`, 2 todo).
+- 24.11.2026 **`MAX_OPEN_SAME` bayrağı eklendi (kullanıcı kararı: N = 10; `bot/shadow.js` `openCapHit`, `bot/run.mjs` gönderim döngüsü, `scan.yml`; varsayılan kapalı).**
+  **Kullanıcı Variables'a `MAX_OPEN_SAME=10` girene kadar sınır yok.** Sayım: bekleyen + dolmuş, kapanmamış aynı yönlü planlar (taramadaki `capTrades` tanımı); red nedeni "aynı yönde açık sınırı".
+  **Koşullu hedge ölçümü (ön kayıtlı): sonuçsuz**, kazanç artırmıyor, ≤ 10 üstüne en kötü günü −9,5 → −7,5R yapıyor (ayrıntı `bulgular.md` son madde). Testler 647 (644 geçti, 1 bilinen `levels`, 2 todo).

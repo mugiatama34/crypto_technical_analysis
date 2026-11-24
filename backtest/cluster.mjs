@@ -68,6 +68,26 @@ export function capRow(trades, maxOpen) {
     worstDay: r2(Math.min(0, ...daily.map((d) => d.R))), worst7d: r2(worstWindow(daily, 7)) };
 }
 
+/** Her işlemin karar anında aynı yönde açık (bekleyen + dolmuş) sayısı; sweep.mjs stackOf / capTrades ile aynı tanım. */
+export function stackCounts(trades, expireHours = 24) {
+  const ms = (t) => TIMEFRAMES[t.tf].ms, at = (t) => t.time + ms(t);
+  const endOf = (t) => (t.entryFill ? closeTimeOf(t) : at(t) + expireHours * 3600e3);
+  const open = { 1: [], [-1]: [] }, out = new Map();
+  for (const t of [...trades].sort((a, b) => at(a) - at(b) || (b.score ?? 0) - (a.score ?? 0))) { const now = at(t); open[t.d] = open[t.d].filter((e) => e > now); out.set(t, open[t.d].length); open[t.d].push(endOf(t)); }
+  return out;
+}
+/** Koşullu hedge (ön kayıt: on-kayit-kosullu-hedge.md): yığın ≥ k iken açılan işlemde R → hedgedR (k = 0: her işlem). hedgedR yoksa işlem olduğu gibi kalır. */
+export function hedgeWhen(trades, k) {
+  const c = stackCounts(trades); let hedged = 0, cost = 0;
+  const out = trades.map((t) => { if (!isFilled(t) || t.hedgedR == null || c.get(t) < k) return t; hedged++; cost += t.hedgedR - t.R; return { ...t, R: t.hedgedR }; });
+  return { trades: out, hedged, deltaR: cost };
+}
+export function hedgeRows(trades) {
+  const row = (name, list, h = null) => ({ name, ...capRow(list, null), cap: undefined, hedged: h?.hedged ?? 0, hedgeDeltaR: h ? r2(h.deltaR) : 0 });
+  const B = capTrades(trades, { maxOpen: 10 }), C = hedgeWhen(B, 8), D = hedgeWhen(trades, 8), E = hedgeWhen(trades, 0);
+  return [row('A sınırsız', trades), row('B ≤ 10', B), row('C ≤ 10 + yığın ≥ 8 hedge', C.trades, C), row('D sınırsız + yığın ≥ 8 hedge', D.trades, D), row('E her işlem hedge', E.trades, E)];
+}
+
 const WD = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 export const weekdayIdx = (t) => new Date(t.entryTime).getUTCDay();
 const mean = (a) => (a.length ? sum(a, (t) => t.R) / a.length : null);
@@ -101,7 +121,7 @@ export function analyze({ trades, split }) {
   const mon = per(mondayDiff), ci = mondayCi(trades);
   const enough = mon.train.monN >= 100 && mon.valid.monN >= 100;
   const s3 = !enough ? 'sonuçsuz' : (mon.train.diff > 0 && mon.valid.diff > 0 && ci && ci[0] > 0 ? 'geçti (aday)' : 'geçmedi');
-  return { s1: per(concentration), s2: per((a) => [null, 10, 5, 3].map((c) => capRow(a, c))), s3: { ...mon, ci95All: ci, verdict: s3 }, weekday: per(weekdayTable) };
+  return { s1: per(concentration), s2: per((a) => [null, 10, 5, 3].map((c) => capRow(a, c))), s3: { ...mon, ci95All: ci, verdict: s3 }, weekday: per(weekdayTable), hedge: per(hedgeRows) };
 }
 
 function main() {
@@ -114,6 +134,7 @@ function main() {
     console.log(`\n[${k}] n ${c.n} · ${c.days} gün · toplam ${c.totalR}R · ort ${c.avgR}R · brüt kayıp ${c.grossLoss}R`);
     console.log(`  en kötü ${c.worstDays} gün: ${c.worstDaysR}R, brüt kaybın %${Math.round(c.worstDaysLossShare * 100)}'i · ters gün ${c.adverseDays} (işlem ${c.adverseTrades}, ${c.adverseR}R, kaybın %${Math.round(c.adverseLossShare * 100)}'i) · ters günler hariç n ${c.exAdverse.n} ort ${c.exAdverse.avgR}R`);
     console.table(out.s2[k]); console.table(out.weekday[k]);
+    console.table(out.hedge[k]);
   }
   console.log('S3 Pazartesi:', JSON.stringify(out.s3));
   console.log('En kötü günler (tüm dönem):'); console.table(out.s1.all.worstDayList);

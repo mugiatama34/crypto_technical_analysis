@@ -79,4 +79,8 @@ günlük `docs/DURUM-arsiv.md`. Bu metin 17.11.2026'da `CLAUDE.md`'den buraya ta
   en kötü 7 gün −21,4 → −16,0 / −9,8 / −8,1R; işlem sayısı 403 → 333 / 254 / 202. Üçü de ön kayıttaki "bedelsiz koruma" ölçütünü tuttu (ort. R düşmüyor, kuyruk küçülüyor) ama
   ort. R ≈ 0: **sınır kenar yaratmaz, kötü günü küçültür.** **S3 Pazartesi: sonuçsuz** (Pazartesi n 35 / 42 < 100; fark eğ −0,082 / doğr +0,002, %95 aralık [−0,28; +0,19]) → işaret bile yok.
   Hafta günü tablosunda Cuma en kötü (n 63, −0,23R) = bilgi satırı, seçilmez. Başka N / başka gün denenmez.
+- **Yığılma anında koşullu BTC hedge'i (24.11.2026, ön kayıtlı: `docs/arastirma/on-kayit-kosullu-hedge.md`; `cluster.json` `hedge`, aynı döküm):** aynı yönde ≤ 10 sınırı üstüne,
+  yığın ≥ 8 iken açılan işlemler eşit büyüklükte ters BTC bacağıyla. **Sonuçsuz** (hedge'lenen işlem eğ 15 < 30; doğr 55). Yön: ort. R eğ −0,012 → +0,006 · doğr +0,002 → −0,011
+  (12 ayda 70 işlemde toplam +0,6R = sıfır); en kötü gün −9,5 → −7,5R, en kötü 7 gün −16,0 → −14,0R. Kazanç artırmıyor, kuyruğu ≈ %15–20 kısıyor. Sınırsız düzende aynı koşul
+  doğrulamada −7,9R (135 işlem); her işleme hedge −19,3R (ort. −0,048R / işlem). Maliyette kayma ve fonlama yok (iyimser). Başka K denenmez.
 

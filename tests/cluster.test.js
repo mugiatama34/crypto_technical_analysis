@@ -1,7 +1,7 @@
 // Ters gün yığılması tanısı (backtest/cluster.mjs): günlük toplama, düşüş, ters gün, sınır, Pazartesi farkı.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dailyOf, maxDrawdown, worstWindow, concentration, capRow, mondayDiff, mondayCi, analyze, closeTimeOf } from '../backtest/cluster.mjs';
+import { dailyOf, maxDrawdown, worstWindow, concentration, capRow, mondayDiff, mondayCi, analyze, closeTimeOf, stackCounts, hedgeWhen } from '../backtest/cluster.mjs';
 
 const H4 = 4 * 3600e3, T0 = Date.parse('2026-06-01T00:00:00Z'); // Pazartesi
 const tr = (o = {}) => ({ coin: 'X', tf: '4H', d: -1, score: 70, outcome: 'stopped', R: -1, entryFill: 100, waitBars: 1, bars: 0, time: T0, ...o, entryTime: (o.time ?? T0) + H4 });
@@ -37,4 +37,12 @@ test('Pazartesi farkı, aralık ve n < 100 → sonuçsuz', () => {
   assert.deepEqual([m.monN, m.monAvg, m.otherN, m.otherAvg, m.diff], [12, -1, 12, 0.5, 1.5]);
   assert.deepEqual(mondayCi(list, { iters: 200 }), [1.5, 1.5]);
   assert.equal(analyze({ trades: list, split: T0 + 40 * 24 * 3600e3 }).s3.verdict, 'sonuçsuz');
+});
+
+test('koşullu hedge: yığın ≥ k iken açılan işlemde R → hedgedR; öncekiler ve hedgedR yok olanlar aynen', () => {
+  const list = Array.from({ length: 5 }, (_, i) => tr({ coin: `C${i}`, bars: 3, score: 90 - i, hedgedR: i === 4 ? null : -0.2 }));
+  assert.deepEqual(list.map((t) => stackCounts(list).get(t)), [0, 1, 2, 3, 4]);
+  const h = hedgeWhen(list, 2);
+  assert.equal(h.hedged, 2); assert.deepEqual(h.trades.map((t) => t.R), [-1, -1, -0.2, -0.2, -1]); assert.ok(Math.abs(h.deltaR - 1.6) < 1e-9);
+  assert.equal(hedgeWhen(list, 0).hedged, 4);
 });
