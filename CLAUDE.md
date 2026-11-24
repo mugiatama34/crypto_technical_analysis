@@ -69,7 +69,7 @@ mühendisi; kısa, net, sayılı cevap ister; kararları (Variables, canlı kura
 - Eğitim: `docs/egitim/` (SMC/price action, arkadaşın yöntemi, örnekler, ölçüm notları).
 
 ## Canlı ayar (24.10.2026'da kuruldu, ilk sinyal 26.10 00:00 UTC; 24.10 00–08 UTC'deki 46 sinyal eski düzenden → canlı istatistiklerde 26.10'dan başla; DURUM.md günceldir)
-`KNIFE_GUARD=0` (kullanıcı 20.11.2026 10:13 UTC'de kapattı; önce 1; bağlam DURUM 19.11 "gerçekle birebir" notu; denetçi kural setini bu andan yeniden sayıyor) `LIMIT_ONLY=1 SKIP_WEEKEND=1 DEDUP_WAITING=1` (17.11) `EARLY_TP={"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"}` (13.11'den beri 3 kademe; önce `{"pct":1.2,"portion":0.8,"tfs":["4H"]}`) `
+`KNIFE_GUARD=0` (kullanıcı 20.11.2026 10:13 UTC'de kapattı; önce 1; bağlam DURUM 19.11 "gerçekle birebir" notu; denetçi kural setini bu andan yeniden sayıyor) `LIMIT_ONLY=1 SKIP_WEEKEND=1 DEDUP_WAITING=1` (17.11) `MAX_OPEN_SAME=10` (bayrak 24.11'de eklendi, kullanıcı kararı N = 10; Variables'a kullanıcı girecek — girilene kadar sınır yok) `EARLY_TP={"pct":1.2,"portion":0.5,"tfs":["4H"],"mid":0.25,"midStop":"early"}` (13.11'den beri 3 kademe; önce `{"pct":1.2,"portion":0.8,"tfs":["4H"]}`) `
 TF_RULES={"15m":{"off":true},"1H":{"off":true}} HTF_TREND=with AUDIT=1 MOMENTUM=1 MOMENTUM_VARIANT=short
 MOMENTUM_RANK=rel MOMENTUM_HEDGE=1`. `AGENT_SOURCE=signals AGENT_EXIT=1 AGENT_RESET=2026-11-13`. Yani yalnız 4H sinyalleri; güncel beklenti (13.11 taraması, gerçekçi sıra + düzeltilmiş bıçak kararı)
 eğ −0,14 / doğr +0,01R, hedge'li eksi → kenar yok, kâğıt deneme; canlıda ≈ 220 sinyal / ay (≈ 115 dolum; 26.10–13.11 sayımı).

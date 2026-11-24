@@ -42,6 +42,11 @@ export function openCounts(sent, d, exclude = null) {
   return { openSame: same, openAll: all };
 }
 
+/** Yön yığılması sınırı (MAX_OPEN_SAME): aynı yönde açık (bekleyen + dolmuş, kapanmamış) plan sayısı sınıra ulaştıysa true. max ≤ 0 / geçersiz = sınır yok. */
+export function openCapHit(sent, d, max) {
+  return Number.isFinite(max) && max > 0 && openCounts(sent, d).openSame >= max;
+}
+
 export function riskPctOf(entry, stop) {
   const e = num(entry), s = num(stop);
   if (e == null || s == null || e === 0) return null;

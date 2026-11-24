@@ -13,6 +13,7 @@
 //   MOMENTUM=1 MOMENTUM_VARIANT=ls|short|long  haftalık momentum kâğıt portföyü (docs/agent/momentum.json)
 //   REGIME_DONCHIAN=1  BTC 'G↑ · şok↑ devam' rejiminde Donchian long kâğıt kuralı (docs/agent/regime.json)
 //   TF_RULES / SHORT_RULE (JSON): TF ve yön kurallarını ezer (README)
+//   MAX_OPEN_SAME=10 (aynı yönde açık plan sayısı sınıra ulaştıysa yeni sinyal gönderilmez; boş / 0 = sınır yok)
 //   DEDUP_WAITING=1 (aynı coin + yönde bekleyen planla aynı girişli yeni plan gönderilmez; tolerans DEDUP_PCT=0.1)
 //   LIMIT_ONLY=1 (gönderimde bölgedeyse gönderme)  SKIP_WEEKEND=1 (Cmt/Paz UTC yeni sinyal yok)  TF kapatma: TF_RULES={"15m":{"off":true}}
 //   AUDIT=1 AUDIT_MODEL=...: denetçi ajan (günlük rapor + araştırma kuyruğu; bot/review)
@@ -50,7 +51,7 @@ import { setBybitOverrides } from '../src/data/bybit-symbols.js';
 setBybitOverrides(process.env.BYBIT_MULT || ''); // Bybit çarpanlı sözleşme düzeltmeleri (JSON)
 import { featuresOf, modelProb } from '../backtest/features.js';
 import { getCandles, instIdOf, TIMEFRAMES, okxGet } from '../src/data/okx.js';
-import { shadowBase, safeShadow, collectShadowNet, applyShadowNet } from './shadow.js';
+import { shadowBase, safeShadow, collectShadowNet, applyShadowNet, openCapHit } from './shadow.js';
 import { dailyTrendAt } from '../src/scan/regime.js';
 import { regimeNow, marketRead, regimeFor, horizonTrend, htfOk, UP_TF } from '../src/scan/regime.js';
 import { atr as atrOf } from '../src/data/indicators.js';
@@ -113,6 +114,7 @@ const CFG = {
   skipWeekend: env('SKIP_WEEKEND', '0') === '1', // UTC Cumartesi/Pazar yeni sinyal yok
   dedupWaiting: env('DEDUP_WAITING', '0') === '1', // aynı coin + yönde bekleyen planla aynı girişli yeni plan gönderilmez
   dedupPct: +env('DEDUP_PCT', 0.1) || 0.1, // "aynı giriş" toleransı (%)
+  maxOpenSame: Math.max(0, Math.floor(+env('MAX_OPEN_SAME', 0) || 0)), // aynı yönde açık (bekleyen + dolmuş) plan sınırı; 0 = yok (ölçüm: on-kayit-ters-gun.md, kenar değil kuyruk sınırı)
   knifeGuard: knifeGuardOf(env('KNIFE_GUARD', '0')), // düşen bıçak koruması: 1 ya da JSON {maxApproachAtr,maxFillBarAtr,confirmBars,skip}
   htfTrend: ['with', 'notAgainst'].includes(env('HTF_TREND', '')) ? env('HTF_TREND', '') : null, // coin'in üst TF eğilimi: with | notAgainst
   audit: env('AUDIT', '0') === '1', // denetçi ajan: günlük özet anında sistem denetimi (öneri üretir, kural değiştirmez)
@@ -416,7 +418,7 @@ async function main() {
   if (MODEL) log(`Öğrenilen model ${CFG.modelMinProb > 0 ? `aktif (eşik ${CFG.modelMinProb})` : `var ama KAPALI (önerilen eşik ${MODEL.threshold ?? '–'}; açmak için MODEL_MIN_PROB)`}, kabul ${new Date(MODEL.acceptedAt).toISOString().slice(0, 10)}`);
   state.lastRejects = rejects; // denetçi için
   // Aktif kural imzası: değişince zaman damgası (denetçi eski/yeni rejimi ayırır)
-  const ruleSig = JSON.stringify({ tfs: CFG.tfs, rules: CFG.tfs.map((tf) => fmtRule(ruleFor(tf, 'long')) + '|' + fmtRule(ruleFor(tf, 'short'))), earlyTp: CFG.earlyTp, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop });
+  const ruleSig = JSON.stringify({ tfs: CFG.tfs, rules: CFG.tfs.map((tf) => fmtRule(ruleFor(tf, 'long')) + '|' + fmtRule(ruleFor(tf, 'short'))), earlyTp: CFG.earlyTp, knifeGuard: CFG.knifeGuard, timeStop: CFG.timeStop, ...(CFG.maxOpenSame > 0 ? { maxOpenSame: CFG.maxOpenSame } : {}) });
   const cfgTag = cfgLabel({ tfs: CFG.tfs.filter((tf) => !ruleFor(tf, 'long').off || !ruleFor(tf, 'short').off), knife: !!CFG.knifeGuard, limitOnly: CFG.limitOnly, skipWeekend: CFG.skipWeekend, earlyTp: CFG.earlyTp, htfTrend: CFG.htfTrend, timeStop: CFG.timeStop });
   if (state.ruleSig !== ruleSig) { state.ruleSig = ruleSig; state.ruleSince = now; log('Kural seti değişti; denetçi için zaman damgası güncellendi'); }
   log(`Elenme nedenleri: ${Object.entries(rejects).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' | ')}`);
@@ -433,6 +435,7 @@ async function main() {
     if (usedCoins.has(plan.coin)) continue; // aynı turda aynı coin için tek plan
     const cap = plan.rule?.maxPerRun;
     if (cap && (sentPerTf[plan.tf] || 0) >= cap) continue;
+    if (openCapHit(state.sent, plan.d, CFG.maxOpenSame)) { rejects['aynı yönde açık sınırı'] = (rejects['aynı yönde açık sınırı'] || 0) + 1; continue; } // bu turda gönderilenler de sayılır (state.sent büyür)
     usedCoins.add(plan.coin); evaluated++;
     const htf = CFG.tfs.filter((t) => t !== plan.tf).map((t) => byKey.get(`${plan.coin}|${t}`)).filter((r) => r && !r.error && r.best)
       .map((r) => ({ tf: r.tf, direction: r.direction, score: r.score, top: r.best.signals.slice(0, 5).map((s) => s.name) }));

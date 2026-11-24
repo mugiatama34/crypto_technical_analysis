@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import {
-  offMinOf, openCounts, riskPctOf, pctRank, rsRankOf, shadowBase, safeShadow, emptyShadow, SHADOW_KEYS,
+  offMinOf, openCounts, openCapHit, riskPctOf, pctRank, rsRankOf, shadowBase, safeShadow, emptyShadow, SHADOW_KEYS,
   parseFunding, parseOi, encodeSnap, decodeSnap, updateOiSnaps, oiChange, collectShadowNet, applyShadowNet, OI_SNAP,
 } from '../bot/shadow.js';
 
@@ -185,4 +185,16 @@ test('bot fixture: gölge etiket hatası / bozuk yanıt sinyal kaydını ve seç
   assert.equal(good.state.oiSnap.length, 1);
   assert.ok(!('shadow' in good.state.sent[0]), 'gölge state.sent\'e yazılmaz');
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('openCapHit (MAX_OPEN_SAME): aynı yönde açık sayısı sınıra ulaşınca true; kapalılar ve ters yön sayılmaz; 0 = sınır yok', () => {
+  const sent = [{ key: 'A', sentAt: 1, d: -1, status: 'waiting' }, { key: 'B', sentAt: 2, d: -1, status: 'active' }, { key: 'C', sentAt: 3, direction: 'short', status: 'tp1' },
+    { key: 'D', sentAt: 4, d: -1, status: 'stopped' }, { key: 'E', sentAt: 5, d: 1, status: 'active' }];
+  assert.equal(openCapHit(sent, -1, 3), true);
+  assert.equal(openCapHit(sent, -1, 4), false);
+  assert.equal(openCapHit(sent, 1, 1), true);
+  assert.equal(openCapHit(sent, 1, 2), false);
+  for (const off of [0, -1, NaN, undefined]) assert.equal(openCapHit(sent, -1, off), false);
+  sent.push({ key: 'F', sentAt: 6, d: -1, status: 'waiting' }); // aynı turda gönderilen de sayılır
+  assert.equal(openCapHit(sent, -1, 4), true);
 });

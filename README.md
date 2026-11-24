@@ -196,6 +196,7 @@ yok), **4H için günlük**. Böylece BTC saatlerce düşerken günlük rejim "y
 - **Kayıp kesici giriş kuralları (bayrakla):** `LIMIT_ONLY=1` (gönderim anında fiyat zaten bölgedeyse gönderme),
   `DEDUP_WAITING=1` (aynı coin + yön + TF'de hâlâ bekleyen planla girişi %0,1 içinde aynı olan yeni plan ayrı sinyal olarak gönderilmez; tolerans `DEDUP_PCT`; varsayılan kapalı;
   19.11'den beri riski tam açık plan — `active` / `confirming` — da engeller, ret nedeni "aynı girişli plan açık" (`sameOpen`); `early` / `tp1` engellemez),
+  `MAX_OPEN_SAME=10` (aynı yönde açık plan, bekleyen + dolmuş, sınıra ulaştıysa yeni sinyal gönderilmez; red nedeni "aynı yönde açık sınırı"; boş / 0 = sınır yok, varsayılan kapalı; ölçüm `docs/arastirma/on-kayit-ters-gun.md`: kenar yaratmaz, ters günün boyunu sınırlar),
   `SKIP_WEEKEND=1` (UTC Cumartesi/Pazar yeni sinyal yok; açık planların takibi sürer), TF kapatma
   `TF_RULES={"15m":{"off":true}}` (tarama ve ajanın 15m takibi sürer). Alanlar TF/yön kuralı olarak da verilebilir
   (`limitOnly`, `skipWeekend`, `off`). 6 aylık hedefli taramada (doğrulama 28.08 sonrası) temel −0,132R iken

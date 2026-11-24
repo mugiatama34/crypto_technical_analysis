@@ -97,6 +97,7 @@ jobs:
           SKIP_WEEKEND: ${{ vars.SKIP_WEEKEND }}
           DEDUP_WAITING: ${{ vars.DEDUP_WAITING }}
           DEDUP_PCT: ${{ vars.DEDUP_PCT }}
+          MAX_OPEN_SAME: ${{ vars.MAX_OPEN_SAME }}
           FRIEND_WAVE: ${{ vars.FRIEND_WAVE }}
           FRIEND_SOURCE: ${{ vars.FRIEND_SOURCE }}
           TIME_STOP: ${{ vars.TIME_STOP }}
