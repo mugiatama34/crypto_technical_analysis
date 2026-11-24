@@ -15,7 +15,10 @@
   "XPL|1795247140000": 1795353335232,
   "VVV|1795275623000": 1795353335232,
   "DOGE|1795336324000": 1795353335232,
-  "AVAX|1795336330000": 1795353335232
+  "AVAX|1795336330000": 1795353335232,
+  "ENA|1795488808000": 1795489253323,
+  "LTC|1795488810000": 1795489253323,
+  "INJ|1795488810000": 1795489253323
  },
  "items": [
   {
@@ -89,8 +92,56 @@
    "pnl": -214.48,
    "partial": false,
    "closeTime": 1795443900000
+  },
+  {
+   "id": "ENA|1795488808000",
+   "coin": "ENA",
+   "symbol": "ENA/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "src": "r50-4h",
+   "entry": 0.09998,
+   "stop": 0.12792792,
+   "tp": 0.050369999999999984,
+   "openTime": 1795488808000,
+   "seenAt": 1795489253323,
+   "lastPrice": 0.09998,
+   "status": "open"
+  },
+  {
+   "id": "LTC|1795488810000",
+   "coin": "LTC",
+   "symbol": "LTC/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "src": "r50-4h",
+   "entry": 41.01,
+   "stop": 46.88262,
+   "tp": 32.97248,
+   "openTime": 1795488810000,
+   "seenAt": 1795489253323,
+   "lastPrice": 41.01,
+   "status": "open"
+  },
+  {
+   "id": "INJ|1795488810000",
+   "coin": "INJ",
+   "symbol": "INJ/USDT:USDT",
+   "direction": "short",
+   "source": "hasanwave",
+   "tf": "4H",
+   "src": "r50-4h",
+   "entry": 6.179,
+   "stop": 7.747272,
+   "tp": 3.231,
+   "openTime": 1795488810000,
+   "seenAt": 1795489253323,
+   "lastPrice": 6.179,
+   "status": "open"
   }
  ],
- "updatedAt": 1795488336451,
+ "updatedAt": 1795489253323,
  "src": "r50-4h"
 }
