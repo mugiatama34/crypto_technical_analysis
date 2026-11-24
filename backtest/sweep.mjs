@@ -422,6 +422,7 @@ async function main() {
   const mtfIndex = new Map();
   for (const t of all) { const k = `${t.coin}|${t.tf}|${t.plan.direction}`; if (!mtfIndex.has(k)) mtfIndex.set(k, []); mtfIndex.get(k).push(t.time); }
 
+  const liveDump = []; // canlıya eşit (3 kademe) satırının işlem dökümü → live-trades.json (gün / yığılma tanıları için; commit edilmez, artefakta girer)
   const evaluate = (v) => {
     const o = optsOf(v, meta);
     const LOWER = { '4H': '1H', '1H': '15m' };
@@ -455,6 +456,7 @@ async function main() {
       const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
       if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
       trades.push(tr);
+      if (v.live && v.name === LIVE_NAME_A) liveDump.push({ coin: t.coin, time: tr.time, tf: tr.tf, d: tr.d, score: tr.score, outcome: tr.outcome, R: tr.R ?? null, hedgedR: tr.hedgedR ?? null, entryFill: tr.entryFill ?? null, waitBars: tr.waitBars ?? null, bars: tr.bars ?? null, entryTime: entryTimeOf(tr) });
     }
     if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
@@ -507,6 +509,7 @@ async function main() {
   const clash = (v) => (v.name.match(/düşen bıçak/g) || []).length > 1 || (v.name.match(/seansı|Asya \+ Avrupa/g) || []).length > 1 || (v.name.match(/zaman stopu|ilerleme stopu/g) || []).length > 1 || (v.name.match(/erken %80|elle yönetim|TP1 /g) || []).length > 1 || (v.name.match(/üst TF eğilimi/g) || []).length > 1;
   for (const v of combos.filter((x) => !clash(x))) { log(`  ${v.name}`); results.push({ ...evaluate(v), combo: true }); }
 
+  if (liveDump.length) fs.writeFileSync(path.join(OUT, 'live-trades.json'), JSON.stringify({ name: LIVE_NAME_A, split, generatedAt: Date.now(), trades: liveDump }));
   writeOut(results, all, meta, split, t0);
 }
 

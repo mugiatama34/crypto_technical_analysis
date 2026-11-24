@@ -12,3 +12,4 @@ tools/trades/*.csv
 
 # Kişisel takip verisi (tools/watch/history.mjs çıktıları)
 tools/watch/out/
+docs/backtest/live-trades.json
