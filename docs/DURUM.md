@@ -473,6 +473,6 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - Bulgu: 128 tam stopun %33,6'sı killzone'da (zaman payı %25, BTC oynaklık payı %25,3), ama fazlalık iki günden (10.09: 10 stop, 16.05: 7 stop); onlar hariç %23. Eğitimde Londra, doğrulamada New York ağırlıklı → kararlı bir saat yok.
   Dolumu killzone'da olan işlemler: sonuçsuz (n 52 / 82), fark yön değiştiriyor (+0,11 / −0,17R). Canlıda 39 stopun 27'si killzone'da, 17'si 23.11'in tek mumu.
 - Düzeltme: 24.11 ölçümlerinde "12 ay" dediğim dönem aslında ≈ 8 ay (16.03–19.11.2026); sayılar değişmedi.
-- `MAX_OPEN_SAME=10` kullanıcı tarafından Variables'a girildi (25.11, kullanıcı bildirdi). Testler 651 / 648 geçti (1 bilinen `levels`, 2 todo).
+- `MAX_OPEN_SAME=10` kullanıcı tarafından Variables'a girildi (24.11 12:42 UTC; `gh variable list` ile doğrulandı). Testler 651 / 648 geçti (1 bilinen `levels`, 2 todo).
 - Ölçülmeyen: ABD veri açıklama saatleri (08:30 NY) takvimi; kullanıcı isterse ayrı ön kayıt.
 
