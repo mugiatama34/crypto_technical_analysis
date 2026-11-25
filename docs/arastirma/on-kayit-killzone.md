@@ -23,3 +23,7 @@ Beklenen n (403 dolumun ≈ %25–35'i, iki dilime bölünmüş) 100'ün altınd
 **Seçim yok:** saat tablosundan saat / pencere seçilmez; başka killzone tanımı denenmez. İlginç çıkan saat yeni ön kayıt ve bağımsız dönem ister.
 **Sınırlar:** tek 12 ay; 1H çözünürlük (killzone sınırındaki mum başlangıç saatine göre sayılır); stop yalnız "tam stop" (başa baş ve kısmi çıkışlar yok);
 S2 "killzone'da bekleyen emri iptal et" kuralının yaklaşığıdır (iptal edilen emrin yerine geleni oynatmaz); canlı kayıt short ağırlıklı ve küçük.
+
+**Not (25.11.2026, ilk koşudan sonra; tanım değişmedi):** ilk koşuda 128 stopun 42'sinin planı `plans.json.gz` ile eşleşmedi (artefakttaki plan dosyası taramanın kullandığı plan
+kümesiyle birebir aynı değil) → stop eşleşmesi %67 < %90, yukarıdaki kurala göre **geçersiz**. Düzeltme yalnız veri kaynağında: `sweep.mjs` dökümüne `stop` alanı eklendi,
+tarama yeniden koşuldu ve ölçüm yeni dökümle tekrarlandı. Geçersiz koşunun sayıları görüldü (86 stop; killzone payı %33, oynaklık payı %25; S2 sonuçsuz); tanım, pencere ve ölçüt aynı kaldı.

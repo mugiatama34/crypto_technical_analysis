@@ -456,7 +456,7 @@ async function main() {
       const tr = { time: t.time, tf: t.tf, score: t.plan.score, htf: h ? htfTrendAt(h.hs, h.ms, t.time + TIMEFRAMES[t.tf].ms) : null, waitBars: sim.waitBars, bars: sim.bars, tp1Bars: sim.tp1Bars ?? null, d: plan.d, entryFill: sim.entryFill, stop: plan.stop, outcome: sim.outcome, R: sim.R, mfe: sim.mfe, inZone: plan.inZone, approachAtr: sim.approachAtr };
       if (sim.entryFill) Object.assign(tr, hedgeOf(tr, btcByTf.get(t.tf), o.feePct, o.tp1Portion));
       trades.push(tr);
-      if (v.live && v.name === LIVE_NAME_A) liveDump.push({ coin: t.coin, time: tr.time, tf: tr.tf, d: tr.d, score: tr.score, outcome: tr.outcome, R: tr.R ?? null, hedgedR: tr.hedgedR ?? null, entryFill: tr.entryFill ?? null, waitBars: tr.waitBars ?? null, bars: tr.bars ?? null, entryTime: entryTimeOf(tr) });
+      if (v.live && v.name === LIVE_NAME_A) liveDump.push({ coin: t.coin, time: tr.time, tf: tr.tf, d: tr.d, score: tr.score, outcome: tr.outcome, R: tr.R ?? null, hedgedR: tr.hedgedR ?? null, entryFill: tr.entryFill ?? null, stop: tr.stop ?? null, waitBars: tr.waitBars ?? null, bars: tr.bars ?? null, entryTime: entryTimeOf(tr) });
     }
     if (v.maxOpenSameDir || v.maxNewSameDir) { const kept = capTrades(trades, { maxOpen: v.maxOpenSameDir, maxNew: v.maxNewSameDir }); trades.length = 0; trades.push(...kept); }
     const tr = trades.filter((t) => t.time < split), va = trades.filter((t) => t.time >= split);
