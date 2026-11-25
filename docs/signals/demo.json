@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795628767957,
+ "updatedAt": 1795629672072,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4827,6 +4827,35 @@
    "leverage": 12.5,
    "lastAtCreate": 0.01942,
    "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 10 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  "CAP|4H|long|21|1795628731325": {
+   "id": "CAP|4H|long|21|1795628731325",
+   "coin": "CAP",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795628731325,
+   "createdAt": 1795629672072,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.093277,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "CAPUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "skipped",
+   "reason": "Bybit fiyatı 0.0928 girişin (0.09328) ötesinde: limit anında dolardı"
   }
  },
  "insts": {
@@ -6578,6 +6607,13 @@
    "symbol": "PIPPINUSDT",
    "ev": "atlandı",
    "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 10 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  {
+   "at": 1795629672072,
+   "id": "CAP|4H|long|21|1795628731325",
+   "symbol": "CAPUSDT",
+   "ev": "atlandı",
+   "why": "Bybit fiyatı 0.0928 girişin (0.09328) ötesinde: limit anında dolardı"
   }
  ],
  "lastError": null
