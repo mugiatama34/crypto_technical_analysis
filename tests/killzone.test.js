@@ -39,6 +39,8 @@ test('killzone: oynaklık ve stop payı', () => {
   assert.equal(s.kz, 3);
   assert.equal(s.kzShare, 0.75);
   assert.equal(s.hours[2], 1); // 07 UTC = 02 NY
+  assert.equal(s.kzDays, 1);
+  assert.deepEqual(s.topKzDays, [{ day: '2026-01-15', n: 3 }]);
 });
 
 test('killzone: dolum saatine göre fark ve karar', () => {

@@ -74,13 +74,20 @@ günlük `docs/DURUM-arsiv.md`. Bu metin 17.11.2026'da `CLAUDE.md`'den buraya ta
   kazanç) → dış sonuçlarda önce muhasebeye bak. Başka eşik denenmez.
 - **Ters gün yığılması, eşzamanlı pozisyon sınırı, Pazartesi (24.11.2026, ön kayıtlı: `docs/arastirma/on-kayit-ters-gun.md`; `cluster.json`, koşu 45393710134,
   betik `backtest/cluster.mjs`):** "canlıya eşit" 3 kademeli satır (eğ n 164 −0,034R · doğr n 239 −0,060R). **S1:** aynı gün aynı yönde ≥ 5 stop olan 8 gün (139 günün %6'sı,
-  84 işlem) = −57,7R, brüt kaybın %47'si (eğ %42 / doğr %50); bu günler hariç ort. +0,12R (n 319; geleceği bilmek gerekir, kural değil). 12 ayın en kötü 7 gününün hepsi long.
+  84 işlem) = −57,7R, brüt kaybın %47'si (eğ %42 / doğr %50); bu günler hariç ort. +0,12R (n 319; geleceği bilmek gerekir, kural değil). Dönemin en kötü 7 gününün hepsi long.
   **S2 (bilgi, seçim yok):** aynı yönde ≤ 10 / 5 / 3 açık → ort. R eğ −0,012 / +0,005 / −0,031 · doğr +0,002 / −0,004 / −0,028 (taban −0,034 / −0,060); en kötü gün −14,9 → −9,5 / −5,3 / −5,3R;
   en kötü 7 gün −21,4 → −16,0 / −9,8 / −8,1R; işlem sayısı 403 → 333 / 254 / 202. Üçü de ön kayıttaki "bedelsiz koruma" ölçütünü tuttu (ort. R düşmüyor, kuyruk küçülüyor) ama
   ort. R ≈ 0: **sınır kenar yaratmaz, kötü günü küçültür.** **S3 Pazartesi: sonuçsuz** (Pazartesi n 35 / 42 < 100; fark eğ −0,082 / doğr +0,002, %95 aralık [−0,28; +0,19]) → işaret bile yok.
   Hafta günü tablosunda Cuma en kötü (n 63, −0,23R) = bilgi satırı, seçilmez. Başka N / başka gün denenmez.
 - **Yığılma anında koşullu BTC hedge'i (24.11.2026, ön kayıtlı: `docs/arastirma/on-kayit-kosullu-hedge.md`; `cluster.json` `hedge`, aynı döküm):** aynı yönde ≤ 10 sınırı üstüne,
   yığın ≥ 8 iken açılan işlemler eşit büyüklükte ters BTC bacağıyla. **Sonuçsuz** (hedge'lenen işlem eğ 15 < 30; doğr 55). Yön: ort. R eğ −0,012 → +0,006 · doğr +0,002 → −0,011
-  (12 ayda 70 işlemde toplam +0,6R = sıfır); en kötü gün −9,5 → −7,5R, en kötü 7 gün −16,0 → −14,0R. Kazanç artırmıyor, kuyruğu ≈ %15–20 kısıyor. Sınırsız düzende aynı koşul
+  (dönemde 70 işlemde toplam +0,6R = sıfır); en kötü gün −9,5 → −7,5R, en kötü 7 gün −16,0 → −14,0R. Kazanç artırmıyor, kuyruğu ≈ %15–20 kısıyor. Sınırsız düzende aynı koşul
   doğrulamada −7,9R (135 işlem); her işleme hedge −19,3R (ort. −0,048R / işlem). Maliyette kayma ve fonlama yok (iyimser). Başka K denenmez.
+  **Düzeltme (25.11):** bu dökümün dönemi 12 ay değil **≈ 8 ay (16.03–19.11.2026)**; "sıra 1H · veri yoksa elenir" satırı 1H verisi olmayan eski işlemleri atıyor. Sayılar aynı, yalnız dönem etiketi yanlıştı.
+- **Kayıpların saati ↔ killzone'lar (25.11.2026, ön kayıtlı: `docs/arastirma/on-kayit-killzone.md`; `killzone.json`, koşu 45570880028, betik `backtest/killzone.mjs`; stop ve dolum saati
+  OKX 1H mumlarından, eşleşme %100):** Londra 02–05 NY + New York 07–10 NY = zamanın %25'i, BTC oynaklığının %25,3'ü. **S1 (bilgi):** 128 tam stopun 43'ü (%33,6) killzone'da
+  (oran 1,33 > 1,25 eşiği) ama dağılım tutarsız ve kümeli: eğitimde Londra 11 / NY 7, doğrulamada Londra 2 / NY 23; 43 stop 18 güne düşüyor, 17'si iki günde (10.09: 10, 16.05: 7);
+  o iki gün hariç 26 / 111 = %23 ≈ zaman payı. Canlı kayıtta (26.10 →) 39 stopun 27'si killzone'da, 17'si tek mumda (23.11 12:00 UTC). Yani "killzone etkisi" = birkaç ters gün.
+  **S2 (birincil) sonuçsuz:** dolumu killzone'da olan n 52 / 82 < 100; fark (diğer − killzone) eğ +0,110 / doğr −0,165R (yön değiştiriyor), %95 aralık [−0,22; +0,11] → işaret yok.
+  Bilgi: Londra dolumları +0,14R (n 63), NY dolumları −0,15R (n 71); seçilmez. Başka pencere / saat denenmez; ABD veri saati (08:30 NY) takvimi ölçülmedi.
 

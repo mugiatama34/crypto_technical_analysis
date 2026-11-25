@@ -45,7 +45,10 @@ export function stopShare(stops) {
   const z = { london: 0, ny: 0 }, hours = Array(24).fill(0);
   for (const s of stops) { const k = zoneOf(s.at); if (k) z[k]++; hours[nyHour(s.at)]++; }
   const n = stops.length || 1;
-  return { n: stops.length, london: z.london, ny: z.ny, kz: z.london + z.ny, kzShare: r2((z.london + z.ny) / n), londonShare: r2(z.london / n), nyShare: r2(z.ny / n), hours };
+  // Kümelenme: killzone stopları kaç ayrı güne düşüyor, en kalabalık gün kaç stop (bağımsız örnek n'den küçüktür).
+  const byDay = new Map(); for (const s of stops) if (zoneOf(s.at)) byDay.set(dayOf(s.at), (byDay.get(dayOf(s.at)) || 0) + 1);
+  const top = [...byDay.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3).map(([day, c]) => ({ day, n: c }));
+  return { n: stops.length, london: z.london, ny: z.ny, kz: z.london + z.ny, kzDays: byDay.size, days: new Set(stops.map((s) => dayOf(s.at))).size, topKzDays: top, kzShare: r2((z.london + z.ny) / n), londonShare: r2(z.london / n), nyShare: r2(z.ny / n), hours };
 }
 
 /** S2: dolumu killzone'da olan (t.fillAt) ↔ diğerleri; fark = diğer − killzone. */

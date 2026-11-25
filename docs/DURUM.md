@@ -466,3 +466,13 @@ kısa bir giriş eklenir. Eski girişler silinmez.
 - 24.11.2026 **`MAX_OPEN_SAME` bayrağı eklendi (kullanıcı kararı: N = 10; `bot/shadow.js` `openCapHit`, `bot/run.mjs` gönderim döngüsü, `scan.yml`; varsayılan kapalı).**
   **Kullanıcı Variables'a `MAX_OPEN_SAME=10` girene kadar sınır yok.** Sayım: bekleyen + dolmuş, kapanmamış aynı yönlü planlar (taramadaki `capTrades` tanımı); red nedeni "aynı yönde açık sınırı".
   **Koşullu hedge ölçümü (ön kayıtlı): sonuçsuz**, kazanç artırmıyor, ≤ 10 üstüne en kötü günü −9,5 → −7,5R yapıyor (ayrıntı `bulgular.md` son madde). Testler 647 (644 geçti, 1 bilinen `levels`, 2 todo).
+
+## 25.11.2026 (yerel oturum) — kayıpların saati ↔ killzone'lar (ön kayıtlı; sonuçsuz)
+- Kullanıcı sorusu: kayıplar Asya → Londra / Londra → New York geçişlerinde mi geliyor? Ön kayıt `docs/arastirma/on-kayit-killzone.md`, betik `backtest/killzone.mjs`, sonuç `docs/backtest/killzone.json`.
+- İlk koşu geçersiz (stopların %67'si eşleşti; artefakttaki plan dosyası taramanın plan kümesiyle aynı değil) → tarama dökümüne `stop` eklendi, koşu 45570880028 ile tekrarlandı (eşleşme %100).
+- Bulgu: 128 tam stopun %33,6'sı killzone'da (zaman payı %25, BTC oynaklık payı %25,3), ama fazlalık iki günden (10.09: 10 stop, 16.05: 7 stop); onlar hariç %23. Eğitimde Londra, doğrulamada New York ağırlıklı → kararlı bir saat yok.
+  Dolumu killzone'da olan işlemler: sonuçsuz (n 52 / 82), fark yön değiştiriyor (+0,11 / −0,17R). Canlıda 39 stopun 27'si killzone'da, 17'si 23.11'in tek mumu.
+- Düzeltme: 24.11 ölçümlerinde "12 ay" dediğim dönem aslında ≈ 8 ay (16.03–19.11.2026); sayılar değişmedi.
+- `MAX_OPEN_SAME=10` kullanıcı tarafından Variables'a girildi (25.11, kullanıcı bildirdi). Testler 651 / 648 geçti (1 bilinen `levels`, 2 todo).
+- Ölçülmeyen: ABD veri açıklama saatleri (08:30 NY) takvimi; kullanıcı isterse ayrı ön kayıt.
+
