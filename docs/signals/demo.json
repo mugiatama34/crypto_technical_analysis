@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795615157427,
+ "updatedAt": 1795616062088,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4782,6 +4782,51 @@
    },
    "phase": "skipped",
    "reason": "Bybit fiyatı 0.09263 girişin (0.09325) ötesinde: limit anında dolardı"
+  },
+  "PIPPIN|4H|long|18|1795615251138": {
+   "id": "PIPPIN|4H|long|18|1795615251138",
+   "coin": "PIPPIN",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795615251138,
+   "createdAt": 1795616062088,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.0192034,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "PIPPINUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "skipped",
+   "lv": {
+    "d": 1,
+    "entry": 0.0192,
+    "stop": 0.01845,
+    "tp1": 0.02032,
+    "tp2": 0.02699,
+    "early": 0.01943,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 1212573,
+   "riskUsd": 909.4297,
+   "riskTarget": 909.43,
+   "leverage": 12.5,
+   "lastAtCreate": 0.01942,
+   "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 10 or below to increase the limit. Or manually increase the risk limit tier."
   }
  },
  "insts": {
@@ -5259,6 +5304,20 @@
     "minQty": 10,
     "minNotional": 5,
     "maxLev": 10
+   }
+  },
+  "PIPPIN": {
+   "at": 1795616062088,
+   "inst": {
+    "coin": "PIPPIN",
+    "symbol": "PIPPINUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 12.5
    }
   }
  },
@@ -6502,7 +6561,29 @@
    "symbol": "CAPUSDT",
    "ev": "atlandı",
    "why": "Bybit fiyatı 0.09263 girişin (0.09325) ötesinde: limit anında dolardı"
+  },
+  {
+   "at": 1795616062088,
+   "id": "PIPPIN|4H|long|18|1795615251138",
+   "symbol": "PIPPINUSDT",
+   "ev": "emir",
+   "qty": 1212573,
+   "entry": 0.0192,
+   "stop": 0.01845,
+   "lev": 12.5
+  },
+  {
+   "at": 1795616062088,
+   "id": "PIPPIN|4H|long|18|1795615251138",
+   "symbol": "PIPPINUSDT",
+   "ev": "atlandı",
+   "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 10 or below to increase the limit. Or manually increase the risk limit tier."
   }
  ],
- "lastError": null
+ "lastError": {
+  "key": "emir E reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Onl",
+  "at": 1795616062088,
+  "notifiedAt": 1795616062088,
+  "n": 1
+ }
 }
