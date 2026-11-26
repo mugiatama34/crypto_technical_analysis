@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795718274295,
+ "updatedAt": 1795719178221,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4901,6 +4901,35 @@
    "leverage": 10,
    "lastAtCreate": 0.09378,
    "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 7.14 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  "PIPPIN|4H|long|19|1795718730124": {
+   "id": "PIPPIN|4H|long|19|1795718730124",
+   "coin": "PIPPIN",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795718730124,
+   "createdAt": 1795719178221,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.0191946,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "PIPPINUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "skipped",
+   "reason": "Bybit fiyatı 0.01907 girişin (0.01919) ötesinde: limit anında dolardı"
   }
  },
  "insts": {
@@ -5381,7 +5410,7 @@
    }
   },
   "PIPPIN": {
-   "at": 1795616062088,
+   "at": 1795719178221,
    "inst": {
     "coin": "PIPPIN",
     "symbol": "PIPPINUSDT",
@@ -6676,6 +6705,13 @@
    "symbol": "CAPUSDT",
    "ev": "atlandı",
    "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 7.14 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  {
+   "at": 1795719178221,
+   "id": "PIPPIN|4H|long|19|1795718730124",
+   "symbol": "PIPPINUSDT",
+   "ev": "atlandı",
+   "why": "Bybit fiyatı 0.01907 girişin (0.01919) ötesinde: limit anında dolardı"
   }
  ],
  "lastError": null
