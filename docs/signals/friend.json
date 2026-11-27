@@ -18,7 +18,8 @@
   "AVAX|1795336330000": 1795353335232,
   "ENA|1795488808000": 1795489253323,
   "LTC|1795488810000": 1795489253323,
-  "INJ|1795488810000": 1795489253323
+  "INJ|1795488810000": 1795489253323,
+  "VVV|1795754779000": 1795755655541
  },
  "items": [
   {
@@ -106,9 +107,9 @@
    "tp": 0.050369999999999984,
    "openTime": 1795488808000,
    "seenAt": 1795489253323,
-   "lastPrice": 0.10469,
+   "lastPrice": 0.10462,
    "status": "open",
-   "unrealizedR": -0.169,
+   "unrealizedR": -0.166,
    "breakeven": false,
    "partialDone": false
   },
@@ -125,9 +126,9 @@
    "tp": 32.97248,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 44.51,
+   "lastPrice": 44.55,
    "status": "open",
-   "unrealizedR": -0.596,
+   "unrealizedR": -0.603,
    "breakeven": false,
    "partialDone": false
   },
@@ -144,13 +145,13 @@
    "tp": 3.231,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 6.35,
+   "lastPrice": 6.365,
    "status": "open",
-   "unrealizedR": -0.109,
+   "unrealizedR": -0.119,
    "breakeven": false,
    "partialDone": false
   }
  ],
- "updatedAt": 1795754728117,
+ "updatedAt": 1795755655541,
  "src": "r50-4h"
 }
