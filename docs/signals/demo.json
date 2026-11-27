@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795738195202,
+ "updatedAt": 1795739099211,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4930,6 +4930,35 @@
    },
    "phase": "skipped",
    "reason": "Bybit fiyatı 0.01907 girişin (0.01919) ötesinde: limit anında dolardı"
+  },
+  "CAP|4H|long|27|1795738530632": {
+   "id": "CAP|4H|long|27|1795738530632",
+   "coin": "CAP",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795738530632,
+   "createdAt": 1795739099211,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.09408,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "CAPUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00001",
+    "qtyStep": "10",
+    "minQty": 10
+   },
+   "phase": "skipped",
+   "reason": "Bybit fiyatı 0.09255 girişin (0.09408) ötesinde: limit anında dolardı"
   }
  },
  "insts": {
@@ -6712,6 +6741,13 @@
    "symbol": "PIPPINUSDT",
    "ev": "atlandı",
    "why": "Bybit fiyatı 0.01907 girişin (0.01919) ötesinde: limit anında dolardı"
+  },
+  {
+   "at": 1795739099211,
+   "id": "CAP|4H|long|27|1795738530632",
+   "symbol": "CAPUSDT",
+   "ev": "atlandı",
+   "why": "Bybit fiyatı 0.09255 girişin (0.09408) ötesinde: limit anında dolardı"
   }
  ],
  "lastError": null
