@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795768037005,
+ "updatedAt": 1795768941215,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -4959,6 +4959,51 @@
    },
    "phase": "skipped",
    "reason": "Bybit fiyatı 0.09255 girişin (0.09408) ötesinde: limit anında dolardı"
+  },
+  "OPG|4H|long|17|1795768241148": {
+   "id": "OPG|4H|long|17|1795768241148",
+   "coin": "OPG",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795768241148,
+   "createdAt": 1795768941215,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.16934,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "OPGUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.00010",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "skipped",
+   "lv": {
+    "d": 1,
+    "entry": 0.1693,
+    "stop": 0.1618,
+    "tp1": 0.1838,
+    "tp2": 0.1906,
+    "early": 0.1713,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 121257,
+   "riskUsd": 909.4275,
+   "riskTarget": 909.43,
+   "leverage": 15,
+   "lastAtCreate": 0.1697,
+   "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 9.5 or below to increase the limit. Or manually increase the risk limit tier."
   }
  },
  "insts": {
@@ -5450,6 +5495,20 @@
     "minQty": 1,
     "minNotional": 5,
     "maxLev": 12.5
+   }
+  },
+  "OPG": {
+   "at": 1795768941215,
+   "inst": {
+    "coin": "OPG",
+    "symbol": "OPGUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.00010",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 20
    }
   }
  },
@@ -6748,7 +6807,29 @@
    "symbol": "CAPUSDT",
    "ev": "atlandı",
    "why": "Bybit fiyatı 0.09255 girişin (0.09408) ötesinde: limit anında dolardı"
+  },
+  {
+   "at": 1795768941215,
+   "id": "OPG|4H|long|17|1795768241148",
+   "symbol": "OPGUSDT",
+   "ev": "emir",
+   "qty": 121257,
+   "entry": 0.1693,
+   "stop": 0.1618,
+   "lev": 15
+  },
+  {
+   "at": 1795768941215,
+   "id": "OPG|4H|long|17|1795768241148",
+   "symbol": "OPGUSDT",
+   "ev": "atlandı",
+   "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 9.5 or below to increase the limit. Or manually increase the risk limit tier."
   }
  ],
- "lastError": null
+ "lastError": {
+  "key": "emir E reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Onl",
+  "at": 1795768941215,
+  "notifiedAt": 1795768941215,
+  "n": 1
+ }
 }
