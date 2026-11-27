@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795787934121,
+ "updatedAt": 1795788838079,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -5004,6 +5004,51 @@
    "leverage": 15,
    "lastAtCreate": 0.1697,
    "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 9.5 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  "DGAI|4H|long|22|1795788055839": {
+   "id": "DGAI|4H|long|22|1795788055839",
+   "coin": "DGAI",
+   "tf": "4H",
+   "direction": "long",
+   "d": 1,
+   "sentAt": 1795788055839,
+   "createdAt": 1795788838079,
+   "paper": {
+    "status": "waiting",
+    "entry": 0.9256,
+    "filledAt": null,
+    "confirmedAt": null,
+    "closedAt": null,
+    "R": null
+   },
+   "orders": {},
+   "stops": [],
+   "deviations": [],
+   "symbol": "DGAIUSDT",
+   "mult": 1,
+   "inst": {
+    "tick": "0.0001",
+    "qtyStep": "1",
+    "minQty": 1
+   },
+   "phase": "skipped",
+   "lv": {
+    "d": 1,
+    "entry": 0.9256,
+    "stop": 0.8907,
+    "tp1": 0.9779,
+    "tp2": 1.1192,
+    "early": 0.9367,
+    "earlyPortion": 0.5,
+    "midPortion": 0.25,
+    "midStop": "early"
+   },
+   "qty": 26058,
+   "riskUsd": 909.4242,
+   "riskTarget": 909.43,
+   "leverage": 17,
+   "lastAtCreate": 0.9349,
+   "reason": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 8.5 or below to increase the limit. Or manually increase the risk limit tier."
   }
  },
  "insts": {
@@ -5505,6 +5550,20 @@
     "mult": 1,
     "status": "Trading",
     "tick": "0.00010",
+    "qtyStep": "1",
+    "minQty": 1,
+    "minNotional": 5,
+    "maxLev": 20
+   }
+  },
+  "DGAI": {
+   "at": 1795788838079,
+   "inst": {
+    "coin": "DGAI",
+    "symbol": "DGAIUSDT",
+    "mult": 1,
+    "status": "Trading",
+    "tick": "0.0001",
     "qtyStep": "1",
     "minQty": 1,
     "minNotional": 5,
@@ -6824,7 +6883,29 @@
    "symbol": "OPGUSDT",
    "ev": "atlandı",
    "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 9.5 or below to increase the limit. Or manually increase the risk limit tier."
+  },
+  {
+   "at": 1795788838079,
+   "id": "DGAI|4H|long|22|1795788055839",
+   "symbol": "DGAIUSDT",
+   "ev": "emir",
+   "qty": 26058,
+   "entry": 0.9256,
+   "stop": 0.8907,
+   "lev": 17
+  },
+  {
+   "at": 1795788838079,
+   "id": "DGAI|4H|long|22|1795788055839",
+   "symbol": "DGAIUSDT",
+   "ev": "atlandı",
+   "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 8.5 or below to increase the limit. Or manually increase the risk limit tier."
   }
  ],
- "lastError": null
+ "lastError": {
+  "key": "emir E reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Onl",
+  "at": 1795788838079,
+  "notifiedAt": 1795788838079,
+  "n": 1
+ }
 }
