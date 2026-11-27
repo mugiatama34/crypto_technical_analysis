@@ -1,7 +1,7 @@
 {
  "version": 1,
  "startedAt": 1794944414684,
- "updatedAt": 1795788838079,
+ "updatedAt": 1795789743729,
  "jobs": {
   "TAO|4H|short|32|1794859247420": {
    "id": "TAO|4H|short|32|1794859247420",
@@ -6902,10 +6902,5 @@
    "why": "giriş emri reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Only reduce-only or close-on-trigger orders are allowed. Please adjust your leverage to 8.5 or below to increase the limit. Or manually increase the risk limit tier."
   }
  ],
- "lastError": {
-  "key": "emir E reddedildi: 110090 The combined value of positions and orders has reached the limit of the current risk tier. Onl",
-  "at": 1795788838079,
-  "notifiedAt": 1795788838079,
-  "n": 1
- }
+ "lastError": null
 }
