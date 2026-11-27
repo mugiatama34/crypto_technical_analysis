@@ -107,9 +107,9 @@
    "tp": 0.050369999999999984,
    "openTime": 1795488808000,
    "seenAt": 1795489253323,
-   "lastPrice": 0.10508,
+   "lastPrice": 0.1056,
    "status": "open",
-   "unrealizedR": -0.182,
+   "unrealizedR": -0.201,
    "breakeven": false,
    "partialDone": false
   },
@@ -126,9 +126,9 @@
    "tp": 32.97248,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 44.74,
+   "lastPrice": 44.78,
    "status": "open",
-   "unrealizedR": -0.635,
+   "unrealizedR": -0.642,
    "breakeven": false,
    "partialDone": false
   },
@@ -145,13 +145,13 @@
    "tp": 3.231,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 6.351,
+   "lastPrice": 6.363,
    "status": "open",
-   "unrealizedR": -0.11,
+   "unrealizedR": -0.117,
    "breakeven": false,
    "partialDone": false
   }
  ],
- "updatedAt": 1795759255741,
+ "updatedAt": 1795760127945,
  "src": "r50-4h"
 }
