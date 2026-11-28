@@ -19,7 +19,8 @@
   "ENA|1795488808000": 1795489253323,
   "LTC|1795488810000": 1795489253323,
   "INJ|1795488810000": 1795489253323,
-  "VVV|1795754779000": 1795755655541
+  "VVV|1795754779000": 1795755655541,
+  "NIGHT|1795868192000": 1795869042066
  },
  "items": [
   {
@@ -107,9 +108,9 @@
    "tp": 0.050369999999999984,
    "openTime": 1795488808000,
    "seenAt": 1795489253323,
-   "lastPrice": 0.1013,
+   "lastPrice": 0.10152,
    "status": "open",
-   "unrealizedR": -0.047,
+   "unrealizedR": -0.055,
    "breakeven": false,
    "partialDone": false
   },
@@ -126,9 +127,9 @@
    "tp": 32.97248,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 44.14,
+   "lastPrice": 43.99,
    "status": "open",
-   "unrealizedR": -0.533,
+   "unrealizedR": -0.507,
    "breakeven": false,
    "partialDone": false
   },
@@ -145,13 +146,13 @@
    "tp": 3.231,
    "openTime": 1795488810000,
    "seenAt": 1795489253323,
-   "lastPrice": 6.183,
+   "lastPrice": 6.202,
    "status": "open",
-   "unrealizedR": -0.003,
+   "unrealizedR": -0.015,
    "breakeven": false,
    "partialDone": false
   }
  ],
- "updatedAt": 1795868137370,
+ "updatedAt": 1795869042066,
  "src": "r50-4h"
 }
